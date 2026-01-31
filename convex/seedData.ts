@@ -1,5 +1,5 @@
 import { internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Seed initial capability tags

@@ -30,7 +30,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
           ui: ['framer-motion', 'lucide-react'],
         },
       },

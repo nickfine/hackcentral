@@ -295,6 +295,38 @@ npm run lint
 
 ---
 
+## Error Boundary & Browser Testing (Jan 31, 2026)
+
+### Error Boundary Implementation
+
+**What was added:**
+- Class component `ErrorBoundary` in `src/components/shared/ErrorBoundary.tsx`
+- Wraps `<App />` inside `ConvexProviderWithClerk` in `main.tsx`
+- Catches render/lifecycle errors and shows fallback UI: "Something went wrong", error message, "Reload Page" button
+- `componentDidCatch` logs "Error caught by boundary:" plus error and errorInfo to console
+
+### Testing with Playwright MCP
+
+**Tools used:**
+- `browser_navigate` - Navigate to app URL (e.g. `http://localhost:5174/`)
+- `browser_wait_for` - Wait for text ("Something went wrong") or time (seconds)
+- `browser_snapshot` - Capture accessibility tree (headings, paragraphs, buttons with refs)
+- `browser_click` - Click by ref (e.g. "Reload Page" button ref=e9)
+- `browser_console_messages` - Get console messages by level (e.g. `level: "error"`)
+
+**Test flow:**
+1. Start dev server (`npm run dev:frontend`); note port (5174 if 5173 in use).
+2. Temporarily throw in a component that renders for unauthenticated users (e.g. `AuthGuard` unauthenticated branch) so the Error Boundary triggers without signing in.
+3. Navigate to app root; wait for "Something went wrong" or 2s.
+4. Snapshot confirms: heading "Something went wrong", paragraph with error message, button "Reload Page".
+5. Console (level=error) confirms: React's error overlay message and "Error caught by boundary: Error: ..." from `ErrorBoundary.componentDidCatch`.
+6. Click "Reload Page" button; page reloads (error boundary shows again while throw is present).
+7. Remove temporary throw; navigate again; snapshot shows normal sign-in screen ("Welcome to HackCentral", Sign Up / Sign In).
+
+**Takeaway:** Playwright MCP is sufficient for testing Error Boundary UI and console output. Use a throw in an unauthenticated path so tests don't require auth.
+
+---
+
 ## Current Project Status (Jan 31, 2026)
 
 ### Completed ✅
@@ -304,6 +336,7 @@ npm run lint
 - Library page with 24 AI Arsenal assets
 - People directory
 - Projects page (structure ready)
+- Error Boundary (tested via Playwright MCP)
 - All critical bugs fixed
 - 0 TypeScript errors
 - 0 ESLint errors

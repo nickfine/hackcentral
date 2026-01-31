@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { ClerkProvider, useAuth } from '@clerk/clerk-react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { convex } from './lib/convex'
+import { ErrorBoundary } from '@/components/shared'
 import App from './App'
 import './styles/globals.css'
 
@@ -18,7 +19,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ClerkProvider publishableKey={clerkPubKey}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   </StrictMode>,

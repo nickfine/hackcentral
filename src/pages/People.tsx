@@ -189,7 +189,7 @@ function ProfileCard({ profile, capabilityTags }: ProfileCardProps) {
     if (name) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     }
-    return email[0].toUpperCase();
+    return email ? email[0].toUpperCase() : '?';
   };
 
   const getUserTags = () => {

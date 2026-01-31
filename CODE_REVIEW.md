@@ -400,3 +400,45 @@ From ROADMAP.md Phase 1, still needed:
 - Code is maintainable and well-organized
 
 **Overall Assessment**: Strong foundation, ready for feature development. Fix the async filter bug immediately, then proceed with feature implementation as outlined in ROADMAP.md.
+
+---
+
+## Follow-up Review: Consistency & Integrity (Jan 31, 2026)
+
+### Verification Performed
+
+- **Build**: `npm run build` — passes (TypeScript + Vite).
+- **Lint**: No ESLint errors in `src/` or `convex/`.
+- **Patterns**: No `any` types in `src/`; no `async` inside `.filter()` in runtime code (only in docs as anti-pattern examples).
+- **Convex**: Visibility logic in `projects.ts` uses `Promise.all` + `.map()`; `profiles.ts` and `libraryAssets.ts` use synchronous `.filter()` only. All correct.
+- **Types**: Convex IDs used consistently (`Id<"tableName">` in pages; `v.id("tableName")` in schema/args).
+
+### Consistency Findings (Non-blocking)
+
+1. **Import style**
+   - **Mix of `@/` and relative**: `main.tsx` uses `@/components/shared` and `./lib/convex`; `App.tsx` uses `@/components/auth/AuthGuard`, `@/components/shared/Layout`, `@/pages`. Pages use relative `../../convex/_generated/api`. Acceptable; convex lives outside `src/` so relative from `src/` is correct.
+   - **Auth barrel**: `AuthGuard` is not exported from `src/components/auth/index.ts`; `App.tsx` imports from `@/components/auth/AuthGuard`. Optional improvement: export `AuthGuard` from `auth/index.ts` and use `@/components/auth` for consistency with shared/pages.
+
+2. **Semicolons**
+   - Some files use semicolons (e.g. `auth/*`, `pages/*`, `useAuth.ts`, `ProfileSetup.tsx`), others omit (e.g. `main.tsx`, `App.tsx`, `ErrorBoundary.tsx`, `Header.tsx`, `Layout.tsx`). ESLint does not enforce; no change required unless the team standardizes.
+
+3. **React node types**
+   - `ErrorBoundary` uses `ReactNode` from `react`; `AuthGuard` uses `React.ReactNode`. Functionally equivalent; optional cleanup: use `import type { ReactNode } from 'react'` in `AuthGuard` for consistency.
+
+### Integrity Findings
+
+- **No critical or high-severity issues.**  
+- **Convex**
+  - `convex/auth.config.ts`: Clerk domain is hardcoded. For multiple environments, consider reading from env (e.g. in Convex dashboard) so production uses the correct Clerk instance.
+  - `convex/schema.ts` and `libraryAssets.ts`: `v.any()` used for `content` and optional `metadata`/`validationMetadata` — intentional for flexible payloads; no change needed.
+- **Frontend**
+  - `Profile.tsx`: `badge-${profile.experienceLevel}` matches existing CSS (e.g. `badge-newbie`, `badge-power-user`). Correct.
+  - `Projects.tsx`: `statusFilter` and `searchQuery` are applied client-side to `projects`; behavior is correct.
+  - `People.tsx`: `getInitials` handles undefined `email` with `email ? email[0].toUpperCase() : '?'`. Correct.
+- **Error Boundary**: Implemented and tested; wraps `App` inside providers; fallback UI and `componentDidCatch` logging verified.
+
+### Summary
+
+- **Consistency**: Minor, optional improvements (auth barrel export, semicolon/ReactNode uniformity). No inconsistencies that affect correctness or maintainability in a meaningful way.
+- **Integrity**: Build and lint pass; Convex visibility and filtering are correct; type usage is sound; Error Boundary is in place and tested. No bugs or security issues identified.
+- **Recommendation**: Proceed with feature work (dashboard metrics, project creation, asset detail, profile editing). Apply the optional consistency tweaks when touching those files if the team cares to standardize.
