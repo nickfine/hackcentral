@@ -4,18 +4,22 @@
  */
 
 import { useState } from 'react';
-import { Search, Plus, Sparkles, FileText, Bot, Shield, Award, X } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { Search, Plus, Sparkles, FileText, Bot, Shield, Award, X, Link2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
+import { useAuth } from '../hooks/useAuth';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery);
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedAssetId, setSelectedAssetId] = useState<Id<'libraryAssets'> | null>(null);
 
-  const arsenalAssets = useQuery(api.libraryAssets.getArsenal);
+  const arsenalAssets = useQuery(api.libraryAssets.getArsenalWithReuseCounts);
   const selectedAsset = useQuery(
     api.libraryAssets.getById,
     selectedAssetId ? { assetId: selectedAssetId } : 'skip'
@@ -34,7 +38,7 @@ export default function Library() {
     queryArgs.status = selectedStatus as typeof queryArgs.status;
   }
   
-  const allAssets = useQuery(api.libraryAssets.list, queryArgs);
+  const allAssets = useQuery(api.libraryAssets.listWithReuseCounts, queryArgs);
 
   return (
     <div className="space-y-6">
@@ -73,7 +77,11 @@ export default function Library() {
                 </button>
               </div>
             ) : (
-              <AssetDetailContent asset={selectedAsset} onClose={() => setSelectedAssetId(null)} />
+              <AssetDetailContent
+                asset={selectedAsset}
+                assetId={selectedAssetId}
+                onClose={() => setSelectedAssetId(null)}
+              />
             )}
           </div>
         </div>
@@ -190,33 +198,34 @@ export default function Library() {
             <AssetPlaceholder />
             <AssetPlaceholder />
           </div>
-        ) : allAssets.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No assets found</h3>
-            <p className="text-muted-foreground">
-              {searchQuery || selectedType || selectedStatus 
-                ? "Try adjusting your filters" 
-                : "Be the first to contribute an AI asset!"
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {allAssets
-              .filter((asset) => {
-                if (!searchQuery) return true;
-                const query = searchQuery.toLowerCase();
-                return (
-                  asset.title.toLowerCase().includes(query) ||
-                  asset.description?.toLowerCase().includes(query)
-                );
-              })
-              .map((asset) => (
+        ) : (() => {
+          const filteredAssets = allAssets.filter((asset) => {
+            if (!debouncedSearch) return true;
+            const searchLower = debouncedSearch.toLowerCase();
+            return (
+              asset.title.toLowerCase().includes(searchLower) ||
+              asset.description?.toLowerCase().includes(searchLower)
+            );
+          });
+          return filteredAssets.length === 0 ? (
+            <div className="card p-12 text-center">
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No assets found</h3>
+              <p className="text-muted-foreground">
+                {debouncedSearch || selectedType || selectedStatus 
+                  ? "No assets match your filters. Try adjusting your search or filters." 
+                  : "Be the first to contribute an AI asset!"
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredAssets.map((asset) => (
                 <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
               ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   )
@@ -259,6 +268,8 @@ function AssetPlaceholder() {
   )
 }
 
+type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
+
 interface AssetDetailContentProps {
   asset: {
     title: string;
@@ -276,10 +287,43 @@ interface AssetDetailContentProps {
     };
     isArsenal: boolean;
   };
+  assetId: Id<'libraryAssets'>;
   onClose: () => void;
 }
 
-function AssetDetailContent({ asset, onClose }: AssetDetailContentProps) {
+function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps) {
+  const { isAuthenticated } = useAuth();
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<Id<'projects'> | ''>('');
+  const [attachmentType, setAttachmentType] = useState<AttachmentType>('attached');
+  const [isSubmittingAttach, setIsSubmittingAttach] = useState(false);
+
+  const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
+  const projects = useQuery(api.projects.list);
+  const attachToProject = useMutation(api.libraryReuse.attachToProject);
+
+  const handleAttachSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProjectId || isSubmittingAttach) return;
+    setIsSubmittingAttach(true);
+    try {
+      await attachToProject({
+        projectId: selectedProjectId as Id<'projects'>,
+        assetId,
+        attachmentType,
+      });
+      toast.success('Asset attached to project!');
+      setAttachOpen(false);
+      setSelectedProjectId('');
+      setAttachmentType('attached');
+    } catch (err) {
+      console.error('Attach failed:', err);
+      toast.error('Failed to attach to project. Please try again.');
+    } finally {
+      setIsSubmittingAttach(false);
+    }
+  };
+
   const statusColors: Record<string, string> = {
     draft: 'badge-draft',
     verified: 'badge-verified',
@@ -327,6 +371,94 @@ function AssetDetailContent({ asset, onClose }: AssetDetailContentProps) {
           <X className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Reuse summary */}
+      <div className="text-sm text-muted-foreground">
+        {reuseCount === undefined ? (
+          <span>Loading reuse…</span>
+        ) : (
+          <span>
+            {reuseCount.totalReuseEvents === 0
+              ? 'No reuses yet'
+              : `${reuseCount.totalReuseEvents} reuse${reuseCount.totalReuseEvents !== 1 ? 's' : ''} (${reuseCount.distinctProjectReuses} project${reuseCount.distinctProjectReuses !== 1 ? 's' : ''})`}
+          </span>
+        )}
+      </div>
+
+      {/* Attach to project (authenticated only) */}
+      {isAuthenticated && (
+        <div className="border-t pt-4">
+          {!attachOpen ? (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setAttachOpen(true)}
+            >
+              <Link2 className="h-4 w-4 mr-2" />
+              Attach to project
+            </button>
+          ) : (
+            <form onSubmit={handleAttachSubmit} className="space-y-3">
+              <h3 className="font-semibold text-sm">Attach to project</h3>
+              <div>
+                <label htmlFor="attach-project" className="block text-sm font-medium mb-1">
+                  Project
+                </label>
+                <select
+                  id="attach-project"
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId((e.target.value || '') as Id<'projects'> | '')}
+                  className="input w-full"
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects?.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="attach-type" className="block text-sm font-medium mb-1">
+                  Attachment type
+                </label>
+                <select
+                  id="attach-type"
+                  value={attachmentType}
+                  onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
+                  className="input w-full"
+                >
+                  <option value="attached">Attached</option>
+                  <option value="referenced">Referenced</option>
+                  <option value="copied">Copied</option>
+                  <option value="linked">Linked</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setAttachOpen(false);
+                    setSelectedProjectId('');
+                    setAttachmentType('attached');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!selectedProjectId || isSubmittingAttach}
+                >
+                  {isSubmittingAttach ? 'Attaching…' : 'Attach'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       {asset.metadata && (
         <div className="space-y-3 border-t pt-4">
@@ -402,6 +534,7 @@ interface AssetCardProps {
     assetType: string;
     status: string;
     isArsenal: boolean;
+    totalReuseEvents?: number;
   };
   onSelect?: (id: Id<"libraryAssets">) => void;
 }
@@ -421,6 +554,8 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
     verified: 'badge-verified',
     deprecated: 'badge-deprecated',
   };
+
+  const reuseCount = asset.totalReuseEvents ?? 0;
 
   return (
     <div
@@ -454,7 +589,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
       </p>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="capitalize">{asset.assetType.replace('_', ' ')}</span>
-        {/* TODO: Add reuse count when tracking is implemented */}
+        <span>{reuseCount} reuse{reuseCount !== 1 ? 's' : ''}</span>
       </div>
     </div>
   )

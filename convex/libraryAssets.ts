@@ -87,6 +87,107 @@ export const getArsenal = query({
 });
 
 /**
+ * List library assets with reuse counts. Same args and visibility as list.
+ */
+export const listWithReuseCounts = query({
+  args: {
+    assetType: v.optional(
+      v.union(
+        v.literal("prompt"),
+        v.literal("template"),
+        v.literal("agent_blueprint"),
+        v.literal("guardrail"),
+        v.literal("evaluation_rubric"),
+        v.literal("structured_output")
+      )
+    ),
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("verified"),
+        v.literal("deprecated")
+      )
+    ),
+    arsenalOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { assetType, status, arsenalOnly }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const assets = await ctx.db.query("libraryAssets").collect();
+
+    let currentProfile = null;
+    if (identity) {
+      currentProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+        .first();
+    }
+
+    const visibleAssets = assets.filter((asset) => {
+      const isAuthor = currentProfile && asset.authorId === currentProfile._id;
+      const visibilityOk =
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity) ||
+        (asset.visibility === "private" && isAuthor);
+      if (!visibilityOk) return false;
+      if (assetType && asset.assetType !== assetType) return false;
+      if (status && asset.status !== status) return false;
+      if (arsenalOnly && !asset.isArsenal) return false;
+      return true;
+    });
+
+    const result = await Promise.all(
+      visibleAssets.map(async (asset) => {
+        const events = await ctx.db
+          .query("libraryReuseEvents")
+          .withIndex("by_asset", (q) => q.eq("assetId", asset._id))
+          .collect();
+        return {
+          ...asset,
+          totalReuseEvents: events.length,
+        };
+      })
+    );
+
+    return result;
+  },
+});
+
+/**
+ * Get AI Arsenal items with reuse counts. Same visibility as getArsenal.
+ */
+export const getArsenalWithReuseCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const assets = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_arsenal", (q) => q.eq("isArsenal", true))
+      .collect();
+
+    const visibleAssets = assets.filter(
+      (asset) =>
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity)
+    );
+
+    const result = await Promise.all(
+      visibleAssets.map(async (asset) => {
+        const events = await ctx.db
+          .query("libraryReuseEvents")
+          .withIndex("by_asset", (q) => q.eq("assetId", asset._id))
+          .collect();
+        return {
+          ...asset,
+          totalReuseEvents: events.length,
+        };
+      })
+    );
+
+    return result;
+  },
+});
+
+/**
  * Get asset by ID
  */
 export const getById = query({

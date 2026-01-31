@@ -3,20 +3,13 @@ import { useUser } from '@clerk/clerk-react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-
-const EXPERIENCE_LEVELS = [
-  { value: 'newbie', label: 'AI Newbie - Just starting to explore' },
-  { value: 'curious', label: 'Curious - Trying things out' },
-  { value: 'comfortable', label: 'Comfortable - Using AI regularly' },
-  { value: 'power_user', label: 'Power User - Advanced usage' },
-  { value: 'expert', label: 'Expert - Building AI solutions' },
-] as const;
-
-const VISIBILITY_OPTIONS = [
-  { value: 'private', label: 'Private - Only you can see', description: 'Your profile is hidden from others' },
-  { value: 'org', label: 'Organization - Visible to colleagues', description: 'Recommended for team collaboration' },
-  { value: 'public', label: 'Public - Visible to everyone', description: 'Share your expertise publicly' },
-] as const;
+import {
+  EXPERIENCE_LEVELS,
+  VISIBILITY_OPTIONS,
+  type ExperienceLevel,
+  type Visibility,
+} from '../../constants/profile';
+import toast from 'react-hot-toast';
 
 export function ProfileSetup() {
   const { user } = useUser();
@@ -24,8 +17,8 @@ export function ProfileSetup() {
   const upsertProfile = useMutation(api.profiles.upsert);
 
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [experienceLevel, setExperienceLevel] = useState<typeof EXPERIENCE_LEVELS[number]['value']>('curious');
-  const [profileVisibility, setProfileVisibility] = useState<typeof VISIBILITY_OPTIONS[number]['value']>('org');
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('curious');
+  const [profileVisibility, setProfileVisibility] = useState<Visibility>('org');
   const [selectedTags, setSelectedTags] = useState<Id<'capabilityTags'>[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,11 +36,12 @@ export function ProfileSetup() {
         capabilityTags: selectedTags,
       });
 
+      toast.success('Profile created! Redirecting...');
       // Redirect to dashboard or reload
       window.location.href = '/';
     } catch (error) {
       console.error('Failed to create profile:', error);
-      alert('Failed to create profile. Please try again.');
+      toast.error('Failed to create profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +110,7 @@ export function ProfileSetup() {
                     name="experienceLevel"
                     value={level.value}
                     checked={experienceLevel === level.value}
-                    onChange={(e) => setExperienceLevel(e.target.value as typeof level.value)}
+                    onChange={(e) => setExperienceLevel(e.target.value as ExperienceLevel)}
                     className="mr-3"
                   />
                   <span className="text-gray-900">{level.label}</span>
@@ -141,7 +135,7 @@ export function ProfileSetup() {
                     name="profileVisibility"
                     value={option.value}
                     checked={profileVisibility === option.value}
-                    onChange={(e) => setProfileVisibility(e.target.value as typeof option.value)}
+                    onChange={(e) => setProfileVisibility(e.target.value as Visibility)}
                     className="mr-3 mt-1"
                   />
                   <div>

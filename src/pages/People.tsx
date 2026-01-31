@@ -4,27 +4,33 @@
  */
 
 import { useState } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, X } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-
-const EXPERIENCE_LEVEL_LABELS: Record<string, string> = {
-  newbie: 'AI Newbie',
-  curious: 'AI Curious',
-  comfortable: 'AI Comfortable',
-  power_user: 'AI Power User',
-  expert: 'AI Expert',
-};
+import { EXPERIENCE_LEVEL_LABELS } from '../constants/profile';
+import { getInitials } from '../lib/utils';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function People() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery);
   const [experienceFilter, setExperienceFilter] = useState('');
-  
+  const [selectedProfileId, setSelectedProfileId] = useState<Id<'profiles'> | null>(null);
+
   const profiles = useQuery(api.profiles.list);
   const capabilityTags = useQuery(api.capabilityTags.list);
+
   return (
     <div className="space-y-6">
+      {/* Profile Detail Modal */}
+      {selectedProfileId !== null && (
+        <ProfileDetailModal
+          profileId={selectedProfileId}
+          onClose={() => setSelectedProfileId(null)}
+          capabilityTags={capabilityTags ?? []}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">People</h1>
@@ -96,6 +102,7 @@ export default function People() {
                       key={profile._id} 
                       profile={profile} 
                       capabilityTags={capabilityTags || []}
+                      onSelect={() => setSelectedProfileId(profile._id)}
                     />
                   ))}
                 </div>
@@ -105,45 +112,188 @@ export default function People() {
 
           {/* All People Section */}
           <div>
-            <h2 className="text-xl font-semibold mb-4">
-              All People ({profiles.filter(p => {
+            {(() => {
+              const filteredProfiles = profiles.filter(p => {
                 if (experienceFilter && p.experienceLevel !== experienceFilter) return false;
-                if (searchQuery) {
-                  const searchLower = searchQuery.toLowerCase();
+                if (debouncedSearch) {
+                  const searchLower = debouncedSearch.toLowerCase();
                   return (
                     p.fullName?.toLowerCase().includes(searchLower) ||
                     p.email.toLowerCase().includes(searchLower)
                   );
                 }
                 return true;
-              }).length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {profiles
-                .filter(p => {
-                  if (experienceFilter && p.experienceLevel !== experienceFilter) return false;
-                  if (searchQuery) {
-                    const searchLower = searchQuery.toLowerCase();
-                    return (
-                      p.fullName?.toLowerCase().includes(searchLower) ||
-                      p.email.toLowerCase().includes(searchLower)
-                    );
-                  }
-                  return true;
-                })
-                .map((profile) => (
-                  <ProfileCard 
-                    key={profile._id} 
-                    profile={profile}
-                    capabilityTags={capabilityTags || []}
-                  />
-                ))}
-            </div>
+              });
+              return (
+                <>
+                  <h2 className="text-xl font-semibold mb-4">
+                    All People ({filteredProfiles.length})
+                  </h2>
+                  {filteredProfiles.length === 0 ? (
+                    <div className="card p-12 text-center">
+                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No people match your filters</h3>
+                      <p className="text-muted-foreground">
+                        Try adjusting your search or experience level filter.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {filteredProfiles.map((profile) => (
+                        <ProfileCard 
+                          key={profile._id} 
+                          profile={profile}
+                          capabilityTags={capabilityTags || []}
+                          onSelect={() => setSelectedProfileId(profile._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </>
       )}
     </div>
   )
+}
+
+/** Profile detail modal: full profile info, tags, mentor status. */
+function ProfileDetailModal({
+  profileId,
+  onClose,
+  capabilityTags,
+}: {
+  profileId: Id<'profiles'>;
+  onClose: () => void;
+  capabilityTags: Array<{ _id: Id<'capabilityTags'>; code: string; displayLabel: string }>;
+}) {
+  const profile = useQuery(api.profiles.getById, { profileId });
+
+  const userTags = profile
+    ? capabilityTags.filter((tag) => profile.capabilityTags.includes(tag._id))
+    : [];
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-detail-title"
+    >
+      <div
+        className="max-w-md w-full max-h-[90vh] overflow-y-auto card p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {profile === undefined ? (
+          <div className="py-8 text-center">
+            <h2 id="profile-detail-title" className="text-xl font-semibold mb-2">
+              Loading...
+            </h2>
+            <p className="text-muted-foreground">Loading profile</p>
+          </div>
+        ) : profile === null ? (
+          <div className="space-y-4">
+            <h2 id="profile-detail-title" className="text-xl font-semibold">
+              Profile not found
+            </h2>
+            <p className="text-muted-foreground">
+              This profile may be private or no longer available.
+            </p>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between mb-4">
+              <h2 id="profile-detail-title" className="text-xl font-semibold">
+                Profile
+              </h2>
+              <button
+                type="button"
+                className="p-1 rounded hover:bg-muted"
+                onClick={onClose}
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="avatar">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.fullName ?? 'Profile'}
+                    className="avatar-image"
+                  />
+                ) : (
+                  <div className="avatar-fallback bg-primary/10 text-primary font-semibold">
+                    {getInitials(profile.fullName, profile.email)}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg">
+                  {profile.fullName || profile.email}
+                </h3>
+                {profile.fullName && (
+                  <p className="text-sm text-muted-foreground truncate">
+                    {profile.email}
+                  </p>
+                )}
+              </div>
+            </div>
+            {profile.experienceLevel && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Experience level
+                </p>
+                <p className="font-medium">
+                  {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel] ?? profile.experienceLevel}
+                </p>
+              </div>
+            )}
+            {userTags.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Capability tags
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {userTags.map((tag) => (
+                    <span
+                      key={tag._id}
+                      className="badge badge-outline text-xs"
+                    >
+                      {tag.displayLabel}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.mentorCapacity > 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 text-primary">
+                <UserPlus className="h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-medium">Available for mentoring</p>
+                  <p className="text-sm opacity-90">
+                    {profile.mentorSessionsUsed} of {profile.mentorCapacity} sessions used this month
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="mt-6">
+              <button type="button" className="btn btn-primary" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function PlaceholderCard() {
@@ -182,26 +332,27 @@ interface ProfileCardProps {
     code: string;
     displayLabel: string;
   }>;
+  onSelect?: () => void;
 }
 
-function ProfileCard({ profile, capabilityTags }: ProfileCardProps) {
-  const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    return email ? email[0].toUpperCase() : '?';
-  };
-
-  const getUserTags = () => {
-    return capabilityTags.filter(tag => 
-      profile.capabilityTags.includes(tag._id)
-    );
-  };
-
-  const userTags = getUserTags();
+function ProfileCard({ profile, capabilityTags, onSelect }: ProfileCardProps) {
+  const userTags = capabilityTags.filter(tag => 
+    profile.capabilityTags.includes(tag._id)
+  );
 
   return (
-    <div className="card p-4 hover:shadow-md transition-shadow cursor-pointer">
+    <div
+      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (onSelect && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className="avatar">
           {profile.avatarUrl ? (

@@ -110,6 +110,11 @@ export const listWithCounts = query({
           userOfferedHelp = myEvents.some((e) => e.supportType === "offer_help");
         }
 
+        const projectAssets = await ctx.db
+          .query("projectLibraryAssets")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect();
+
         return {
           ...project,
           commentCount: comments.length,
@@ -117,6 +122,7 @@ export const listWithCounts = query({
           helpOfferCount,
           userLiked,
           userOfferedHelp,
+          attachedAssetsCount: projectAssets.length,
         };
       })
     );

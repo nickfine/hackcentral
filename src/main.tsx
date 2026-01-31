@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Toaster } from 'react-hot-toast'
 import { ClerkProvider, useAuth } from '@clerk/clerk-react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { convex } from './lib/convex'
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <ErrorBoundary>
           <App />
+          <Toaster position="top-center" />
         </ErrorBoundary>
       </ConvexProviderWithClerk>
     </ClerkProvider>

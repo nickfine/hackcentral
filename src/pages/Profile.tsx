@@ -5,35 +5,19 @@
 
 import { useState } from 'react';
 import { Settings, Award, BookOpen, Briefcase, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useUser } from '@clerk/clerk-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-
-const EXPERIENCE_LEVEL_LABELS: Record<string, string> = {
-  newbie: 'AI Newbie',
-  curious: 'AI Curious',
-  comfortable: 'AI Comfortable',
-  power_user: 'AI Power User',
-  expert: 'AI Expert',
-};
-
-const EXPERIENCE_LEVELS = [
-  { value: 'newbie', label: 'AI Newbie - Just starting to explore' },
-  { value: 'curious', label: 'Curious - Trying things out' },
-  { value: 'comfortable', label: 'Comfortable - Using AI regularly' },
-  { value: 'power_user', label: 'Power User - Advanced usage' },
-  { value: 'expert', label: 'Expert - Building AI solutions' },
-] as const;
-
-const VISIBILITY_OPTIONS = [
-  { value: 'private', label: 'Private', description: 'Only you can see your profile' },
-  { value: 'org', label: 'Organization', description: 'Visible to colleagues' },
-  { value: 'public', label: 'Public', description: 'Visible to everyone' },
-] as const;
-
-type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number]['value'];
-type Visibility = (typeof VISIBILITY_OPTIONS)[number]['value'];
+import {
+  EXPERIENCE_LEVEL_LABELS,
+  EXPERIENCE_LEVELS,
+  VISIBILITY_OPTIONS,
+  type ExperienceLevel,
+  type Visibility,
+} from '../constants/profile';
+import { TabButton } from '../components/shared';
 
 export default function Profile() {
   const { user } = useUser();
@@ -75,10 +59,11 @@ export default function Profile() {
         profileVisibility,
         capabilityTags: selectedTags,
       });
+      toast.success('Profile updated!');
       setEditOpen(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -414,25 +399,6 @@ function StatCard({ icon, label, value }: StatCardProps) {
         </div>
       </div>
     </div>
-  )
-}
-
-interface TabButtonProps {
-  children: React.ReactNode
-  active?: boolean
-}
-
-function TabButton({ children, active }: TabButtonProps) {
-  return (
-    <button
-      className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-        active
-          ? 'border-primary text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
 

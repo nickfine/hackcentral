@@ -5,15 +5,19 @@
 
 import { useState } from 'react';
 import { Search, Plus, Filter, Heart, MessageCircle, HandHelping, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
+import { TabButton } from '../components/shared';
+import { useDebounce } from '../hooks/useDebounce';
 
 type Visibility = 'private' | 'org' | 'public';
 
 export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery);
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -41,6 +45,7 @@ export default function Projects() {
         visibility,
         isAnonymous,
       });
+      toast.success('Project created successfully!');
       setCreateOpen(false);
       setTitle('');
       setDescription('');
@@ -48,7 +53,7 @@ export default function Projects() {
       setIsAnonymous(false);
     } catch (error) {
       console.error('Failed to create project:', error);
-      alert('Failed to create project. Please try again.');
+      toast.error('Failed to create project. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -241,21 +246,29 @@ export default function Projects() {
             New Project
           </button>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects
-            .filter(p => {
-              if (statusFilter && p.status !== statusFilter) return false;
-              if (searchQuery) {
-                const searchLower = searchQuery.toLowerCase();
-                return (
-                  p.title.toLowerCase().includes(searchLower) ||
-                  p.description?.toLowerCase().includes(searchLower)
-                );
-              }
-              return true;
-            })
-            .map((project) => (
+      ) : (() => {
+        const filteredProjects = projects.filter(p => {
+          if (statusFilter && p.status !== statusFilter) return false;
+          if (debouncedSearch) {
+            const searchLower = debouncedSearch.toLowerCase();
+            return (
+              p.title.toLowerCase().includes(searchLower) ||
+              p.description?.toLowerCase().includes(searchLower)
+            );
+          }
+          return true;
+        });
+        return filteredProjects.length === 0 ? (
+          <div className="card p-12 text-center">
+            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No projects match your filters</h3>
+            <p className="text-muted-foreground">
+              Try adjusting your search or status filter.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredProjects.map((project) => (
               <ProjectCard
                 key={project._id}
                 project={project}
@@ -263,16 +276,17 @@ export default function Projects() {
                 onCommentsClick={() => setSelectedProjectId(project._id)}
                 onLikeClick={() => toggleLike({ projectId: project._id }).catch((err) => {
                   console.error('Like failed:', err);
-                  alert('Something went wrong. Please try again.');
+                  toast.error('Something went wrong. Please try again.');
                 })}
                 onOfferHelpClick={() => toggleOfferHelp({ projectId: project._id }).catch((err) => {
                   console.error('Offer help failed:', err);
-                  alert('Something went wrong. Please try again.');
+                  toast.error('Something went wrong. Please try again.');
                 })}
               />
             ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   )
 }
@@ -305,11 +319,12 @@ function CommentsModal({
         content: commentContent.trim(),
         isAiRelated: commentIsAiRelated,
       });
+      toast.success('Comment added!');
       setCommentContent('');
       setCommentIsAiRelated(false);
     } catch (err) {
       console.error('Failed to add comment:', err);
-      alert('Failed to add comment. Please try again.');
+      toast.error('Failed to add comment. Please try again.');
     } finally {
       setIsSubmittingComment(false);
     }
@@ -410,25 +425,6 @@ function CommentsModal({
   );
 }
 
-interface TabButtonProps {
-  children: React.ReactNode
-  active?: boolean
-}
-
-function TabButton({ children, active }: TabButtonProps) {
-  return (
-    <button
-      className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-        active
-          ? 'border-primary text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
-
 interface ProjectPlaceholderProps {
   status: 'idea' | 'building' | 'incubation' | 'completed'
 }
@@ -444,6 +440,7 @@ interface ProjectWithCounts {
   helpOfferCount: number;
   userLiked: boolean;
   userOfferedHelp: boolean;
+  attachedAssetsCount: number;
 }
 
 interface ProjectCardProps {
@@ -496,6 +493,9 @@ function ProjectCard({ project, isAuthenticated, onCommentsClick, onLikeClick, o
               <span className="text-muted-foreground">Owner</span>
             </>
           )}
+          <span className="text-muted-foreground">
+            {project.attachedAssetsCount} asset{project.attachedAssetsCount !== 1 ? 's' : ''}
+          </span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           {isAuthenticated && (

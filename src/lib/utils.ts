@@ -69,17 +69,19 @@ export function truncate(text: string, maxLength: number): string {
 }
 
 /**
- * Generate initials from a full name
+ * Generate initials from a full name or email
+ * Falls back to email first character if no name provided
  */
-export function getInitials(name: string): string {
-  if (!name) return ''
-
-  const parts = name.trim().split(' ')
-  if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase()
+export function getInitials(name?: string, email?: string): string {
+  if (name) {
+    const parts = name.trim().split(' ')
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase()
+    }
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
   }
-
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+  
+  return email ? email[0].toUpperCase() : '?'
 }
 
 /**

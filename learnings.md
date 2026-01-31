@@ -111,6 +111,32 @@ export default {
 
 ---
 
+## Phase 1 Polish – Browser Testing (Jan 31, 2026)
+
+**Tool**: Playwright MCP (user-playwright). App tested at http://localhost:5178 with authenticated user (Nick Test).
+
+### Tests Run
+
+| Feature | Result | Notes |
+|--------|--------|--------|
+| **Create project success toast** | Pass | Created "Phase 1 Polish Test Project"; toast "Project created successfully!" appeared. |
+| **Projects empty state (filtered)** | Pass | Search "xyznonexistent123" showed "No projects match your filters" and "Try adjusting your search or status filter." |
+| **People profile detail modal** | Pass | Clicked profile card (Nick Test); modal showed Profile, name, email, experience level (AI Curious), Close. |
+| **People empty state (filtered)** | Pass | Search "xyznobody123" showed "All People (0)" and "No people match your filters" with helper text. |
+| **Comment success toast** | Pass | Opened comments on Phase 1 Polish Test Project, posted comment; toast "Comment added!" appeared; comment listed. |
+| **Library attach success toast** | Pass | Opened Meeting Notes Summarizer asset, Attach to project → Phase 1 Polish Test Project → Attach; toast "Asset attached to project!"; modal showed "1 reuse (1 project)". |
+| **Profile update success toast** | Pass | Edit Profile → Save (no change); toast "Profile updated!" appeared. |
+
+### Search debounce
+
+- Projects, People, and Library use `useDebounce(searchQuery, 300)`; filtering runs on debounced value. Empty states appear after typing a non-matching query and waiting for debounce.
+
+### Console
+
+- Earlier session had Vite 500/reload errors on Profile.tsx and Projects.tsx (hot reload); no new errors observed during these tests. Clerk dev-mode warning is expected.
+
+---
+
 ## Critical Bug Patterns (Jan 31, 2026)
 
 ### Async Filter Anti-Pattern
@@ -448,6 +474,31 @@ npm run lint
 
 ---
 
+## Reuse Tracking UI – Playwright Testing (Jan 31, 2026)
+
+### What was implemented
+
+**Backend:** [convex/libraryReuse.ts](convex/libraryReuse.ts) (`getReuseCountForAsset`, `attachToProject`); [convex/libraryAssets.ts](convex/libraryAssets.ts) (`listWithReuseCounts`, `getArsenalWithReuseCounts`); [convex/projects.ts](convex/projects.ts) `listWithCounts` extended with `attachedAssetsCount`.
+
+**Library:** Reuse count on asset cards ("X reuses"); reuse summary in asset detail modal ("No reuses yet" / "X reuses (Y projects)"); "Attach to project" (project picker + attachment type + submit) when signed in.
+
+**Projects:** Project cards show "X assets" (attached asset count).
+
+### Playwright MCP test results (authenticated)
+
+**Tools used:** `browser_navigate`, `browser_wait_for`, `browser_snapshot`, `browser_click`, `browser_select_option`, `browser_console_messages`.
+
+1. Navigate to `http://localhost:5178/library` (signed in) → Library page loads; AI Arsenal and All Assets show asset cards with "0 reuses". **Pass.**
+2. Click first asset card (Code Review Prompt) → Asset detail modal opens with "No reuses yet", "Attach to project" button, Details, Content, Close. **Pass.**
+3. Click "Attach to project" → Project dropdown (Select a project, Playwright test project), Attachment type (Attached/Referenced/Copied/Linked), Cancel and Attach (disabled until project selected). **Pass.**
+4. Select "Playwright test project", click Attach → Attach form closes; reuse summary updates to "1 reuse (1 project)"; asset cards in Arsenal and All Assets update to "1 reuse". **Pass.**
+5. Navigate to `http://localhost:5178/projects` → Project card "Playwright test project" shows "1 asset" in footer. **Pass.**
+6. Console messages (level: error) → No errors. **Pass.**
+
+**Takeaway:** Reuse tracking UI (reuse counts on cards and in detail modal, Attach to project flow, attached-asset count on project cards) works as intended in the authenticated Playwright session.
+
+---
+
 ## Code Review: Comments & Support Events (Jan 31, 2026)
 
 ### Scope
@@ -492,17 +543,17 @@ Reviewed [convex/projectComments.ts](convex/projectComments.ts), [convex/project
 - Profile edit modal (Edit Profile – full name, experience, visibility, capability tags)
 - **Project comments** (list, add, modal with "Mark as AI-related")
 - **Support events** (like and offer-help toggles with counts on project cards)
+- **Reuse tracking UI** (reuse counts on Library cards and in asset detail; Attach to project; attached-asset count on project cards)
 - Error Boundary (tested via Playwright MCP)
 - All critical bugs fixed
 - 0 TypeScript errors
 - 0 ESLint errors
 
 ### In Progress 🚧
-- Reuse tracking UI (backend ready)
+- (none)
 
 ### Next Steps
-1. Reuse tracking UI
-2. Optional: extract shared constants/components (EXPERIENCE_LEVELS, TabButton)
+1. Optional: extract shared constants/components (EXPERIENCE_LEVELS, TabButton)
 
 ---
 
