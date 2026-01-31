@@ -7,8 +7,19 @@ import { useQuery } from 'convex/react'
 import { Activity, Users, Library, TrendingUp } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 
+function formatRelativeTime(ms: number): string {
+  const sec = Math.floor((Date.now() - ms) / 1000)
+  if (sec < 60) return 'just now'
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
+  if (sec < 604800) return `${Math.floor(sec / 86400)}d ago`
+  return `${Math.floor(sec / 604800)}w ago`
+}
+
 export default function Dashboard() {
   const metrics = useQuery(api.metrics.getDashboardMetrics)
+  const recentActivity = useQuery(api.metrics.getRecentActivity)
+  const topContributors = useQuery(api.metrics.getTopContributors)
 
   const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--'
   const aiContributorDesc =
@@ -101,19 +112,57 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Placeholder for more dashboard content */}
+      {/* Recent Activity & Top Contributors */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="card p-6">
           <h3 className="font-semibold mb-2">Recent Activity</h3>
-          <p className="text-sm text-muted-foreground">
-            Activity feed will appear here once connected
-          </p>
+          {recentActivity === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : recentActivity.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No recent activity. Add library assets or project artefacts to see contributions here.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {recentActivity.map((item) => (
+                <li key={item._id} className="text-sm flex flex-wrap gap-x-1 items-baseline">
+                  <span className="font-medium text-foreground">{item.userName}</span>
+                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">{item.typeLabel}</span>
+                  {(item.assetTitle ?? item.projectName) && (
+                    <span className="text-muted-foreground truncate">
+                      ({item.assetTitle ?? item.projectName})
+                    </span>
+                  )}
+                  <span className="text-muted-foreground text-xs ml-auto shrink-0">
+                    {formatRelativeTime(item._creationTime)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="card p-6">
           <h3 className="font-semibold mb-2">Top Contributors</h3>
-          <p className="text-sm text-muted-foreground">
-            Leaderboard will appear here once connected
-          </p>
+          {topContributors === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : topContributors.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No contributors yet. Contributions from the last 30 days will appear here.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {topContributors.map((entry, i) => (
+                <li key={entry.userId} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-5">{i + 1}.</span>
+                    <span className="font-medium">{entry.name}</span>
+                  </span>
+                  <span className="text-muted-foreground">{entry.count} contributions</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,12 @@
+import type { Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+
+const CONTRIBUTION_TYPE_LABELS: Record<string, string> = {
+  library_asset: "Library Asset",
+  project_ai_artefact: "Project AI Artefact",
+  verification: "Verification",
+  improvement: "Improvement",
+};
 
 /**
  * Dashboard metrics: org-wide counts and percentages for the AI Maturity Dashboard.
@@ -52,5 +60,81 @@ export const getDashboardMetrics = query({
       libraryAssetCount,
       weeklyActiveCount,
     };
+  },
+});
+
+/**
+ * Recent activity feed for dashboard: latest contributions with user and optional asset/project info.
+ */
+export const getRecentActivity = query({
+  args: {},
+  handler: async (ctx) => {
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .order("desc")
+      .take(15);
+
+    const results = await Promise.all(
+      contributions.map(async (c) => {
+        const profile = await ctx.db.get(c.userId);
+        let assetTitle: string | undefined;
+        let projectName: string | undefined;
+        if (c.assetId) {
+          const asset = await ctx.db.get(c.assetId);
+          assetTitle = asset?.title;
+        }
+        if (c.projectId) {
+          const project = await ctx.db.get(c.projectId);
+          projectName = project?.name;
+        }
+        const typeLabel =
+          CONTRIBUTION_TYPE_LABELS[c.contributionType] ?? c.contributionType;
+        return {
+          _id: c._id,
+          _creationTime: c._creationTime,
+          typeLabel,
+          userName: profile?.name ?? profile?.email ?? "Unknown",
+          assetTitle,
+          projectName,
+        };
+      })
+    );
+    return results;
+  },
+});
+
+/**
+ * Top contributors in the last 30 days (by contribution count) for dashboard leaderboard.
+ */
+export const getTopContributors = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+
+    const countByUser = new Map<Id<"profiles">, number>();
+    for (const c of contributions) {
+      const key = c.userId;
+      countByUser.set(key, (countByUser.get(key) ?? 0) + 1);
+    }
+
+    const sorted = [...countByUser.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const results = await Promise.all(
+      sorted.map(async ([userId, count]) => {
+        const profile = await ctx.db.get(userId);
+        return {
+          userId,
+          name: profile?.name ?? profile?.email ?? "Unknown",
+          count,
+        };
+      })
+    );
+    return results;
   },
 });
