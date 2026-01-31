@@ -15,6 +15,10 @@ dist-ssr
 # MCP configuration (may contain project-specific settings)
 .mcp.json
 
+# Convex
+.convex/
+convex/_generated/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

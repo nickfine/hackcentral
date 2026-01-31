@@ -1,73 +1,196 @@
-# React + TypeScript + Vite
+# HackCentral
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Convex (Database, Real-time, Server Functions)
+- **Styling**: Tailwind CSS 4
+- **UI Components**: Custom components with Framer Motion animations
+- **Icons**: Lucide React
+- **Testing**: Vitest + React Testing Library
+- **Deployment**: Vercel
 
-## React Compiler
+## 📋 Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 18+ and npm
+- A Convex account (free tier available at [convex.dev](https://convex.dev))
 
-## Expanding the ESLint configuration
+## 🛠️ Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Install Dependencies
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Set Up Convex
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Login to Convex
+npx convex login
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Initialize Convex (creates a new project)
+npx convex dev
 ```
+
+This will:
+- Create a new Convex deployment
+- Generate your deployment URL
+- Start the Convex development server
+
+### 3. Configure Environment Variables
+
+Copy the deployment URL from the terminal output and add it to `.env.local`:
+
+```bash
+# .env.local
+VITE_CONVEX_URL=https://your-deployment-name.convex.cloud
+```
+
+### 4. Seed Initial Data
+
+1. Open the Convex Dashboard: https://dashboard.convex.dev
+2. Navigate to your project → Functions tab
+3. Run the `seedData:seedCapabilityTags` internal mutation
+
+This will populate the initial capability tags (AI Early Adopter, AI Power User, etc.).
+
+### 5. Start Development Server
+
+```bash
+npm run dev
+```
+
+This starts both:
+- Convex backend (watches for changes in `convex/`)
+- Vite frontend (http://localhost:5173)
+
+## 📁 Project Structure
+
+```
+HackCentral/
+├── convex/                  # Convex backend
+│   ├── schema.ts           # Database schema
+│   ├── profiles.ts         # Profile queries/mutations
+│   ├── projects.ts         # Project queries/mutations
+│   ├── libraryAssets.ts    # Library queries/mutations
+│   ├── capabilityTags.ts   # Capability tag queries
+│   └── seedData.ts         # Seed data functions
+├── src/
+│   ├── components/         # React components
+│   │   ├── shared/        # Shared components (Header, Sidebar, Layout)
+│   │   ├── ui/            # UI primitives (buttons, inputs, etc.)
+│   │   ├── dashboard/     # Dashboard components
+│   │   ├── library/       # Library components
+│   │   ├── people/        # People module components
+│   │   └── projects/      # Project components
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Utilities and configuration
+│   │   ├── convex.ts      # Convex client setup
+│   │   ├── design-system.ts # Design tokens
+│   │   └── utils.ts       # Utility functions
+│   ├── pages/             # Page components
+│   │   ├── Dashboard.tsx
+│   │   ├── Library.tsx
+│   │   ├── People.tsx
+│   │   ├── Projects.tsx
+│   │   └── Profile.tsx
+│   ├── styles/            # Global styles
+│   ├── types/             # TypeScript types
+│   └── App.tsx            # Main app component
+├── tests/                 # Test files
+├── ROADMAP.md            # Complete project roadmap
+├── IMPLEMENTATION_PLAN.md # Detailed implementation plan
+└── CONVEX_SETUP.md       # Detailed Convex setup guide
+
+```
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests once
+npm run test:run
+
+# Run with coverage
+npm run test:coverage
+```
+
+## 🚢 Deployment
+
+### Deploy Convex Backend
+
+```bash
+npm run convex:deploy
+```
+
+This creates a production Convex deployment. Update your production environment with the new URL.
+
+### Deploy Frontend to Vercel
+
+1. Connect your GitHub repository to Vercel
+2. Add environment variable: `VITE_CONVEX_URL=<your-production-convex-url>`
+3. Deploy!
+
+Vercel will automatically:
+- Run `npm run build`
+- Deploy the `dist/` folder
+- Configure SPA routing (via `vercel.json`)
+
+## 📖 Key Concepts
+
+### AI Maturity Dashboard
+Visualizes org-wide AI maturity progress using a staged behavioral model (Experimenting → Repeating → Scaling → Transforming).
+
+### Library & AI Arsenal
+Repository of reusable AI assets (prompts, templates, agent blueprints, guardrails) with quality gates (Draft → Verified → Deprecated).
+
+### People Module
+Pull engine for adoption - makes support visible, enables mentorship, and routes late joiners to appropriate resources.
+
+### Projects
+Track AI experiments and implementations with visibility controls (private/org/public) and anonymous submission support.
+
+### Mentor Matching
+One-click pairing system to convert early adopter energy into distributed enablement capacity.
+
+### Recognition & Social Proof
+Badges, leaderboards, and impact stories to create FOMO and measurable value visibility.
+
+## 📚 Documentation
+
+- [Full Roadmap](./ROADMAP.md) - Complete project vision and technical architecture
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Phased development plan
+- [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
+- [Convex Docs](https://docs.convex.dev) - Official Convex documentation
+
+## 🎯 Success Metrics
+
+- Accelerate from <20% to >50% regular AI-using contributors within 12 months
+- Early adopters seed ≥70% of reusable AI assets
+- Increasing Library reuse rate
+- Increasing % of projects shipping AI artefacts
+
+## 🤝 Contributing
+
+This is a private organizational tool. Contributions follow the platform's own workflow:
+1. Experiment with AI in your work
+2. Share reusable assets to the Library
+3. Help others through mentorship
+4. Celebrate wins with impact stories
+
+## 📝 License
+
+Private/Internal Use
+
+## 🔗 Related Resources
+
+- [GitHub Repository](https://github.com/nickfine/hackcentral)
+- [Convex Dashboard](https://dashboard.convex.dev)
