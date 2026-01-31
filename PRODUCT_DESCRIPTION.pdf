@@ -1,0 +1,90 @@
+
+### Product Name (working title)  
+**HackDay Central**  
+
+→ The internal **AI Maturity Accelerator** 
+ 
+(or: “the place where AI stops being a solo experiment and starts becoming how we work”)
+
+### One-liner purpose  
+A permanent, year-round platform that turns scattered AI experiments by early adopters into **reusable, trusted assets** that the rest of the organization can safely copy → paste → adapt → ship — and makes the whole adoption curve visibly bend faster.
+
+### Core job-to-be-done (the product actually solves these problems)
+
+1. **Early adopters are doing amazing things → nobody else knows / reuses it**  
+   → Library + AI Arsenal + reuse tracking + impact stories fix this
+
+2. **Late majority wants to use AI but fears looking stupid / wasting time / doing it wrong**  
+   → Anonymous submission, sandbox mode, one-click mentor matching, curated starter kits, AI-assisted idea submission
+
+3. **Most internal innovation platforms become ghost towns after 3 months**  
+   → No points for “trying AI” — only credit for reusable outputs + real workflow change  
+   → Strong social proof loop (badges, leaderboards, impact stories, mentor champion visibility)
+
+4. **Leadership has no credible signal whether AI is actually moving the needle**  
+   → AI Maturity Dashboard shows % regular contributors, reuse rates, workflow transformation %, early-adopter concentration (Gini), frontline vs. leadership gap
+
+### Target users & how the value flows (very classic pull dynamic)
+
+| Persona              | Primary goal                              | How the product helps them win                                   | How they help everyone else win                     |
+|----------------------|--------------------------------------------|------------------------------------------------------------------|-----------------------------------------------------|
+| **AI Early Adopter / Power User** | Get credit, influence, reduce duplication | Badges, leaderboards, most-reused author visibility, mentor champion status | Seeds 70%+ of the reusable assets                   |
+| **AI Curious / Comfortable**      | Experiment safely, find proven patterns   | AI Arsenal, recommendations, mentor pairing, anonymous mode     | Starts copying → creates first reuses               |
+| **Late Majority / Newbie**        | Stop feeling behind without high risk     | Starter kits, AI-assisted submit, “copy first” UX, 15-min mentor | Creates the “everyone is doing it” social proof     |
+| **Team Leads / Managers**         | See if team is actually adopting AI       | Maturity scoreboard, team-level views (anonymized), reuse stats | Sponsors high-reuse assets → pushes standardisation |
+| **Innovation / L&D / Enablement** | Scale enablement without 1:1 hand-holding | Mentor matching capacity controls, automated nudges, graduation flows | Curates Arsenal, verifies assets, runs nudges       |
+
+### Core product promise (the North Star sentence)
+
+**“If an AI technique saves one person 10 hours a week, we make sure the next 100 people can copy it in under 10 minutes — and leadership can see the compounding effect in real time.”**
+
+### What makes this feel different from “just another internal Confluence + Jira experiment”
+
+| Dimension                   | Typical internal “innovation hub”                     | HackDay Central (this product)                                 |
+|-----------------------------|-------------------------------------------------------|----------------------------------------------------------------|
+| **Credit model**            | Points for ideas / participation                      | Credit only for **reusable outputs** + workflow change         |
+| **Discovery**               | Keyword search, tags                                  | Hybrid AI search + semantic recommendations + “similar assets” |
+| **Trust signal**            | None / likes                                          | Verified status + reuse count + verified-by name               |
+| **Late majority entry**     | “Here’s the docs, good luck”                          | Anonymous sandbox + mentor pairing + role-based starter kits   |
+| **Social proof engine**     | All-hands shout-outs (if lucky)                       | Built-in badges, impact stories feed, mentor champion leaderboard |
+| **Adoption metric**         | “We ran X hack days”                                  | % regular AI contributors + reuse rate + Gini concentration    |
+
+### Key user flows (the magic loops)
+
+**Loop 1 – The compounding reuse flywheel**  
+Early adopter → creates high-quality prompt/agent/template → submits to Library → gets verified → reused in 3+ projects → badge + leaderboard → more visibility → more early adopters motivated → more quality assets
+
+**Loop 2 – The pull-through loop for late majority**  
+Newbie sees impact story (“saved 12 h/week”) → clicks through to asset → one-click copy → pastes into own project → leaves thank-you / small improvement → becomes visible helper → eventually submits own improvement
+
+**Loop 3 – Mentor distribution loop**  
+Power user sets mentor capacity = 4 slots/month → gets mentor-champion badge → late majority requests 15-min pairing → learns fast → copies pattern → becomes helper themselves → frees up original mentor capacity
+
+### Success looks like (what you put on the quarterly review slide)
+
+After 9–12 months:
+
+- **>50%** of knowledge workers have made at least one AI contribution in the last 30 days  
+- **Early adopters** (top ~15%) have seeded **≥70%** of the most-reused assets  
+- Library **reuse rate** is trending up (distinct projects / asset)  
+- **Gini coefficient** of AI contribution distribution < 0.7 (not hyper-concentrated)  
+- **≥20–30%** of graduating projects mark “workflow transformed”  
+- Mentor requests are **saturating capacity** (good signal — people want help)
+
+### Biggest product risks (what keeps the PM up at night)
+
+1. Library stays empty or low-quality → no reuse flywheel starts  
+   → Mitigation: seed 20–30 very high-quality items day 1 + strong verification path
+
+2. Badges / leaderboards create gaming instead of real value  
+   → Mitigation: anti-gaming rules already in (distinct projects/users, quality gates)
+
+3. Late majority never shows up (stays too scary)  
+   → Mitigation: anonymous mode + sandbox + AI-assisted ultra-low-friction entry
+
+4. Leadership ignores the dashboard → no cultural reinforcement  
+   → Mitigation: make dashboard dead-simple + tie to existing OKR / all-hands narratives
+
+### One-sentence positioning statement (for internal comms / slack announcement)
+
+“HackDay Central turns early adopters' pioneering AI efforts into shared, reusable knowledge for the whole organization, and provides a safe, welcoming platform for all others to participate, contribute their own ideas, experiment securely, and build expertise together”
