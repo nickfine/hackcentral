@@ -6,6 +6,7 @@
 import { Link } from 'react-router-dom'
 import { Search, Bell, Menu, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { UserButton } from '@/components/auth'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -57,16 +58,7 @@ export function Header() {
           </button>
 
           {/* User menu */}
-          <Link
-            to="/profile"
-            className="flex items-center gap-2 p-1.5 hover:bg-accent rounded-md"
-          >
-            <div className="avatar w-8 h-8">
-              <div className="avatar-fallback text-xs bg-primary/10 text-primary">
-                ?
-              </div>
-            </div>
-          </Link>
+          <UserButton />
         </div>
       </div>
 
