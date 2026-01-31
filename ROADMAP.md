@@ -44,8 +44,9 @@ Frontend:
 └── Canvas Confetti 1.x (Celebrations)
 
 Backend:
-├── Supabase JS SDK 2.x (Database, Auth, Realtime)
-└── Supabase Realtime (Selective live updates)
+├── Convex 1.x (Database, Real-time, Server Functions)
+├── Clerk (Authentication)
+└── Convex React Client (Reactive queries)
 
 Testing:
 ├── Vitest 4.x (Test runner)
@@ -76,13 +77,13 @@ HackCentral/
 │   │   └── recognition/     # Badges, leaderboards, impact stories
 │   ├── hooks/
 │   │   ├── useAuth.ts       # Authentication hooks
-│   │   ├── useRealtime.ts   # Supabase Realtime hooks
+│   │   ├── useAuth.ts       # Authentication hooks (Clerk)
 │   │   ├── useLibrary.ts    # Library data hooks
 │   │   ├── useMentor.ts     # Mentor matching hooks
 │   │   └── useMetrics.ts    # Metrics tracking hooks
 │   ├── lib/
-│   │   ├── supabase.ts      # Supabase client configuration
-│   │   ├── design-system.js # Design tokens (colors, spacing, typography)
+│   │   ├── convex.ts        # Convex client configuration
+│   │   ├── design-system.ts  # Design tokens (colors, spacing, typography)
 │   │   ├── utils.ts         # Utility functions
 │   │   ├── ai-search.ts     # AI search & recommendations
 │   │   └── metrics.ts       # Metrics calculation utilities
@@ -90,7 +91,7 @@ HackCentral/
 │   │   ├── globals.css      # Global styles & CSS variables
 │   │   └── themes.css       # Light/dark theme tokens
 │   ├── types/
-│   │   ├── database.ts      # Generated Supabase types
+│   │   ├── database.ts      # Generated Convex types
 │   │   ├── user.ts          # User & profile types
 │   │   ├── library.ts       # Library asset types
 │   │   └── project.ts       # Project types
@@ -101,9 +102,13 @@ HackCentral/
 │   │   ├── Projects.tsx     # Projects list
 │   │   └── Profile.tsx      # User profile
 │   └── App.tsx              # Main app component with routing
-├── supabase/
-│   ├── migrations/          # Database migrations
-│   └── seed.sql            # Seed data (initial AI Arsenal items)
+├── convex/
+│   ├── schema.ts           # Database schema (TypeScript)
+│   ├── profiles.ts         # Profile queries/mutations
+│   ├── projects.ts         # Project queries/mutations
+│   ├── libraryAssets.ts   # Library queries/mutations
+│   ├── capabilityTags.ts   # Capability tag queries
+│   └── seedData.ts         # Seed data functions
 ├── tests/
 │   ├── components/         # Component tests
 │   ├── hooks/              # Hook tests
@@ -119,6 +124,18 @@ HackCentral/
 ---
 
 ## Database Schema
+
+**Implementation Note**: This project uses **Convex** (document database) instead of Supabase (PostgreSQL). The schema below shows the conceptual data model. The actual implementation is in TypeScript (`convex/schema.ts`) rather than SQL migrations.
+
+**Key Convex Differences**:
+- **Schema Definition**: TypeScript schema instead of SQL DDL
+- **Queries**: TypeScript query functions instead of SQL
+- **Real-time**: All queries are reactive by default (no explicit subscriptions needed)
+- **Auth**: Clerk JWT integration instead of Supabase Auth
+- **Visibility**: Implemented in query handlers using `ctx.auth.getUserIdentity()` instead of RLS policies
+- **Relationships**: Document references with indexes instead of foreign keys
+
+See `convex/schema.ts` for the actual implementation. The SQL below represents the logical data model for reference.
 
 ### Core Tables
 
@@ -392,7 +409,32 @@ CREATE INDEX idx_profiles_mentor_capacity ON profiles(mentor_capacity) WHERE men
 CREATE INDEX idx_mentor_requests_status ON mentor_requests(status, mentor_id);
 ```
 
-### Row Level Security (RLS) Policies
+### Visibility & Access Control
+
+**Convex Implementation**: Instead of Row Level Security (RLS) policies, visibility is enforced in Convex query and mutation handlers using `ctx.auth.getUserIdentity()`. The patterns below show the logical access control rules that are implemented in TypeScript.
+
+**Pattern Example** (from `convex/profiles.ts`):
+```typescript
+export const getById = query({
+  args: { profileId: v.id("profiles") },
+  handler: async (ctx, { profileId }) => {
+    const profile = await ctx.db.get(profileId);
+    const identity = await ctx.auth.getUserIdentity();
+    const isOwner = identity && profile.userId === identity.subject;
+    
+    if (
+      profile.profileVisibility === "public" ||
+      (profile.profileVisibility === "org" && identity) ||
+      isOwner
+    ) {
+      return profile;
+    }
+    return null;
+  },
+});
+```
+
+**SQL RLS Equivalents** (for reference - implemented in Convex queries):
 ```sql
 -- Profiles: Respect visibility settings
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -771,62 +813,58 @@ CREATE POLICY "Users can manage own profile tags" ON profile_capability_tags FOR
 
 ---
 
-### Materialized View Refresh Strategy
+### Reuse Count Calculation Strategy
 
-**View**: `library_asset_reuse_counts`
+**Convex Implementation**: Convex doesn't have materialized views. Instead, we use aggregation queries that compute reuse counts on-demand.
 
-**Refresh Approach**: **Periodic refresh via cron job** (preferred over triggers for performance)
+**Approach**: **Aggregation queries** (computed on-demand, cached by Convex)
 
-**Refresh Frequency**: 
-- **Production**: Every 15 minutes (via Supabase cron or external scheduler)
-- **Development**: On-demand via admin endpoint
+**Implementation**:
 
-**Refresh Implementation**:
-
-```sql
--- Refresh function (idempotent, safe to call frequently)
-CREATE OR REPLACE FUNCTION refresh_reuse_counts()
-RETURNS void AS $$
-BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY library_asset_reuse_counts;
-END;
-$$ LANGUAGE plpgsql;
-
--- Grant execute to authenticated users (for on-demand refresh)
--- But restrict to admin role in practice
-GRANT EXECUTE ON FUNCTION refresh_reuse_counts() TO authenticated;
+```typescript
+// convex/libraryAssets.ts
+export const getReuseCounts = query({
+  args: { assetId: v.id("libraryAssets") },
+  handler: async (ctx, { assetId }) => {
+    const reuseEvents = await ctx.db
+      .query("libraryReuseEvents")
+      .withIndex("by_asset", (q) => q.eq("assetId", assetId))
+      .collect();
+    
+    return {
+      distinctUserReuses: new Set(reuseEvents.map(e => e.userId)).size,
+      distinctProjectReuses: new Set(reuseEvents.filter(e => e.projectId).map(e => e.projectId)).size,
+      totalReuseEvents: reuseEvents.length,
+    };
+  },
+});
 ```
 
-**Refresh Permissions**:
-- **Automated cron**: Uses Supabase service role (bypasses RLS)
-- **On-demand endpoint**: Requires admin role or service role
-- **Regular users**: Cannot trigger refresh (prevents abuse)
+**Caching Strategy**:
+- Convex automatically caches query results
+- Queries refresh when underlying data changes (reactive)
+- For expensive aggregations, consider scheduled functions that pre-compute values
+
+**Alternative: Scheduled Functions** (for expensive calculations):
+```typescript
+// convex/scheduled.ts
+import { internalMutation } from "./_generated/server";
+
+export const calculateReuseCounts = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Pre-compute reuse counts and store in a cache table
+    // Run every 15 minutes via Convex scheduler
+  },
+});
+```
 
 **Refresh Monitoring**:
-- Log refresh timestamps in `refresh_log` table
-- Alert if refresh fails or is delayed >30 minutes
-- Dashboard shows "Last updated: X minutes ago"
+- Convex dashboard shows query performance
+- Add "Last computed" timestamp to UI if using scheduled functions
+- Dashboard shows "Last updated: X minutes ago" for cached values
 
-**Alternative for Real-Time Needs**:
-If real-time reuse counts are required (not recommended), use trigger-based approach:
-```sql
-CREATE OR REPLACE FUNCTION update_reuse_count()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Increment/decrement counter atomically
-  UPDATE library_assets 
-  SET reuse_count = reuse_count + CASE WHEN TG_OP = 'INSERT' THEN 1 ELSE -1 END
-  WHERE id = NEW.asset_id;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER reuse_count_trigger
-AFTER INSERT OR DELETE ON library_reuse_events
-FOR EACH ROW EXECUTE FUNCTION update_reuse_count();
-```
-
-**Decision**: Use materialized view with 15-minute refresh for Phase 1-2. Consider trigger-based if real-time becomes critical requirement.
+**Decision**: Use aggregation queries for Phase 1-2. Consider scheduled functions if aggregation becomes too slow (>500ms).
 
 ---
 
@@ -834,105 +872,114 @@ FOR EACH ROW EXECUTE FUNCTION update_reuse_count();
 
 **Problem**: Two mentor requests could be accepted simultaneously, exceeding mentor capacity
 
-**Solution**: **Transactional server-side function** with row-level locking
+**Solution**: **Atomic mutation** with conditional update in Convex
 
-**Implementation**:
+**Convex Implementation**:
 
-```sql
--- Function to accept mentor request atomically
-CREATE OR REPLACE FUNCTION accept_mentor_request(
-  request_id UUID,
-  mentor_user_id UUID
-)
-RETURNS BOOLEAN AS $$
-DECLARE
-  current_capacity INTEGER;
-  current_used INTEGER;
-BEGIN
-  -- Lock mentor's profile row to prevent concurrent updates
-  SELECT mentor_capacity, mentor_sessions_used
-  INTO current_capacity, current_used
-  FROM profiles
-  WHERE id = mentor_user_id
-  FOR UPDATE; -- Row-level lock
-  
-  -- Check capacity
-  IF current_used >= current_capacity THEN
-    RETURN FALSE; -- Capacity exceeded
-  END IF;
-  
-  -- Update request status
-  UPDATE mentor_requests
-  SET status = 'accepted', scheduled_at = NOW()
-  WHERE id = request_id
-    AND mentor_id = mentor_user_id
-    AND status = 'pending';
-  
-  -- Increment sessions used atomically
-  UPDATE profiles
-  SET mentor_sessions_used = mentor_sessions_used + 1
-  WHERE id = mentor_user_id;
-  
-  RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION accept_mentor_request(UUID, UUID) TO authenticated;
-```
-
-**Alternative**: Database constraint (simpler but less flexible):
-```sql
--- Add check constraint (requires mentor to have capacity)
--- But this doesn't prevent race conditions, only validates final state
-ALTER TABLE mentor_requests ADD CONSTRAINT check_mentor_capacity
-  CHECK (
-    status != 'accepted' OR
-    EXISTS (
-      SELECT 1 FROM profiles p
-      WHERE p.id = mentor_requests.mentor_id
-      AND p.mentor_sessions_used < p.mentor_capacity
-    )
-  );
-```
-
-**Recommended Approach**: Use server-side function with row locking (first approach). Call from API endpoint, not directly from client.
-
-**API Endpoint Pattern**:
 ```typescript
-// Server-side API route (Supabase Edge Function or API route)
-async function acceptMentorRequest(requestId: string, mentorId: string) {
-  const { data, error } = await supabase.rpc('accept_mentor_request', {
-    request_id: requestId,
-    mentor_user_id: mentorId
-  });
-  
-  if (!data) {
-    throw new Error('Capacity exceeded or request not found');
-  }
-  return data;
-}
+// convex/mentorRequests.ts
+export const acceptRequest = mutation({
+  args: { 
+    requestId: v.id("mentorRequests"),
+    mentorId: v.id("profiles")
+  },
+  handler: async (ctx, { requestId, mentorId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    // Get mentor profile
+    const mentor = await ctx.db.get(mentorId);
+    if (!mentor) throw new Error("Mentor not found");
+    
+    // Check capacity atomically
+    if (mentor.mentorSessionsUsed >= mentor.mentorCapacity) {
+      throw new Error("Mentor capacity exceeded");
+    }
+    
+    // Get request
+    const request = await ctx.db.get(requestId);
+    if (!request || request.mentorId !== mentorId || request.status !== "pending") {
+      throw new Error("Invalid request");
+    }
+    
+    // Update request status
+    await ctx.db.patch(requestId, {
+      status: "accepted",
+      scheduledAt: Date.now(),
+    });
+    
+    // Increment sessions used atomically
+    await ctx.db.patch(mentorId, {
+      mentorSessionsUsed: mentor.mentorSessionsUsed + 1,
+    });
+    
+    return { success: true };
+  },
+});
+```
+
+**Convex Atomicity**: Convex mutations are atomic - if the mutation fails partway through, all changes are rolled back. However, to prevent race conditions, we still need to check capacity at the start of the mutation.
+
+**Alternative: Optimistic Updates with Validation**:
+```typescript
+// Use Convex's built-in conflict detection
+export const acceptRequestOptimistic = mutation({
+  args: { requestId: v.id("mentorRequests") },
+  handler: async (ctx, { requestId }) => {
+    const request = await ctx.db.get(requestId);
+    const mentor = await ctx.db.get(request.mentorId);
+    
+    // Check capacity
+    if (mentor.mentorSessionsUsed >= mentor.mentorCapacity) {
+      throw new Error("Capacity exceeded");
+    }
+    
+    // Atomic update
+    await ctx.db.patch(requestId, { status: "accepted" });
+    await ctx.db.patch(request.mentorId, { 
+      mentorSessionsUsed: mentor.mentorSessionsUsed + 1 
+    });
+  },
+});
+```
+
+**Recommended Approach**: Use the first approach (explicit capacity check). Convex's atomic mutations prevent partial updates, but we still need to check capacity before accepting to avoid exceeding limits.
+
+**Client Usage**:
+```typescript
+// Frontend
+const acceptRequest = useMutation(api.mentorRequests.acceptRequest);
+
+await acceptRequest({ 
+  requestId: request._id, 
+  mentorId: mentor._id 
+});
 ```
 
 ---
 
-### Realtime Subscriptions
+### Real-time Updates
 
-**Selective Realtime Usage** (only for truly collaborative, in-session features):
+**Convex Implementation**: Convex queries are reactive by default - the UI automatically updates when data changes. No explicit subscriptions needed. However, we still follow the principle of only using real-time where it adds value (to avoid unnecessary re-renders).
+
+**Selective Real-time Usage** (only for truly collaborative, in-session features):
 
 - `mentor_requests` - Status changes (pending → accepted → completed) for active mentor sessions
 - `project_comments` - New comments on projects (for active project discussions)
 - `project_support_events` - Support events (likes, help offers) for active project pages
 - `project_members` - Member additions/removals for active project views
 
-**NOT using Realtime** (use polling/caching instead):
+**Optimized Updates** (use query filters/conditions to limit reactivity):
 
-- `library_assets` - Updates batched and polled (verification/deprecation not urgent)
-- `library_reuse_events` - Reuse counters computed from materialized view, refreshed periodically
-- `recognition_badges` - Calculated periodically, not real-time
-- `impact_stories` - New stories can be polled or shown on next page load
+- `library_assets` - Use query filters to limit reactivity (only watch verified/arsenal assets)
+- `library_reuse_events` - Reuse counters computed via aggregation queries (not watched directly)
+- `recognition_badges` - Calculated via scheduled functions, queries refresh on-demand
+- `impact_stories` - Queries refresh on page navigation or user action
 
-**Rationale**: Realtime subscriptions are expensive and create UI jitter for metrics that don't need immediate updates. Reserve for features where users are actively collaborating in the same session.
+**Rationale**: While Convex queries are reactive by default, we still optimize by:
+- Using query filters to limit what's watched
+- Using aggregation queries for computed metrics (not watching raw events)
+- Refreshing expensive calculations on-demand rather than reactively
 
 ---
 
@@ -1036,7 +1083,7 @@ async function acceptMentorRequest(requestId: string, mentorId: string) {
 4. Add calendar integration (or calendar nudge UI)
 5. Create mentor dashboard for managing requests
 6. Add capacity protection logic (auto-close when full)
-7. Implement notification system (Supabase Realtime or email)
+7. Implement notification system (Convex reactive queries or email)
 
 ---
 
@@ -1416,22 +1463,23 @@ export const designTokens = {
 1. **Project Setup** (Week 1)
    - Initialize Vite + React project
    - Configure Tailwind CSS with design tokens
-   - Set up Supabase project and configure client
+   - Set up Convex project (`npx convex dev`) and configure client
+   - Set up Clerk authentication
    - Set up ESLint and testing infrastructure
    - Configure Vercel deployment
 
 2. **Database Setup** (Week 1-2)
-   - Create core database tables (migrations)
-   - Set up RLS policies with visibility controls
-   - Create indexes
-   - Set up selective Realtime subscriptions (mentor requests only)
-   - Create materialized view for reuse counts
+   - Define core database schema in `convex/schema.ts`
+   - Create query/mutation functions with visibility checks
+   - Define indexes for efficient queries
+   - Convex queries are reactive by default (no explicit subscriptions needed)
+   - Create aggregation queries for reuse counts
 
 3. **Authentication & Profiles** (Week 2)
-   - Implement Supabase Auth
-   - Create profile creation/editing
+   - Configure Clerk JWT integration with Convex
+   - Create profile creation/editing (Convex mutations)
    - Add experience level selection (internal codes)
-   - Set up capability tags table and join
+   - Set up capability tags table and references
    - Build basic People directory (read-only, filtered by visibility)
 
 4. **Basic Library** (Week 3-4)
@@ -1592,14 +1640,14 @@ export const designTokens = {
 - Numerator: Users who made AI contributions in measurement window
 
 **Time Window**: Last 30 days (fixed, not rolling)
-- Window start: `NOW() - INTERVAL '30 days'`
-- Window end: `NOW()`
-- Recalculate daily at midnight UTC
+- Window start: `Date.now() - 30 * 24 * 60 * 60 * 1000`
+- Window end: `Date.now()`
+- Recalculate daily via scheduled function
 
 **Measure**: Count of distinct contribution events per user
-- Count from `ai_contributions` table
+- Count from `aiContributions` table
 - Count all contribution types: `'library_asset'`, `'project_ai_artefact'`, `'verification'`, `'improvement'`
-- One contribution = one row in `ai_contributions` (regardless of type)
+- One contribution = one document in `aiContributions` (regardless of type)
 - Do NOT weight by type (all contributions equal)
 
 **Calculation Formula**:
@@ -1611,48 +1659,60 @@ Where:
 - `y_i` = contribution count for user `i` (sorted ascending, 0 for non-contributors)
 - `i` = rank position (1 to n)
 
-**Implementation**:
-```sql
-CREATE OR REPLACE FUNCTION get_early_adopter_gini()
-RETURNS NUMERIC AS $$
-  WITH active_users AS (
-    -- All users who logged in within last 90 days
-    SELECT DISTINCT id FROM profiles
-    WHERE updated_at >= NOW() - INTERVAL '90 days'
-  ),
-  contribution_counts AS (
-    SELECT 
-      user_id,
-      COUNT(*) as contribution_count
-    FROM ai_contributions
-    WHERE created_at >= NOW() - INTERVAL '30 days'
-      AND created_at < NOW()
-    GROUP BY user_id
-  ),
-  user_contributions AS (
-    SELECT 
-      au.id as user_id,
-      COALESCE(cc.contribution_count, 0) as contribution_count
-    FROM active_users au
-    LEFT JOIN contribution_counts cc ON au.id = cc.user_id
-  ),
-  ranked_contributions AS (
-    SELECT 
-      contribution_count,
-      ROW_NUMBER() OVER (ORDER BY contribution_count) as rank
-    FROM user_contributions
-  ),
-  n AS (SELECT COUNT(*)::NUMERIC as total FROM user_contributions),
-  gini_calc AS (
-    SELECT 
-      (2.0 * SUM(rank * contribution_count)) / 
-      (SELECT total FROM n) / 
-      NULLIF(SUM(contribution_count), 0) - 
-      ((SELECT total FROM n) + 1.0) / (SELECT total FROM n) as gini
-    FROM ranked_contributions
-  )
-  SELECT COALESCE(gini, 0) FROM gini_calc;
-$$ LANGUAGE SQL;
+**Convex Implementation**:
+```typescript
+// convex/metrics.ts
+export const getEarlyAdopterGini = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    
+    // Get active users (logged in within last 90 days)
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const activeUsers = allProfiles.filter(
+      p => p._creationTime >= ninetyDaysAgo
+    );
+    
+    // Get contribution counts for last 30 days
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+    
+    // Count contributions per user
+    const contributionCounts = new Map<string, number>();
+    contributions.forEach(c => {
+      const count = contributionCounts.get(c.userId) || 0;
+      contributionCounts.set(c.userId, count + 1);
+    });
+    
+    // Create user-contribution pairs (0 for non-contributors)
+    const userContributions = activeUsers.map(user => ({
+      userId: user._id,
+      count: contributionCounts.get(user._id) || 0,
+    }));
+    
+    // Sort by count (ascending)
+    userContributions.sort((a, b) => a.count - b.count);
+    
+    // Calculate Gini coefficient
+    const n = userContributions.length;
+    if (n === 0) return 0;
+    
+    const totalContributions = userContributions.reduce((sum, u) => sum + u.count, 0);
+    if (totalContributions === 0) return 0;
+    
+    let sumRankTimesCount = 0;
+    userContributions.forEach((user, index) => {
+      const rank = index + 1;
+      sumRankTimesCount += rank * user.count;
+    });
+    
+    const gini = (2.0 * sumRankTimesCount) / (n * totalContributions) - (n + 1.0) / n;
+    return Math.max(0, gini); // Ensure non-negative
+  },
+});
 ```
 
 **Target Threshold**: Gini < 0.7
@@ -1727,9 +1787,9 @@ $$ LANGUAGE SQL;
 ### Integration Tests
 
 **API Integration**:
-- Test Supabase queries
-- Test RLS policies
-- Test Realtime subscriptions
+- Test Convex queries and mutations
+- Test visibility enforcement in query handlers
+- Test reactive query updates
 
 **Workflow Tests**:
 - Test complete user flows (e.g., submit asset → verify → reuse)
@@ -1765,8 +1825,8 @@ $$ LANGUAGE SQL;
     }
   ],
   "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key"
+    "VITE_CONVEX_URL": "@convex_url",
+    "VITE_CLERK_PUBLISHABLE_KEY": "@clerk_key"
   }
 }
 ```
@@ -1775,28 +1835,44 @@ $$ LANGUAGE SQL;
 
 **Development** (`.env.local`):
 ```
-VITE_SUPABASE_URL=your_dev_supabase_url
-VITE_SUPABASE_ANON_KEY=your_dev_anon_key
+VITE_CONVEX_URL=https://your-deployment-name.convex.cloud
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
 ```
 
 **Production** (Vercel Environment Variables):
 - Set via Vercel dashboard
 - Use Vercel's environment variable management
+- Add `CLERK_JWKS_URL` to Convex production deployment settings
 
 ### Deployment Steps
 
 1. **Initial Setup**:
    - Connect GitHub repo to Vercel
-   - Configure environment variables
+   - Configure environment variables:
+     - `VITE_CONVEX_URL` (from Convex deployment)
+     - `VITE_CLERK_PUBLISHABLE_KEY` (from Clerk dashboard)
    - Set up build command: `npm run build`
    - Set output directory: `dist`
 
-2. **Database Migrations**:
-   - Run migrations via Supabase CLI or dashboard
-   - Ensure RLS policies are active
-   - Seed initial data (AI Arsenal items)
+2. **Convex Backend Deployment**:
+   ```bash
+   npm run convex:deploy
+   ```
+   - Creates production Convex deployment
+   - Get production URL and add to Vercel env vars
+   - Add `CLERK_JWKS_URL` to Convex production environment variables
 
-3. **Continuous Deployment**:
+3. **Clerk Production Setup**:
+   - Switch to Production instance in Clerk Dashboard
+   - Configure production domain
+   - Update email domain restrictions for production
+   - Copy production publishable key to Vercel
+
+4. **Seed Initial Data**:
+   - Use Convex Dashboard to run seed functions
+   - Or create internal mutations for seeding
+
+5. **Continuous Deployment**:
    - Push to `main` branch triggers production deploy
    - Use preview deployments for PRs
    - Run tests before deployment
@@ -1805,7 +1881,7 @@ VITE_SUPABASE_ANON_KEY=your_dev_anon_key
 
 - Set up Vercel Analytics
 - Configure error tracking (Sentry)
-- Monitor Supabase usage and performance
+- Monitor Convex usage and performance (Convex Dashboard)
 - Track key metrics (user adoption, Library reuse, etc.)
 
 ---
@@ -1814,55 +1890,82 @@ VITE_SUPABASE_ANON_KEY=your_dev_anon_key
 
 ### Metrics Tracking
 
-**Database Functions** (PostgreSQL):
+**Convex Query Functions** (TypeScript):
 
-```sql
--- Calculate % employees with AI contributions
-CREATE OR REPLACE FUNCTION get_ai_contributor_percentage()
-RETURNS NUMERIC AS $$
-  WITH contributors AS (
-    SELECT COUNT(DISTINCT user_id) as contributor_count
-    FROM ai_contributions 
-    WHERE created_at >= NOW() - INTERVAL '30 days'
-  ),
-  total_profiles AS (
-    SELECT COUNT(*) as total_count
-    FROM profiles
-    -- Optionally filter by active employees only (if you add is_active flag)
-  )
-  SELECT (
-    (SELECT contributor_count FROM contributors)::NUMERIC /
-    NULLIF((SELECT total_count FROM total_profiles), 0)
-  ) * 100;
-$$ LANGUAGE SQL;
+```typescript
+// convex/metrics.ts
+import { query } from "./_generated/server";
 
--- Calculate % projects using AI artefacts
-CREATE OR REPLACE FUNCTION get_projects_with_ai_percentage()
-RETURNS NUMERIC AS $$
-  SELECT (
-    COUNT(*) FILTER (
-      WHERE EXISTS (
-        SELECT 1 FROM project_library_assets 
-        WHERE project_library_assets.project_id = projects.id
+// Calculate % employees with AI contributions
+export const getAiContributorPercentage = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    
+    // Get contributors
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+    
+    const contributorIds = new Set(contributions.map(c => c.userId));
+    const contributorCount = contributorIds.size;
+    
+    // Get total profiles
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const totalCount = allProfiles.length;
+    
+    return totalCount > 0 ? (contributorCount / totalCount) * 100 : 0;
+  },
+});
+
+// Calculate % projects using AI artefacts
+export const getProjectsWithAiPercentage = query({
+  args: {},
+  handler: async (ctx) => {
+    const projects = await ctx.db
+      .query("projects")
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("status"), "building"),
+          q.eq(q.field("status"), "incubation"),
+          q.eq(q.field("status"), "completed")
+        )
       )
-    )::NUMERIC /
-    NULLIF(COUNT(*), 0)
-  ) * 100
-  FROM projects
-  WHERE status IN ('building', 'incubation', 'completed');
-$$ LANGUAGE SQL;
+      .collect();
+    
+    let projectsWithAi = 0;
+    for (const project of projects) {
+      const hasAssets = await ctx.db
+        .query("projectLibraryAssets")
+        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .first();
+      
+      if (hasAssets) projectsWithAi++;
+    }
+    
+    return projects.length > 0 ? (projectsWithAi / projects.length) * 100 : 0;
+  },
+});
 
--- Weekly active AI contributors
-CREATE OR REPLACE FUNCTION get_weekly_active_contributors()
-RETURNS INTEGER AS $$
-  SELECT COUNT(DISTINCT user_id)
-  FROM ai_contributions
-  WHERE created_at >= NOW() - INTERVAL '7 days';
-$$ LANGUAGE SQL;
+// Weekly active AI contributors
+export const getWeeklyActiveContributors = query({
+  args: {},
+  handler: async (ctx) => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), sevenDaysAgo))
+      .collect();
+    
+    const uniqueContributors = new Set(contributions.map(c => c.userId));
+    return uniqueContributors.size;
+  },
+});
 
--- Gini coefficient calculation is fully specified in the "Gini Coefficient Definition" section above.
--- See the complete implementation with population definition, time window, and measure specification.
--- This placeholder has been removed to avoid confusion - use the fully specified version.
+// Gini coefficient calculation - see "Gini Coefficient Definition" section above
+// Implementation uses aggregation queries instead of SQL
 ```
 
 **Frontend Metrics Display**:
@@ -1890,8 +1993,8 @@ $$ LANGUAGE SQL;
 ## Next Steps
 
 1. **Review this roadmap** with stakeholders
-2. **Set up project** (Vite + React + Supabase)
-3. **Create database schema** (run migrations)
+2. **Set up project** (Vite + React + Convex + Clerk)
+3. **Create database schema** (define in `convex/schema.ts`)
 4. **Build Phase 1 MVP** following the phased approach
 5. **Iterate** based on user feedback and metrics
 
@@ -1906,26 +2009,40 @@ $$ LANGUAGE SQL;
 **Explicit Org Boundary Enforcement**:
 
 1. **Email Domain Restriction** (Required):
-   - Configure Supabase Auth to restrict signups to approved email domains
-   - Use Supabase Auth hook or Edge Function to validate domain on signup
-   - Example: Only allow `@company.com` email addresses
-   - Reject signups from external domains at authentication layer
+   - Configure Clerk to restrict signups to approved email domains
+   - In Clerk Dashboard: **User & Authentication** → **Restrictions** → Enable email domain restrictions
+   - Add your company domain (e.g., `company.com`)
+   - Clerk will reject signups from external domains at authentication layer
 
-2. **Database-Level Enforcement** (Defense in Depth):
-   ```sql
-   -- Add email domain check constraint (if needed)
-   ALTER TABLE profiles ADD CONSTRAINT check_org_domain 
-     CHECK (email ~ '@company\.com$');
+2. **Convex Query Enforcement** (Defense in Depth):
+   ```typescript
+   // In profile mutations, validate email domain
+   export const upsert = mutation({
+     args: { /* ... */ },
+     handler: async (ctx, args) => {
+       const identity = await ctx.auth.getUserIdentity();
+       if (!identity) throw new Error("Not authenticated");
+       
+       // Validate email domain (if not already validated by Clerk)
+       const email = identity.email;
+       if (!email?.endsWith("@company.com")) {
+         throw new Error("Invalid email domain");
+       }
+       
+       // ... rest of mutation
+     },
+   });
    ```
 
-3. **RLS Policy Enforcement**:
-   - All RLS policies implicitly assume single org (no `org_id` filtering needed)
+3. **Visibility Enforcement**:
+   - All Convex queries check visibility using `ctx.auth.getUserIdentity()`
    - All authenticated users are considered org members
    - Public visibility (`'public'`) is optional and can be disabled via config
+   - No `org_id` filtering needed (single org assumption)
 
 4. **Team Structure** (Optional, Phase 3+):
-   - Add `teams` table with `team_name`, `team_lead_id`
-   - Add `team_members` join table
+   - Add `teams` table with `teamName`, `teamLeadId`
+   - Add `teamMembers` join table
    - Support team-level metrics (with anonymity controls)
    - Team membership does not affect org boundary (all teams within same org)
 
@@ -1953,10 +2070,11 @@ $$ LANGUAGE SQL;
 - Implement virtual scrolling for long lists
 
 ### Security
-- Enforce RLS policies strictly
-- Validate all user inputs
+- Enforce visibility checks in all Convex queries/mutations
+- Validate all user inputs (both client and server-side)
 - Sanitize content before display
 - Rate limit API calls
+- Use Clerk's built-in security features (password policies, 2FA, session management)
 
 ### Scalability
 - Design for horizontal scaling
@@ -1966,9 +2084,20 @@ $$ LANGUAGE SQL;
 
 ---
 
-**Roadmap Version**: 2.2  
-**Last Updated**: January 30, 2026  
-**Status**: Consistency fixes applied - Ready for Implementation
+**Roadmap Version**: 2.3  
+**Last Updated**: January 31, 2026  
+**Status**: Updated for Convex implementation - Ready for Implementation
+
+**Key Changes in v2.3**:
+- Updated backend stack from Supabase to Convex + Clerk
+- Converted SQL schema examples to Convex TypeScript patterns
+- Updated RLS policies section to show Convex visibility patterns
+- Replaced materialized views with Convex aggregation queries
+- Updated SQL functions to Convex query/mutation equivalents
+- Updated mentor capacity protection to use Convex atomic mutations
+- Updated Gini coefficient calculation to Convex TypeScript implementation
+- Updated org boundary enforcement to use Clerk domain restrictions
+- Updated real-time section to reflect Convex reactive queries
 
 **Key Changes in v2.2**:
 - Removed duplicate Gini coefficient placeholder function (kept only fully specified version)

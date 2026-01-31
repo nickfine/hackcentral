@@ -2,12 +2,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider, useAuth } from '@clerk/clerk-react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
-import { ConvexReactClient } from 'convex/react'
+import { convex } from './lib/convex'
 import App from './App'
 import './styles/globals.css'
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL!);
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY!;
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPubKey) {
+  throw new Error(
+    'Missing VITE_CLERK_PUBLISHABLE_KEY environment variable. Check your .env.local file.'
+  );
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

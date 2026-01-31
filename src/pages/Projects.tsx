@@ -3,9 +3,17 @@
  * Shows projects with AI artefacts and collaboration features
  */
 
-import { Search, Plus, Filter } from 'lucide-react'
+import { useState } from 'react';
+import { Search, Plus, Filter } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export default function Projects() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  
+  const projects = useQuery(api.projects.list);
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -28,10 +36,16 @@ export default function Projects() {
           <input
             type="text"
             placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="input pl-10"
           />
         </div>
-        <select className="input w-36">
+        <select 
+          className="input w-36"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All Status</option>
           <option value="idea">Idea</option>
           <option value="building">Building</option>
@@ -54,18 +68,43 @@ export default function Projects() {
       </div>
 
       {/* Projects Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <ProjectPlaceholder status="idea" />
-        <ProjectPlaceholder status="building" />
-        <ProjectPlaceholder status="completed" />
-        <ProjectPlaceholder status="idea" />
-        <ProjectPlaceholder status="building" />
-        <ProjectPlaceholder status="incubation" />
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Connect to Supabase to see real projects
-      </p>
+      {projects === undefined ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ProjectPlaceholder status="idea" />
+          <ProjectPlaceholder status="building" />
+          <ProjectPlaceholder status="completed" />
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="card p-12 text-center">
+          <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+          <p className="text-muted-foreground mb-4">
+            Create your first project with AI artefacts
+          </p>
+          <button className="btn btn-primary">
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {projects
+            .filter(p => {
+              if (statusFilter && p.status !== statusFilter) return false;
+              if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                return (
+                  p.title.toLowerCase().includes(query) ||
+                  p.description?.toLowerCase().includes(query)
+                );
+              }
+              return true;
+            })
+            .map((project) => (
+              <ProjectCard key={project._id} project={project} />
+            ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -91,6 +130,64 @@ function TabButton({ children, active }: TabButtonProps) {
 
 interface ProjectPlaceholderProps {
   status: 'idea' | 'building' | 'incubation' | 'completed'
+}
+
+interface ProjectCardProps {
+  project: {
+    _id: Id<"projects">;
+    title: string;
+    description?: string;
+    status: string;
+    isAnonymous: boolean;
+  };
+}
+
+function ProjectCard({ project }: ProjectCardProps) {
+  const statusColors: Record<string, string> = {
+    idea: 'bg-amber-100 text-amber-800 border-amber-200',
+    building: 'bg-blue-100 text-blue-800 border-blue-200',
+    incubation: 'bg-purple-100 text-purple-800 border-purple-200',
+    completed: 'bg-green-100 text-green-800 border-green-200',
+    archived: 'bg-gray-100 text-gray-800 border-gray-200',
+  };
+
+  const statusLabels: Record<string, string> = {
+    idea: 'Idea',
+    building: 'Building',
+    incubation: 'Incubation',
+    completed: 'Completed',
+    archived: 'Archived',
+  };
+
+  return (
+    <div className="card p-4 hover:shadow-md transition-shadow cursor-pointer">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="font-semibold text-lg leading-tight">{project.title}</h3>
+        <span className={`badge text-xs ${statusColors[project.status]}`}>
+          {statusLabels[project.status]}
+        </span>
+      </div>
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+        {project.description || 'No description'}
+      </p>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between text-sm pt-3 border-t">
+        <div className="flex items-center gap-2">
+          {project.isAnonymous ? (
+            <span className="text-xs text-muted-foreground">Anonymous</span>
+          ) : (
+            <>
+              <div className="avatar w-6 h-6">
+                <div className="avatar-fallback text-xs">?</div>
+              </div>
+              <span className="text-muted-foreground">Owner</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ProjectPlaceholder({ status }: ProjectPlaceholderProps) {

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 
 /**
  * List projects (filtered by visibility)
@@ -20,26 +19,31 @@ export const list = query({
         .first();
     }
 
-    // Filter by visibility
-    return projects.filter(async (project) => {
-      const isOwner = currentProfile && project.ownerId === currentProfile._id;
+    // Filter by visibility (async-safe)
+    const projectsWithAccess = await Promise.all(
+      projects.map(async (project) => {
+        const isOwner = currentProfile && project.ownerId === currentProfile._id;
 
-      // Check if user is a member
-      const isMember = currentProfile
-        ? await ctx.db
-            .query("projectMembers")
-            .withIndex("by_project_and_user", (q) =>
-              q.eq("projectId", project._id).eq("userId", currentProfile._id)
-            )
-            .first()
-        : null;
+        // Check if user is a member
+        const isMember = currentProfile
+          ? await ctx.db
+              .query("projectMembers")
+              .withIndex("by_project_and_user", (q) =>
+                q.eq("projectId", project._id).eq("userId", currentProfile._id)
+              )
+              .first()
+          : null;
 
-      return (
-        project.visibility === "public" ||
-        (project.visibility === "org" && identity) ||
-        (project.visibility === "private" && (isOwner || isMember))
-      );
-    });
+        const hasAccess =
+          project.visibility === "public" ||
+          (project.visibility === "org" && identity) ||
+          (project.visibility === "private" && (isOwner || isMember));
+
+        return hasAccess ? project : null;
+      })
+    );
+
+    return projectsWithAccess.filter((p) => p !== null);
   },
 });
 

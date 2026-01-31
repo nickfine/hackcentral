@@ -1,5 +1,11 @@
-import { convexAuth } from "@convex-dev/auth/server";
+// Convex Auth Configuration for Clerk
+// This tells Convex to accept JWTs from Clerk
 
-export const { auth, signIn, signOut, store } = convexAuth({
-  providers: [],
-});
+export default {
+  providers: [
+    {
+      domain: "https://balanced-hound-26.clerk.accounts.dev",
+      applicationID: "convex",
+    },
+  ],
+};

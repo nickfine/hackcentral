@@ -27,9 +27,7 @@ export const list = query({
   },
   handler: async (ctx, { assetType, status, arsenalOnly }) => {
     const identity = await ctx.auth.getUserIdentity();
-    let query = ctx.db.query("libraryAssets");
-
-    const assets = await query.collect();
+    const assets = await ctx.db.query("libraryAssets").collect();
 
     // Get current user's profile
     let currentProfile = null;

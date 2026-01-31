@@ -3,38 +3,75 @@
  * Shows user profile, contributions, and settings
  */
 
-import { Settings, Award, BookOpen, Briefcase } from 'lucide-react'
+import { Settings, Award, BookOpen, Briefcase } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+
+const EXPERIENCE_LEVEL_LABELS: Record<string, string> = {
+  newbie: 'AI Newbie',
+  curious: 'AI Curious',
+  comfortable: 'AI Comfortable',
+  power_user: 'AI Power User',
+  expert: 'AI Expert',
+};
 
 export default function Profile() {
+  const { user } = useUser();
+  const profile = useQuery(api.profiles.getCurrentProfile);
+  const capabilityTags = useQuery(api.capabilityTags.list);
   return (
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="card p-6">
-        <div className="flex items-start gap-6">
-          <div className="avatar w-24 h-24">
-            <div className="avatar-fallback text-2xl bg-primary/10 text-primary">
-              ?
+        {profile === undefined ? (
+          <div className="animate-pulse">
+            <div className="flex items-start gap-6">
+              <div className="w-24 h-24 rounded-full bg-muted" />
+              <div className="flex-1">
+                <div className="h-8 bg-muted rounded w-48 mb-2" />
+                <div className="h-4 bg-muted rounded w-64 mb-4" />
+              </div>
             </div>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold">Your Profile</h1>
-              <span className="badge badge-curious">AI Curious</span>
+        ) : (
+          <div className="flex items-start gap-6">
+            <div className="avatar w-24 h-24">
+              {profile?.avatarUrl || user?.imageUrl ? (
+                <img 
+                  src={profile?.avatarUrl || user?.imageUrl} 
+                  alt={profile?.fullName || 'User'} 
+                  className="avatar-image"
+                />
+              ) : (
+                <div className="avatar-fallback text-2xl bg-primary/10 text-primary">
+                  {profile?.fullName?.[0]?.toUpperCase() || user?.firstName?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
             </div>
-            <p className="text-muted-foreground mb-4">
-              Sign in to see your profile
-            </p>
-            <div className="flex gap-2">
-              <button className="btn btn-primary btn-sm">
-                Sign In
-              </button>
-              <button className="btn btn-outline btn-sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Edit Profile
-              </button>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold">
+                  {profile?.fullName || user?.fullName || 'Your Profile'}
+                </h1>
+                {profile?.experienceLevel && (
+                  <span className={`badge badge-${profile.experienceLevel}`}>
+                    {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel]}
+                  </span>
+                )}
+              </div>
+              <p className="text-muted-foreground mb-4">
+                {profile?.email || user?.primaryEmailAddress?.emailAddress}
+              </p>
+              <div className="flex gap-2">
+                <button className="btn btn-outline btn-sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -86,33 +123,49 @@ export default function Profile() {
       <div className="card p-6">
         <h3 className="font-semibold mb-3">Capability Tags</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Add tags to help others find you for AI collaboration
+          Tags help others find you for AI collaboration
         </p>
-        <div className="flex flex-wrap gap-2">
-          <span className="badge badge-outline">+ Add tags</span>
-        </div>
+        {profile && capabilityTags ? (
+          <div className="flex flex-wrap gap-2">
+            {profile.capabilityTags.length > 0 ? (
+              capabilityTags
+                .filter(tag => profile.capabilityTags.includes(tag._id))
+                .map((tag) => (
+                  <span key={tag._id} className="badge badge-primary">
+                    {tag.displayLabel}
+                  </span>
+                ))
+            ) : (
+              <span className="text-sm text-muted-foreground">No tags added yet</span>
+            )}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <span className="badge badge-outline animate-pulse">Loading...</span>
+          </div>
+        )}
       </div>
 
       {/* Mentor Settings */}
       <div className="card p-6">
         <h3 className="font-semibold mb-3">Mentor Availability</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Set your capacity for mentoring others on AI topics
+          Your capacity for mentoring others on AI topics
         </p>
-        <div className="flex items-center gap-4">
-          <div>
-            <label className="text-sm font-medium">Monthly Sessions</label>
-            <input
-              type="number"
-              className="input w-24 mt-1"
-              placeholder="0"
-              disabled
-            />
+        {profile ? (
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="text-sm font-medium">Monthly Sessions</label>
+              <div className="text-2xl font-bold mt-1">{profile.mentorCapacity}</div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">{profile.mentorSessionsUsed}</span> / 
+              <span> {profile.mentorCapacity}</span> sessions used this month
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium">0</span> / <span>0</span> sessions used this month
-          </div>
-        </div>
+        ) : (
+          <div className="text-muted-foreground">Loading...</div>
+        )}
       </div>
     </div>
   )

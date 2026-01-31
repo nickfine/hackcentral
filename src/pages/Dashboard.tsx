@@ -63,7 +63,7 @@ export default function Dashboard() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-4">
-          Connect to Supabase to see real metrics
+          Metrics will populate once you have activity
         </p>
       </div>
 
