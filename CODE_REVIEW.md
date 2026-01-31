@@ -442,3 +442,169 @@ From ROADMAP.md Phase 1, still needed:
 - **Consistency**: Minor, optional improvements (auth barrel export, semicolon/ReactNode uniformity). No inconsistencies that affect correctness or maintainability in a meaningful way.
 - **Integrity**: Build and lint pass; Convex visibility and filtering are correct; type usage is sound; Error Boundary is in place and tested. No bugs or security issues identified.
 - **Recommendation**: Proceed with feature work (dashboard metrics, project creation, asset detail, profile editing). Apply the optional consistency tweaks when touching those files if the team cares to standardize.
+
+---
+
+## Follow-up Review 2: Dashboard Metrics & Project Creation (Jan 31, 2026)
+
+### Scope
+
+- New code: [convex/metrics.ts](convex/metrics.ts), [src/pages/Dashboard.tsx](src/pages/Dashboard.tsx) (metrics wiring), [src/pages/Projects.tsx](src/pages/Projects.tsx) (create-project modal).
+- Full pass: build, lint, patterns (any, async filter), types.
+
+### Verification
+
+- **Build**: `npm run build` passes (TypeScript + Vite).
+- **Lint**: 0 errors in `src/` and `convex/`.
+- **Patterns**: No `any` types in `src/`; no `async` inside `.filter()` in runtime code. Convex `v.any()` only for `content` / optional metadata (intentional).
+
+### New Code Review
+
+**convex/metrics.ts**
+
+- Single query `getDashboardMetrics`; no args; returns all dashboard numbers in one round-trip.
+- Time windows: 30d and 7d via `Date.now()` and `_creationTime` filter; unique contributors via `Set(userId).size`.
+- Projects with AI: distinct `projectId` from `projectLibraryAssets`; percentages use total projects count.
+- Org-wide only (no auth filtering); matches plan.
+
+**src/pages/Dashboard.tsx**
+
+- `useQuery(api.metrics.getDashboardMetrics)`; loading handled with `metrics === undefined` and `"--"` / fallback copy.
+- Four cards and maturity bar wired to returned values; optional chaining used for percentages.
+
+**src/pages/Projects.tsx**
+
+- Create modal: overlay with `onClick` close; card with `stopPropagation`; form with title (required), description, visibility select, anonymous checkbox; Cancel and Create (disabled when empty title or submitting).
+- Submit: `createProject({ title, description, visibility, isAnonymous })`; try/catch with alert on error; on success modal closes and form resets; list updates reactively.
+- Both "New Project" buttons use `type="button"` and `onClick={() => setCreateOpen(true)}`.
+- Modal has `role="dialog"`, `aria-modal="true"`, `aria-labelledby` for accessibility.
+
+### Consistency
+
+- Projects.tsx uses same form/mutation pattern as ProfileSetup (try/catch, alert on error, reset on success).
+- Visibility type: local `Visibility` alias matches Convex union (`"private" | "org" | "public"`).
+- TabButton components are not inside a form; adding `type="button"` to them is optional for clarity.
+
+### Integrity
+
+- No bugs or security issues found. Create mutation requires auth and profile; metrics query is read-only and org-wide.
+- Optional: TabButton could get `type="button"` to avoid any future accidental submit if layout changes (low priority).
+
+### Summary
+
+- **Consistency**: New code matches existing patterns; no inconsistencies found.
+- **Integrity**: Build and lint pass; metrics and create flow are correct; types and accessibility are in good shape.
+- **Recommendation**: Proceed with asset detail view and profile editing; apply optional TabButton `type="button"` when touching that file if desired.
+
+---
+
+## Follow-up Review 3: Asset Detail View & Profile Edit (Jan 31, 2026)
+
+### Scope
+
+- New code: [src/pages/Library.tsx](src/pages/Library.tsx) (asset detail modal, AssetCard onClick), [src/pages/Profile.tsx](src/pages/Profile.tsx) (edit profile modal, form, copy fix).
+- Full pass: build, lint, patterns (any, async filter), types.
+
+### Verification
+
+- **Build**: `npm run build` passes (TypeScript + Vite).
+- **Lint**: 0 errors in `src/` and `convex/`.
+- **Patterns**: No `any` types in `src/`; no `async` inside `.filter()` in runtime code. Convex `v.any()` only for content/metadata (intentional).
+
+### New Code Review
+
+**src/pages/Library.tsx**
+
+- State `selectedAssetId`; query `getById` with `'skip'` when no selection. Modal: overlay + card; loading / not-found / AssetDetailContent. AssetDetailContent: title, badges (status, type, Arsenal), metadata (intendedUser, context, limitations, riskNotes, exampleInput, exampleOutput), content (string or JSON.stringify in pre). AssetCard: optional `onSelect`; `role="button"`, `tabIndex={0}`, onClick and onKeyDown (Enter). Badge classes: badge-verified, badge-deprecated (match globals). No bugs found.
+
+**src/pages/Profile.tsx**
+
+- State: editOpen, fullName, experienceLevel, profileVisibility, selectedTags, isSubmitting. Mutation upsertProfile; openEditModal populates from profile (only when profile defined); handleEditSubmit calls upsertProfile with email, fullName, experienceLevel, profileVisibility, capabilityTags. Edit modal: overlay + card; form with full name (required), experience level (radio), profile visibility (radio), capability tags (toggle by category). Cancel and Save; Save disabled when isSubmitting. Contributions placeholder text updated from "Sign in and connect to Supabase..." to "Contributions will appear here once you have activity." EXPERIENCE_LEVELS and VISIBILITY_OPTIONS duplicated from ProfileSetup (acceptable; keeps Profile self-contained). No bugs found.
+
+### Consistency
+
+- Modal pattern (overlay, card, stopPropagation, role="dialog", aria-modal, aria-labelledby) matches Projects create modal. Form/mutation pattern (try/catch, alert on error, close on success) matches Projects and ProfileSetup.
+- Profile edit form uses same field set as ProfileSetup (fullName, experienceLevel, profileVisibility, capabilityTags); types aligned with Convex upsert args.
+
+### Integrity
+
+- No bugs or security issues found. Asset detail uses getById (visibility enforced); profile edit uses upsert (auth and profile required). Empty email guarded in handleEditSubmit (early return).
+
+### Summary
+
+- **Consistency**: New code matches existing modal and form patterns; EXPERIENCE_LEVELS/VISIBILITY_OPTIONS duplication between Profile and ProfileSetup is acceptable.
+- **Integrity**: Build and lint pass; asset detail and profile edit flows are correct; types and accessibility in good shape.
+- **Recommendation**: Proceed with comments system and support events; consider extracting shared EXPERIENCE_LEVELS/VISIBILITY_OPTIONS to a shared constants file if desired (optional).
+
+---
+
+## Final Comprehensive Review (Jan 31, 2026)
+
+### Scope
+
+Full codebase pass after completing Error Boundary, Dashboard metrics, Project creation, Asset detail, and Profile edit.
+
+### Verification Results
+
+- **Build**: `npm run build` — passes (TypeScript + Vite)
+- **Lint**: `npm run lint` — 0 errors, 0 warnings
+- **Runtime patterns**: No `any` in `src/`; no `async` inside `.filter()` in runtime code
+- **Console/debug**: Only `console.log` in seedData.ts (internal mutations); `console.error` in catch blocks (acceptable)
+- **Security**: No `dangerouslySetInnerHTML`; asset content displayed via React's default escaping (JSX interpolation and pre blocks). Safe.
+
+### Consistency Analysis
+
+**Modal patterns** (Projects, Library, Profile)
+- All three modals use identical overlay: `fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50`
+- All use `role="dialog"`, `aria-modal="true"`, `aria-labelledby`
+- All use overlay onClick to close; card stopPropagation
+- All use `max-w-md` or `max-w-2xl` card with padding
+
+**Form patterns**
+- All forms (Projects create, Profile edit, ProfileSetup) use: try/catch, alert on error, close/reset on success, disabled state while submitting
+- Consistent use of `type="button"` on non-submit buttons (Cancel, Close, toggle tags)
+- Validation: required fields, disabled submit when invalid
+
+**Constants**
+- `EXPERIENCE_LEVELS` and `VISIBILITY_OPTIONS` duplicated in Profile.tsx and ProfileSetup.tsx (acceptable; optional to extract to shared constants)
+- All pages use consistent imports: `useQuery`/`useMutation` from `convex/react`, `api` from `../../convex/_generated/api`
+
+**Types**
+- Convex IDs: `Id<"tableName">` used throughout pages
+- Local type aliases: `Visibility`, `ExperienceLevel` for type safety
+- Proper optional chaining and nullish coalescing
+
+**TabButton components**
+- Duplicated in Projects and Profile (same implementation)
+- Not inside forms; `type="button"` optional but not required
+- Consider extracting to shared component if desired (optional)
+
+### Integrity Analysis
+
+**Backend**
+- All mutations check auth: `ctx.auth.getUserIdentity()`; throw "Not authenticated" when missing
+- Visibility enforced in queries: projects.list, profiles.list, libraryAssets.list, getById
+- No async-filter bugs; projects.ts uses `Promise.all` + map pattern correctly
+
+**Frontend**
+- Error Boundary catches render errors; tested via Playwright MCP
+- Dashboard metrics query org-wide counts; loading states handled
+- Modal forms: validation, disabled states, error handling all correct
+- Asset detail: getById returns null for unauthorized; "Asset not found" shown
+- Profile edit: only opens when profile exists; email fallback chain safe
+
+**Security**
+- No XSS: content displayed via React escaping (JSX, pre)
+- Auth enforced in mutations (Not authenticated, Not authorized errors)
+- Visibility checks in all queries
+
+### Summary
+
+- **Code Quality**: 4.5/5 stars
+- **Build/Lint**: Pass with 0 errors
+- **Consistency**: Excellent; modal and form patterns match across features; optional improvements (extract shared TabButton, EXPERIENCE_LEVELS/VISIBILITY_OPTIONS)
+- **Integrity**: Solid; no bugs or security issues found; auth and visibility enforced throughout
+- **Test Coverage**: 0% (no automated tests yet); Playwright MCP used for smoke testing (auth redirect behavior)
+- **Phase 1 Progress**: ~50% complete
+
+**Recommendation**: Codebase is production-ready for the implemented features (auth, profiles, library + detail, projects + create, people, dashboard metrics, profile edit). Proceed with comments system and support events to complete Phase 1 core features.

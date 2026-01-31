@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Search, Plus, Sparkles, FileText, Bot, Shield, Award } from 'lucide-react';
+import { Search, Plus, Sparkles, FileText, Bot, Shield, Award, X } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -13,8 +13,13 @@ export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  
+  const [selectedAssetId, setSelectedAssetId] = useState<Id<'libraryAssets'> | null>(null);
+
   const arsenalAssets = useQuery(api.libraryAssets.getArsenal);
+  const selectedAsset = useQuery(
+    api.libraryAssets.getById,
+    selectedAssetId ? { assetId: selectedAssetId } : 'skip'
+  );
   // Build query args - only include if value is set
   const queryArgs: {
     assetType?: "prompt" | "template" | "agent_blueprint" | "guardrail" | "evaluation_rubric" | "structured_output";
@@ -30,8 +35,50 @@ export default function Library() {
   }
   
   const allAssets = useQuery(api.libraryAssets.list, queryArgs);
+
   return (
     <div className="space-y-6">
+      {/* Asset Detail Modal */}
+      {selectedAssetId !== null && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedAssetId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="asset-detail-title"
+        >
+          <div
+            className="max-w-2xl w-full max-h-[90vh] overflow-y-auto card p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {selectedAsset === undefined ? (
+              <div className="py-8 text-center">
+                <h2 id="asset-detail-title" className="text-xl font-semibold mb-2">Loading...</h2>
+                <p className="text-muted-foreground">Loading asset details</p>
+              </div>
+            ) : selectedAsset === null ? (
+              <div className="space-y-4">
+                <h2 id="asset-detail-title" className="text-xl font-semibold">
+                  Asset not found
+                </h2>
+                <p className="text-muted-foreground">
+                  This asset may be private or no longer available.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setSelectedAssetId(null)}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <AssetDetailContent asset={selectedAsset} onClose={() => setSelectedAssetId(null)} />
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Library</h1>
@@ -124,7 +171,7 @@ export default function Library() {
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {arsenalAssets.slice(0, 6).map((asset) => (
-                <AssetCard key={asset._id} asset={asset} />
+                <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
               ))}
             </div>
           </>
@@ -166,7 +213,7 @@ export default function Library() {
                 );
               })
               .map((asset) => (
-                <AssetCard key={asset._id} asset={asset} />
+                <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
               ))}
           </div>
         )}
@@ -212,6 +259,141 @@ function AssetPlaceholder() {
   )
 }
 
+interface AssetDetailContentProps {
+  asset: {
+    title: string;
+    description?: string;
+    assetType: string;
+    status: string;
+    content: unknown;
+    metadata?: {
+      intendedUser?: string;
+      context?: string;
+      limitations?: string;
+      riskNotes?: string;
+      exampleInput?: string;
+      exampleOutput?: string;
+    };
+    isArsenal: boolean;
+  };
+  onClose: () => void;
+}
+
+function AssetDetailContent({ asset, onClose }: AssetDetailContentProps) {
+  const statusColors: Record<string, string> = {
+    draft: 'badge-draft',
+    verified: 'badge-verified',
+    deprecated: 'badge-deprecated',
+  };
+
+  const contentDisplay =
+    typeof asset.content === 'string'
+      ? asset.content
+      : typeof asset.content === 'object' && asset.content !== null
+        ? JSON.stringify(asset.content, null, 2)
+        : String(asset.content ?? '');
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h2 id="asset-detail-title" className="text-xl font-semibold mb-2">
+            {asset.title}
+          </h2>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span className={`badge ${statusColors[asset.status] ?? 'badge-outline'} text-xs`}>
+              {asset.status}
+            </span>
+            <span className="badge badge-outline text-xs capitalize">
+              {asset.assetType.replace('_', ' ')}
+            </span>
+            {asset.isArsenal && (
+              <span className="badge badge-secondary text-xs flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                Arsenal
+              </span>
+            )}
+          </div>
+          {asset.description && (
+            <p className="text-muted-foreground mb-4">{asset.description}</p>
+          )}
+        </div>
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon shrink-0"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {asset.metadata && (
+        <div className="space-y-3 border-t pt-4">
+          <h3 className="font-semibold text-sm">Details</h3>
+          <dl className="grid gap-2 text-sm">
+            {asset.metadata.intendedUser && (
+              <>
+                <dt className="text-muted-foreground">Intended user</dt>
+                <dd>{asset.metadata.intendedUser}</dd>
+              </>
+            )}
+            {asset.metadata.context && (
+              <>
+                <dt className="text-muted-foreground">Context</dt>
+                <dd>{asset.metadata.context}</dd>
+              </>
+            )}
+            {asset.metadata.limitations && (
+              <>
+                <dt className="text-muted-foreground">Limitations</dt>
+                <dd>{asset.metadata.limitations}</dd>
+              </>
+            )}
+            {asset.metadata.riskNotes && (
+              <>
+                <dt className="text-muted-foreground">Risk notes</dt>
+                <dd>{asset.metadata.riskNotes}</dd>
+              </>
+            )}
+            {asset.metadata.exampleInput && (
+              <>
+                <dt className="text-muted-foreground">Example input</dt>
+                <dd className="whitespace-pre-wrap font-mono text-xs bg-muted p-2 rounded">
+                  {asset.metadata.exampleInput}
+                </dd>
+              </>
+            )}
+            {asset.metadata.exampleOutput && (
+              <>
+                <dt className="text-muted-foreground">Example output</dt>
+                <dd className="whitespace-pre-wrap font-mono text-xs bg-muted p-2 rounded">
+                  {asset.metadata.exampleOutput}
+                </dd>
+              </>
+            )}
+          </dl>
+        </div>
+      )}
+
+      {contentDisplay && (
+        <div className="border-t pt-4">
+          <h3 className="font-semibold text-sm mb-2">Content</h3>
+          <pre className="text-xs bg-muted p-4 rounded overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
+            {contentDisplay}
+          </pre>
+        </div>
+      )}
+
+      <div className="flex justify-end pt-2">
+        <button type="button" className="btn btn-primary" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface AssetCardProps {
   asset: {
     _id: Id<"libraryAssets">;
@@ -221,9 +403,10 @@ interface AssetCardProps {
     status: string;
     isArsenal: boolean;
   };
+  onSelect?: (id: Id<"libraryAssets">) => void;
 }
 
-function AssetCard({ asset }: AssetCardProps) {
+function AssetCard({ asset, onSelect }: AssetCardProps) {
   const typeIcons: Record<string, React.ReactNode> = {
     prompt: <FileText className="h-4 w-4" />,
     template: <FileText className="h-4 w-4" />,
@@ -235,12 +418,18 @@ function AssetCard({ asset }: AssetCardProps) {
 
   const statusColors: Record<string, string> = {
     draft: 'badge-draft',
-    verified: 'badge-success',
-    deprecated: 'badge-muted',
+    verified: 'badge-verified',
+    deprecated: 'badge-deprecated',
   };
 
   return (
-    <div className="card p-4 hover:shadow-md transition-shadow cursor-pointer">
+    <div
+      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(asset._id)}
+      onKeyDown={(e) => e.key === 'Enter' && onSelect?.(asset._id)}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded bg-primary/10 text-primary">

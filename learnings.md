@@ -327,6 +327,157 @@ npm run lint
 
 ---
 
+## Project Creation UI & Playwright Testing (Jan 31, 2026)
+
+### Project Creation UI Implementation
+
+**What was added:**
+- Create-project modal on [src/pages/Projects.tsx](src/pages/Projects.tsx): overlay + card with form (title required, description optional, visibility select, anonymous checkbox).
+- Both "New Project" buttons (header and empty state) open the modal; submit calls `api.projects.create`; on success modal closes and list updates reactively.
+- Cancel and overlay click close the modal; submit disabled when title empty or submitting.
+
+### Testing with Playwright MCP
+
+**Tools used:**
+- `browser_navigate` – Navigate to app (e.g. `http://localhost:5174/projects`).
+- `browser_wait_for` – Wait for page to settle (time).
+- `browser_snapshot` – Capture accessibility tree to verify visible UI.
+
+**Test results (unauthenticated session):**
+1. Navigate to `http://localhost:5174/projects` → After load, snapshot shows "Welcome to HackCentral", "Sign Up", "Sign In" (AuthGuard redirect). **Pass:** unauthenticated users cannot access Projects page and see sign-in instead.
+2. Same for `/dashboard` → Same sign-in screen. **Pass:** auth guard behaves as expected.
+
+**Limitation:** The Project Creation modal and full create flow live behind AuthGuard. The Playwright MCP browser session had no authenticated user, so the following could not be automated without test auth (e.g. Clerk test mode or seeded session):
+- Open /projects (authenticated).
+- Click "New Project" and verify modal (heading "New Project", form fields, Cancel/Create).
+- Fill title, optional description, visibility, anonymous; submit; verify modal closes and new project appears in list.
+
+**Manual test steps (when signed in):**
+1. Sign in and complete profile if needed.
+2. Go to **Projects** (`/projects`).
+3. Click **New Project** (header or empty state) → Modal opens with "New Project", title input, description textarea, visibility select, "Submit anonymously" checkbox, Cancel and Create.
+4. Leave title empty → Create button disabled.
+5. Enter title (e.g. "Test Project"), optionally description and visibility → Click **Create** → Modal closes, new project card appears in list with status "Idea".
+6. Click **New Project** again → Fill form and click **Cancel** (or click overlay) → Modal closes without creating.
+
+**Takeaway:** Playwright MCP confirmed auth redirect behavior. Full automation of the create flow would require an authenticated test session (Clerk test user or similar).
+
+---
+
+## Asset Detail View & Profile Edit – Playwright Testing (Jan 31, 2026)
+
+### What was implemented
+
+**Asset Detail View ([src/pages/Library.tsx](src/pages/Library.tsx)):**
+- Clicking an asset card (Arsenal or All Assets) opens a modal with full asset metadata (title, description, type, status, Arsenal badge) and optional metadata (intended user, context, limitations, risk notes, example input/output). Content shown as string or JSON. Close via button or overlay click. Uses `api.libraryAssets.getById(assetId)`.
+
+**Profile Edit ([src/pages/Profile.tsx](src/pages/Profile.tsx)):**
+- "Edit Profile" button opens a modal with form: full name, experience level (radio), profile visibility (radio), capability tags (toggle by category). Save calls `api.profiles.upsert`; on success modal closes and profile section updates. Cancel and overlay close without saving. Contributions placeholder text updated from "Sign in and connect to Supabase..." to "Contributions will appear here once you have activity."
+
+### Testing with Playwright MCP
+
+**Tools used:** `browser_navigate`, `browser_wait_for`, `browser_snapshot` (same as Project Creation UI testing).
+
+**Test results (unauthenticated session):**
+1. Navigate to `http://localhost:5174/library` → After load, snapshot shows "Welcome to HackCentral", "Sign Up", "Sign In" (AuthGuard redirect). **Pass:** unauthenticated users cannot access Library and see sign-in instead.
+2. Navigate to `http://localhost:5174/profile` → Same sign-in screen. **Pass:** unauthenticated users cannot access Profile; auth guard behaves as expected.
+
+**Limitation:** Asset detail modal and profile edit modal live behind AuthGuard. The Playwright MCP browser session had no authenticated user, so the following could not be automated without test auth:
+- Library: click an asset card and verify detail modal (metadata, content, Close).
+- Profile: click Edit Profile and verify edit modal (form fields, Save/Cancel); change fields and Save; verify profile section updates.
+
+**Manual test steps (when signed in):**
+
+**Asset Detail View:**
+1. Sign in and go to **Library** (`/library`).
+2. Click any asset card (in AI Arsenal or All Assets) → Modal opens with asset title, description, type/status/Arsenal badges, optional Details (intended user, context, limitations, risk notes, example input/output), and Content (string or JSON).
+3. Click **Close** or click the overlay → Modal closes.
+4. Click another asset → Different asset details shown.
+
+**Profile Edit:**
+1. Sign in and go to **Profile** (`/profile`).
+2. Click **Edit Profile** → Modal opens with "Edit Profile", full name, experience level (radio), profile visibility (radio), capability tags (toggle buttons by category), Cancel and Save.
+3. Change full name and/or experience level and/or visibility and/or tags → Click **Save** → Modal closes; profile header and Capability Tags section update to new values.
+4. Click **Edit Profile** again → Change something and click **Cancel** (or overlay) → Modal closes without saving; profile unchanged.
+5. Verify contributions section shows "Contributions will appear here once you have activity" (no Supabase reference).
+
+**Takeaway:** Playwright MCP confirmed unauthenticated redirect for `/library` and `/profile`. Full automation of asset detail and profile edit flows would require an authenticated test session.
+
+---
+
+## Project Comments & Support Events – Browser Testing (Jan 31, 2026)
+
+### What was implemented
+
+**Comments ([convex/projectComments.ts](convex/projectComments.ts), [src/pages/Projects.tsx](src/pages/Projects.tsx)):**
+- `listForProject(projectId)` – comments with author info; `add(projectId, content, isAiRelated?)` – add comment (auth + project access required).
+- Projects page: each project card shows comment count; "Comments" control opens a modal with comment list and (when signed in) add form (textarea + "Mark as AI-related" checkbox).
+
+**Support events ([convex/projectSupportEvents.ts](convex/projectSupportEvents.ts)):**
+- `getCountsForProject`, `toggleLike`, `toggleOfferHelp`, `getCurrentUserSupport`.
+- Projects page: each card shows like count (heart) and help-offer count (hand icon). When signed in, Like and Offer help are buttons (toggle); when not signed in, counts only.
+
+**Projects list with counts ([convex/projects.ts](convex/projects.ts)):**
+- `listWithCounts` – same visibility as `list`, returns projects with `commentCount`, `likeCount`, `helpOfferCount`, `userLiked`, `userOfferedHelp`.
+
+### Playwright MCP test results (unauthenticated)
+
+**Tools used:** `browser_navigate`, `browser_wait_for`, `browser_snapshot`, `browser_click`, `browser_console_messages`.
+
+1. Navigate to `http://localhost:5177/projects` → After load, snapshot shows "Welcome to HackCentral", "Sign Up", "Sign In" (AuthGuard). **Pass:** unauthenticated users cannot access Projects.
+2. Click "Sign In" → Clerk sign-in modal opens (GitHub, Google, email/password). **Pass:** auth flow reachable.
+3. Console messages (level: error) → No errors. **Pass.**
+
+**Limitation:** Comments modal, like/offer-help buttons, and add-comment form live behind AuthGuard. Full E2E requires an authenticated session (sign in manually, then run steps below).
+
+### Manual test steps (when signed in)
+
+**Comments:**
+1. Sign in and go to **Projects** (`/projects`).
+2. On any project card, confirm footer shows comment count (e.g. "0"), like count, help-offer count.
+3. Click the comment count / message icon → Comments modal opens with title "Comments", optional list, and (when signed in) "Add a comment" textarea and "Mark as AI-related" checkbox.
+4. Leave content empty → "Post comment" disabled. Enter text, optionally check "Mark as AI-related" → Click **Post comment** → Comment appears in list; form clears.
+5. Close modal (X or overlay). Reopen Comments for same project → New comment still visible.
+
+**Support (Like / Offer help):**
+6. On a project card, click the heart (Like) → Like count increments; heart appears filled. Click again → Count decrements; heart unfilled (toggle).
+7. Click the hand icon (Offer help) → Help-offer count increments; button styled as active. Click again → Count decrements (toggle).
+8. Refresh page → Counts and your like/offer-help state persist (Convex reactivity).
+
+**Takeaway:** Playwright MCP confirmed unauthenticated redirect and no console errors. Manual testing after sign-in is required to verify comments modal, add comment, and like/offer-help toggles.
+
+---
+
+## Code Review: Comments & Support Events (Jan 31, 2026)
+
+### Scope
+
+Reviewed [convex/projectComments.ts](convex/projectComments.ts), [convex/projectSupportEvents.ts](convex/projectSupportEvents.ts), [convex/projects.ts](convex/projects.ts) (listWithCounts), and [src/pages/Projects.tsx](src/pages/Projects.tsx) for consistency with the rest of the app and for integrity (auth, visibility, XSS, errors).
+
+### Consistency
+
+- **Modal pattern:** Comments modal matches create-project and Library/Profile modals: fixed overlay, overlay click closes, inner content `stopPropagation`, `role="dialog"`, `aria-modal="true"`, labelled heading. **Pass.**
+- **Error handling:** Create project and Comments add use try/catch, `console.error`, and `alert`. Like/Offer help mutations were fire-and-forget; added `.catch()` with console + alert for consistency. **Fixed.**
+- **Naming:** Renamed filter variable from `query` to `searchLower` to avoid shadowing the concept of Convex `useQuery`. **Fixed.**
+
+### Integrity
+
+- **Auth and visibility:** All comment and support mutations require identity and profile; project access is checked via `userHasProjectAccess` (same rules as `projects.getById`). `listForProject`, `getCountsForProject`, and `getCurrentUserSupport` enforce project visibility before returning data. **Pass.**
+- **XSS:** Comment content is rendered as plain text in `<p>{comment.content}</p>`; no `dangerouslySetInnerHTML` in the app. **Pass.**
+- **Comment length:** Backend now rejects comments over 2000 characters to limit abuse. **Added.**
+- **Status badge:** Project card status uses `statusColors[project.status]` and `statusLabels[project.status]`; added fallbacks (`?? 'bg-gray-100...'`, `?? project.status`) for unexpected status values. **Fixed.**
+
+### Duplication (optional future refactor)
+
+- `userHasProjectAccess` is duplicated in `projectComments.ts` and `projectSupportEvents.ts`. Logic matches `projects.getById`/`list`. Extracting to a shared Convex helper (e.g. internal query or shared module that receives `ctx`) would reduce duplication; leaving as-is keeps each module self-contained. **Not changed.**
+
+### Result
+
+- Lint and build pass.
+- Changes made: filter variable rename, status badge fallbacks, error handling for like/offer-help, comment length limit (2000 chars).
+
+---
+
 ## Current Project Status (Jan 31, 2026)
 
 ### Completed ✅
@@ -335,23 +486,23 @@ npm run lint
 - Profile creation flow
 - Library page with 24 AI Arsenal assets
 - People directory
-- Projects page (structure ready)
+- Projects page with create-project modal
+- Dashboard metrics (convex/metrics.ts + Dashboard wired)
+- Asset detail modal (Library – click card to view full metadata and content)
+- Profile edit modal (Edit Profile – full name, experience, visibility, capability tags)
+- **Project comments** (list, add, modal with "Mark as AI-related")
+- **Support events** (like and offer-help toggles with counts on project cards)
 - Error Boundary (tested via Playwright MCP)
 - All critical bugs fixed
 - 0 TypeScript errors
 - 0 ESLint errors
 
 ### In Progress 🚧
-- Dashboard metrics implementation
-- Project creation UI
-- Asset detail views
+- Reuse tracking UI (backend ready)
 
 ### Next Steps
-1. Implement dashboard metrics queries
-2. Add project creation modal
-3. Add asset detail modal
-4. Implement comments system
-5. Add support events (likes, help offers)
+1. Reuse tracking UI
+2. Optional: extract shared constants/components (EXPERIENCE_LEVELS, TabButton)
 
 ---
 

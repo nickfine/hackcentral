@@ -48,6 +48,84 @@ export const list = query({
 });
 
 /**
+ * List projects with comment/support counts and current user's like/offer-help state.
+ * Same visibility as list; one query for the Projects page.
+ */
+export const listWithCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const projects = await ctx.db.query("projects").collect();
+
+    let currentProfile = null;
+    if (identity) {
+      currentProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+        .first();
+    }
+
+    const projectsWithAccess = await Promise.all(
+      projects.map(async (project) => {
+        const isOwner = currentProfile && project.ownerId === currentProfile._id;
+        const isMember = currentProfile
+          ? await ctx.db
+              .query("projectMembers")
+              .withIndex("by_project_and_user", (q) =>
+                q.eq("projectId", project._id).eq("userId", currentProfile._id)
+              )
+              .first()
+          : null;
+
+        const hasAccess =
+          project.visibility === "public" ||
+          (project.visibility === "org" && identity) ||
+          (project.visibility === "private" && (isOwner || isMember));
+
+        if (!hasAccess) return null;
+
+        const comments = await ctx.db
+          .query("projectComments")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect();
+        const supportEvents = await ctx.db
+          .query("projectSupportEvents")
+          .withIndex("by_project", (q) => q.eq("projectId", project._id))
+          .collect();
+
+        let likeCount = 0;
+        let helpOfferCount = 0;
+        for (const e of supportEvents) {
+          if (e.supportType === "like") likeCount++;
+          else if (e.supportType === "offer_help") helpOfferCount++;
+        }
+
+        let userLiked = false;
+        let userOfferedHelp = false;
+        if (currentProfile) {
+          const myEvents = supportEvents.filter(
+            (e) => e.supporterId === currentProfile._id
+          );
+          userLiked = myEvents.some((e) => e.supportType === "like");
+          userOfferedHelp = myEvents.some((e) => e.supportType === "offer_help");
+        }
+
+        return {
+          ...project,
+          commentCount: comments.length,
+          likeCount,
+          helpOfferCount,
+          userLiked,
+          userOfferedHelp,
+        };
+      })
+    );
+
+    return projectsWithAccess.filter((p) => p !== null);
+  },
+});
+
+/**
  * Get project by ID
  */
 export const getById = query({

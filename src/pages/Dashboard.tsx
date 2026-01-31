@@ -3,9 +3,41 @@
  * Shows org-wide metrics and maturity progress
  */
 
+import { useQuery } from 'convex/react'
 import { Activity, Users, Library, TrendingUp } from 'lucide-react'
+import { api } from '../../convex/_generated/api'
 
 export default function Dashboard() {
+  const metrics = useQuery(api.metrics.getDashboardMetrics)
+
+  const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--'
+  const aiContributorDesc =
+    metrics !== undefined && metrics.aiContributorPercentage !== undefined
+      ? `${metrics.aiContributorPercentage.toFixed(1)}% of employees with AI contributions`
+      : 'Employees with AI contributions'
+
+  const projectsWithAiValue =
+    metrics !== undefined ? String(metrics.projectsWithAiCount) : '--'
+  const projectsWithAiDesc =
+    metrics !== undefined && metrics.projectsWithAiPercentage !== undefined
+      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI artefacts`
+      : 'Projects using AI artefacts'
+
+  const libraryAssetValue =
+    metrics !== undefined ? String(metrics.libraryAssetCount) : '--'
+  const weeklyActiveValue =
+    metrics !== undefined ? String(metrics.weeklyActiveCount) : '--'
+
+  const maturityWidth =
+    metrics !== undefined &&
+    metrics.aiContributorPercentage !== undefined &&
+    metrics.projectsWithAiPercentage !== undefined
+      ? Math.min(
+          100,
+          (metrics.aiContributorPercentage + metrics.projectsWithAiPercentage) / 2
+        )
+      : 25
+
   return (
     <div className="space-y-6">
       <div>
@@ -19,25 +51,25 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="AI Contributors"
-          value="--"
-          description="Employees with AI contributions"
+          value={aiContributorValue}
+          description={aiContributorDesc}
           icon={<Users className="h-4 w-4 text-muted-foreground" />}
         />
         <MetricCard
           title="Projects with AI"
-          value="--"
-          description="Projects using AI artefacts"
+          value={projectsWithAiValue}
+          description={projectsWithAiDesc}
           icon={<Activity className="h-4 w-4 text-muted-foreground" />}
         />
         <MetricCard
           title="Library Assets"
-          value="--"
+          value={libraryAssetValue}
           description="Reusable AI assets"
           icon={<Library className="h-4 w-4 text-muted-foreground" />}
         />
         <MetricCard
           title="Weekly Active"
-          value="--"
+          value={weeklyActiveValue}
           description="Active AI contributors this week"
           icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
         />
@@ -57,13 +89,15 @@ export default function Dashboard() {
             <div className="h-3 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: '25%' }}
+                style={{ width: `${maturityWidth}%` }}
               />
             </div>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-4">
-          Metrics will populate once you have activity
+          {metrics !== undefined
+            ? `Based on contributor and project adoption (${maturityWidth.toFixed(0)}% maturity proxy)`
+            : 'Metrics will populate once you have activity'}
         </p>
       </div>
 

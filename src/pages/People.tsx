@@ -109,10 +109,10 @@ export default function People() {
               All People ({profiles.filter(p => {
                 if (experienceFilter && p.experienceLevel !== experienceFilter) return false;
                 if (searchQuery) {
-                  const query = searchQuery.toLowerCase();
+                  const searchLower = searchQuery.toLowerCase();
                   return (
-                    p.fullName?.toLowerCase().includes(query) ||
-                    p.email.toLowerCase().includes(query)
+                    p.fullName?.toLowerCase().includes(searchLower) ||
+                    p.email.toLowerCase().includes(searchLower)
                   );
                 }
                 return true;
@@ -123,10 +123,10 @@ export default function People() {
                 .filter(p => {
                   if (experienceFilter && p.experienceLevel !== experienceFilter) return false;
                   if (searchQuery) {
-                    const query = searchQuery.toLowerCase();
+                    const searchLower = searchQuery.toLowerCase();
                     return (
-                      p.fullName?.toLowerCase().includes(query) ||
-                      p.email.toLowerCase().includes(query)
+                      p.fullName?.toLowerCase().includes(searchLower) ||
+                      p.email.toLowerCase().includes(searchLower)
                     );
                   }
                   return true;
