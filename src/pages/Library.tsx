@@ -12,13 +12,284 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 
+const ASSET_TYPES = [
+  { value: 'prompt', label: 'Prompt' },
+  { value: 'template', label: 'Template' },
+  { value: 'agent_blueprint', label: 'Agent Blueprint' },
+  { value: 'guardrail', label: 'Guardrail' },
+  { value: 'evaluation_rubric', label: 'Evaluation Rubric' },
+  { value: 'structured_output', label: 'Structured Output' },
+] as const;
+
+const VISIBILITY_OPTIONS = [
+  { value: 'org', label: 'Organization (colleagues)' },
+  { value: 'public', label: 'Public' },
+  { value: 'private', label: 'Private (only me)' },
+] as const;
+
+interface SubmitAssetModalProps {
+  onClose: () => void;
+  onSubmitSuccess: (newAssetId: Id<'libraryAssets'>) => void;
+  createAsset: (args: {
+    title: string;
+    description?: string;
+    assetType: 'prompt' | 'template' | 'agent_blueprint' | 'guardrail' | 'evaluation_rubric' | 'structured_output';
+    content: string | Record<string, unknown>;
+    visibility?: 'private' | 'org' | 'public';
+    metadata?: {
+      intendedUser?: string;
+      context?: string;
+      limitations?: string;
+      riskNotes?: string;
+      exampleInput?: string;
+      exampleOutput?: string;
+    };
+  }) => Promise<Id<'libraryAssets'>>;
+}
+
+function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAssetModalProps) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [assetType, setAssetType] = useState<typeof ASSET_TYPES[number]['value']>('prompt');
+  const [content, setContent] = useState('');
+  const [visibility, setVisibility] = useState<'private' | 'org' | 'public'>('org');
+  const [intendedUser, setIntendedUser] = useState('');
+  const [context, setContext] = useState('');
+  const [limitations, setLimitations] = useState('');
+  const [riskNotes, setRiskNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (!content.trim()) {
+      toast.error('Content is required');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const metadata =
+        intendedUser || context || limitations || riskNotes
+          ? { intendedUser: intendedUser || undefined, context: context || undefined, limitations: limitations || undefined, riskNotes: riskNotes || undefined }
+          : undefined;
+      const newAssetId = await createAsset({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        assetType,
+        content: content.trim(),
+        visibility,
+        metadata,
+      });
+      onSubmitSuccess(newAssetId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to submit asset');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="submit-asset-title"
+    >
+      <div
+        className="max-w-xl w-full max-h-[90vh] overflow-y-auto card p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 id="submit-asset-title" className="text-xl font-semibold">
+            Submit Asset
+          </h2>
+          <button
+            type="button"
+            className="p-2 rounded hover:bg-muted"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="submit-title" className="block text-sm font-medium mb-1">
+              Title <span className="text-destructive">*</span>
+            </label>
+            <input
+              id="submit-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input w-full"
+              placeholder="e.g. Code review prompt"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="submit-description" className="block text-sm font-medium mb-1">
+              Description (optional)
+            </label>
+            <textarea
+              id="submit-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="input w-full min-h-[80px]"
+              placeholder="Brief description of the asset"
+              rows={3}
+            />
+          </div>
+          <div>
+            <label htmlFor="submit-type" className="block text-sm font-medium mb-1">
+              Type <span className="text-destructive">*</span>
+            </label>
+            <select
+              id="submit-type"
+              value={assetType}
+              onChange={(e) => setAssetType(e.target.value as typeof assetType)}
+              className="input w-full"
+              required
+            >
+              {ASSET_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="submit-content" className="block text-sm font-medium mb-1">
+              Content <span className="text-destructive">*</span>
+            </label>
+            <textarea
+              id="submit-content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="input w-full min-h-[120px] font-mono text-sm"
+              placeholder="Prompt text, template body, or JSON for structured types"
+              required
+              rows={5}
+            />
+          </div>
+          <div>
+            <label htmlFor="submit-visibility" className="block text-sm font-medium mb-1">
+              Visibility
+            </label>
+            <select
+              id="submit-visibility"
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as 'private' | 'org' | 'public')}
+              className="input w-full"
+            >
+              {VISIBILITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setShowMetadata((s) => !s)}
+            >
+              {showMetadata ? 'Hide' : '+ Add'} optional metadata (intended user, context, limitations)
+            </button>
+            {showMetadata && (
+              <div className="mt-3 space-y-3 pl-2 border-l-2 border-muted">
+                <div>
+                  <label htmlFor="submit-intended-user" className="block text-sm mb-1">
+                    Intended user
+                  </label>
+                  <input
+                    id="submit-intended-user"
+                    type="text"
+                    value={intendedUser}
+                    onChange={(e) => setIntendedUser(e.target.value)}
+                    className="input w-full"
+                    placeholder="e.g. Developers"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="submit-context" className="block text-sm mb-1">
+                    Context
+                  </label>
+                  <input
+                    id="submit-context"
+                    type="text"
+                    value={context}
+                    onChange={(e) => setContext(e.target.value)}
+                    className="input w-full"
+                    placeholder="When to use this asset"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="submit-limitations" className="block text-sm mb-1">
+                    Limitations
+                  </label>
+                  <input
+                    id="submit-limitations"
+                    type="text"
+                    value={limitations}
+                    onChange={(e) => setLimitations(e.target.value)}
+                    className="input w-full"
+                    placeholder="Known limitations"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="submit-risk-notes" className="block text-sm mb-1">
+                    Risk notes
+                  </label>
+                  <input
+                    id="submit-risk-notes"
+                    type="text"
+                    value={riskNotes}
+                    onChange={(e) => setRiskNotes(e.target.value)}
+                    className="input w-full"
+                    placeholder="Safety or risk considerations"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting…' : 'Submit'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery);
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedAssetId, setSelectedAssetId] = useState<Id<'libraryAssets'> | null>(null);
+  const [submitModalOpen, setSubmitModalOpen] = useState(false);
 
+  const createAsset = useMutation(api.libraryAssets.create);
   const arsenalAssets = useQuery(api.libraryAssets.getArsenalWithReuseCounts);
   const selectedAsset = useQuery(
     api.libraryAssets.getById,
@@ -94,11 +365,28 @@ export default function Library() {
             Reusable AI assets, prompts, and templates
           </p>
         </div>
-        <button className="btn btn-primary btn-md">
+        <button
+          type="button"
+          className="btn btn-primary btn-md"
+          onClick={() => setSubmitModalOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Submit Asset
         </button>
       </div>
+
+      {/* Submit Asset Modal */}
+      {submitModalOpen && (
+        <SubmitAssetModal
+          onClose={() => setSubmitModalOpen(false)}
+          onSubmitSuccess={(newAssetId) => {
+            setSubmitModalOpen(false);
+            setSelectedAssetId(newAssetId);
+            toast.success('Asset submitted! It will appear as Draft.');
+          }}
+          createAsset={createAsset}
+        />
+      )}
 
       {/* Search and Filters */}
       <div className="flex gap-4 flex-wrap">

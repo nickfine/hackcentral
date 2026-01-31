@@ -566,7 +566,7 @@ function MentorRequestModal({
       onClose();
     } catch (error) {
       console.error('Failed to create mentor request:', error);
-      toast.error((error as Error).message || 'Failed to send request. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to send request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

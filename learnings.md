@@ -485,6 +485,68 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Library Submit Asset – Browser Testing (Jan 31, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+- **Convex:** Functions pushed with `npx convex dev --once` (after metrics schema fix)
+
+### Fix Applied Before Testing
+- **convex/metrics.ts:** Dashboard was failing with "Could not find public function for 'metrics:getRecentActivity'" because Convex typecheck had failed. Root cause: schema uses `profiles.fullName` and `projects.title`, but metrics used `profile?.name` and `project?.name`. Fixed to `profile?.fullName` and `project?.title`. Pushed Convex again; dashboard and Library then loaded.
+
+### Features Tested
+
+#### 1. Submit Asset button
+**Status:** ✅ Pass  
+- Clicked "Submit Asset" on Library page.
+- Submit Asset modal opened (dialog "Submit Asset").
+
+#### 2. Submit Asset modal – UI
+**Status:** ✅ Pass  
+- **Title \*** textbox with placeholder "e.g. Code review prompt".
+- **Description (optional)** textbox.
+- **Type \*** combobox: Prompt (selected), Template, Agent Blueprint, Guardrail, Evaluation Rubric, Structured Output.
+- **Content \*** textbox with placeholder for prompt/template/JSON.
+- **Visibility** combobox: Organization (selected), Public, Private (only me).
+- "+ Add optional metadata (intended user, context, limitations)" button.
+- **Cancel** and **Submit** buttons.
+- **Close** (X) in header.
+
+#### 3. Form fill and submit
+**Status:** ✅ Pass  
+- Filled Title: "Playwright test prompt".
+- Filled Description: "E2E test asset for Submit Asset flow".
+- Filled Content: "You are a helpful assistant. Reply briefly." (Type left as Prompt).
+- Clicked **Submit**.
+- Modal closed; **asset detail modal** opened for the new asset.
+- **Toast:** "Asset submitted! It will appear as Draft."
+
+#### 4. New asset in list and detail
+**Status:** ✅ Pass  
+- **All Assets** count increased from 24 to **25**.
+- New card in list: "Playwright test prompt" with badge **draft**, description "E2E test asset for Submit Asset flow", type "prompt", "0 reuses".
+- **Asset detail modal** showed: heading "Playwright test prompt", badge "draft", type "prompt", description, Content section with "You are a helpful assistant. Reply briefly.", "Attach to project" button, Close.
+
+### Test Summary
+
+| Feature              | Status | Notes                                      |
+|----------------------|--------|--------------------------------------------|
+| Submit Asset button  | ✅ Pass | Opens modal                                |
+| Submit Asset modal   | ✅ Pass | All fields and actions present              |
+| Form submit          | ✅ Pass | Creates asset, opens detail, toast         |
+| New asset in list    | ✅ Pass | Count 25, draft card visible               |
+| Asset detail modal   | ✅ Pass | Correct title, status, content              |
+
+### Console
+- No errors. Only React DevTools and Clerk development key warnings.
+
+### Conclusion
+**Library Submit Asset (Phase 2):** ✅ **PASS** – Submit flow works end-to-end; new assets appear as Draft and open in detail view after submit.
+
+---
+
 ## Development Notes
 
 ### Common Patterns

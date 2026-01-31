@@ -85,7 +85,7 @@ export const getRecentActivity = query({
         }
         if (c.projectId) {
           const project = await ctx.db.get(c.projectId);
-          projectName = project?.name;
+          projectName = project?.title;
         }
         const typeLabel =
           CONTRIBUTION_TYPE_LABELS[c.contributionType] ?? c.contributionType;
@@ -93,7 +93,7 @@ export const getRecentActivity = query({
           _id: c._id,
           _creationTime: c._creationTime,
           typeLabel,
-          userName: profile?.name ?? profile?.email ?? "Unknown",
+          userName: profile?.fullName ?? profile?.email ?? "Unknown",
           assetTitle,
           projectName,
         };
@@ -130,7 +130,7 @@ export const getTopContributors = query({
         const profile = await ctx.db.get(userId);
         return {
           userId,
-          name: profile?.name ?? profile?.email ?? "Unknown",
+          name: profile?.fullName ?? profile?.email ?? "Unknown",
           count,
         };
       })
