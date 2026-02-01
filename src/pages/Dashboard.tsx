@@ -1,20 +1,17 @@
 /**
  * Dashboard Page - AI Maturity Dashboard
  *
- * Page layout (order of sections):
+ * Page layout (order of sections, target hero ~25–35% viewport):
  * 1. Optional first-time / graduated nudges (Get started, Add library, Share story)
  * 2. Personalized nudge (badges, next steps)
  * 3. Export metrics (slim utility row)
- * 4. WelcomeHero — "Your AI Superpower Hub", CTAs (Browse Community Wins, Submit Your Magic), slim maturity hint
- * 5. Community Wins — FeaturedWinsShowcase (carousel/grid, newbie nudge, WallOfThanksStrip)
- * 6. Our Collective Progress — demoted maturity card (stage icons, progress bar, mini stats)
- * 7. Stat cards row (AI Contributors, Projects with AI, Library Assets, Weekly Active)
- * 8. Knowledge Distribution (Gini) + Frontline vs Leader
- * 9. Tabbed Recognition (Recent Activity, Top Contributors, Top Mentors, Most Reused)
- * 10. Your Recognition (badges)
- * 11. Quick Actions panel
+ * 4. WelcomeHero — slim "Welcome to HackDay Central", one-line sub, CTAs, maturity pill (~25–35vh)
+ * 5. EngagementNudge — "Hey [Name], X new team assets — copy one?" (personalized + pulse)
+ * 6. Community Wins — FeaturedWinsShowcase (Starter badges on first N, Live badge, carousel, WallOfThanksStrip)
+ * 8. Our Collective Progress — demoted maturity card
+ * 9. Stat cards row → Knowledge Distribution / Frontline → Tabbed Recognition → Your Recognition → Quick Actions
  *
- * Rationale: Welcoming hero + demoted maturity maximizes adoption (belonging/quick wins first).
+ * Rationale: Concise hero + immediate peer wins maximizes adoption (land → see/copy real wins in <5s).
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -47,6 +44,7 @@ import {
   QuickActionsPanel,
   PersonalizedNudge,
   TabbedRecognition,
+  EngagementNudge,
 } from '../components/dashboard';
 
 export default function Dashboard() {
@@ -65,7 +63,9 @@ export default function Dashboard() {
   const frontlineLeaderGap = useQuery(api.metrics.getFrontlineLeaderGap);
   const profile = useQuery(api.profiles.getCurrentProfile);
   const userCounts = useQuery(api.profiles.getCurrentUserCounts);
+  const pulse = useQuery(api.metrics.getActivityPulse);
 
+  const [dashboardTab, setDashboardTab] = useState<'wins' | 'pulse'>('wins');
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [storyHeadline, setStoryHeadline] = useState('');
   const [storyText, setStoryText] = useState('');
@@ -90,6 +90,19 @@ export default function Dashboard() {
     }
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, String(current));
   }, [metrics?.weeklyActiveCount, shouldReduceMotion]);
+
+  // First-copy confetti (session-only, restrained)
+  const handleFirstCopySuccess = () => {
+    if (shouldReduceMotion) return;
+    const key = 'hackcentral_first_copy_done';
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    confetti({ particleCount: 24, spread: 50, origin: { y: 0.6 }, colors: ['#06b6d4', '#d946ef'] });
+  };
+
+  const scrollToCommunityWins = () => {
+    document.getElementById('community-wins')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleStorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,83 +235,84 @@ export default function Dashboard() {
       ? `"${mostReusedAssets[0].title}" — Battle-tested in ${mostReusedAssets[0].count} projects. Copy risk-free.`
       : undefined;
 
+  const showCombinedNudge = showFirstTimeCTA || nudgeAddLibrary || nudgeCreateProject || nudgeShareStory;
+
   return (
-    <div className="space-y-6">
-      {showFirstTimeCTA && (
-        <div className="card border-primary/20 bg-primary/5 p-6">
+    <div className="min-w-0 space-y-6">
+      {showCombinedNudge && (
+        <div className="card border-primary/20 bg-primary/5 p-4 sm:p-5">
           <div className="flex items-start gap-4">
             <div className="shrink-0 rounded-lg bg-primary/10 p-2">
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h2 className="mb-1 text-lg font-semibold">Get started</h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                New to HackDay Central? Explore the Library for reusable AI
-                assets, or create your first project to track your work.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link to="/library" className="btn btn-primary btn-sm">
-                  <Library className="mr-2 h-4 w-4" />
-                  Explore Library
-                </Link>
-                <Link to="/projects" className="btn btn-outline btn-sm">
-                  <Activity className="mr-2 h-4 w-4" />
-                  View Projects
-                </Link>
-                <Link to="/profile" className="btn btn-ghost btn-sm">
-                  <User className="mr-2 h-4 w-4" />
-                  Complete profile
-                </Link>
-                <Link to="/onboarding" className="btn btn-ghost btn-sm">
-                  See all options
-                </Link>
-                <Link to="/guide" className="btn btn-ghost btn-sm">
-                  AI 101 guide
-                </Link>
-              </div>
+              {showFirstTimeCTA ? (
+                <>
+                  <h2 className="mb-1 text-base font-semibold">Get started</h2>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    New to HackDay Central? Copy a win from the Library or create your first project.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Link to="/library" className="btn btn-primary btn-sm">
+                      <Library className="mr-2 h-4 w-4" />
+                      Explore Library
+                    </Link>
+                    <Link to="/projects" className="btn btn-outline btn-sm">
+                      <Activity className="mr-2 h-4 w-4" />
+                      View Projects
+                    </Link>
+                    <Link to="/profile" className="btn btn-ghost btn-sm">
+                      <User className="mr-2 h-4 w-4" />
+                      Complete profile
+                    </Link>
+                    <Link to="/onboarding" className="btn btn-ghost btn-sm">
+                      See all options
+                    </Link>
+                    <Link to="/guide" className="btn btn-ghost btn-sm">
+                      AI 101 guide
+                    </Link>
+                  </div>
+                </>
+              ) : nudgeAddLibrary ? (
+                <>
+                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    You have projects but no library assets yet. Add a win from the Library to your project.
+                  </p>
+                  <Link to="/library" className="btn btn-primary btn-sm">
+                    <Library className="mr-2 h-4 w-4" />
+                    Explore Library
+                  </Link>
+                </>
+              ) : nudgeCreateProject ? (
+                <>
+                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    You&apos;ve added library assets. Create a project to track your work and attach assets.
+                  </p>
+                  <Link to="/projects" className="btn btn-primary btn-sm">
+                    <Activity className="mr-2 h-4 w-4" />
+                    Create a project
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Share how AI helped your work — it inspires others and surfaces on the Dashboard.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setStoryModalOpen(true)}
+                  >
+                    <PenLine className="mr-2 h-4 w-4" />
+                    Share your story
+                  </button>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
-
-      {nudgeAddLibrary && (
-        <div className="card border-primary/10 bg-primary/5 p-4">
-          <p className="mb-2 text-sm text-foreground">
-            You have projects but no library assets yet. Add a prompt or template
-            from the Library to your project to boost adoption metrics.
-          </p>
-          <Link to="/library" className="btn btn-outline btn-sm">
-            <Library className="mr-2 h-4 w-4" />
-            Explore Library
-          </Link>
-        </div>
-      )}
-      {nudgeCreateProject && (
-        <div className="card border-primary/10 bg-primary/5 p-4">
-          <p className="mb-2 text-sm text-foreground">
-            You&apos;ve added library assets. Create a project to track your AI
-            work and attach assets for visibility.
-          </p>
-          <Link to="/projects" className="btn btn-outline btn-sm">
-            <Activity className="mr-2 h-4 w-4" />
-            Create a project
-          </Link>
-        </div>
-      )}
-      {nudgeShareStory && (
-        <div className="card border-primary/10 bg-primary/5 p-4">
-          <p className="mb-2 text-sm text-foreground">
-            Share how AI helped your work — it inspires others and surfaces on
-            the Dashboard.
-          </p>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => setStoryModalOpen(true)}
-          >
-            <PenLine className="mr-2 h-4 w-4" />
-            Share your story
-          </button>
         </div>
       )}
 
@@ -354,7 +368,7 @@ export default function Dashboard() {
                   value={storyHeadline}
                   onChange={(e) => setStoryHeadline(e.target.value)}
                   className="input w-full"
-                  placeholder="e.g. How a prompt template saved 12 hours per week"
+                  placeholder="e.g. How a win saved 12 hours per week"
                 />
               </div>
               <div>
@@ -442,50 +456,49 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Slim utility row: Export for leaders */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* Dashboard tabs: Wins (default) vs Team pulse */}
+      <div className="flex gap-2 border-b border-border pb-2">
         <button
           type="button"
-          className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center gap-2 sm:min-h-0 sm:min-w-0"
-          onClick={() => {
-            const exportData = {
-              exportedAt: new Date().toISOString(),
-              metrics: metrics ?? null,
-              gini: gini ?? null,
-              giniInterpretation:
-                gini !== undefined ? giniInterpretation : null,
-              frontlineLeaderGap: frontlineLeaderGap ?? null,
-              topContributors: topContributors ?? [],
-              topMentors: topMentors ?? [],
-              mostReusedAssets: mostReusedAssets ?? [],
-              impactStoriesCount: impactStories?.length ?? 0,
-            };
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-              type: 'application/json',
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          aria-label="Export dashboard metrics as JSON"
+          onClick={() => setDashboardTab('wins')}
+          className={`btn btn-sm ${dashboardTab === 'wins' ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={dashboardTab === 'wins'}
+          aria-label="Wins tab"
         >
-          <Download className="h-4 w-4" aria-hidden />
-          Export metrics
+          Wins
+        </button>
+        <button
+          type="button"
+          onClick={() => setDashboardTab('pulse')}
+          className={`btn btn-sm ${dashboardTab === 'pulse' ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={dashboardTab === 'pulse'}
+          aria-label="Team pulse tab"
+        >
+          Team pulse
         </button>
       </div>
 
-      <WelcomeHero
+      {dashboardTab === 'wins' && (
+        <>
+          <WelcomeHero
         onShareStory={() => setStoryModalOpen(true)}
         currentProgress={maturityWidth}
         currentStageName={currentStage?.name}
         nextMilestoneCopy={nextMilestoneCopy}
       />
 
+      <EngagementNudge
+        displayName={profile?.fullName}
+        newAssetsCount={pulse?.newAssetsThisWeek ?? 0}
+        onScrollToWins={scrollToCommunityWins}
+      />
+
       <div id="community-wins" className="scroll-mt-6">
-        <FeaturedWinsShowcase onShareStory={() => setStoryModalOpen(true)} />
+        <FeaturedWinsShowcase
+          onShareStory={() => setStoryModalOpen(true)}
+          onCopySuccess={handleFirstCopySuccess}
+          starterCount={4}
+        />
       </div>
 
       <CollectiveProgressCard
@@ -494,94 +507,6 @@ export default function Dashboard() {
           aiContributorPercentage: metrics?.aiContributorPercentage ?? 0,
           projectsWithAiPercentage: metrics?.projectsWithAiPercentage ?? 0,
         }}
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <EnhancedMetricCard
-          title="AI Contributors"
-          value={aiContributorValue}
-          description={aiContributorDesc}
-          icon={<Users className="h-5 w-5 text-muted-foreground" />}
-          microStory={aiContributorMicroStory}
-        />
-        <EnhancedMetricCard
-          title="Projects with AI"
-          value={projectsWithAiValue}
-          description={projectsWithAiDesc}
-          icon={<Activity className="h-5 w-5 text-muted-foreground" />}
-          microStory={projectsWithAiMicroStory}
-        />
-        <EnhancedMetricCard
-          title="Library Assets"
-          value={libraryAssetValue}
-          description="Reusable AI assets"
-          icon={<Library className="h-5 w-5 text-muted-foreground" />}
-          microStory={topAssetMicroStory}
-        />
-        <EnhancedMetricCard
-          title="Weekly Active"
-          value={weeklyActiveValue}
-          description="Active AI contributors this week"
-          icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
-          microStory={weeklyActiveMicroStory}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="card p-6">
-          <h2 className="mb-4 text-xl font-semibold">
-            Knowledge Distribution
-          </h2>
-          {gini === undefined ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : (
-            <GiniRadialProgress gini={gini} interpretation={giniInterpretation} />
-          )}
-        </div>
-        {frontlineLeaderGap !== undefined && (
-          <div className="card p-6">
-            <h2 className="mb-4 text-xl font-semibold">
-              Frontline vs leader contributions
-            </h2>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Contributions in the last 30 days by experience level (frontline =
-              newbie/curious/comfortable; leader = power user/expert).
-            </p>
-            <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
-              <div>
-                <span className="font-medium text-foreground">Frontline</span>
-                <p className="text-muted-foreground">
-                  {frontlineLeaderGap.frontlineContributions} contributions from{' '}
-                  {frontlineLeaderGap.frontlineUsers} active user
-                  {frontlineLeaderGap.frontlineUsers !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Leader</span>
-                <p className="text-muted-foreground">
-                  {frontlineLeaderGap.leaderContributions} contributions from{' '}
-                  {frontlineLeaderGap.leaderUsers} active user
-                  {frontlineLeaderGap.leaderUsers !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Other</span>
-                <p className="text-muted-foreground">
-                  {frontlineLeaderGap.otherContributions} contributions from{' '}
-                  {frontlineLeaderGap.otherUsers} active user
-                  {frontlineLeaderGap.otherUsers !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <TabbedRecognition
-        recentActivity={recentActivity}
-        topContributors={topContributors}
-        topMentors={topMentors}
-        mostReusedAssets={mostReusedAssets}
       />
 
       {isAuthenticated && (
@@ -619,7 +544,133 @@ export default function Dashboard() {
         </div>
       )}
 
-      <QuickActionsPanel onShareStory={() => setStoryModalOpen(true)} />
+          <QuickActionsPanel onShareStory={() => setStoryModalOpen(true)} />
+        </>
+      )}
+
+      {dashboardTab === 'pulse' && (
+        <div className="min-w-0 space-y-6">
+          <h2 className="text-xl font-semibold">Team pulse</h2>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center gap-2 sm:min-h-0 sm:min-w-0"
+              onClick={() => {
+                const exportData = {
+                  exportedAt: new Date().toISOString(),
+                  metrics: metrics ?? null,
+                  gini: gini ?? null,
+                  giniInterpretation:
+                    gini !== undefined ? giniInterpretation : null,
+                  frontlineLeaderGap: frontlineLeaderGap ?? null,
+                  topContributors: topContributors ?? [],
+                  topMentors: topMentors ?? [],
+                  mostReusedAssets: mostReusedAssets ?? [],
+                  impactStoriesCount: impactStories?.length ?? 0,
+                };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                  type: 'application/json',
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              aria-label="Export dashboard metrics as JSON"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Export metrics
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <EnhancedMetricCard
+              title="AI Contributors"
+              value={aiContributorValue}
+              description={aiContributorDesc}
+              icon={<Users className="h-5 w-5 text-muted-foreground" />}
+              microStory={aiContributorMicroStory}
+            />
+            <EnhancedMetricCard
+              title="Projects with AI"
+              value={projectsWithAiValue}
+              description={projectsWithAiDesc}
+              icon={<Activity className="h-5 w-5 text-muted-foreground" />}
+              microStory={projectsWithAiMicroStory}
+            />
+            <EnhancedMetricCard
+              title="Library Assets"
+              value={libraryAssetValue}
+              description="Reusable AI assets"
+              icon={<Library className="h-5 w-5 text-muted-foreground" />}
+              microStory={topAssetMicroStory}
+            />
+            <EnhancedMetricCard
+              title="Weekly Active"
+              value={weeklyActiveValue}
+              description="Active AI contributors this week"
+              icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
+              microStory={weeklyActiveMicroStory}
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="card p-6">
+              <h2 className="mb-4 text-xl font-semibold">
+                Knowledge Distribution
+              </h2>
+              {gini === undefined ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : (
+                <GiniRadialProgress gini={gini} interpretation={giniInterpretation} />
+              )}
+            </div>
+            {frontlineLeaderGap !== undefined && (
+              <div className="card p-6">
+                <h2 className="mb-4 text-xl font-semibold">
+                  Frontline vs leader contributions
+                </h2>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Contributions in the last 30 days by experience level (frontline =
+                  newbie/curious/comfortable; leader = power user/expert).
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
+                  <div>
+                    <span className="font-medium text-foreground">Frontline</span>
+                    <p className="text-muted-foreground">
+                      {frontlineLeaderGap.frontlineContributions} contributions from{' '}
+                      {frontlineLeaderGap.frontlineUsers} active user
+                      {frontlineLeaderGap.frontlineUsers !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Leader</span>
+                    <p className="text-muted-foreground">
+                      {frontlineLeaderGap.leaderContributions} contributions from{' '}
+                      {frontlineLeaderGap.leaderUsers} active user
+                      {frontlineLeaderGap.leaderUsers !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Other</span>
+                    <p className="text-muted-foreground">
+                      {frontlineLeaderGap.otherContributions} contributions from{' '}
+                      {frontlineLeaderGap.otherUsers} active user
+                      {frontlineLeaderGap.otherUsers !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <TabbedRecognition
+            recentActivity={recentActivity}
+            topContributors={topContributors}
+            topMentors={topMentors}
+            mostReusedAssets={mostReusedAssets}
+          />
+        </div>
+      )}
     </div>
   );
 }

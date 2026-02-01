@@ -182,6 +182,18 @@ export const getById = query({
 /**
  * Create a new project
  */
+const hackTypeValidator = v.optional(
+  v.union(
+    v.literal("prompt"),
+    v.literal("app"),
+    v.literal("extension"),
+    v.literal("skill"),
+    v.literal("template"),
+    v.literal("agent_flow"),
+    v.literal("playbook")
+  )
+);
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -194,6 +206,7 @@ export const create = mutation({
       )
     ),
     isAnonymous: v.optional(v.boolean()),
+    hackType: hackTypeValidator,
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -218,6 +231,7 @@ export const create = mutation({
       visibility: args.visibility || "private",
       isAnonymous: args.isAnonymous || false,
       workflowTransformed: false,
+      hackType: args.hackType,
     });
 
     return projectId;
@@ -256,6 +270,7 @@ export const update = mutation({
     readinessCompletedAt: v.optional(v.number()),
     riskCheckNotes: v.optional(v.string()),
     sponsorCommittedAt: v.optional(v.number()),
+    hackType: hackTypeValidator,
   },
   handler: async (ctx, { projectId, ...updates }) => {
     const identity = await ctx.auth.getUserIdentity();

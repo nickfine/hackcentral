@@ -132,10 +132,23 @@ export default defineSchema({
     readinessCompletedAt: v.optional(v.number()),
     riskCheckNotes: v.optional(v.string()),
     sponsorCommittedAt: v.optional(v.number()),
+    // Hack type: 'prompt' | 'app' | 'extension' | 'skill' | 'template' | 'agent_flow' | 'playbook'
+    hackType: v.optional(
+      v.union(
+        v.literal("prompt"),
+        v.literal("app"),
+        v.literal("extension"),
+        v.literal("skill"),
+        v.literal("template"),
+        v.literal("agent_flow"),
+        v.literal("playbook")
+      )
+    ),
   })
     .index("by_owner", ["ownerId"])
     .index("by_status", ["status"])
-    .index("by_visibility", ["visibility"]),
+    .index("by_visibility", ["visibility"])
+    .index("by_hack_type", ["hackType"]),
 
   // ============================================================================
   // PROJECT MEMBERS

@@ -12,7 +12,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
-import { PROJECT_STATUS_LABELS } from '../constants/project';
+import { PROJECT_STATUS_LABELS, HACK_TYPE_LABELS, HACK_TYPE_BADGE_COLORS, HACK_TYPES } from '../constants/project';
 
 export default function ProjectDetail() {
   const { projectId: projectIdParam } = useParams<{ projectId: string }>();
@@ -247,6 +247,42 @@ export default function ProjectDetail() {
       <div className="max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight mb-2">{project.title}</h1>
         <div className="flex flex-wrap gap-2 mb-4 items-center">
+          {project.hackType ? (
+            <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[project.hackType] ?? 'bg-muted text-muted-foreground border-border'}`}>
+              {HACK_TYPE_LABELS[project.hackType] ?? project.hackType}
+            </span>
+          ) : null}
+          {isOwner && (
+            <select
+              className="input text-xs py-1 h-8 w-auto max-w-[180px]"
+              value={project.hackType ?? ''}
+              onChange={async (e) => {
+                const value = e.target.value || undefined;
+                if (!value) {
+                  toast('Select a type to update. Hack type cannot be cleared.', { icon: 'ℹ️' });
+                  return;
+                }
+                try {
+                  await updateProject({
+                    projectId: projectId as Id<'projects'>,
+                    hackType: value as (typeof HACK_TYPES)[number]['value'],
+                  });
+                  toast.success('Hack type updated.');
+                } catch (err) {
+                  console.error('Failed to update hack type:', err);
+                  toast.error('Failed to update. Please try again.');
+                }
+              }}
+              aria-label="Hack type"
+            >
+              <option value="">Set hack type</option>
+              {HACK_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
           <span className="badge badge-outline text-xs">
             {PROJECT_STATUS_LABELS[project.status] ?? project.status}
           </span>

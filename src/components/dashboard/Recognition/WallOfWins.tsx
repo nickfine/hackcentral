@@ -4,7 +4,7 @@ import { Quote } from 'lucide-react';
 
 const sampleWins = [
   {
-    text: "Saved my team 5 hours with Sarah's prompt template!",
+    text: "Saved my team 5 hours with Sarah's win!",
     author: 'Alex M.',
   },
   {

@@ -26,6 +26,8 @@ export { WeeklyActiveSparkline } from './DataViz/WeeklyActiveSparkline';
 
 export { QuickActionsPanel } from './QuickActions/QuickActionsPanel';
 export { PersonalizedNudge } from './QuickActions/PersonalizedNudge';
+export { EngagementNudge, type EngagementNudgeProps } from './Engagement';
+export { QuickStartWins, type QuickStartWinsProps } from './QuickStartWins';
 
 export { WallOfWins } from './Recognition/WallOfWins';
 export { TabbedRecognition } from './Recognition/TabbedRecognition';

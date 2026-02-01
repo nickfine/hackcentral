@@ -13,18 +13,21 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import { TabButton, EmptyState } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS } from '../constants/project';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPE_LABELS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
 
 type Visibility = 'private' | 'org' | 'public';
+type HackTypeValue = (typeof HACK_TYPES)[number]['value'];
 
 export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery);
   const [statusFilter, setStatusFilter] = useState('');
+  const [hackTypeFilter, setHackTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
+  const [hackType, setHackType] = useState<HackTypeValue | ''>('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectLimit, setProjectLimit] = useState(30);
@@ -46,12 +49,14 @@ export default function Projects() {
         description: description.trim() || undefined,
         visibility,
         isAnonymous,
+        hackType: hackType || undefined,
       });
       toast.success('Project created successfully!');
       setCreateOpen(false);
       setTitle('');
       setDescription('');
       setVisibility('private');
+      setHackType('');
       setIsAnonymous(false);
     } catch (error) {
       console.error('Failed to create project:', error);
@@ -66,6 +71,7 @@ export default function Projects() {
     setTitle('');
     setDescription('');
     setVisibility('private');
+    setHackType('');
     setIsAnonymous(false);
   };
 
@@ -113,6 +119,24 @@ export default function Projects() {
                   placeholder="What is this project about?"
                   rows={3}
                 />
+              </div>
+              <div>
+                <label htmlFor="project-hack-type" className="block text-sm font-medium mb-1">
+                  Hack type (optional)
+                </label>
+                <select
+                  id="project-hack-type"
+                  value={hackType}
+                  onChange={(e) => setHackType((e.target.value || '') as HackTypeValue | '')}
+                  className="input w-full"
+                >
+                  <option value="">None</option>
+                  {HACK_TYPES.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label htmlFor="project-visibility" className="block text-sm font-medium mb-1">
@@ -205,6 +229,18 @@ export default function Projects() {
           <option value="completed">Completed</option>
           <option value="archived">Archived</option>
         </select>
+        <select 
+          className="input w-40"
+          value={hackTypeFilter}
+          onChange={(e) => setHackTypeFilter(e.target.value)}
+        >
+          <option value="">All types</option>
+          {HACK_TYPES.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
         <button className="btn btn-outline btn-md">
           <Filter className="h-4 w-4 mr-2" />
           More Filters
@@ -248,6 +284,7 @@ export default function Projects() {
       ) : (() => {
         const filteredProjects = projects.filter(p => {
           if (statusFilter && p.status !== statusFilter) return false;
+          if (hackTypeFilter && p.hackType !== hackTypeFilter) return false;
           if (debouncedSearch) {
             const searchLower = debouncedSearch.toLowerCase();
             return (
@@ -261,7 +298,7 @@ export default function Projects() {
           <EmptyState
             icon={<Search />}
             title="No projects match your filters"
-            description="Try adjusting your search or status filter."
+            description="Try adjusting your search, status, or type filter."
           />
         ) : (
           <>
@@ -311,6 +348,7 @@ interface ProjectWithCounts {
   title: string;
   description?: string;
   status: string;
+  hackType?: string;
   isAnonymous: boolean;
   commentCount: number;
   likeCount: number;
@@ -339,11 +377,18 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
       onKeyDown={(e) => e.key === 'Enter' && onCardClick()}
       aria-label={`View ${project.title}`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="font-semibold text-lg leading-tight">{project.title}</h3>
-        <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[project.status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-          {PROJECT_STATUS_LABELS[project.status] ?? project.status}
-        </span>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <h3 className="font-semibold text-lg leading-tight min-w-0 flex-1">{project.title}</h3>
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0 justify-end">
+          {project.hackType && (
+            <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[project.hackType] ?? 'bg-muted text-muted-foreground border-border'}`}>
+              {HACK_TYPE_LABELS[project.hackType] ?? project.hackType}
+            </span>
+          )}
+          <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[project.status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+          </span>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
         {project.description || 'No description'}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Library, PenLine, Sparkles } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
@@ -8,15 +8,21 @@ import type { FeaturedWinItem } from './WinCard';
 import { WinCard } from './WinCard';
 import { WallOfThanksStrip } from './WallOfThanksStrip';
 
+const DEFAULT_STARTER_COUNT = 4;
+
 interface FeaturedWinsShowcaseProps {
   onShareStory?: () => void;
+  /** Called when user successfully copies an asset/story (e.g. first-copy confetti) */
+  onCopySuccess?: () => void;
+  /** First N wins show "Starter" badge (copy in seconds). Default 4. */
+  starterCount?: number;
 }
 
 const PLACEHOLDER_WINS: FeaturedWinItem[] = [
   {
     type: 'asset',
     id: 'placeholder-1',
-    title: 'Your prompt or template could be here',
+    title: 'Your win could be here',
     blurb: 'Share a reusable AI asset from the Library — your peers can copy and adapt it.',
     authorName: '—',
     reuseCount: 0,
@@ -63,11 +69,12 @@ function mapApiWinToItem(win: {
   };
 }
 
-export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps) {
+export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount = DEFAULT_STARTER_COUNT }: FeaturedWinsShowcaseProps) {
   const shouldReduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const featuredWins = useQuery(api.metrics.getFeaturedWins, { limit: 10 });
+  const pulse = useQuery(api.metrics.getActivityPulse);
   const [currentScrollIndex, setCurrentScrollIndex] = useState(0);
   const [autoplay, setAutoplay] = useState(!shouldReduceMotion);
 
@@ -111,17 +118,47 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
   const showLowContentNudge = wins.length >= 1 && wins.length < 4;
   const showNewbieBanner = wins.length > 0;
 
+  const risingStarCount = wins.filter((w) => w.isRisingStar).length;
+  const liveBadgeCopy =
+    pulse?.newAssetsThisWeek != null && pulse.newAssetsThisWeek > 0
+      ? `Live: ${pulse.newAssetsThisWeek} new win${pulse.newAssetsThisWeek !== 1 ? 's' : ''} this week`
+      : risingStarCount > 0
+        ? `${risingStarCount} Rising Star${risingStarCount !== 1 ? 's' : ''}`
+        : null;
+
   return (
-    <section aria-labelledby="featured-wins-heading" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2
-          id="featured-wins-heading"
-          className="flex items-center gap-2 text-2xl font-bold"
-        >
-          <Sparkles className="h-6 w-6 text-primary" aria-hidden />
-          Community Wins — reusable magic from your peers
-        </h2>
-        <div className="flex items-center gap-2">
+    <section aria-labelledby="featured-wins-heading" className="min-w-0 space-y-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          {liveBadgeCopy && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+              role="status"
+              aria-label={liveBadgeCopy}
+            >
+              {!shouldReduceMotion && (
+                <motion.span
+                  animate={{ opacity: [1, 0.6, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="h-1.5 w-1.5 rounded-full bg-primary"
+                  aria-hidden
+                />
+              )}
+              {liveBadgeCopy}
+            </motion.span>
+          )}
+          <h2
+            id="featured-wins-heading"
+            className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl md:text-2xl"
+          >
+            <Sparkles className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
+            <span className="break-words">Community Wins — reusable magic from your peers</span>
+          </h2>
+        </div>
+        <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
           {onShareStory && (
             <button
               type="button"
@@ -183,7 +220,11 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
               className="flex min-w-[min(300px,calc(100vw-2rem))] shrink-0 snap-center sm:min-w-[300px]"
               style={{ scrollSnapAlign: 'start' }}
             >
-              <WinCard win={win} />
+              <WinCard
+                win={win}
+                onCopySuccess={onCopySuccess}
+                isStarter={!isEmpty && index < starterCount}
+              />
             </div>
           ))}
           {showLowContentNudge && onShareStory && (

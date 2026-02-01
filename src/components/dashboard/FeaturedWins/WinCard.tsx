@@ -19,6 +19,10 @@ export interface FeaturedWinItem {
 
 interface WinCardProps {
   win: FeaturedWinItem;
+  /** Called when copy to clipboard succeeds (e.g. for first-copy confetti) */
+  onCopySuccess?: () => void;
+  /** Show "Starter" badge (copy in seconds) for newbie-friendly wins */
+  isStarter?: boolean;
 }
 
 function getAssetDetailUrl(assetId: string): string {
@@ -26,7 +30,7 @@ function getAssetDetailUrl(assetId: string): string {
   return `${base}/library?asset=${assetId}`;
 }
 
-export function WinCard({ win }: WinCardProps) {
+export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
   const handleCopy = () => {
@@ -36,7 +40,10 @@ export function WinCard({ win }: WinCardProps) {
         : `${win.title}\n\n${win.blurb}`;
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(
-        () => toast.success('Copied to clipboard!'),
+        () => {
+          toast.success('Copied to clipboard!');
+          onCopySuccess?.();
+        },
         () => toast.error('Failed to copy')
       );
     } else {
@@ -74,21 +81,31 @@ export function WinCard({ win }: WinCardProps) {
             <PenLine className="h-5 w-5 shrink-0 text-secondary" aria-hidden />
           )}
         </div>
-        {win.isRisingStar ? (
-          <span
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary group-hover:bg-secondary/20 group-hover:shadow-md group-hover:shadow-secondary/20"
-            title="First-time or frontline contributor"
-          >
-            <Sparkles className="h-3 w-3" aria-hidden />
-            Rising Star
-          </span>
-        ) : null}
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {isStarter && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+              title="Copy in seconds"
+            >
+              Starter
+            </span>
+          )}
+          {win.isRisingStar ? (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary group-hover:bg-secondary/20 group-hover:shadow-md group-hover:shadow-secondary/20"
+              title="First-time or frontline contributor"
+            >
+              <Sparkles className="h-3 w-3" aria-hidden />
+              Rising Star
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      <h3 className="mb-2 line-clamp-2 text-base font-semibold text-foreground">
+      <h3 className="mb-2 min-w-0 line-clamp-2 break-words text-base font-semibold text-foreground">
         {win.title}
       </h3>
-      <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">{win.blurb}</p>
+      <p className="mb-4 min-w-0 line-clamp-3 break-words text-sm text-muted-foreground">{win.blurb}</p>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">

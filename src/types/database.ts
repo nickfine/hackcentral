@@ -157,6 +157,7 @@ export type Database = {
           workflow_transformed: boolean
           visibility: Visibility
           is_anonymous: boolean
+          hack_type: HackType | null
           created_at: string
           updated_at: string
         }
@@ -173,6 +174,7 @@ export type Database = {
           workflow_transformed?: boolean
           visibility?: Visibility
           is_anonymous?: boolean
+          hack_type?: HackType | null
           created_at?: string
           updated_at?: string
         }
@@ -189,6 +191,7 @@ export type Database = {
           workflow_transformed?: boolean
           visibility?: Visibility
           is_anonymous?: boolean
+          hack_type?: HackType | null
           created_at?: string
           updated_at?: string
         }
@@ -559,6 +562,15 @@ export type ProjectStatus =
   | 'incubation'
   | 'completed'
   | 'archived'
+
+export type HackType =
+  | 'prompt'
+  | 'app'
+  | 'extension'
+  | 'skill'
+  | 'template'
+  | 'agent_flow'
+  | 'playbook'
 
 export type Visibility = 'private' | 'org' | 'public'
 
