@@ -156,3 +156,65 @@ export const attachToProject = mutation({
     });
   },
 });
+
+const reuseTypeValidator = v.union(
+  v.literal("referenced"),
+  v.literal("copied"),
+  v.literal("linked"),
+  v.literal("attached")
+);
+
+/**
+ * Record a reuse event (e.g. "I copied this") with optional project link.
+ * If projectId is provided, also ensures projectLibraryAssets row (idempotent with attachToProject).
+ */
+export const recordReuse = mutation({
+  args: {
+    assetId: v.id("libraryAssets"),
+    reuseType: reuseTypeValidator,
+    projectId: v.optional(v.id("projects")),
+  },
+  handler: async (ctx, { assetId, reuseType, projectId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .first();
+    if (!profile) throw new Error("Profile not found");
+
+    const asset = await ctx.db.get(assetId);
+    const assetAccess = await userHasAssetAccess(ctx, assetId, asset);
+    if (!assetAccess) throw new Error("Asset not found or access denied");
+
+    if (projectId) {
+      const project = await ctx.db.get(projectId);
+      const projectAccess = await userHasProjectAccess(ctx, projectId, project);
+      if (!projectAccess) throw new Error("Project not found or access denied");
+
+      const existing = await ctx.db
+        .query("projectLibraryAssets")
+        .withIndex("by_project_and_asset", (q) =>
+          q.eq("projectId", projectId).eq("assetId", assetId)
+        )
+        .first();
+
+      if (!existing) {
+        await ctx.db.insert("projectLibraryAssets", {
+          projectId,
+          assetId,
+          attachedBy: profile._id,
+          attachmentType: reuseType,
+        });
+      }
+    }
+
+    await ctx.db.insert("libraryReuseEvents", {
+      assetId,
+      userId: profile._id,
+      projectId,
+      reuseType,
+    });
+  },
+});

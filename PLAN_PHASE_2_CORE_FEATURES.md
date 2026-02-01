@@ -19,6 +19,10 @@
   - Top Contributors leaderboard with counts, empty/loading states
 - **Existing:** Metric cards, maturity bar, and `getDashboardMetrics` were already in place.
 
+### ✅ Library – Submit Asset, Verification, Reuse Recording (v0.4.2+)
+- Submit Asset modal, author verification workflow (draft/verified/deprecated), “Verified by” display, reuse counts on cards, attach-to-project (v0.4.2).
+- **Reuse recording:** `convex/libraryReuse.ts` – `recordReuse(assetId, reuseType, projectId?)`; when `projectId` is provided, also ensures `projectLibraryAssets` row. `src/pages/Library.tsx` – asset detail “I used this” quick action (Copied / Referenced / Linked + “Record use” button) so reuse can be recorded without attaching to a project.
+
 ---
 
 ## Remaining Phase 2 Tasks (in suggested order)

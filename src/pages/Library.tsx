@@ -595,8 +595,25 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
   const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
   const projects = useQuery(api.projects.list);
   const attachToProject = useMutation(api.libraryReuse.attachToProject);
+  const recordReuse = useMutation(api.libraryReuse.recordReuse);
   const updateAsset = useMutation(api.libraryAssets.update);
+  const [quickReuseType, setQuickReuseType] = useState<AttachmentType>('copied');
+  const [isRecordingReuse, setIsRecordingReuse] = useState(false);
   const isAuthor = Boolean(profile?._id && asset.authorId === profile._id);
+
+  const handleRecordReuse = async () => {
+    if (isRecordingReuse) return;
+    setIsRecordingReuse(true);
+    try {
+      await recordReuse({ assetId, reuseType: quickReuseType });
+      toast.success('Use recorded. Thanks for contributing!');
+    } catch (err) {
+      console.error('Record reuse failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to record use. Please try again.');
+    } finally {
+      setIsRecordingReuse(false);
+    }
+  };
 
   const handleAttachSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -742,9 +759,30 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
         </div>
       )}
 
-      {/* Attach to project (authenticated only) */}
+      {/* Record use & Attach to project (authenticated only) */}
       {isAuthenticated && (
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">I used this:</span>
+            <select
+              value={quickReuseType}
+              onChange={(e) => setQuickReuseType(e.target.value as AttachmentType)}
+              className="input w-32 text-sm"
+              aria-label="How you used this asset"
+            >
+              <option value="copied">Copied</option>
+              <option value="referenced">Referenced</option>
+              <option value="linked">Linked</option>
+            </select>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={handleRecordReuse}
+              disabled={isRecordingReuse}
+            >
+              {isRecordingReuse ? 'Recording…' : 'Record use'}
+            </button>
+          </div>
           {!attachOpen ? (
             <button
               type="button"
