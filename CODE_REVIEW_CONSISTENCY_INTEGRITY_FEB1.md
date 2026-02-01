@@ -43,20 +43,20 @@
 
 ## 2. Dashboard: structure and consistency
 
-### 2.1 Tab structure and fragment
+### 2.1 Tab structure and fragment (updated post-ECD nits)
 
 - **Tabs:** "Wins" (default) and "Team pulse" with `dashboardTab` state. Only one tab’s content is rendered at a time.
-- **Wins tab:** Content is wrapped in a fragment (`<>...</>`): WelcomeHero, EngagementNudge, FeaturedWinsShowcase, CollectiveProgressCard, Your recognition, QuickActionsPanel. All are inside `{dashboardTab === 'wins' && (<> ... </>)}`.
-- **Pulse tab:** Stat cards, Gini, Frontline vs leader, TabbedRecognition, Export — all inside `{dashboardTab === 'pulse' && (...)}`.
+- **Wins tab:** Content is wrapped in a fragment (`<>...</>`): **WelcomeHero first**, then optional combined nudge, then PersonalizedNudge, EngagementNudge, FeaturedWinsShowcase (Community Wins), Your recognition (if authenticated), QuickActionsPanel. **No CollectiveProgressCard on Wins** — hero pill is the only maturity hint there.
+- **Pulse tab:** "Team pulse" heading, **CollectiveProgressCard** (moved here from Wins to remove redundancy), Export, stat cards, Knowledge Distribution (Gini), Frontline vs leader, TabbedRecognition — all inside `{dashboardTab === 'pulse' && (...)}`.
 
 **Verdict:** Structure is correct. No stray content; tab switching is consistent.
 
-### 2.2 Combined nudge placement
+### 2.2 Combined nudge placement (updated post-ECD nits)
 
-- **Current:** The combined nudge (Get started / Next step) is rendered above the tabs, so it appears for both Wins and Team pulse.
-- **Plan:** "When dashboardTab === 'wins', render: hero, combined nudge, Wins showcase...". So the plan had the nudge inside the Wins tab only.
+- **Current:** The combined nudge and PersonalizedNudge are **inside the Wins tab only**, and appear **after the WelcomeHero**. Order: Hero → combined nudge (when applicable) → PersonalizedNudge → EngagementNudge → Community Wins → Your recognition → Quick actions. This gives "where we are" (narrative + primary CTA) first, then "what to do" (nudges).
+- **Pulse tab:** No nudge blocks; leaders see Collective Progress, Export, stat cards, Gini, Frontline, TabbedRecognition only.
 
-**Verdict:** Minor deviation. Showing the nudge on both tabs is acceptable and can help first-time or graduated users on either tab. Optional follow-up: move the nudge inside the Wins block if you want strict adherence to the plan.
+**Verdict:** Hero-first hierarchy is satisfied. Nudges no longer compete with the hero for first read.
 
 ### 2.3 QuickStartWins export
 
@@ -104,7 +104,7 @@
 | Optional hackType (list, detail, create) | OK | OK | Filter and badges behave correctly. |
 | Clearing hack type in ProjectDetail | OK | Issue | Selecting "Set hack type" does not clear DB; toast is misleading. |
 | Dashboard tabs and fragment | OK | OK | Wins vs Pulse content correctly scoped. |
-| Combined nudge placement | Minor | OK | Shown on both tabs; optional to move into Wins only. |
+| Combined nudge placement | OK | OK | Inside Wins only; after hero (ECD nits fix). |
 | QuickStartWins export | Minor | OK | Unused in Dashboard; export kept for reuse. |
 | Starter badges and placeholders | OK | OK | Logic and copy correct. |
 | Projects empty state copy | Minor | OK | Add "or type filter" for consistency. |
@@ -114,4 +114,14 @@
 1. **ProjectDetail:** When owner selects "Set hack type" (value `''`), do not call `updateProject` with `hackType: undefined`. Instead show a toast like "Select a type to update" or "Hack type cannot be cleared." so the user is not told the type was cleared when it was not.
 2. **Projects:** Update the empty-state description (when no projects match filters) to "Try adjusting your search, status, or type filter."
 
-Optional: Move combined nudge into Wins tab only; add a comment on the QuickStartWins export; or implement backend support for clearing hack type if product requires it.
+Optional: Add a comment on the QuickStartWins export; or implement backend support for clearing hack type if product requires it.
+
+---
+
+## 6. Post-ECD nits (Feb 1) — addendum
+
+**Changes applied:** (1) Hero first, then nudges: combined nudge and PersonalizedNudge moved inside the Wins tab and placed **after** WelcomeHero so the narrative is the first thing. (2) Collective Progress redundancy removed from Wins: CollectiveProgressCard removed from the Wins tab (hero pill is the only maturity hint there); CollectiveProgressCard added to the Team pulse tab so leaders still have access.
+
+**Consistency:** Dashboard.tsx page comment updated to match the new layout. Wins tab fragment order and indentation (Your recognition block, QuickActionsPanel) aligned for consistency.
+
+**Integrity:** No duplicate maturity block on Wins; CollectiveProgressCard used only once (Pulse). All props (profile, userCounts, derivedBadges, pulse, maturityWidth, metrics) remain in scope for both tabs; story modal remains at top level (shared).

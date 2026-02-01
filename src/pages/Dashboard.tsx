@@ -1,17 +1,20 @@
 /**
  * Dashboard Page - AI Maturity Dashboard
  *
- * Page layout (order of sections, target hero ~25–35% viewport):
- * 1. Optional first-time / graduated nudges (Get started, Add library, Share story)
- * 2. Personalized nudge (badges, next steps)
- * 3. Export metrics (slim utility row)
- * 4. WelcomeHero — slim "Welcome to HackDay Central", one-line sub, CTAs, maturity pill (~25–35vh)
- * 5. EngagementNudge — "Hey [Name], X new team assets — copy one?" (personalized + pulse)
- * 6. Community Wins — FeaturedWinsShowcase (Starter badges on first N, Live badge, carousel, WallOfThanksStrip)
- * 8. Our Collective Progress — demoted maturity card
- * 9. Stat cards row → Knowledge Distribution / Frontline → Tabbed Recognition → Your Recognition → Quick Actions
+ * Tabs: Wins (default) | Team pulse.
  *
- * Rationale: Concise hero + immediate peer wins maximizes adoption (land → see/copy real wins in <5s).
+ * Wins tab (hero first, then what to do):
+ * 1. WelcomeHero — narrative "Copy a win, use it, share yours", CTAs, maturity pill (~25–35vh)
+ * 2. Optional combined nudge (Get started / Next step: add library, create project, share story)
+ * 3. PersonalizedNudge (badges, next steps)
+ * 4. EngagementNudge — "Hey [Name], X new team assets — copy one?"
+ * 5. Community Wins — FeaturedWinsShowcase (Starter badges, Live badge, carousel, WallOfThanksStrip)
+ * 6. Your recognition (if authenticated) → Quick Actions
+ *
+ * Team pulse tab: Collective Progress card, Export, stat cards, Knowledge Distribution,
+ * Frontline vs leader, Tabbed Recognition.
+ *
+ * Rationale: Hero-first hierarchy; maturity only in hero pill on Wins (no duplicate); leaders get full metrics in Pulse.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -239,91 +242,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-w-0 space-y-6">
-      {showCombinedNudge && (
-        <div className="card border-primary/20 bg-primary/5 p-4 sm:p-5">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 rounded-lg bg-primary/10 p-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="min-w-0">
-              {showFirstTimeCTA ? (
-                <>
-                  <h2 className="mb-1 text-base font-semibold">Get started</h2>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    New to HackDay Central? Copy a win from the Library or create your first project.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Link to="/library" className="btn btn-primary btn-sm">
-                      <Library className="mr-2 h-4 w-4" />
-                      Explore Library
-                    </Link>
-                    <Link to="/projects" className="btn btn-outline btn-sm">
-                      <Activity className="mr-2 h-4 w-4" />
-                      View Projects
-                    </Link>
-                    <Link to="/profile" className="btn btn-ghost btn-sm">
-                      <User className="mr-2 h-4 w-4" />
-                      Complete profile
-                    </Link>
-                    <Link to="/onboarding" className="btn btn-ghost btn-sm">
-                      See all options
-                    </Link>
-                    <Link to="/guide" className="btn btn-ghost btn-sm">
-                      AI 101 guide
-                    </Link>
-                  </div>
-                </>
-              ) : nudgeAddLibrary ? (
-                <>
-                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    You have projects but no library assets yet. Add a win from the Library to your project.
-                  </p>
-                  <Link to="/library" className="btn btn-primary btn-sm">
-                    <Library className="mr-2 h-4 w-4" />
-                    Explore Library
-                  </Link>
-                </>
-              ) : nudgeCreateProject ? (
-                <>
-                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    You&apos;ve added library assets. Create a project to track your work and attach assets.
-                  </p>
-                  <Link to="/projects" className="btn btn-primary btn-sm">
-                    <Activity className="mr-2 h-4 w-4" />
-                    Create a project
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <h2 className="mb-1 text-base font-semibold">Next step</h2>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    Share how AI helped your work — it inspires others and surfaces on the Dashboard.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setStoryModalOpen(true)}
-                  >
-                    <PenLine className="mr-2 h-4 w-4" />
-                    Share your story
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {profile != null && userCounts != null && (
-        <PersonalizedNudge
-          profile={profile}
-          userCounts={userCounts}
-          derivedBadges={derivedBadges}
-        />
-      )}
-
       {storyModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -481,68 +399,145 @@ export default function Dashboard() {
       {dashboardTab === 'wins' && (
         <>
           <WelcomeHero
-        onShareStory={() => setStoryModalOpen(true)}
-        currentProgress={maturityWidth}
-        currentStageName={currentStage?.name}
-        nextMilestoneCopy={nextMilestoneCopy}
-      />
+            onShareStory={() => setStoryModalOpen(true)}
+            currentProgress={maturityWidth}
+            currentStageName={currentStage?.name}
+            nextMilestoneCopy={nextMilestoneCopy}
+          />
 
-      <EngagementNudge
-        displayName={profile?.fullName}
-        newAssetsCount={pulse?.newAssetsThisWeek ?? 0}
-        onScrollToWins={scrollToCommunityWins}
-      />
-
-      <div id="community-wins" className="scroll-mt-6">
-        <FeaturedWinsShowcase
-          onShareStory={() => setStoryModalOpen(true)}
-          onCopySuccess={handleFirstCopySuccess}
-          starterCount={4}
-        />
-      </div>
-
-      <CollectiveProgressCard
-        currentProgress={maturityWidth}
-        metrics={{
-          aiContributorPercentage: metrics?.aiContributorPercentage ?? 0,
-          projectsWithAiPercentage: metrics?.projectsWithAiPercentage ?? 0,
-        }}
-      />
-
-      {isAuthenticated && (
-        <div className="card p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
-            <Award className="h-5 w-5 text-muted-foreground" />
-            Your recognition
-          </h2>
-          {derivedBadges === undefined ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : derivedBadges.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Complete mentor sessions, verify library assets, or get reuses on
-              your assets to earn badges.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {derivedBadges.map((badge) => (
-                <span
-                  key={badge.badgeType}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                  title={`${badge.label}: ${badge.metricValue}`}
-                >
-                  <Award className="h-4 w-4 shrink-0" />
-                  {badge.label}
-                  {badge.metricValue > 1 && (
-                    <span className="text-muted-foreground">
-                      ×{badge.metricValue}
-                    </span>
+          {showCombinedNudge && (
+            <div className="card border-primary/20 bg-primary/5 p-4 sm:p-5">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 rounded-lg bg-primary/10 p-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  {showFirstTimeCTA ? (
+                    <>
+                      <h2 className="mb-1 text-base font-semibold">Get started</h2>
+                      <p className="mb-3 text-sm text-muted-foreground">
+                        New to HackDay Central? Copy a win from the Library or create your first project.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link to="/library" className="btn btn-primary btn-sm">
+                          <Library className="mr-2 h-4 w-4" />
+                          Explore Library
+                        </Link>
+                        <Link to="/projects" className="btn btn-outline btn-sm">
+                          <Activity className="mr-2 h-4 w-4" />
+                          View Projects
+                        </Link>
+                        <Link to="/profile" className="btn btn-ghost btn-sm">
+                          <User className="mr-2 h-4 w-4" />
+                          Complete profile
+                        </Link>
+                        <Link to="/onboarding" className="btn btn-ghost btn-sm">
+                          See all options
+                        </Link>
+                        <Link to="/guide" className="btn btn-ghost btn-sm">
+                          AI 101 guide
+                        </Link>
+                      </div>
+                    </>
+                  ) : nudgeAddLibrary ? (
+                    <>
+                      <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                      <p className="mb-3 text-sm text-muted-foreground">
+                        You have projects but no library assets yet. Add a win from the Library to your project.
+                      </p>
+                      <Link to="/library" className="btn btn-primary btn-sm">
+                        <Library className="mr-2 h-4 w-4" />
+                        Explore Library
+                      </Link>
+                    </>
+                  ) : nudgeCreateProject ? (
+                    <>
+                      <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                      <p className="mb-3 text-sm text-muted-foreground">
+                        You&apos;ve added library assets. Create a project to track your work and attach assets.
+                      </p>
+                      <Link to="/projects" className="btn btn-primary btn-sm">
+                        <Activity className="mr-2 h-4 w-4" />
+                        Create a project
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="mb-1 text-base font-semibold">Next step</h2>
+                      <p className="mb-3 text-sm text-muted-foreground">
+                        Share how AI helped your work — it inspires others and surfaces on the Dashboard.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setStoryModalOpen(true)}
+                      >
+                        <PenLine className="mr-2 h-4 w-4" />
+                        Share your story
+                      </button>
+                    </>
                   )}
-                </span>
-              ))}
+                </div>
+              </div>
             </div>
           )}
-        </div>
-      )}
+
+          {profile != null && userCounts != null && (
+            <PersonalizedNudge
+              profile={profile}
+              userCounts={userCounts}
+              derivedBadges={derivedBadges}
+            />
+          )}
+
+          <EngagementNudge
+            displayName={profile?.fullName}
+            newAssetsCount={pulse?.newAssetsThisWeek ?? 0}
+            onScrollToWins={scrollToCommunityWins}
+          />
+
+          <div id="community-wins" className="scroll-mt-6">
+            <FeaturedWinsShowcase
+              onShareStory={() => setStoryModalOpen(true)}
+              onCopySuccess={handleFirstCopySuccess}
+              starterCount={4}
+            />
+          </div>
+
+          {isAuthenticated && (
+            <div className="card p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+                <Award className="h-5 w-5 text-muted-foreground" />
+                Your recognition
+              </h2>
+              {derivedBadges === undefined ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : derivedBadges.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Complete mentor sessions, verify library assets, or get reuses on
+                  your assets to earn badges.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {derivedBadges.map((badge) => (
+                    <span
+                      key={badge.badgeType}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                      title={`${badge.label}: ${badge.metricValue}`}
+                    >
+                      <Award className="h-4 w-4 shrink-0" />
+                      {badge.label}
+                      {badge.metricValue > 1 && (
+                        <span className="text-muted-foreground">
+                          ×{badge.metricValue}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <QuickActionsPanel onShareStory={() => setStoryModalOpen(true)} />
         </>
@@ -551,6 +546,13 @@ export default function Dashboard() {
       {dashboardTab === 'pulse' && (
         <div className="min-w-0 space-y-6">
           <h2 className="text-xl font-semibold">Team pulse</h2>
+          <CollectiveProgressCard
+            currentProgress={maturityWidth}
+            metrics={{
+              aiContributorPercentage: metrics?.aiContributorPercentage ?? 0,
+              projectsWithAiPercentage: metrics?.projectsWithAiPercentage ?? 0,
+            }}
+          />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
