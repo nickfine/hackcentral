@@ -25,8 +25,8 @@ export default function LibraryAssetDetail() {
 
   if (asset === undefined) {
     return (
-      <div className="space-y-6">
-        <div className="py-8 text-center">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="py-12 text-center">
           <h1 className="text-xl font-semibold mb-2">Loading...</h1>
           <p className="text-muted-foreground">Loading hack details</p>
         </div>
@@ -36,8 +36,8 @@ export default function LibraryAssetDetail() {
 
   if (asset === null) {
     return (
-      <div className="space-y-6">
-        <div className="card p-6">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-8 text-center">
           <h1 className="text-xl font-semibold mb-2">Hack not found</h1>
           <p className="text-muted-foreground mb-4">
             This hack may be private or no longer available.
@@ -55,16 +55,14 @@ export default function LibraryAssetDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="card p-6">
-        <AssetDetailContent
-          asset={asset}
-          assetId={assetId as Id<'libraryAssets'>}
-          onClose={() => navigate('/hacks?tab=completed')}
-          onSelectAsset={(id) => navigate(`/library/${id}`)}
-          closeLabel="Back to Completed Hacks"
-        />
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <AssetDetailContent
+        asset={asset}
+        assetId={assetId as Id<'libraryAssets'>}
+        onClose={() => navigate('/hacks?tab=completed')}
+        onSelectAsset={(id) => navigate(`/library/${id}`)}
+        closeLabel="Back to Completed Hacks"
+      />
     </div>
   );
 }
