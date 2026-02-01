@@ -16,8 +16,10 @@ export function Header() {
       <div className="flex h-14 items-center px-4 lg:px-6">
         {/* Mobile menu button */}
         <button
+          type="button"
           className="lg:hidden mr-2 p-2 hover:bg-accent rounded-md"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -32,29 +34,32 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Search */}
-        <div className="flex-1 max-w-md hidden md:block">
+        {/* Search (coming soon) */}
+        <div className="flex-1 max-w-md hidden md:block" title="Coming soon">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search..."
               className="input pl-10 h-9 w-full"
+              readOnly
+              aria-label="Search (coming soon)"
+              title="Coming soon"
             />
           </div>
         </div>
 
         {/* Right side actions */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Mobile search */}
-          <button className="md:hidden p-2 hover:bg-accent rounded-md">
+          {/* Mobile search (coming soon) */}
+          <button type="button" className="md:hidden p-2 hover:bg-accent rounded-md" title="Coming soon" aria-label="Search (coming soon)">
             <Search className="h-5 w-5" />
           </button>
 
-          {/* Notifications */}
-          <button className="p-2 hover:bg-accent rounded-md relative">
+          {/* Notifications (coming soon) */}
+          <button type="button" className="p-2 hover:bg-accent rounded-md relative" title="Coming soon" aria-label="Notifications (coming soon)">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" aria-hidden />
           </button>
 
           {/* User menu */}

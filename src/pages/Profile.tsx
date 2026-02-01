@@ -133,6 +133,12 @@ export default function Profile() {
 
   return (
     <div className="space-y-6">
+      {/* Page title */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">My Profile</h1>
+        <p className="text-muted-foreground mt-1">View and manage your contributions, projects, and settings</p>
+      </div>
+
       {/* Edit Profile Modal */}
       {editOpen && (
         <div
@@ -328,9 +334,9 @@ export default function Profile() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold">
+                <h2 className="text-xl font-semibold">
                   {profile?.fullName || user?.fullName || 'Your Profile'}
-                </h1>
+                </h2>
                 {profile?.experienceLevel && (
                   <span className={`badge badge-${profile.experienceLevel}`}>
                     {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel]}
@@ -359,7 +365,7 @@ export default function Profile() {
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
           icon={<BookOpen className="h-5 w-5" />}
-          label="Library Contributions"
+          label="Library activity"
           value="--"
         />
         <StatCard
@@ -382,7 +388,7 @@ export default function Profile() {
       {/* Tabs */}
       <div className="flex gap-2 border-b">
         <TabButton active={activeTab === 'contributions'} onClick={() => setActiveTab('contributions')}>
-          Contributions
+          Activity
         </TabButton>
         <TabButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')}>
           Projects
@@ -398,14 +404,15 @@ export default function Profile() {
       {/* Tab Content */}
       {activeTab === 'contributions' && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Recent Contributions</h2>
+          <h2 className="text-xl font-semibold mb-1">Recent Activity</h2>
+          <p className="text-sm text-muted-foreground mb-4">Your library and project contributions</p>
           <div className="space-y-3">
             <ContributionPlaceholder type="library" />
             <ContributionPlaceholder type="project" />
             <ContributionPlaceholder type="verification" />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Contributions will appear here once you have activity
+            Activity from the Library and Projects will appear here once you contribute.
           </p>
         </div>
       )}
@@ -605,7 +612,7 @@ interface ContributionPlaceholderProps {
 function ContributionPlaceholder({ type }: ContributionPlaceholderProps) {
   const typeLabels = {
     library: 'Library Asset',
-    project: 'Project AI Artefact',
+    project: 'Project AI asset',
     verification: 'Verification',
   }
 

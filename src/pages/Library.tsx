@@ -11,6 +11,7 @@ import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
+import { EmptyState } from '../components/shared';
 
 const ASSET_TYPES = [
   { value: 'prompt', label: 'Prompt' },
@@ -364,7 +365,7 @@ export default function Library() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Library</h1>
           <p className="text-muted-foreground mt-2">
-            Reusable AI assets, prompts, and templates
+            Reusable AI assets, prompts, and templates. The <strong>AI Arsenal</strong> is curated; <strong>All Assets</strong> shows everything in the library.
           </p>
         </div>
         <button
@@ -509,16 +510,15 @@ export default function Library() {
             (a, b) => (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1)
           );
           return sortedAssets.length === 0 ? (
-            <div className="card p-12 text-center">
-              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No assets found</h3>
-              <p className="text-muted-foreground">
-                {debouncedSearch || selectedType || selectedStatus 
-                  ? "No assets match your filters. Try adjusting your search or filters." 
+            <EmptyState
+              icon={<Search />}
+              title="No assets found"
+              description={
+                debouncedSearch || selectedType || selectedStatus
+                  ? 'No assets match your filters. Try adjusting your search or filters.'
                   : "Be the first to contribute an AI asset!"
-                }
-              </p>
-            </div>
+              }
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {sortedAssets.map((asset) => (

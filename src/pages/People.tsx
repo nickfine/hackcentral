@@ -12,6 +12,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { EXPERIENCE_LEVEL_LABELS } from '../constants/profile';
 import { getInitials } from '../lib/utils';
 import { useDebounce } from '../hooks/useDebounce';
+import { EmptyState } from '../components/shared';
 
 type MentorFilter = 'all' | 'available' | 'seeking';
 
@@ -118,11 +119,11 @@ export default function People() {
           <PlaceholderCard />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="card p-12 text-center">
-          <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No profiles yet</h3>
-          <p className="text-muted-foreground">Be the first to set up your profile!</p>
-        </div>
+        <EmptyState
+          icon={<UserPlus />}
+          title="No profiles yet"
+          description="Be the first to set up your profile!"
+        />
       ) : (
         <>
           {/* AI Helpers Section */}
@@ -187,13 +188,11 @@ export default function People() {
                      'All People'} ({filteredProfiles.length})
                   </h2>
                   {filteredProfiles.length === 0 ? (
-                    <div className="card p-12 text-center">
-                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No people match your filters</h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your search, experience level, or mentor availability filter.
-                      </p>
-                    </div>
+                    <EmptyState
+                      icon={<Search />}
+                      title="No people match your filters"
+                      description="Try adjusting your search, experience level, or mentor availability filter."
+                    />
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {filteredProfiles.map((profile) => (

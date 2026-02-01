@@ -1,6 +1,6 @@
 /**
  * Projects Page - Project Listings
- * Shows projects with AI artefacts and collaboration features
+ * Shows projects with AI assets and collaboration features
  */
 
 import { useState } from 'react';
@@ -11,7 +11,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
-import { TabButton } from '../components/shared';
+import { TabButton, EmptyState } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS } from '../constants/project';
 
@@ -231,21 +231,16 @@ export default function Projects() {
           <ProjectPlaceholder status="completed" />
         </div>
       ) : projects.length === 0 ? (
-        <div className="card p-12 text-center">
-          <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first project with AI artefacts
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </button>
-        </div>
+        <EmptyState
+          icon={<Plus />}
+          title="No projects yet"
+          description="Create your first project with AI assets"
+          action={{
+            label: 'New Project',
+            icon: <Plus className="h-4 w-4" />,
+            onClick: () => setCreateOpen(true),
+          }}
+        />
       ) : (() => {
         const filteredProjects = projects.filter(p => {
           if (statusFilter && p.status !== statusFilter) return false;
@@ -259,13 +254,11 @@ export default function Projects() {
           return true;
         });
         return filteredProjects.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No projects match your filters</h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search or status filter.
-            </p>
-          </div>
+          <EmptyState
+            icon={<Search />}
+            title="No projects match your filters"
+            description="Try adjusting your search or status filter."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (
@@ -418,7 +411,7 @@ function ProjectPlaceholder({ status }: ProjectPlaceholderProps) {
       <div className="h-4 bg-muted rounded w-full mb-2" />
       <div className="h-4 bg-muted rounded w-2/3 mb-4" />
 
-      {/* AI Artefacts indicator */}
+      {/* AI assets indicator */}
       <div className="flex items-center gap-2 mb-3">
         <div className="flex -space-x-1">
           <div className="w-6 h-6 rounded bg-primary/20 border-2 border-background" />

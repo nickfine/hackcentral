@@ -947,3 +947,57 @@ const debouncedSearch = useDebounce(searchQuery);
 - Project page shows full content (title, status, owner, learning summary, full comments, add-comment form) and “Back to projects” works.
 - Comment icon correctly uses `#comments` in the URL.
 - No console errors during the tested flow.
+
+---
+
+## Pre–Phase 3 UX Improvements – Playwright Test (Feb 1, 2026)
+
+### What Was Tested
+- Header: search and notifications marked “Coming soon”.
+- Profile: “My Profile” page heading, Activity tab, Recent Activity section copy.
+- Dashboard: first-time CTA (Get started) logic; terminology “AI assets”.
+- Library: subtitle explaining AI Arsenal vs All Assets.
+- Terminology: “assets” (not “artefacts”) in user-facing copy.
+- Console: no errors during flows.
+
+### Test Environment
+- **Tool:** Playwright MCP (browser_navigate, browser_wait_for, browser_click, browser_snapshot, browser_console_messages).
+- **App:** Vite dev server at `http://localhost:5173`.
+- **Auth:** Signed in as “Nick Test”; Dashboard had recent activity and metrics.
+
+### Test Steps & Results
+
+1. **Dashboard**
+   - Navigated to `/dashboard`, waited for “Loading…” to disappear.
+   - **Result:** Header shows “Search (coming soon)” textbox and “Notifications (coming soon)” button (aria-labels and “Coming soon” in snapshot). Metric card: “100.0% of projects using AI assets” (terminology correct). No “Get started” CTA card (correct: recent activity exists). “Most Reused Assets” and “Your recognition” visible.
+
+2. **Profile**
+   - Clicked Profile in sidebar.
+   - **Result:** Page-level h1 “My Profile” with subtitle “View and manage your contributions, projects, and settings”. User name “Nick Test” as h2. Tabs: **Activity** (not Contributions), Projects, Mentoring, Settings. Activity tab content: “Recent Activity” heading, “Your library and project contributions” subtitle, placeholder “Project AI asset” (terminology). Empty-state copy: “Activity from the Library and Projects will appear here once you contribute.”
+
+3. **Library**
+   - Navigated to `/library`, waited for load.
+   - **Result:** Subtitle under “Library”: “Reusable AI assets, prompts, and templates. The **AI Arsenal** is curated; **All Assets** shows everything in the library.” Header again shows “Search (coming soon)” and “Notifications (coming soon)”. AI Arsenal section and All Assets (25) visible.
+
+4. **Projects**
+   - Navigated to `/projects`, waited for load.
+   - **Result:** Header “Coming soon” labels present. Project cards show “1 asset” (terminology). Tabs (All, Ideas, Building, Completed) and list render correctly.
+
+5. **Console**
+   - Fetched console messages at level `error` (after Projects page load).
+   - **Result:** No errors. Only warning: Clerk development keys (expected in dev).
+
+### Conclusion
+- Header search and notifications are clearly “Coming soon” (placeholder + aria-labels).
+- Profile has a clear “My Profile” heading and Activity tab with clarified copy.
+- Dashboard uses “AI assets” and correctly hides the first-time CTA when there is recent activity.
+- Library subtitle explains AI Arsenal (curated) vs All Assets (everything).
+- Terminology “assets” is used consistently in visible copy (Dashboard, Profile, Projects).
+- No console errors during the tested flows.
+
+### Follow-up verification (Playwright MCP, same flows)
+- **Projects tabs:** Clicked "Ideas" → only Idea project visible; "All" → both projects. Tab active state and filter sync correct.
+- **Project detail page:** From Projects list, clicked "View Playwright test project" → navigated to `/projects/:projectId`. Page showed "Back to projects" link, project title (h1), status "Completed", owner, Learning summary (lessons learned, AI tools used), Comments section with one comment and "Add a comment" form. Back link returned to `/projects`.
+- **Profile:** Confirmed stat card label "Library activity" (not "Library Contributions"); "Recent Activity" section and "Your library and project contributions" copy present.
+- **Library:** Confirmed subtitle: "Reusable AI assets, prompts, and templates. The **AI Arsenal** is curated; **All Assets** shows everything in the library."
+- **Console:** `browser_console_messages` (level: error) returned no errors. Chrome DevTools MCP was attached to a different browser context (page closed); Playwright console check is authoritative for the tested session.

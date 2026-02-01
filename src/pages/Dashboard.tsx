@@ -3,85 +3,86 @@
  * Shows org-wide metrics and maturity progress
  */
 
-import { useState } from 'react'
-import { useQuery, useMutation } from 'convex/react'
-import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X, Award } from 'lucide-react'
-import toast from 'react-hot-toast'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
-import { useAuth } from '../hooks/useAuth'
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery, useMutation } from 'convex/react';
+import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X, Award, Sparkles, User } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
+import { useAuth } from '../hooks/useAuth';
 
 function formatRelativeTime(ms: number): string {
-  const sec = Math.floor((Date.now() - ms) / 1000)
-  if (sec < 60) return 'just now'
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
-  if (sec < 604800) return `${Math.floor(sec / 86400)}d ago`
-  return `${Math.floor(sec / 604800)}w ago`
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 60) return 'just now';
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  if (sec < 604800) return `${Math.floor(sec / 86400)}d ago`;
+  return `${Math.floor(sec / 604800)}w ago`;
 }
 
 export default function Dashboard() {
-  const { isAuthenticated } = useAuth()
-  const metrics = useQuery(api.metrics.getDashboardMetrics)
-  const recentActivity = useQuery(api.metrics.getRecentActivity)
-  const topContributors = useQuery(api.metrics.getTopContributors)
-  const topMentors = useQuery(api.metrics.getTopMentors)
-  const mostReusedAssets = useQuery(api.metrics.getMostReusedAssets)
-  const impactStories = useQuery(api.impactStories.list, { limit: 10 })
-  const createStory = useMutation(api.impactStories.create)
-  const projects = useQuery(api.projects.list)
-  const libraryAssets = useQuery(api.libraryAssets.list, {})
-  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {})
+  const { isAuthenticated } = useAuth();
+  const metrics = useQuery(api.metrics.getDashboardMetrics);
+  const recentActivity = useQuery(api.metrics.getRecentActivity);
+  const topContributors = useQuery(api.metrics.getTopContributors);
+  const topMentors = useQuery(api.metrics.getTopMentors);
+  const mostReusedAssets = useQuery(api.metrics.getMostReusedAssets);
+  const impactStories = useQuery(api.impactStories.list, { limit: 10 });
+  const createStory = useMutation(api.impactStories.create);
+  const projects = useQuery(api.projects.list, {});
+  const libraryAssets = useQuery(api.libraryAssets.list, {});
+  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {});
 
-  const [storyModalOpen, setStoryModalOpen] = useState(false)
-  const [storyHeadline, setStoryHeadline] = useState('')
-  const [storyText, setStoryText] = useState('')
-  const [storyProjectId, setStoryProjectId] = useState<Id<'projects'> | ''>('')
-  const [storyAssetId, setStoryAssetId] = useState<Id<'libraryAssets'> | ''>('')
-  const [isSubmittingStory, setIsSubmittingStory] = useState(false)
+  const [storyModalOpen, setStoryModalOpen] = useState(false);
+  const [storyHeadline, setStoryHeadline] = useState('');
+  const [storyText, setStoryText] = useState('');
+  const [storyProjectId, setStoryProjectId] = useState<Id<'projects'> | ''>('');
+  const [storyAssetId, setStoryAssetId] = useState<Id<'libraryAssets'> | ''>('');
+  const [isSubmittingStory, setIsSubmittingStory] = useState(false);
 
   const handleStorySubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!storyHeadline.trim() || isSubmittingStory) return
-    setIsSubmittingStory(true)
+    e.preventDefault();
+    if (!storyHeadline.trim() || isSubmittingStory) return;
+    setIsSubmittingStory(true);
     try {
       await createStory({
         headline: storyHeadline.trim(),
         storyText: storyText.trim() || undefined,
         projectId: storyProjectId || undefined,
         assetId: storyAssetId || undefined,
-      })
-      toast.success('Impact story shared!')
-      setStoryModalOpen(false)
-      setStoryHeadline('')
-      setStoryText('')
-      setStoryProjectId('')
-      setStoryAssetId('')
+      });
+      toast.success('Impact story shared!');
+      setStoryModalOpen(false);
+      setStoryHeadline('');
+      setStoryText('');
+      setStoryProjectId('');
+      setStoryAssetId('');
     } catch (err) {
-      console.error('Failed to share story:', err)
-      toast.error(err instanceof Error ? err.message : 'Failed to share story. Please try again.')
+      console.error('Failed to share story:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to share story. Please try again.');
     } finally {
-      setIsSubmittingStory(false)
+      setIsSubmittingStory(false);
     }
-  }
+  };
 
-  const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--'
+  const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--';
   const aiContributorDesc =
     metrics !== undefined && metrics.aiContributorPercentage !== undefined
       ? `${metrics.aiContributorPercentage.toFixed(1)}% of employees with AI contributions`
-      : 'Employees with AI contributions'
+      : 'Employees with AI contributions';
 
   const projectsWithAiValue =
-    metrics !== undefined ? String(metrics.projectsWithAiCount) : '--'
+    metrics !== undefined ? String(metrics.projectsWithAiCount) : '--';
   const projectsWithAiDesc =
     metrics !== undefined && metrics.projectsWithAiPercentage !== undefined
-      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI artefacts`
-      : 'Projects using AI artefacts'
+      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI assets`
+      : 'Projects using AI assets';
 
   const libraryAssetValue =
-    metrics !== undefined ? String(metrics.libraryAssetCount) : '--'
+    metrics !== undefined ? String(metrics.libraryAssetCount) : '--';
   const weeklyActiveValue =
-    metrics !== undefined ? String(metrics.weeklyActiveCount) : '--'
+    metrics !== undefined ? String(metrics.weeklyActiveCount) : '--';
 
   const maturityWidth =
     metrics !== undefined &&
@@ -91,10 +92,43 @@ export default function Dashboard() {
           100,
           (metrics.aiContributorPercentage + metrics.projectsWithAiPercentage) / 2
         )
-      : 25
+      : 25;
+
+  const showFirstTimeCTA = recentActivity !== undefined && recentActivity.length === 0;
 
   return (
     <div className="space-y-6">
+      {/* First-time / low-activity CTA */}
+      {showFirstTimeCTA && (
+        <div className="card p-6 border-primary/20 bg-primary/5">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-primary/10 p-2 shrink-0">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-lg mb-1">Get started</h2>
+              <p className="text-muted-foreground text-sm mb-4">
+                New to HackDay Central? Explore the Library for reusable AI assets, or create your first project to track your work.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link to="/library" className="btn btn-primary btn-sm">
+                  <Library className="h-4 w-4 mr-2" />
+                  Explore Library
+                </Link>
+                <Link to="/projects" className="btn btn-outline btn-sm">
+                  <Activity className="h-4 w-4 mr-2" />
+                  View Projects
+                </Link>
+                <Link to="/profile" className="btn btn-ghost btn-sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Complete profile
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Share impact story modal */}
       {storyModalOpen && (
         <div
@@ -272,7 +306,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : recentActivity.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No recent activity. Add library assets or project artefacts to see contributions here.
+              No recent activity. Add library assets or project activity to see contributions here.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -454,14 +488,14 @@ export default function Dashboard() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 interface MetricCardProps {
-  title: string
-  value: string
-  description: string
-  icon: React.ReactNode
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
 }
 
 function MetricCard({ title, value, description, icon }: MetricCardProps) {
@@ -476,5 +510,5 @@ function MetricCard({ title, value, description, icon }: MetricCardProps) {
       </div>
       <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </div>
-  )
+  );
 }
