@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 /* HackDay Central Design System - Tailwind v4 Theme */
+/* Deep indigo + electric cyan + warm magenta/purple */
 @theme {
-  /* Primary brand colors */
-  --color-primary: #0ea5e9;
-  --color-primary-foreground: #ffffff;
-  --color-primary-50: #f0f9ff;
-  --color-primary-100: #e0f2fe;
-  --color-primary-200: #bae6fd;
-  --color-primary-300: #7dd3fc;
-  --color-primary-400: #38bdf8;
-  --color-primary-500: #0ea5e9;
-  --color-primary-600: #0284c7;
-  --color-primary-700: #0369a1;
-  --color-primary-800: #075985;
-  --color-primary-900: #0c4a6e;
+  /* Electric cyan primary */
+  --color-primary: #06b6d4;
+  --color-primary-foreground: #0f172a;
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-primary-800: #155e75;
+  --color-primary-900: #164e63;
 
-  /* Secondary/accent colors */
+  /* Warm magenta/purple accent (badges & impact) */
   --color-secondary: #d946ef;
-  --color-secondary-foreground: #ffffff;
+  --color-secondary-foreground: #fdf4ff;
   --color-secondary-50: #fdf4ff;
   --color-secondary-100: #fae8ff;
   --color-secondary-200: #f5d0fe;
@@ -30,30 +31,33 @@
   --color-secondary-800: #86198f;
   --color-secondary-900: #701a75;
 
-  /* Semantic colors */
+  /* Accent secondary (purple) */
+  --color-accent-secondary: #a855f7;
+
+  /* Semantic colors (light mode default) */
   --color-background: #ffffff;
-  --color-foreground: #18181b;
-  --color-muted: #f4f4f5;
-  --color-muted-foreground: #71717a;
-  --color-accent: #f4f4f5;
-  --color-accent-foreground: #18181b;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #fafafa;
-  --color-border: #e4e4e7;
-  --color-input: #e4e4e7;
-  --color-ring: #0ea5e9;
-  --color-card: #ffffff;
-  --color-card-foreground: #18181b;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #06b6d4;
+  --color-card: #f8fafc;
+  --color-card-foreground: #0f172a;
 
   /* Status colors */
-  --color-success: #22c55e;
-  --color-success-light: #dcfce7;
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
   --color-error: #ef4444;
   --color-error-light: #fee2e2;
-  --color-info: #3b82f6;
-  --color-info-light: #dbeafe;
+  --color-info: #06b6d4;
+  --color-info-light: #cffafe;
 
   /* Quality gate colors */
   --color-draft: #f59e0b;
@@ -110,8 +114,13 @@
 
   /* Headings */
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.025em;
+  }
+
+  .metric-number {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
   }
 
   h1 { font-size: 2.25rem; line-height: 2.5rem; }

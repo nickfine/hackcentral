@@ -1,0 +1,116 @@
+import { motion, useReducedMotion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Copy, ExternalLink, FileCode, PenLine, Sparkles, User } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export interface FeaturedWinItem {
+  type: 'asset' | 'story';
+  id: string;
+  title: string;
+  blurb: string;
+  authorName: string;
+  authorLevel?: string;
+  reuseCount: number;
+  isRisingStar: boolean;
+  _creationTime: number;
+  assetId?: string;
+  storyId?: string;
+}
+
+interface WinCardProps {
+  win: FeaturedWinItem;
+}
+
+function getAssetDetailUrl(assetId: string): string {
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${base}/library?asset=${assetId}`;
+}
+
+export function WinCard({ win }: WinCardProps) {
+  const shouldReduceMotion = useReducedMotion();
+
+  const handleCopy = () => {
+    const text =
+      win.type === 'asset' && win.assetId
+        ? `${win.title}\n\n${win.blurb}\n\nView: ${getAssetDetailUrl(win.assetId)}`
+        : `${win.title}\n\n${win.blurb}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => toast.success('Copied to clipboard!'),
+        () => toast.error('Failed to copy')
+      );
+    } else {
+      toast.error('Clipboard not available');
+    }
+  };
+
+  const viewDetailsTo = win.type === 'asset' && win.assetId
+    ? `/library?asset=${win.assetId}`
+    : '/library';
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={shouldReduceMotion ? undefined : { y: -4, scale: 1.02 }}
+      transition={{ duration: 0.2 }}
+      className="group relative flex min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg hover:shadow-secondary/20 md:min-w-[280px] md:max-w-[320px]"
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/80 p-2">
+          {win.type === 'asset' ? (
+            <FileCode className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+          ) : (
+            <PenLine className="h-5 w-5 shrink-0 text-secondary" aria-hidden />
+          )}
+        </div>
+        {win.isRisingStar ? (
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary"
+            title="First-time or frontline contributor"
+          >
+            <Sparkles className="h-3 w-3" aria-hidden />
+            Rising Star
+          </span>
+        ) : null}
+      </div>
+
+      <h3 className="mb-2 line-clamp-2 text-base font-semibold text-foreground">
+        {win.title}
+      </h3>
+      <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">{win.blurb}</p>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          <User className="h-3.5 w-3" aria-hidden />
+          {win.authorName}
+        </span>
+        {win.reuseCount > 0 && (
+          <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+            Reused {win.reuseCount}×
+          </span>
+        )}
+      </div>
+
+      <div className="mt-auto flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="btn btn-primary btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
+          aria-label={`Copy ${win.type === 'asset' ? 'asset' : 'story'} to clipboard`}
+        >
+          <Copy className="h-4 w-4 shrink-0" aria-hidden />
+          Copy {win.type === 'asset' ? 'Asset' : 'Story'}
+        </button>
+        <Link
+          to={viewDetailsTo}
+          className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
+          aria-label={`View details for ${win.title}`}
+        >
+          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+          View Details
+        </Link>
+      </div>
+    </motion.article>
+  );
+}

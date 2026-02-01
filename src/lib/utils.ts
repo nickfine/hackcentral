@@ -25,9 +25,15 @@ export function formatDate(
 
 /**
  * Format a date with relative time (e.g., "2 hours ago")
+ * Accepts Date, string, or number (ms timestamp)
  */
-export function formatRelativeTime(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
+export function formatRelativeTime(date: Date | string | number): string {
+  const d =
+    typeof date === 'number'
+      ? new Date(date)
+      : typeof date === 'string'
+        ? new Date(date)
+        : date
   const now = new Date()
   const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000)
 

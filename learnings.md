@@ -1,5 +1,13 @@
 # Learnings
 
+**Current state (as of Feb 1, 2026):** v0.4.17. Phases 1–4 complete (MVP, Pull Dynamics, Core Features, Advanced Features, Continuous Optimization). See PLAN_PHASE_4.md and CODE_REVIEW_PHASE_4.md for Phase 4 details.
+
+**Dashboard redesign (Feb 1, 2026):** Cultural-heartbeat dashboard implemented (Hero Journey, Impact Stories carousel, enhanced stat cards, Gini radial, Wall of Wins, TabbedRecognition, Quick Actions FAB). Browser-tested via Playwright MCP: all sections render; Quick Actions open/close; tab switching (Recent Activity / Top Contributors) works; no console errors.
+
+**Featured Wins polish (Feb 1, 2026):** Replaced Impact Stories carousel with unified "Featured Wins & Reusable Magic" showcase (getFeaturedWins Convex query, WinCard, FeaturedWinsShowcase, WallOfThanksStrip). Browser-tested via Playwright MCP: dashboard loads; Featured Wins section shows 10 win cards (assets + impact stories) with Rising Star badges, Copy Asset/Story and View Details CTAs; Copy Asset shows "Copied to clipboard!" toast; View Details navigates to /library?asset=...; carousel Next/Previous and dots work; Share your story opens impact story modal; Wall of Thanks strip rotates; no console errors (only React DevTools suggestion, Vercel Analytics debug, Clerk dev keys warning).
+
+---
+
 ## Project Development
 
 ### Setup & Configuration
@@ -66,6 +74,8 @@
 **Added:**
 - Convex 1.31.7 - Backend platform (database, real-time, server functions)
 - ConvexReactClient - React integration
+- @sentry/react (Phase 4) - Error tracking in production; init only when VITE_SENTRY_DSN + PROD
+- @vercel/analytics (Phase 4) - Page views and Web Vitals when deployed on Vercel
 
 **Removed:**
 - @supabase/supabase-js - No longer needed
@@ -250,6 +260,13 @@ export default {
 
 #### 4. Console
 **No errors** during Phase 4 testing. Warnings: Clerk dev key, React DevTools (expected).
+
+### Phase 4 Implementation (technical)
+- **Admin nudge:** ProjectDetail shows nudge when `isClosed && isOwner && !hasLearningSummary`; form reuses learning-summary fields; submit calls `projects.update` (no status change). Cancel resets form state.
+- **Feedback:** Convex `feedback` table (userId optional, message, category); `feedback.create` validates non-empty message and max 5000 chars; Header modal → toast; backend errors shown in toast.
+- **Sentry:** Init only when `VITE_SENTRY_DSN` and `import.meta.env.PROD`; ErrorBoundary calls `Sentry.captureException` with componentStack; guard `typeof Sentry.captureException === 'function'` when DSN unset.
+- **Vercel Analytics:** `<Analytics />` inside BrowserRouter; page views (and Web Vitals in prod) reported when deployed on Vercel.
+- **A/B:** Convex env `NUDGE_COPY_VARIANT` (a|b); `settings.getPublicConfig` query; ProjectDetail nudge copy switches by variant. Declare `process` in convex/settings.ts for Convex TS (no Node types).
 
 ---
 
@@ -946,9 +963,9 @@ const debouncedSearch = useDebounce(searchQuery);
 ```
 
 ### Next Steps
-- Phase 2: Advanced features (monthly capacity reset, mentor ratings, calendar integration)
-- Continued refinement based on user feedback
-- Performance monitoring and optimization
+- **Phases 1–4 complete (v0.4.17).** Work is iterative: use feedback loop, review Sentry/Vercel Analytics, run A/B tests (e.g. NUDGE_COPY_VARIANT in Convex env).
+- Optional: stale-project nudge (e.g. "Projects in Building 14+ days with no activity"); restrict feedback.list to admins when adding admin UI; more A/B levers in getPublicConfig.
+- Backlog: ROADMAP optional items (teams, richer AI search); testing coverage; manual mentor flow verification.
 
 ---
 

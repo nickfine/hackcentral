@@ -385,3 +385,146 @@ export const getGraduatedAssets = query({
     return results;
   },
 });
+
+const FRONTLINE_LEVELS = ["newbie", "curious", "comfortable"] as const;
+
+export type FeaturedWin = {
+  type: "asset" | "story";
+  id: string;
+  title: string;
+  blurb: string;
+  authorName: string;
+  authorLevel?: string;
+  reuseCount: number;
+  isRisingStar: boolean;
+  _creationTime: number;
+  assetId?: Id<"libraryAssets">;
+  storyId?: Id<"impactStories">;
+};
+
+/**
+ * Unified featured wins for showcase: high-reuse assets + recent impact stories.
+ * Sort: highest reuse first, then recent. Rising Star = frontline level or fewer than 3 total contributions.
+ */
+export const getFeaturedWins = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit = 10 }): Promise<FeaturedWin[]> => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Contribution count per user (for Rising Star: total contributions < 3)
+    const allContributions = await ctx.db.query("aiContributions").collect();
+    const contributionCountByUser = new Map<Id<"profiles">, number>();
+    for (const c of allContributions) {
+      contributionCountByUser.set(
+        c.userId,
+        (contributionCountByUser.get(c.userId) ?? 0) + 1
+      );
+    }
+
+    // Reuse count per asset (all time for showcase)
+    const reuseEvents = await ctx.db.query("libraryReuseEvents").collect();
+    const reuseCountByAsset = new Map<Id<"libraryAssets">, number>();
+    for (const e of reuseEvents) {
+      reuseCountByAsset.set(
+        e.assetId,
+        (reuseCountByAsset.get(e.assetId) ?? 0) + 1
+      );
+    }
+
+    const wins: FeaturedWin[] = [];
+
+    // 1. Library assets (visible: public or org when authenticated)
+    const assets = await ctx.db.query("libraryAssets").collect();
+    let currentProfile: { _id: Id<"profiles">; fullName?: string; email?: string; experienceLevel?: string } | null = null;
+    if (identity) {
+      currentProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+        .first();
+    }
+
+    for (const asset of assets) {
+      const isAuthor = currentProfile && asset.authorId === currentProfile._id;
+      const visible =
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity) ||
+        (asset.visibility === "private" && isAuthor);
+      if (!visible) continue;
+
+      const author = await ctx.db.get(asset.authorId);
+      const authorName = asset.isAnonymous
+        ? "Anonymous"
+        : (author?.fullName ?? author?.email ?? "Unknown");
+      const authorLevel = author?.experienceLevel;
+      const totalContributions = contributionCountByUser.get(asset.authorId) ?? 0;
+      const isRisingStar =
+        (authorLevel && FRONTLINE_LEVELS.includes(authorLevel as typeof FRONTLINE_LEVELS[number])) ||
+        totalContributions < 3;
+
+      const reuseCount = reuseCountByAsset.get(asset._id) ?? 0;
+      const blurb =
+        asset.description?.slice(0, 120) ||
+        `Reusable ${asset.assetType.replace("_", " ")} — battle-tested in ${reuseCount} project${reuseCount !== 1 ? "s" : ""}.`;
+
+      wins.push({
+        type: "asset",
+        id: asset._id,
+        title: asset.title,
+        blurb: blurb + (asset.description && asset.description.length > 120 ? "…" : ""),
+        authorName,
+        authorLevel,
+        reuseCount,
+        isRisingStar,
+        _creationTime: asset._creationTime,
+        assetId: asset._id,
+      });
+    }
+
+    // 2. Impact stories
+    const stories = await ctx.db.query("impactStories").order("desc").take(20);
+    for (const story of stories) {
+      const author = await ctx.db.get(story.userId);
+      const authorName = author?.fullName ?? author?.email ?? "Unknown";
+      const authorLevel = author?.experienceLevel;
+      const totalContributions = contributionCountByUser.get(story.userId) ?? 0;
+      const isRisingStar =
+        (authorLevel && FRONTLINE_LEVELS.includes(authorLevel as typeof FRONTLINE_LEVELS[number])) ||
+        totalContributions < 3;
+
+      let reuseCount = 0;
+      if (story.assetId) {
+        reuseCount = reuseCountByAsset.get(story.assetId) ?? 0;
+      }
+
+      let blurb = story.storyText?.slice(0, 120) ?? story.headline;
+      if (story.metrics?.timeSaved != null) {
+        blurb = `Saved ~${story.metrics.timeSaved}h/week — ${blurb.slice(0, 80)}`;
+      }
+      if (blurb.length > 120) blurb = blurb.slice(0, 117) + "…";
+
+      wins.push({
+        type: "story",
+        id: story._id,
+        title: story.headline,
+        blurb,
+        authorName,
+        authorLevel,
+        reuseCount,
+        isRisingStar,
+        _creationTime: story._creationTime,
+        storyId: story._id,
+        assetId: story.assetId,
+      });
+    }
+
+    // Sort: reuse desc, then creation time desc; cap at limit
+    wins.sort((a, b) => {
+      if (b.reuseCount !== a.reuseCount) return b.reuseCount - a.reuseCount;
+      return b._creationTime - a._creationTime;
+    });
+
+    return wins.slice(0, limit);
+  },
+});
