@@ -1,6 +1,9 @@
 import { internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
+/** Library asset statuses — used to cycle status in seed data so all stages are represented. */
+const LIBRARY_STATUSES = ["draft", "in_progress", "verified", "deprecated"] as const;
+
 /**
  * Seed initial capability tags
  * Run this once after setting up the database
@@ -1046,17 +1049,298 @@ Provide:
       },
     ];
 
-    // Insert all arsenal assets
+    // Insert all arsenal assets with cycled status for demo variety
     const insertedIds: Id<"libraryAssets">[] = [];
-    for (const asset of arsenalAssets) {
-      const id = await ctx.db.insert("libraryAssets", asset);
+    for (let i = 0; i < arsenalAssets.length; i++) {
+      const asset = arsenalAssets[i];
+      const status = LIBRARY_STATUSES[i % LIBRARY_STATUSES.length];
+      const id = await ctx.db.insert("libraryAssets", {
+        ...asset,
+        status,
+      });
       insertedIds.push(id);
     }
 
-    return { 
-      message: "Seeded Featured Hacks successfully", 
+    return {
+      message: "Seeded Featured Hacks successfully",
       count: arsenalAssets.length,
       ids: insertedIds,
+    };
+  },
+});
+
+/** Demo user email domain — used by clearDemoData to remove all demo data before go-live. */
+const DEMO_EMAIL_SUFFIX = "@demo.hackcentral.internal";
+
+/**
+ * Seed 10 demo users (profiles).
+ * Run after seedCapabilityTags. Used for demo data; remove with clearDemoData before go-live.
+ */
+export const seedDemoUsers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("profiles")
+      .filter((q) => q.eq(q.field("email"), "demo1@demo.hackcentral.internal"))
+      .first();
+    if (existing) {
+      console.log("Demo users already seeded");
+      return { message: "Demo users already exist" };
+    }
+
+    const names = [
+      "Alex Rivera",
+      "Sam Chen",
+      "Jordan Taylor",
+      "Casey Morgan",
+      "Riley Kim",
+      "Quinn Davis",
+      "Avery Johnson",
+      "Morgan Lee",
+      "Cameron Wright",
+      "Blake Martinez",
+    ];
+
+    const inserted: Id<"profiles">[] = [];
+    for (let i = 0; i < 10; i++) {
+      const id = await ctx.db.insert("profiles", {
+        userId: `demo-${i + 1}`,
+        email: `demo${i + 1}${DEMO_EMAIL_SUFFIX}`,
+        fullName: names[i],
+        experienceLevel: ["newbie", "curious", "comfortable", "power_user", "expert"][i % 5] as
+          | "newbie"
+          | "curious"
+          | "comfortable"
+          | "power_user"
+          | "expert",
+        mentorCapacity: 2,
+        mentorSessionsUsed: 0,
+        profileVisibility: "org",
+        capabilityTags: [],
+      });
+      inserted.push(id);
+    }
+    return { message: "Seeded 10 demo users", count: inserted.length, ids: inserted };
+  },
+});
+
+const ASSET_TYPES = ["prompt", "skill", "app"] as const;
+const PROJECT_STATUSES = ["idea", "building", "incubation", "completed", "archived"] as const;
+
+/**
+ * Seed demo library assets and projects owned by demo users, with random types and stages.
+ * Run after seedDemoUsers. Removed by clearDemoData before go-live.
+ */
+export const seedDemoHacks = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const demoProfiles = await ctx.db
+      .query("profiles")
+      .collect()
+      .then((rows) => rows.filter((p) => p.email.endsWith(DEMO_EMAIL_SUFFIX)));
+    if (demoProfiles.length === 0) {
+      throw new Error("Run seedDemoUsers first");
+    }
+
+    // Check if we already have demo assets (e.g. any library asset by a demo user)
+    const existingAsset = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_author", (q) => q.eq("authorId", demoProfiles[0]._id))
+      .first();
+    if (existingAsset) {
+      console.log("Demo hacks already seeded");
+      return { message: "Demo hacks already exist" };
+    }
+
+    const demoAssetTitles = [
+      "Internal Code Review Prompt",
+      "Sprint Retro Summary Skill",
+      "Slack Bot App",
+      "PR Description Generator",
+      "Risk Checklist Skill",
+      "Meeting Notes App",
+      "Bug Triage Prompt",
+      "Guardrail Config Skill",
+      "Feedback Collector App",
+      "Onboarding Prompt",
+      "Doc Generator Skill",
+      "Status Report App",
+    ];
+    const demoProjectTitles = [
+      "AI-powered release notes",
+      "Meeting summarizer",
+      "Code review assistant",
+      "Support triage bot",
+      "Doc generator",
+      "Retro insights",
+      "Incident report draft",
+      "Accessibility checker",
+      "Test case generator",
+      "Email draft helper",
+      "PR description from diff",
+      "Stand-up note summarizer",
+      "Risk assessment for new features",
+      "Customer feedback categorizer",
+      "Sprint planning story splitter",
+      "Onboarding checklist generator",
+      "Incident post-mortem draft",
+      "API changelog from commits",
+      "Security review checklist",
+      "Localization string extractor",
+      "Test scenario generator",
+      "Deployment runbook assistant",
+      "Code migration planner",
+      "Documentation gap finder",
+      "Compliance checklist for releases",
+      "Cost estimate from spec",
+      "Interview question generator",
+      "Runbook from playbook",
+      "Status page update draft",
+      "Outage comms template",
+    ];
+
+    let assetsInserted = 0;
+    let projectsInserted = 0;
+
+    for (let i = 0; i < demoAssetTitles.length; i++) {
+      const author = demoProfiles[i % demoProfiles.length];
+      const status = LIBRARY_STATUSES[i % LIBRARY_STATUSES.length];
+      const assetType = ASSET_TYPES[i % ASSET_TYPES.length];
+      await ctx.db.insert("libraryAssets", {
+        title: demoAssetTitles[i],
+        description: `Demo asset for variety (${assetType}, ${status}).`,
+        assetType,
+        content: { prompt: "Demo content." },
+        status,
+        authorId: author._id,
+        visibility: "org",
+        isArsenal: false,
+      });
+      assetsInserted++;
+    }
+
+    for (let i = 0; i < demoProjectTitles.length; i++) {
+      const owner = demoProfiles[i % demoProfiles.length];
+      const status = PROJECT_STATUSES[i % PROJECT_STATUSES.length];
+      const hackType = ASSET_TYPES[i % ASSET_TYPES.length];
+      await ctx.db.insert("projects", {
+        title: demoProjectTitles[i],
+        description: `Demo project (${hackType}, ${status}).`,
+        status,
+        ownerId: owner._id,
+        visibility: "org",
+        workflowTransformed: i % 2 === 0,
+        isAnonymous: false,
+        hackType,
+      });
+      projectsInserted++;
+    }
+
+    return {
+      message: "Seeded demo library assets and projects",
+      assetsInserted,
+      projectsInserted,
+    };
+  },
+});
+
+/**
+ * Remove all demo users and their data. Run before go-live to clear demo seed data.
+ * Deletes: demo profiles (email ending in @demo.hackcentral.internal), their library assets,
+ * their projects, and all related rows (comments, support events, mentor requests, etc.).
+ */
+export const clearDemoData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const demoProfiles = allProfiles.filter((p) => p.email.endsWith(DEMO_EMAIL_SUFFIX));
+    const demoIds = new Set(demoProfiles.map((p) => p._id));
+    if (demoIds.size === 0) {
+      return { message: "No demo profiles found", deleted: {} };
+    }
+
+    const allProjects = await ctx.db.query("projects").collect();
+    const demoProjectIds = allProjects.filter((p) => demoIds.has(p.ownerId)).map((p) => p._id);
+    const demoProjectIdSet = new Set(demoProjectIds);
+
+    const allAssets = await ctx.db.query("libraryAssets").collect();
+    const demoAssetIds = allAssets.filter((a) => demoIds.has(a.authorId)).map((a) => a._id);
+    const demoAssetIdSet = new Set(demoAssetIds);
+
+    // Child tables first
+    const projectSupportEvents = await ctx.db.query("projectSupportEvents").collect();
+    for (const row of projectSupportEvents) {
+      if (demoProjectIdSet.has(row.projectId) || demoIds.has(row.supporterId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const projectComments = await ctx.db.query("projectComments").collect();
+    for (const row of projectComments) {
+      if (demoProjectIdSet.has(row.projectId) || demoIds.has(row.authorId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const projectMembers = await ctx.db.query("projectMembers").collect();
+    for (const row of projectMembers) {
+      if (demoIds.has(row.userId) || demoProjectIdSet.has(row.projectId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const mentorRequests = await ctx.db.query("mentorRequests").collect();
+    for (const row of mentorRequests) {
+      if (demoIds.has(row.requesterId) || demoIds.has(row.mentorId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const libraryReuseEvents = await ctx.db.query("libraryReuseEvents").collect();
+    for (const row of libraryReuseEvents) {
+      if (demoIds.has(row.userId) || demoAssetIdSet.has(row.assetId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const projectLibraryAssets = await ctx.db.query("projectLibraryAssets").collect();
+    for (const row of projectLibraryAssets) {
+      if (demoProjectIdSet.has(row.projectId) || demoAssetIdSet.has(row.assetId) || demoIds.has(row.attachedBy)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const impactStories = await ctx.db.query("impactStories").collect();
+    for (const row of impactStories) {
+      if (demoIds.has(row.userId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const aiContributions = await ctx.db.query("aiContributions").collect();
+    for (const row of aiContributions) {
+      if (demoIds.has(row.userId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+    const recognitionBadges = await ctx.db.query("recognitionBadges").collect();
+    for (const row of recognitionBadges) {
+      if (demoIds.has(row.userId)) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
+    // Parent tables
+    for (const id of demoProjectIds) {
+      await ctx.db.delete(id);
+    }
+    for (const id of demoAssetIds) {
+      await ctx.db.delete(id);
+    }
+    for (const p of demoProfiles) {
+      await ctx.db.delete(p._id);
+    }
+
+    return {
+      message: "Demo data cleared; run before go-live",
+      deleted: {
+        profiles: demoIds.size,
+        projects: demoProjectIds.length,
+        libraryAssets: demoAssetIds.length,
+      },
     };
   },
 });

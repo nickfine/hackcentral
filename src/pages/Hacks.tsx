@@ -1,13 +1,16 @@
 /**
  * Unified Hacks Page
  * Combines Completed Hacks (Library) and Hacks In Progress (Projects) under one roof.
- * Uses tabs to switch between the two views.
+ * Layout: Our Hacks + CTAs → search/filters → Completed | In progress tabs → content.
  */
 
+import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Plus, Filter } from 'lucide-react';
 import { TabButton } from '@/components/shared/TabButton';
 import Library from './Library';
 import Projects from './Projects';
+import { HACK_TYPES } from '@/constants/project';
 
 type HacksTab = 'completed' | 'in_progress';
 
@@ -15,12 +18,30 @@ function isValidTab(value: string | null): value is HacksTab {
   return value === 'completed' || value === 'in_progress';
 }
 
+const LIBRARY_TYPES = [
+  { value: 'prompt', label: 'Prompts' },
+  { value: 'skill', label: 'Skills' },
+  { value: 'app', label: 'Apps' },
+] as const;
+
 export default function Hacks() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const tabParam = searchParams.get('tab');
   const activeTab: HacksTab = isValidTab(tabParam) ? tabParam : 'completed';
+
+  // Library filter state (for Completed tab)
+  const [librarySearchQuery, setLibrarySearchQuery] = useState('');
+  const [librarySelectedType, setLibrarySelectedType] = useState('');
+  const [librarySelectedStatus, setLibrarySelectedStatus] = useState('');
+  const [librarySubmitModalOpen, setLibrarySubmitModalOpen] = useState(false);
+
+  // Projects filter state (for In progress tab)
+  const [projectsSearchQuery, setProjectsSearchQuery] = useState('');
+  const [projectsStatusFilter, setProjectsStatusFilter] = useState('');
+  const [projectsHackTypeFilter, setProjectsHackTypeFilter] = useState('');
+  const [projectsCreateOpen, setProjectsCreateOpen] = useState(false);
 
   const handleTabChange = (tab: HacksTab) => {
     const newParams = new URLSearchParams(searchParams);
@@ -30,7 +51,112 @@ export default function Hacks() {
 
   return (
     <div className="space-y-6">
-      {/* Page tabs */}
+      {/* Title + primary CTA */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Our Hacks</h1>
+        {activeTab === 'completed' ? (
+          <button
+            type="button"
+            className="btn btn-md min-w-[11rem] bg-primary text-white hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 border border-primary"
+            onClick={() => setLibrarySubmitModalOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Submit Hack
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-md"
+            onClick={() => setProjectsCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </button>
+        )}
+      </div>
+
+      {/* Search and filters (tab-specific) */}
+      <div className="flex gap-4 flex-wrap">
+        {activeTab === 'completed' ? (
+          <>
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search Completed Hacks..."
+                value={librarySearchQuery}
+                onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                className="input pl-10"
+              />
+            </div>
+            <select
+              className="input w-40"
+              value={librarySelectedType}
+              onChange={(e) => setLibrarySelectedType(e.target.value)}
+            >
+              <option value="">All Types</option>
+              {LIBRARY_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input w-36"
+              value={librarySelectedStatus}
+              onChange={(e) => setLibrarySelectedStatus(e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option value="in_progress">In progress</option>
+              <option value="verified">Verified</option>
+              <option value="deprecated">Deprecated</option>
+            </select>
+          </>
+        ) : (
+          <>
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search hacks in progress..."
+                value={projectsSearchQuery}
+                onChange={(e) => setProjectsSearchQuery(e.target.value)}
+                className="input pl-10"
+              />
+            </div>
+            <select
+              className="input w-36"
+              value={projectsStatusFilter}
+              onChange={(e) => setProjectsStatusFilter(e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option value="idea">Idea</option>
+              <option value="building">Building</option>
+              <option value="incubation">Incubation</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select
+              className="input w-40"
+              value={projectsHackTypeFilter}
+              onChange={(e) => setProjectsHackTypeFilter(e.target.value)}
+            >
+              <option value="">All types</option>
+              {HACK_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="btn btn-outline btn-md">
+              <Filter className="h-4 w-4 mr-2" />
+              More Filters
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Completed | In progress tabs */}
       <div className="flex border-b">
         <TabButton
           active={activeTab === 'completed'}
@@ -46,8 +172,32 @@ export default function Hacks() {
         </TabButton>
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'in_progress' ? <Projects /> : <Library />}
+      {/* Tab content (embedded: no header, no search bar) */}
+      {activeTab === 'in_progress' ? (
+        <Projects
+          embedded
+          searchQuery={projectsSearchQuery}
+          setSearchQuery={setProjectsSearchQuery}
+          statusFilter={projectsStatusFilter}
+          setStatusFilter={setProjectsStatusFilter}
+          hackTypeFilter={projectsHackTypeFilter}
+          setHackTypeFilter={setProjectsHackTypeFilter}
+          createOpen={projectsCreateOpen}
+          setCreateOpen={setProjectsCreateOpen}
+        />
+      ) : (
+        <Library
+          embedded
+          searchQuery={librarySearchQuery}
+          setSearchQuery={setLibrarySearchQuery}
+          selectedType={librarySelectedType}
+          setSelectedType={setLibrarySelectedType}
+          selectedStatus={librarySelectedStatus}
+          setSelectedStatus={setLibrarySelectedStatus}
+          submitModalOpen={librarySubmitModalOpen}
+          setSubmitModalOpen={setLibrarySubmitModalOpen}
+        />
+      )}
     </div>
   );
 }

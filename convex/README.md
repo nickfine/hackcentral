@@ -94,3 +94,10 @@ directory. To learn more, launch the docs with `npx convex docs`.
 - **Completed Hacks status: draft → in progress**  
   Run once: Convex dashboard → Functions → `libraryAssets` → `migrateDraftToInProgress` (no args).  
   After it runs, you can remove `"draft"` from the `libraryAssets.status` union in `schema.ts` if you want the schema to allow only `in_progress` going forward.
+
+### Demo data (seed & cleanup)
+
+- **Seed order:** Run from Convex dashboard → Functions → `seedData`:  
+  `seedCapabilityTags` → `seedAIArsenal` → `seedDemoUsers` → `seedDemoHacks`.  
+  Featured Hacks (arsenal) get status cycled so draft / in progress / verified / deprecated are all represented. Demo users get 10 profiles; demo hacks add library assets and projects with mixed types and stages.
+- **Before go-live:** Run `clearDemoData` (no args) to remove all demo users and their data (profiles with email `@demo.hackcentral.internal`, their library assets, projects, and related rows). This does not remove the system user or Featured Hacks (arsenal).

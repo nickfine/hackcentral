@@ -5,19 +5,29 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Sparkles, FileText, Bot, Code, X } from 'lucide-react';
+import { Search, Plus, Sparkles, FileText, Bot, Code, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useDebounce } from '../hooks/useDebounce';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { EmptyState } from '../components/shared';
+import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
 
 const ASSET_TYPES = [
   { value: 'prompt', label: 'Prompt' },
   { value: 'skill', label: 'Skill' },
   { value: 'app', label: 'App' },
 ] as const;
+
+/** Stage labels for library asset status (Completed Hacks). */
+const ASSET_STAGE_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  in_progress: 'In progress',
+  verified: 'Verified',
+  deprecated: 'Deprecated',
+};
 
 const VISIBILITY_OPTIONS = [
   { value: 'org', label: 'Organization (colleagues)' },
@@ -298,19 +308,51 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
   );
 }
 
-export default function Library() {
+export interface LibraryEmbeddedProps {
+  embedded?: boolean;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
+  selectedType?: string;
+  setSelectedType?: (t: string) => void;
+  selectedStatus?: string;
+  setSelectedStatus?: (s: string) => void;
+  submitModalOpen?: boolean;
+  setSubmitModalOpen?: (open: boolean) => void;
+}
+
+export default function Library(props: LibraryEmbeddedProps = {}) {
+  const {
+    embedded = false,
+    searchQuery: searchQueryProp,
+    setSearchQuery: setSearchQueryProp,
+    selectedType: selectedTypeProp,
+    setSelectedType: setSelectedTypeProp,
+    selectedStatus: selectedStatusProp,
+    setSelectedStatus: setSelectedStatusProp,
+    submitModalOpen: submitModalOpenProp,
+    setSubmitModalOpen: setSubmitModalOpenProp,
+  } = props;
+
   const [searchParams] = useSearchParams();
   const qFromUrl = searchParams.get('q') ?? '';
-  const [searchQuery, setSearchQuery] = useState(qFromUrl);
+  const [internalSearchQuery, setInternalSearchQuery] = useState(qFromUrl);
+  const searchQuery = embedded && searchQueryProp !== undefined ? searchQueryProp : internalSearchQuery;
+  const setSearchQuery = embedded && setSearchQueryProp ? setSearchQueryProp : setInternalSearchQuery;
   const debouncedSearch = useDebounce(searchQuery);
 
   useEffect(() => {
-    setSearchQuery(qFromUrl);
-  }, [qFromUrl]);
+    if (!embedded) setInternalSearchQuery(qFromUrl);
+  }, [qFromUrl, embedded]);
   const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<string>('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  const [internalType, setInternalType] = useState<string>('');
+  const [internalStatus, setInternalStatus] = useState<string>('');
+  const selectedType = embedded && selectedTypeProp !== undefined ? selectedTypeProp : internalType;
+  const setSelectedType = embedded && setSelectedTypeProp ? setSelectedTypeProp : setInternalType;
+  const selectedStatus = embedded && selectedStatusProp !== undefined ? selectedStatusProp : internalStatus;
+  const setSelectedStatus = embedded && setSelectedStatusProp ? setSelectedStatusProp : setInternalStatus;
+  const [internalSubmitModalOpen, setInternalSubmitModalOpen] = useState(false);
+  const submitModalOpen = embedded && submitModalOpenProp !== undefined ? submitModalOpenProp : internalSubmitModalOpen;
+  const setSubmitModalOpen = embedded && setSubmitModalOpenProp ? setSubmitModalOpenProp : setInternalSubmitModalOpen;
   const [assetLimit, setAssetLimit] = useState(30);
 
   // Redirect old ?asset=xxx URLs to dedicated page
@@ -349,24 +391,66 @@ export default function Library() {
   const allAssets = useQuery(api.libraryAssets.listWithReuseCounts, queryArgs);
   const graduatedAssets = useQuery(api.metrics.getGraduatedAssets, { minReuses: 10 });
 
+  const loadMoreAssets = () => setAssetLimit((prev) => prev + 30);
+  const sentinelRef = useInfiniteScroll({
+    onLoadMore: loadMoreAssets,
+    hasMore: allAssets != null && allAssets.length === assetLimit,
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Completed Hacks</h1>
-          <p className="text-muted-foreground mt-2">
-            Reusable AI hacks: prompts, skills, and apps. The <strong>Featured Hacks</strong> is curated; <strong>All Hacks</strong> shows everything in Completed Hacks.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-md"
-          onClick={() => setSubmitModalOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Submit Hack
-        </button>
-      </div>
+      {!embedded && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Completed Hacks</h1>
+              <p className="text-muted-foreground mt-2">
+                Reusable AI hacks: prompts, skills, and apps. The <strong>Featured Hacks</strong> is curated; <strong>All Hacks</strong> shows everything in Completed Hacks.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => setSubmitModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Submit Hack
+            </button>
+          </div>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search Completed Hacks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input pl-10"
+              />
+            </div>
+            <select
+              className="input w-40"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="prompt">Prompts</option>
+              <option value="skill">Skills</option>
+              <option value="app">Apps</option>
+            </select>
+            <select
+              className="input w-36"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option value="in_progress">In progress</option>
+              <option value="verified">Verified</option>
+              <option value="deprecated">Deprecated</option>
+            </select>
+          </div>
+        </>
+      )}
 
       {/* Submit Asset Modal */}
       {submitModalOpen && (
@@ -386,46 +470,11 @@ export default function Library() {
         />
       )}
 
-      {/* Search and Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-64 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search Completed Hacks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10"
-          />
-        </div>
-        <select 
-          className="input w-40"
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-        >
-          <option value="">All Types</option>
-          <option value="prompt">Prompts</option>
-          <option value="skill">Skills</option>
-          <option value="app">Apps</option>
-        </select>
-        <select 
-          className="input w-36"
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          <option value="">All Status</option>
-          <option value="in_progress">In progress</option>
-          <option value="verified">Verified</option>
-          <option value="deprecated">Deprecated</option>
-        </select>
-      </div>
-
-      {/* Featured Hacks Section */}
+      {/* Featured Hacks Section — one row, no Curated badge, no category row */}
       <div className="card p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Featured Hacks</h2>
-          <span className="badge badge-secondary text-xs">Curated</span>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           High-trust, curated collection of proven AI hacks
@@ -437,30 +486,11 @@ export default function Library() {
             <p className="text-muted-foreground">No featured hacks yet. Run seedAIArsenal to populate.</p>
           </div>
         ) : (
-          <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <ArsenalCategory
-                icon={<FileText className="h-5 w-5" />}
-                title="Prompts"
-                count={arsenalAssets.filter(a => a.assetType === 'prompt').length}
-              />
-              <ArsenalCategory
-                icon={<Code className="h-5 w-5" />}
-                title="Skills"
-                count={arsenalAssets.filter(a => a.assetType === 'skill').length}
-              />
-              <ArsenalCategory
-                icon={<Bot className="h-5 w-5" />}
-                title="Apps"
-                count={arsenalAssets.filter(a => a.assetType === 'app').length}
-              />
-            </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {arsenalAssets.slice(0, 6).map((asset) => (
-                <AssetCard key={asset._id} asset={asset} onSelect={(id) => navigate(`/library/${id}`)} />
-              ))}
-            </div>
-          </>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {arsenalAssets.slice(0, 4).map((asset) => (
+              <AssetCard key={asset._id} asset={asset} onSelect={(id) => navigate(`/library/${id}`)} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -488,12 +518,8 @@ export default function Library() {
         </div>
       )}
 
-      {/* All Hacks */}
+      {/* All Hacks list (no section heading) */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">
-          All Hacks {allAssets && `(${allAssets.length})`}
-        </h2>
-        
         {allAssets === undefined ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <AssetPlaceholder />
@@ -538,39 +564,11 @@ export default function Library() {
                 ))}
               </div>
               {allAssets != null && allAssets.length === assetLimit && (
-                <div className="mt-4 flex justify-center">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => setAssetLimit((prev) => prev + 30)}
-                  >
-                    Load more
-                  </button>
-                </div>
+                <div ref={sentinelRef} className="h-4 w-full" aria-hidden />
               )}
             </>
           );
         })()}
-      </div>
-    </div>
-  )
-}
-
-interface ArsenalCategoryProps {
-  icon: React.ReactNode
-  title: string
-  count: number
-}
-
-function ArsenalCategory({ icon, title, count }: ArsenalCategoryProps) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50 hover:bg-background transition-colors cursor-pointer">
-      <div className="p-2 rounded-md bg-primary/10 text-primary">
-        {icon}
-      </div>
-      <div>
-        <div className="font-medium">{title}</div>
-        <div className="text-sm text-muted-foreground">{count} hacks</div>
       </div>
     </div>
   )
@@ -613,7 +611,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
     app: <Bot className="h-4 w-4" />,
   };
 
-  const statusColors: Record<string, string> = {
+  const stageColors: Record<string, string> = {
     draft: 'badge-draft',
     in_progress: 'badge-in-progress',
     verified: 'badge-verified',
@@ -621,40 +619,53 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
   };
 
   const reuseCount = asset.totalReuseEvents ?? 0;
+  const typeLabel = ASSET_TYPES.find((t) => t.value === asset.assetType)?.label ?? asset.assetType;
+  const stageLabel = ASSET_STAGE_LABELS[asset.status] ?? asset.status;
 
   return (
     <div
-      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className={`card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden ${asset.status === 'verified' ? 'pr-8' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(asset._id)}
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.(asset._id)}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded bg-primary/10 text-primary">
+      {/* Verified: corner flash (green + tick) */}
+      {asset.status === 'verified' && (
+        <div
+          className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded-bl-md"
+          aria-label="Verified"
+        >
+          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
             {typeIcons[asset.assetType] || <FileText className="h-4 w-4" />}
           </div>
-          <h3 className="font-semibold text-sm leading-tight">{asset.title}</h3>
-        </div>
-        <div className="flex flex-col gap-1 items-end">
-          <span className={`badge ${statusColors[asset.status]} text-xs`}>
-            {asset.status}
-          </span>
-          {asset.isArsenal && (
-            <span className="badge badge-secondary text-xs flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
-              Featured Hacks
-            </span>
-          )}
+          <h3 className="font-semibold text-sm leading-tight truncate">{asset.title}</h3>
         </div>
       </div>
+
       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
         {asset.description || 'No description'}
       </p>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="capitalize">{asset.assetType.replace('_', ' ')}</span>
-        <span>{reuseCount} reuse{reuseCount !== 1 ? 's' : ''}</span>
+
+      {/* Bottom row: lozenges left, reuse count right */}
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
+            {typeLabel}
+          </span>
+          <span className={`badge ${stageColors[asset.status]} text-xs`}>
+            {stageLabel}
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground shrink-0">
+          {reuseCount} reuse{reuseCount !== 1 ? 's' : ''}
+        </span>
       </div>
     </div>
   )

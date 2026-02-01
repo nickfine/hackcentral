@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Heart, MessageCircle, HandHelping } from 'lucide-react';
+import { Search, Plus, Filter, Heart, MessageCircle, HandHelping, FileText, Code, Bot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -13,17 +13,51 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import { TabButton, EmptyState } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPE_LABELS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
 
 type Visibility = 'private' | 'org' | 'public';
 type HackTypeValue = (typeof HACK_TYPES)[number]['value'];
 
-export default function Projects() {
-  const [searchQuery, setSearchQuery] = useState('');
+export interface ProjectsEmbeddedProps {
+  embedded?: boolean;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
+  statusFilter?: string;
+  setStatusFilter?: (s: string) => void;
+  hackTypeFilter?: string;
+  setHackTypeFilter?: (s: string) => void;
+  createOpen?: boolean;
+  setCreateOpen?: (open: boolean) => void;
+}
+
+export default function Projects(props: ProjectsEmbeddedProps = {}) {
+  const {
+    embedded = false,
+    searchQuery: searchQueryProp,
+    setSearchQuery: setSearchQueryProp,
+    statusFilter: statusFilterProp,
+    setStatusFilter: setStatusFilterProp,
+    hackTypeFilter: hackTypeFilterProp,
+    setHackTypeFilter: setHackTypeFilterProp,
+    createOpen: createOpenProp,
+    setCreateOpen: setCreateOpenProp,
+  } = props;
+
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [internalStatusFilter, setInternalStatusFilter] = useState('');
+  const [internalHackTypeFilter, setInternalHackTypeFilter] = useState('');
+  const [internalCreateOpen, setInternalCreateOpen] = useState(false);
+  const searchQuery = embedded && searchQueryProp !== undefined ? searchQueryProp : internalSearchQuery;
+  const setSearchQuery = embedded && setSearchQueryProp ? setSearchQueryProp : setInternalSearchQuery;
+  const statusFilter = embedded && statusFilterProp !== undefined ? statusFilterProp : internalStatusFilter;
+  const setStatusFilter = embedded && setStatusFilterProp ? setStatusFilterProp : setInternalStatusFilter;
+  const hackTypeFilter = embedded && hackTypeFilterProp !== undefined ? hackTypeFilterProp : internalHackTypeFilter;
+  const setHackTypeFilter = embedded && setHackTypeFilterProp ? setHackTypeFilterProp : setInternalHackTypeFilter;
+  const createOpen = embedded && createOpenProp !== undefined ? createOpenProp : internalCreateOpen;
+  const setCreateOpen = embedded && setCreateOpenProp ? setCreateOpenProp : setInternalCreateOpen;
+
   const debouncedSearch = useDebounce(searchQuery);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [hackTypeFilter, setHackTypeFilter] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
@@ -34,7 +68,13 @@ export default function Projects() {
 
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const projects = useQuery(api.projects.listWithCounts, { limit: projectLimit });
+  const projectsList = useQuery(api.projects.listWithCounts, { limit: projectLimit });
+
+  const loadMoreProjects = () => setProjectLimit((prev) => prev + 30);
+  const sentinelRef = useInfiniteScroll({
+    onLoadMore: loadMoreProjects,
+    hasMore: projectsList != null && projectsList.length === projectLimit,
+  });
   const createProject = useMutation(api.projects.create);
   const toggleLike = useMutation(api.projectSupportEvents.toggleLike);
   const toggleOfferHelp = useMutation(api.projectSupportEvents.toggleOfferHelp);
@@ -188,64 +228,66 @@ export default function Projects() {
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hacks In Progress</h1>
-          <p className="text-muted-foreground mt-2">
-            Explore hacks in progress using AI to transform workflows
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-md"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-64 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search hacks in progress..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10"
-          />
-        </div>
-        <select 
-          className="input w-36"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All Status</option>
-          <option value="idea">Idea</option>
-          <option value="building">Building</option>
-          <option value="incubation">Incubation</option>
-          <option value="completed">Completed</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select 
-          className="input w-40"
-          value={hackTypeFilter}
-          onChange={(e) => setHackTypeFilter(e.target.value)}
-        >
-          <option value="">All types</option>
-          {HACK_TYPES.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <button className="btn btn-outline btn-md">
-          <Filter className="h-4 w-4 mr-2" />
-          More Filters
-        </button>
-      </div>
+      {!embedded && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Hacks In Progress</h1>
+              <p className="text-muted-foreground mt-2">
+                Explore hacks in progress using AI to transform workflows
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </button>
+          </div>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search hacks in progress..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input pl-10"
+              />
+            </div>
+            <select
+              className="input w-36"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option value="idea">Idea</option>
+              <option value="building">Building</option>
+              <option value="incubation">Incubation</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select
+              className="input w-40"
+              value={hackTypeFilter}
+              onChange={(e) => setHackTypeFilter(e.target.value)}
+            >
+              <option value="">All types</option>
+              {HACK_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="btn btn-outline btn-md">
+              <Filter className="h-4 w-4 mr-2" />
+              More Filters
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Status Tabs */}
       <div className="flex gap-2 border-b">
@@ -264,13 +306,13 @@ export default function Projects() {
       </div>
 
       {/* Projects Grid */}
-      {projects === undefined ? (
+      {projectsList === undefined ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ProjectPlaceholder status="idea" />
           <ProjectPlaceholder status="building" />
           <ProjectPlaceholder status="completed" />
         </div>
-      ) : projects.length === 0 ? (
+      ) : projectsList.length === 0 ? (
         <EmptyState
           icon={<Plus />}
           title="No hacks in progress yet"
@@ -282,7 +324,7 @@ export default function Projects() {
           }}
         />
       ) : (() => {
-        const filteredProjects = projects.filter(p => {
+        const filteredProjects = projectsList.filter(p => {
           if (statusFilter && p.status !== statusFilter) return false;
           if (hackTypeFilter && p.hackType !== hackTypeFilter) return false;
           if (debouncedSearch) {
@@ -321,16 +363,8 @@ export default function Projects() {
                 />
               ))}
             </div>
-            {projects != null && projects.length === projectLimit && (
-              <div className="mt-4 flex justify-center">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setProjectLimit((prev) => prev + 30)}
-                >
-                  Load more
-                </button>
-              </div>
+            {projectsList != null && projectsList.length === projectLimit && (
+              <div ref={sentinelRef} className="h-4 w-full" aria-hidden />
             )}
           </>
         );
@@ -367,94 +401,108 @@ interface ProjectCardProps {
   onOfferHelpClick: () => void;
 }
 
+const PROJECT_TYPE_ICONS: Record<string, React.ReactNode> = {
+  prompt: <FileText className="h-4 w-4" />,
+  skill: <Code className="h-4 w-4" />,
+  app: <Bot className="h-4 w-4" />,
+};
+
+/** Singular type label for card lozenge (align with Completed AssetCard). */
+const PROJECT_TYPE_SINGULAR: Record<string, string> = {
+  prompt: 'Prompt',
+  skill: 'Skill',
+  app: 'App',
+};
+
 function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, onLikeClick, onOfferHelpClick }: ProjectCardProps) {
+  const typeLabel = project.hackType ? (PROJECT_TYPE_SINGULAR[project.hackType] ?? project.hackType) : null;
+  const statusLabel = PROJECT_STATUS_LABELS[project.status] ?? project.status;
+
   return (
     <div
-      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
       onClick={onCardClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onCardClick()}
       aria-label={`View ${project.title}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h3 className="font-semibold text-lg leading-tight min-w-0 flex-1">{project.title}</h3>
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0 justify-end">
-          {project.hackType && (
-            <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[project.hackType] ?? 'bg-muted text-muted-foreground border-border'}`}>
-              {HACK_TYPE_LABELS[project.hackType] ?? project.hackType}
-            </span>
-          )}
-          <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[project.status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-            {PROJECT_STATUS_LABELS[project.status] ?? project.status}
-          </span>
+      {/* Top row: type icon + title (aligned with AssetCard) */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+            {project.hackType ? PROJECT_TYPE_ICONS[project.hackType] ?? <FileText className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+          </div>
+          <h3 className="font-semibold text-sm leading-tight truncate">{project.title}</h3>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
         {project.description || 'No description'}
       </p>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between text-sm pt-3 border-t">
-        <div className="flex items-center gap-2">
-          {project.isAnonymous ? (
-            <span className="text-xs text-muted-foreground">Anonymous</span>
-          ) : (
-            <>
-              <div className="avatar w-6 h-6">
-                <div className="avatar-fallback text-xs">?</div>
-              </div>
-              <span className="text-muted-foreground">Owner</span>
-            </>
+      {/* Bottom row: lozenges left, metrics right (aligned with AssetCard) */}
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+          {typeLabel && (
+            <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[project.hackType!] ?? 'bg-muted text-muted-foreground border-border'}`}>
+              {typeLabel}
+            </span>
           )}
-          <span className="text-muted-foreground">
-            {project.attachedAssetsCount} hack{project.attachedAssetsCount !== 1 ? 's' : ''}
+          <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[project.status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {statusLabel}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-muted-foreground">
-          {isAuthenticated && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          <span title={`${project.attachedAssetsCount} hack(s) attached`}>
+            {project.attachedAssetsCount} hack{project.attachedAssetsCount !== 1 ? 's' : ''}
+          </span>
+          <span className="flex items-center gap-1.5">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onLikeClick(); }}
+                className="flex items-center gap-0.5 hover:text-foreground transition-colors"
+                aria-label={project.userLiked ? 'Unlike' : 'Like'}
+                title="Like"
+              >
+                <Heart className={`h-3.5 w-3.5 ${project.userLiked ? 'fill-current text-primary' : ''}`} />
+                {project.likeCount}
+              </button>
+            ) : (
+              <span className="flex items-center gap-0.5" title="Likes">
+                <Heart className="h-3.5 w-3.5" />
+                {project.likeCount}
+              </span>
+            )}
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onOfferHelpClick(); }}
+                className={`flex items-center gap-0.5 hover:text-foreground transition-colors ${project.userOfferedHelp ? 'text-primary font-medium' : ''}`}
+                aria-label={project.userOfferedHelp ? 'Withdraw help offer' : 'Offer help'}
+                title="Offer help"
+              >
+                <HandHelping className="h-3.5 w-3.5" />
+                {project.helpOfferCount}
+              </button>
+            ) : (
+              <span className="flex items-center gap-0.5">
+                <HandHelping className="h-3.5 w-3.5" />
+                {project.helpOfferCount}
+              </span>
+            )}
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); onLikeClick(); }}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-              aria-label={project.userLiked ? 'Unlike' : 'Like'}
+              onClick={(e) => { e.stopPropagation(); onCommentsClick(); }}
+              className="flex items-center gap-0.5 hover:text-foreground transition-colors"
+              aria-label="View comments"
+              title="Comments"
             >
-              <Heart className={`h-4 w-4 ${project.userLiked ? 'fill-current text-primary' : ''}`} />
-              <span>{project.likeCount}</span>
+              <MessageCircle className="h-3.5 w-3.5" />
+              {project.commentCount}
             </button>
-          )}
-          {!isAuthenticated && (
-            <span className="flex items-center gap-1">
-              <Heart className="h-4 w-4" />
-              {project.likeCount}
-            </span>
-          )}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onOfferHelpClick(); }}
-              className={`flex items-center gap-1 hover:text-foreground transition-colors ${project.userOfferedHelp ? 'text-primary font-medium' : ''}`}
-              aria-label={project.userOfferedHelp ? 'Withdraw help offer' : 'Offer help'}
-            >
-              <HandHelping className="h-4 w-4" />
-              <span>{project.helpOfferCount}</span>
-            </button>
-          )}
-          {!isAuthenticated && (
-            <span className="flex items-center gap-1">
-              <HandHelping className="h-4 w-4" />
-              {project.helpOfferCount}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onCommentsClick(); }}
-            className="flex items-center gap-1 hover:text-foreground transition-colors"
-            aria-label="View comments"
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span>{project.commentCount}</span>
-          </button>
+          </span>
         </div>
       </div>
     </div>
@@ -463,40 +511,28 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
 
 function ProjectPlaceholder({ status }: ProjectPlaceholderProps) {
   return (
-    <div className="card p-4 hover:shadow-md transition-shadow cursor-pointer">
-      <div className="flex items-start justify-between mb-3">
-        <div className="h-5 bg-muted rounded w-40" />
-        <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-          {PROJECT_STATUS_LABELS[status]}
-        </span>
+    <div className="card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded bg-muted w-8 h-8 shrink-0" />
+          <div className="h-4 bg-muted rounded w-32 flex-1" />
+        </div>
       </div>
       <div className="h-4 bg-muted rounded w-full mb-2" />
-      <div className="h-4 bg-muted rounded w-2/3 mb-4" />
+      <div className="h-4 bg-muted rounded w-2/3 mb-3" />
 
-      {/* AI hacks indicator */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex -space-x-1">
-          <div className="w-6 h-6 rounded bg-primary/20 border-2 border-background" />
-          <div className="w-6 h-6 rounded bg-secondary/20 border-2 border-background" />
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex items-center gap-1.5">
+          <div className="h-5 bg-muted rounded w-14" />
+          <span className={`badge text-xs ${PROJECT_STATUS_BADGE_COLORS[status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {PROJECT_STATUS_LABELS[status]}
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          -- AI hacks attached
-        </span>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between text-sm pt-3 border-t">
-        <div className="flex items-center gap-2">
-          <div className="avatar w-6 h-6">
-            <div className="avatar-fallback text-xs">?</div>
-          </div>
-          <span className="text-muted-foreground">--</span>
-        </div>
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <span>-- likes</span>
-          <span>-- comments</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          <span>--</span>
+          <span className="flex items-center gap-1.5">--</span>
         </div>
       </div>
     </div>
-  )
+  );
 }
