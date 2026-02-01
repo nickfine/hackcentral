@@ -82,9 +82,11 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
   const showLowContentNudge = hacks.length >= 1 && hacks.length < 4;
 
   return (
-    <section aria-labelledby="featured-hacks-heading" className="min-w-0 space-y-4">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
+    <>
+      {/* 8pt spacing: section gap-6, header gap-4, generous breathing */}
+      <section aria-labelledby="featured-hacks-heading" className="min-w-0 space-y-6">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-4">
           <h2
             id="featured-hacks-heading"
             className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl md:text-2xl"
@@ -101,9 +103,9 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
         </div>
       </div>
 
-      {/* Two rows of four hack cards — uniform height per row */}
+      {/* 8pt grid: gap-6 → md:gap-8; responsive cols 1/2/3/4 for premium density */}
       <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch"
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:gap-8 lg:grid-cols-3 2xl:grid-cols-4 items-stretch"
         role="list"
         aria-label="Featured hacks"
       >
@@ -126,8 +128,8 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
       </div>
 
       {showLowContentNudge && (
-        <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-          <p className="mb-3 text-sm font-semibold text-foreground">
+        <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 text-center">
+          <p className="mb-4 text-sm font-semibold text-foreground">
             Be the first Rising Star this week!
           </p>
           <p className="mb-4 text-xs text-muted-foreground">
@@ -145,8 +147,8 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
       )}
 
       {isEmpty && (
-        <div className="rounded-lg border-2 border-dashed border-primary/20 bg-primary/5 p-6 text-center">
-          <p className="mb-3 text-sm font-medium text-foreground">
+        <div className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 p-8 text-center">
+          <p className="mb-4 text-sm font-medium text-foreground">
             Be the first to share your hack today!
           </p>
           <Link to="/hacks?tab=completed&action=new" className="btn btn-primary btn-sm inline-flex items-center gap-2">
@@ -155,6 +157,7 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
           </Link>
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 }

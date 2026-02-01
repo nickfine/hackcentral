@@ -47,7 +47,7 @@ export function EngagementNudge({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex min-w-0 flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
+      className="flex min-w-0 flex-col gap-4 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6"
     >
       <p className="min-w-0 flex-1 break-words text-sm font-medium text-foreground">
         <Sparkles className="mr-2 inline-block h-4 w-4 shrink-0 text-primary" aria-hidden />

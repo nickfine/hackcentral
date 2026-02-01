@@ -66,20 +66,22 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
       : `Copy story "${hack.title}" to clipboard`;
   const viewLabel = `View details for ${hack.title}`;
 
+  {/* 8pt card: p-6 padding, rounded-xl, subtle lift on hover (Linear-like) */}
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={shouldReduceMotion ? undefined : { y: -4, scale: 1.02 }}
+      whileHover={shouldReduceMotion ? undefined : { y: -2 }}
       transition={{ duration: 0.2 }}
-      className={`group relative flex h-full min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg md:min-w-[280px] md:max-w-[320px] ${
+      className={`group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
         hack.isRisingStar
           ? 'hover:shadow-secondary/30 hover:ring-2 hover:ring-secondary/20'
           : 'hover:shadow-primary/20'
       }`}
     >
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/80 p-2" aria-hidden>
+      {/* 8pt internal: mb-4 badge row, generous icon padding */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/60 p-2.5" aria-hidden>
           {hack.type === 'asset' ? (
             <FileCode className="h-5 w-5 shrink-0 text-primary" aria-hidden />
           ) : (
@@ -107,26 +109,27 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
         </div>
       </div>
 
-      <h3 className="mb-2 min-w-0 line-clamp-2 break-words text-base font-semibold text-foreground">
+      <h3 className="mb-3 min-w-0 line-clamp-2 break-words text-lg font-semibold leading-snug text-foreground">
         {hack.title}
       </h3>
-      <div className="min-h-0 flex-1">
-        <p className="line-clamp-3 break-words text-sm text-muted-foreground">{hack.blurb}</p>
+      <div className="min-h-0 flex-1 mb-4">
+        <p className="line-clamp-3 break-words text-sm leading-relaxed text-muted-foreground">{hack.blurb}</p>
       </div>
 
-      <div className="mb-4 mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <User className="h-3.5 w-3" aria-hidden />
+      {/* Metadata pushed to bottom with mt-auto for uniform card height */}
+      <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <User className="h-3.5 w-3.5" aria-hidden />
           {hack.authorName}
         </span>
         {hack.reuseCount > 0 && (
-          <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
+          <span className="rounded-md bg-muted px-2 py-0.5 font-medium">
             Reused {hack.reuseCount}×
           </span>
         )}
       </div>
 
-      <div className="mt-auto flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3 mt-4">
         {showCopy && (
           <button
             type="button"

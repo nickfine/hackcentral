@@ -16,7 +16,6 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation } from 'convex/react';
 import {
   Activity,
-  Users,
   Library,
   PenLine,
   X,
@@ -167,7 +166,9 @@ export default function Dashboard() {
   const showCombinedNudge = showFirstTimeCTA || nudgeAddLibrary || nudgeCreateProject || nudgeShareStory;
 
   return (
-    <div className="min-w-0 space-y-6">
+    <>
+      {/* 8pt spacing: section gaps 40px/48px for premium breathing room */}
+      <div className="min-w-0 space-y-10 lg:space-y-12">
       {storyModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -309,8 +310,8 @@ export default function Dashboard() {
           />
 
           {showCombinedNudge && (
-            <div className="card border-primary/20 bg-primary/5 p-4 sm:p-5">
-              <div className="flex items-start gap-4">
+            <div className="card border-primary/20 bg-primary/5 p-6 sm:p-8 rounded-xl">
+              <div className="flex items-start gap-6">
                 <div className="shrink-0 rounded-lg bg-primary/10 p-2">
                   <Sparkles className="h-5 w-5 text-primary" />
                 </div>
@@ -402,20 +403,20 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Two pods: Wall of Thanks (quotes) + Your recognition — uniform height */}
-          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:items-stretch">
+          {/* Two pods: Wall of Thanks (quotes) + Your recognition — 8pt gap, premium cards */}
+          <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 md:items-stretch">
             <div className="min-w-0 h-full">
               <WallOfThanksStrip />
             </div>
-            <div className="card min-w-0 p-6">
-              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+            <div className="card min-w-0 p-8 lg:p-10 rounded-xl min-h-[220px] flex flex-col">
+              <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold">
                 <Award className="h-5 w-5 text-muted-foreground" />
                 Your recognition
               </h2>
               {derivedBadges === undefined ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <p className="text-sm text-muted-foreground mt-auto">Loading…</p>
               ) : derivedBadges.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3 mt-auto">
                   {derivedBadges.map((badge) => (
                     <span
                       key={badge.badgeType}
@@ -433,13 +434,13 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <>
+                <div className="flex flex-col flex-1">
                   <p className="mb-4 text-sm text-muted-foreground">
                     {!isAuthenticated
                       ? 'Sign in to see your real badges. Demo badges below:'
                       : 'Complete mentor sessions, verify hacks, or get reuses to earn badges. Demo badges below:'}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3 mt-auto">
                     {[
                       { badgeType: 'demo_rising_star', label: 'Rising Star', metricValue: 1 },
                       { badgeType: 'demo_mentor', label: 'Mentor Champion', metricValue: 3 },
@@ -462,13 +463,14 @@ export default function Dashboard() {
                       </span>
                     ))}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
 
           <QuickActionsPanel />
       </>
-    </div>
+      </div>
+    </>
   );
 }

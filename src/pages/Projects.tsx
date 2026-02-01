@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { TabButton, EmptyState } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPE_LABELS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
 
 type Visibility = 'private' | 'org' | 'public';
 type HackTypeValue = (typeof HACK_TYPES)[number]['value'];

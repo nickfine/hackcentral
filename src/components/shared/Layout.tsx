@@ -13,7 +13,8 @@ export function Layout() {
       <Header />
       <div className="flex min-w-0">
         <Sidebar />
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 lg:ml-64 lg:p-8 ml-0">
+        {/* 8pt spacing: px-6 → md:px-8 → lg:px-10 → xl:px-12; vertical py-8 → lg:py-10/12 */}
+        <main className="min-w-0 flex-1 overflow-x-hidden px-6 py-8 md:px-8 lg:ml-64 lg:px-10 lg:pt-10 lg:pb-12 xl:px-12 ml-0">
           <div className="mx-auto max-w-7xl min-w-0">
             <Outlet />
           </div>

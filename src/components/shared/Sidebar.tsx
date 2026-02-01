@@ -39,7 +39,8 @@ const navItems = [
 export function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-64 border-r bg-background pt-14">
-      <div className="flex-1 overflow-y-auto py-4 px-3">
+      {/* 8pt spacing: py-6 px-4 for nav breathing room */}
+      <div className="flex-1 overflow-y-auto py-6 px-4">
         <nav className="space-y-1">
           {navItems.map((item) => (
             <NavItem key={item.to} {...item} />
