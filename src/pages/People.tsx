@@ -3,7 +3,8 @@
  * Shows profiles, AI helpers, and enables mentor matching
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, UserPlus, X, GraduationCap, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
@@ -17,8 +18,14 @@ import { EmptyState } from '../components/shared';
 type MentorFilter = 'all' | 'available' | 'seeking';
 
 export default function People() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const qFromUrl = searchParams.get('q') ?? '';
+  const [searchQuery, setSearchQuery] = useState(qFromUrl);
   const debouncedSearch = useDebounce(searchQuery);
+
+  useEffect(() => {
+    setSearchQuery(qFromUrl);
+  }, [qFromUrl]);
   const [experienceFilter, setExperienceFilter] = useState('');
   const [mentorFilter, setMentorFilter] = useState<MentorFilter>('all');
   const [selectedProfileId, setSelectedProfileId] = useState<Id<'profiles'> | null>(null);

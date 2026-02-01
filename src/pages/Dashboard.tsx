@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation } from 'convex/react';
-import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X, Award, Sparkles, User } from 'lucide-react';
+import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X, Award, Sparkles, User, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -33,6 +33,7 @@ export default function Dashboard() {
   const projects = useQuery(api.projects.list, {});
   const libraryAssets = useQuery(api.libraryAssets.list, {});
   const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {});
+  const gini = useQuery(api.metrics.getEarlyAdopterGini);
 
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [storyHeadline, setStoryHeadline] = useState('');
@@ -96,6 +97,16 @@ export default function Dashboard() {
 
   const showFirstTimeCTA = recentActivity !== undefined && recentActivity.length === 0;
 
+  const giniValue = gini !== undefined ? gini.toFixed(2) : '--';
+  const giniInterpretation =
+    gini === undefined
+      ? '—'
+      : gini < 0.7
+        ? 'Low concentration'
+        : gini < 0.8
+          ? 'Moderate concentration'
+          : 'High concentration';
+
   return (
     <div className="space-y-6">
       {/* First-time / low-activity CTA */}
@@ -122,6 +133,12 @@ export default function Dashboard() {
                 <Link to="/profile" className="btn btn-ghost btn-sm">
                   <User className="h-4 w-4 mr-2" />
                   Complete profile
+                </Link>
+                <Link to="/onboarding" className="btn btn-ghost btn-sm">
+                  See all options
+                </Link>
+                <Link to="/guide" className="btn btn-ghost btn-sm">
+                  AI 101 guide
                 </Link>
               </div>
             </div>
@@ -237,11 +254,41 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">AI Maturity Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Track your organization's AI adoption progress
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">AI Maturity Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Track your organization's AI adoption progress
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm inline-flex items-center gap-2"
+          onClick={() => {
+            const exportData = {
+              exportedAt: new Date().toISOString(),
+              metrics: metrics ?? null,
+              gini: gini ?? null,
+              giniInterpretation: gini !== undefined ? giniInterpretation : null,
+              topContributors: topContributors ?? [],
+              topMentors: topMentors ?? [],
+              mostReusedAssets: mostReusedAssets ?? [],
+              impactStoriesCount: impactStories?.length ?? 0,
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+              type: 'application/json',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Export metrics
+        </button>
       </div>
 
       {/* Metrics Grid */}
@@ -295,6 +342,26 @@ export default function Dashboard() {
           {metrics !== undefined
             ? `Based on contributor and project adoption (${maturityWidth.toFixed(0)}% maturity proxy)`
             : 'Metrics will populate once you have activity'}
+        </p>
+      </div>
+
+      {/* Gini coefficient (early adopter concentration) */}
+      <div className="card p-6">
+        <h2 className="text-xl font-semibold mb-2">Early adopter concentration</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Gini coefficient (0–1): lower means more even distribution of contributions across users.
+        </p>
+        {gini === undefined ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl font-bold">{giniValue}</span>
+            <span className="text-muted-foreground">—</span>
+            <span className="font-medium">{giniInterpretation}</span>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground mt-2">
+          &lt; 0.7 healthy · ≥ 0.7 consider interventions · ≥ 0.8 escalate
         </p>
       </div>
 

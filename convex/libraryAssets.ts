@@ -109,8 +109,9 @@ export const listWithReuseCounts = query({
       )
     ),
     arsenalOnly: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
   },
-  handler: async (ctx, { assetType, status, arsenalOnly }) => {
+  handler: async (ctx, { assetType, status, arsenalOnly, limit }) => {
     const identity = await ctx.auth.getUserIdentity();
     const assets = await ctx.db.query("libraryAssets").collect();
 
@@ -135,8 +136,9 @@ export const listWithReuseCounts = query({
       return true;
     });
 
+    const toProcess = limit != null ? visibleAssets.slice(0, limit) : visibleAssets;
     const result = await Promise.all(
-      visibleAssets.map(async (asset) => {
+      toProcess.map(async (asset) => {
         const events = await ctx.db
           .query("libraryReuseEvents")
           .withIndex("by_asset", (q) => q.eq("assetId", asset._id))
@@ -216,7 +218,7 @@ export const getById = query({
       (asset.visibility === "private" && isAuthor)
     ) {
       let verifiedByFullName: string | undefined;
-      if (asset.verifiedById) {
+      if (asset.verifiedById && !asset.isAnonymous) {
         const verifier = await ctx.db.get(asset.verifiedById);
         verifiedByFullName = verifier?.fullName ?? verifier?.email;
       }
@@ -313,6 +315,7 @@ export const create = mutation({
         exampleOutput: v.optional(v.string()),
       })
     ),
+    isAnonymous: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -339,6 +342,7 @@ export const create = mutation({
       visibility: args.visibility || "org",
       isArsenal: false,
       metadata: args.metadata,
+      isAnonymous: args.isAnonymous ?? false,
     });
 
     // Track contribution
@@ -398,11 +402,20 @@ export const update = mutation({
     }
 
     const patch: Record<string, unknown> = { ...updates };
+    const wasVerified = asset.status === "verified";
     if (updates.status === "verified") {
       patch.verifiedById = profile._id;
       patch.verifiedAt = Date.now();
     }
 
     await ctx.db.patch(assetId, patch);
+
+    if (updates.status === "verified" && !wasVerified) {
+      await ctx.db.insert("aiContributions", {
+        userId: profile._id,
+        contributionType: "verification",
+        assetId,
+      });
+    }
   },
 });

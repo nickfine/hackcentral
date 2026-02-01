@@ -121,9 +121,35 @@ The codebase is **consistent and sound**. One optional consistency tweak was app
 
 ---
 
-## 5. Conclusion
+## 5. Phase 3 follow-up (Post Phase 3 implementation)
 
-- **Consistency:** Shared project constants, EmptyState, terminology (assets in UI, artefact in internal types), Profile Activity/Library activity, Header placeholders, and heading hierarchy are consistent.
-- **Integrity:** Routing, project detail flow, Convex usage, type casts, accessibility, and removal of obsolete modal code are sound.
+**Date:** Jan 30, 2026  
+**Scope:** Consistency and integrity after Phase 3 (global search, Gini, onboarding, governance, standardization, notifications, performance, polish).
 
-No blocking issues. Safe to proceed with Phase 3 or further feature work.
+### 5.1 Fixes applied
+
+1. **Terminology (user-facing):** In `convex/metrics.ts`, `CONTRIBUTION_TYPE_LABELS.project_ai_artefact` was "Project AI Artefact". Changed to **"Project AI asset"** so Dashboard Recent Activity and any consumer of `getRecentActivity` use the same "assets" terminology as the rest of the UI (per UX_REVIEW and learnings).
+
+2. **Privacy (anonymous assets):** In `convex/libraryAssets.ts` `getById`, when an asset has `isAnonymous === true`, the handler now **does not** set `verifiedByFullName` (only resolves verifier when `!asset.isAnonymous`). This avoids leaking verifier identity for anonymously submitted assets. The frontend already shows "Verified (anonymous)" when `asset.isAnonymous`; the API no longer returns verifier name in that case.
+
+### 5.2 Verification
+
+- **Schema vs usage:** `projects` governance fields (`readinessCompletedAt`, `riskCheckNotes`, `sponsorCommittedAt`, `aiImpactHypothesis`) are in schema; `projects.update` accepts them and enforces readiness/sponsor on status transitions. `libraryAssets.isAnonymous` is optional in schema; `create`/`update` and `getById` handle it.
+- **Contribution recording:** `libraryAssets.create` inserts `library_asset`; `libraryAssets.update` inserts `verification` when status → verified; `libraryReuse.attachToProject` inserts `project_ai_artefact`. All use current profile `_id` as `userId`.
+- **Routes and exports:** `App.tsx` routes match `src/pages/index.ts` exports (Dashboard, People, Library, Projects, ProjectDetail, Profile, Search, Onboarding, Guide, Notifications). Header search → `/search?q=...`; bell → `/notifications`.
+- **Experience levels:** `src/constants/profile.ts` values (newbie, curious, comfortable, power_user, expert) match Convex `profiles.experienceLevel` schema.
+- **Project status:** `src/constants/project.ts` statuses match schema; ProjectDetail governance forms submit `readinessCompletedAt`, `riskCheckNotes`, `aiImpactHypothesis` and `sponsorCommittedAt` as expected by `projects.update`.
+
+### 5.3 Conclusion (Phase 3)
+
+- **Consistency:** Contribution type label aligned to "Project AI asset"; anonymous asset verifier not exposed.
+- **Integrity:** Schema, Convex mutations/queries, and frontend usage are aligned; no new issues found.
+
+---
+
+## 6. Conclusion
+
+- **Consistency:** Shared project constants, EmptyState, terminology (assets in UI, artefact in internal types), Profile Activity/Library activity, Header placeholders, and heading hierarchy are consistent. Phase 3: contribution label and anonymous verifier handling updated.
+- **Integrity:** Routing, project detail flow, Convex usage, type casts, accessibility, and removal of obsolete modal code are sound. Phase 3 governance, metrics, and contribution recording are consistent with schema and plan.
+
+No blocking issues. Safe to proceed with further feature work or release.

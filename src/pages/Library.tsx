@@ -3,7 +3,8 @@
  * Shows reusable AI assets, prompts, templates, and agent blueprints
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, Sparkles, FileText, Bot, Shield, Award, X, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
@@ -37,6 +38,7 @@ interface SubmitAssetModalProps {
     assetType: 'prompt' | 'template' | 'agent_blueprint' | 'guardrail' | 'evaluation_rubric' | 'structured_output';
     content: string | Record<string, unknown>;
     visibility?: 'private' | 'org' | 'public';
+    isAnonymous?: boolean;
     metadata?: {
       intendedUser?: string;
       context?: string;
@@ -60,6 +62,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
   const [riskNotes, setRiskNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +86,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
         assetType,
         content: content.trim(),
         visibility,
+        isAnonymous,
         metadata,
       });
       onSubmitSuccess(newAssetId);
@@ -196,6 +200,18 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="submit-anonymous"
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="rounded border-input"
+            />
+            <label htmlFor="submit-anonymous" className="text-sm">
+              Submit anonymously (author hidden in UI)
+            </label>
+          </div>
           <div>
             <button
               type="button"
@@ -284,12 +300,19 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
 }
 
 export default function Library() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const qFromUrl = searchParams.get('q') ?? '';
+  const [searchQuery, setSearchQuery] = useState(qFromUrl);
   const debouncedSearch = useDebounce(searchQuery);
+
+  useEffect(() => {
+    setSearchQuery(qFromUrl);
+  }, [qFromUrl]);
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedAssetId, setSelectedAssetId] = useState<Id<'libraryAssets'> | null>(null);
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  const [assetLimit, setAssetLimit] = useState(30);
 
   const createAsset = useMutation(api.libraryAssets.create);
   const arsenalAssets = useQuery(api.libraryAssets.getArsenalWithReuseCounts);
@@ -302,7 +325,8 @@ export default function Library() {
     assetType?: "prompt" | "template" | "agent_blueprint" | "guardrail" | "evaluation_rubric" | "structured_output";
     status?: "draft" | "verified" | "deprecated";
     arsenalOnly?: boolean;
-  } = {};
+    limit?: number;
+  } = { limit: assetLimit };
   
   if (selectedType) {
     queryArgs.assetType = selectedType as typeof queryArgs.assetType;
@@ -312,6 +336,7 @@ export default function Library() {
   }
   
   const allAssets = useQuery(api.libraryAssets.listWithReuseCounts, queryArgs);
+  const graduatedAssets = useQuery(api.metrics.getGraduatedAssets, { minReuses: 10 });
 
   return (
     <div className="space-y-6">
@@ -477,6 +502,30 @@ export default function Library() {
         )}
       </div>
 
+      {/* Graduated assets (reuse threshold >= 10) */}
+      {graduatedAssets !== undefined && graduatedAssets.length > 0 && (
+        <div className="card p-6 border-primary/20">
+          <h2 className="text-xl font-semibold mb-2">Graduated assets</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Assets with 10+ reuses — ready for template packs and playbooks.
+          </p>
+          <ul className="space-y-2">
+            {graduatedAssets.slice(0, 8).map(({ assetId, title, reuseCount }) => (
+              <li key={assetId}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAssetId(assetId)}
+                  className="w-full text-left card p-3 hover:bg-accent/50 transition-colors rounded-lg flex items-center justify-between"
+                >
+                  <span className="font-medium">{title}</span>
+                  <span className="text-muted-foreground text-sm">{reuseCount} reuses</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* All Assets */}
       <div>
         <h2 className="text-xl font-semibold mb-4">
@@ -520,11 +569,24 @@ export default function Library() {
               }
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sortedAssets.map((asset) => (
-                <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {sortedAssets.map((asset) => (
+                  <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
+                ))}
+              </div>
+              {allAssets != null && allAssets.length === assetLimit && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setAssetLimit((prev) => prev + 30)}
+                  >
+                    Load more
+                  </button>
+                </div>
+              )}
+            </>
           );
         })()}
       </div>
@@ -590,6 +652,7 @@ interface AssetDetailContentProps {
       exampleOutput?: string;
     };
     isArsenal: boolean;
+    isAnonymous?: boolean;
   };
   assetId: Id<'libraryAssets'>;
   onClose: () => void;
@@ -727,9 +790,9 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
       </div>
 
       {/* Verified by (when status is verified) */}
-      {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt) && (
+      {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt || asset.isAnonymous) && (
         <div className="text-sm text-muted-foreground">
-          Verified{asset.verifiedByFullName ? ` by ${asset.verifiedByFullName}` : ''}
+          Verified{asset.isAnonymous ? ' (anonymous)' : asset.verifiedByFullName ? ` by ${asset.verifiedByFullName}` : ''}
           {asset.verifiedAt ? ` on ${new Date(asset.verifiedAt).toLocaleDateString()}` : ''}
         </div>
       )}

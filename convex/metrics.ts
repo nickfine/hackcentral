@@ -1,9 +1,10 @@
+import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
 const CONTRIBUTION_TYPE_LABELS: Record<string, string> = {
   library_asset: "Library Asset",
-  project_ai_artefact: "Project AI Artefact",
+  project_ai_artefact: "Project AI asset",
   verification: "Verification",
   improvement: "Improvement",
 };
@@ -211,6 +212,98 @@ export const getMostReusedAssets = query({
         (asset.visibility === "org" && identity);
       if (visible) {
         results.push({ assetId, title: asset.title, count });
+      }
+    }
+    return results;
+  },
+});
+
+/**
+ * Early adopter concentration (Gini coefficient) for last 30 days.
+ * Population: profiles created in last 90 days (proxy for "active users").
+ * Measure: contribution events per user from aiContributions in last 30 days.
+ * G = (2 * Σ(i * y_i)) / (n * Σ(y_i)) - (n + 1) / n; y_i sorted ascending.
+ * Returns value in [0, 1]. Lower = more even distribution.
+ */
+export const getEarlyAdopterGini = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const activeUsers = allProfiles.filter((p) => p._creationTime >= ninetyDaysAgo);
+    if (activeUsers.length === 0) return 0;
+
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+
+    const contributionCounts = new Map<Id<"profiles">, number>();
+    for (const c of contributions) {
+      contributionCounts.set(
+        c.userId,
+        (contributionCounts.get(c.userId) ?? 0) + 1
+      );
+    }
+
+    const userContributions = activeUsers.map((user) => ({
+      userId: user._id,
+      count: contributionCounts.get(user._id) ?? 0,
+    }));
+    userContributions.sort((a, b) => a.count - b.count);
+
+    const n = userContributions.length;
+    const totalContributions = userContributions.reduce((sum, u) => sum + u.count, 0);
+    if (totalContributions === 0) return 0;
+
+    let sumRankTimesCount = 0;
+    userContributions.forEach((u, index) => {
+      const rank = index + 1;
+      sumRankTimesCount += rank * u.count;
+    });
+
+    const gini =
+      (2.0 * sumRankTimesCount) / (n * totalContributions) - (n + 1.0) / n;
+    return Math.max(0, Math.min(1, gini));
+  },
+});
+
+/**
+ * Assets that have reached the reuse threshold (graduated).
+ * Returns assets with total reuse count >= minReuses (default 10).
+ * Only returns public/org-visible assets.
+ */
+export const getGraduatedAssets = query({
+  args: {
+    minReuses: v.optional(v.number()),
+  },
+  handler: async (ctx, { minReuses = 10 }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const events = await ctx.db.query("libraryReuseEvents").collect();
+    const countByAsset = new Map<Id<"libraryAssets">, number>();
+    for (const e of events) {
+      countByAsset.set(e.assetId, (countByAsset.get(e.assetId) ?? 0) + 1);
+    }
+    const graduatedIds = [...countByAsset.entries()]
+      .filter(([, count]) => count >= minReuses)
+      .sort((a, b) => b[1] - a[1])
+      .map(([assetId]) => assetId);
+
+    const results: { assetId: Id<"libraryAssets">; title: string; reuseCount: number }[] = [];
+    for (const assetId of graduatedIds) {
+      const asset = await ctx.db.get(assetId);
+      if (!asset) continue;
+      const visible =
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity);
+      if (visible) {
+        results.push({
+          assetId,
+          title: asset.title,
+          reuseCount: countByAsset.get(assetId) ?? 0,
+        });
       }
     }
     return results;

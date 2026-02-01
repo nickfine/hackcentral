@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Archive, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Archive, CheckCircle, ArrowLeft, Shield, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -41,6 +41,12 @@ export default function ProjectDetail() {
   const [workflowTransformed, setWorkflowTransformed] = useState(false);
   const [aiToolsUsedText, setAiToolsUsedText] = useState('');
   const [isSubmittingClose, setIsSubmittingClose] = useState(false);
+  const [readinessFormOpen, setReadinessFormOpen] = useState(false);
+  const [impactHypothesis, setImpactHypothesis] = useState('');
+  const [riskCheckNotes, setRiskCheckNotes] = useState('');
+  const [isSubmittingReadiness, setIsSubmittingReadiness] = useState(false);
+  const [sponsorFormOpen, setSponsorFormOpen] = useState(false);
+  const [isSubmittingSponsor, setIsSubmittingSponsor] = useState(false);
 
   const isOwner = Boolean(project && profile && project.ownerId === profile._id);
   const isClosed = project?.status === 'completed' || project?.status === 'archived';
@@ -103,6 +109,50 @@ export default function ProjectDetail() {
     }
   };
 
+  const handleReadinessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectId || !impactHypothesis.trim() || isSubmittingReadiness) return;
+    setIsSubmittingReadiness(true);
+    try {
+      await updateProject({
+        projectId: projectId as Id<'projects'>,
+        status: 'building',
+        readinessCompletedAt: Date.now(),
+        riskCheckNotes: riskCheckNotes.trim() || undefined,
+        aiImpactHypothesis: impactHypothesis.trim(),
+      });
+      toast.success('Readiness complete. Project moved to Building.');
+      setReadinessFormOpen(false);
+      setImpactHypothesis('');
+      setRiskCheckNotes('');
+    } catch (err) {
+      console.error('Failed to submit readiness:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+    } finally {
+      setIsSubmittingReadiness(false);
+    }
+  };
+
+  const handleSponsorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectId || isSubmittingSponsor) return;
+    setIsSubmittingSponsor(true);
+    try {
+      await updateProject({
+        projectId: projectId as Id<'projects'>,
+        status: 'incubation',
+        sponsorCommittedAt: Date.now(),
+      });
+      toast.success('Sponsor committed. Project moved to Incubation.');
+      setSponsorFormOpen(false);
+    } catch (err) {
+      console.error('Failed to submit sponsor commitment:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+    } finally {
+      setIsSubmittingSponsor(false);
+    }
+  };
+
   if (!projectId) {
     return (
       <div className="space-y-4">
@@ -152,10 +202,22 @@ export default function ProjectDetail() {
 
       <div className="max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight mb-2">{project.title}</h1>
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 items-center">
           <span className="badge badge-outline text-xs">
             {PROJECT_STATUS_LABELS[project.status] ?? project.status}
           </span>
+          {'readinessCompletedAt' in project && project.readinessCompletedAt != null && (
+            <span className="badge text-xs bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              Readiness complete
+            </span>
+          )}
+          {'sponsorCommittedAt' in project && project.sponsorCommittedAt != null && (
+            <span className="badge text-xs bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1">
+              <UserCheck className="h-3 w-3" />
+              Sponsor committed
+            </span>
+          )}
           {projectWithOwner.ownerFullName && (
             <span className="text-sm text-muted-foreground">
               Owner: {projectWithOwner.ownerFullName}
@@ -199,6 +261,115 @@ export default function ProjectDetail() {
               </dl>
             </div>
           )}
+
+        {/* Move to Building (owner only, when idea) */}
+        {isOwner && project.status === 'idea' && (
+          <div className="border-t pt-4 mb-6">
+            <h2 className="font-semibold text-sm mb-2">Move to Building</h2>
+            {!readinessFormOpen ? (
+              <div className="flex gap-2 flex-wrap items-center">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setReadinessFormOpen(true)}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  Complete readiness and move to Building
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleReadinessSubmit} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  AI readiness: impact hypothesis and lightweight risk check (bias, privacy, misuse).
+                </p>
+                <div>
+                  <label htmlFor="readiness-impact" className="block text-sm font-medium mb-1">
+                    AI impact hypothesis <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    id="readiness-impact"
+                    value={impactHypothesis}
+                    onChange={(e) => setImpactHypothesis(e.target.value)}
+                    className="input w-full min-h-[80px]"
+                    placeholder="Time saved, error reduction, throughput gain..."
+                    required
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="readiness-risk" className="block text-sm font-medium mb-1">
+                    Risk check notes (bias, privacy, misuse)
+                  </label>
+                  <textarea
+                    id="readiness-risk"
+                    value={riskCheckNotes}
+                    onChange={(e) => setRiskCheckNotes(e.target.value)}
+                    className="input w-full min-h-[60px]"
+                    placeholder="Optional: note any checks done."
+                    rows={2}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setReadinessFormOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={isSubmittingReadiness || !impactHypothesis.trim()}
+                  >
+                    {isSubmittingReadiness ? 'Saving…' : 'Complete readiness & move to Building'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Move to Incubation (owner only, when building) */}
+        {isOwner && project.status === 'building' && (
+          <div className="border-t pt-4 mb-6">
+            <h2 className="font-semibold text-sm mb-2">Move to Incubation</h2>
+            {!sponsorFormOpen ? (
+              <div className="flex gap-2 flex-wrap items-center">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setSponsorFormOpen(true)}
+                >
+                  <UserCheck className="h-4 w-4 mr-1" />
+                  Confirm sponsor commitment and move to Incubation
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSponsorSubmit} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Sponsor commitment to agent ops review when agentic components exist.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setSponsorFormOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={isSubmittingSponsor}
+                  >
+                    {isSubmittingSponsor ? 'Saving…' : 'Confirm & move to Incubation'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         {/* Close / Archive (owner only, when not closed) */}
         {isOwner && !isClosed && (

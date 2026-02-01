@@ -252,6 +252,9 @@ export const update = mutation({
         v.literal("public")
       )
     ),
+    readinessCompletedAt: v.optional(v.number()),
+    riskCheckNotes: v.optional(v.string()),
+    sponsorCommittedAt: v.optional(v.number()),
   },
   handler: async (ctx, { projectId, ...updates }) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -271,6 +274,28 @@ export const update = mutation({
 
     if (!profile || project.ownerId !== profile._id) {
       throw new Error("Not authorized");
+    }
+
+    const newStatus = updates.status;
+    if (newStatus === "building") {
+      const hasReadiness =
+        project.readinessCompletedAt != null ||
+        updates.readinessCompletedAt != null;
+      if (!hasReadiness) {
+        throw new Error(
+          "Complete the AI readiness check before moving to Building (impact hypothesis and risk check)."
+        );
+      }
+    }
+    if (newStatus === "incubation") {
+      const hasSponsor =
+        project.sponsorCommittedAt != null ||
+        updates.sponsorCommittedAt != null;
+      if (!hasSponsor) {
+        throw new Error(
+          "Sponsor commitment is required before moving to Incubation."
+        );
+      }
     }
 
     await ctx.db.patch(projectId, updates);

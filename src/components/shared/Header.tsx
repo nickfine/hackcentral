@@ -3,13 +3,25 @@
  * Top navigation bar with search, notifications, and user menu
  */
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Search, Bell, Menu, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { UserButton } from '@/components/auth'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (q) {
+      navigate(`/search?q=${encodeURIComponent(q)}`)
+    } else {
+      navigate('/search')
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,33 +46,41 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Search (coming soon) */}
-        <div className="flex-1 max-w-md hidden md:block" title="Coming soon">
+        {/* Global search */}
+        <form className="flex-1 max-w-md hidden md:block" onSubmit={handleSearchSubmit} role="search">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
-              type="text"
-              placeholder="Search..."
+              type="search"
+              placeholder="Search library and people..."
               className="input pl-10 h-9 w-full"
-              readOnly
-              aria-label="Search (coming soon)"
-              title="Coming soon"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search library and people"
             />
           </div>
-        </div>
+        </form>
 
         {/* Right side actions */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Mobile search (coming soon) */}
-          <button type="button" className="md:hidden p-2 hover:bg-accent rounded-md" title="Coming soon" aria-label="Search (coming soon)">
+          {/* Mobile: link to search page */}
+          <Link
+            to="/search"
+            className="md:hidden p-2 hover:bg-accent rounded-md"
+            aria-label="Search"
+          >
             <Search className="h-5 w-5" />
-          </button>
+          </Link>
 
-          {/* Notifications (coming soon) */}
-          <button type="button" className="p-2 hover:bg-accent rounded-md relative" title="Coming soon" aria-label="Notifications (coming soon)">
+          {/* Notifications */}
+          <Link
+            to="/notifications"
+            className="p-2 hover:bg-accent rounded-md relative"
+            aria-label="Notifications"
+          >
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" aria-hidden />
-          </button>
+          </Link>
 
           {/* User menu */}
           <UserButton />

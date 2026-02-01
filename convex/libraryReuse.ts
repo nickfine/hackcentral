@@ -154,6 +154,13 @@ export const attachToProject = mutation({
       projectId,
       reuseType: attachmentType,
     });
+
+    await ctx.db.insert("aiContributions", {
+      userId: profile._id,
+      contributionType: "project_ai_artefact",
+      assetId,
+      projectId,
+    });
   },
 });
 

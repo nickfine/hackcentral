@@ -402,3 +402,78 @@ export const cancel = mutation({
     });
   },
 });
+
+/**
+ * Notifications for the current user (mentor request accepted/completed).
+ * Used by Header bell and /notifications page.
+ */
+export const getNotificationsForUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .first();
+    if (!profile) return [];
+
+    const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const asRequesterRaw = await ctx.db
+      .query("mentorRequests")
+      .withIndex("by_requester", (q) => q.eq("requesterId", profile._id))
+      .collect();
+    const asRequester = asRequesterRaw
+      .filter(
+        (r) =>
+          (r.status === "accepted" || r.status === "completed") &&
+          r._creationTime >= fourteenDaysAgo
+      )
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 10);
+    const asMentorRaw = await ctx.db
+      .query("mentorRequests")
+      .withIndex("by_mentor", (q) => q.eq("mentorId", profile._id))
+      .collect();
+    const asMentor = asMentorRaw
+      .filter(
+        (r) =>
+          (r.status === "accepted" || r.status === "completed") &&
+          r._creationTime >= fourteenDaysAgo
+      )
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 10);
+
+    type Notification = {
+      id: string;
+      type: string;
+      title: string;
+      link: string;
+      createdAt: number;
+    };
+    const notifications: Notification[] = [];
+    const seen = new Set<string>();
+    for (const r of [...asRequester, ...asMentor]) {
+      if (seen.has(r._id)) continue;
+      seen.add(r._id);
+      const isRequester = r.requesterId === profile._id;
+      const otherProfile = await ctx.db.get(
+        isRequester ? r.mentorId : r.requesterId
+      );
+      const otherName = otherProfile?.fullName ?? otherProfile?.email ?? "Someone";
+      notifications.push({
+        id: r._id,
+        type: "mentor_request",
+        title:
+          r.status === "completed"
+            ? `Mentoring session completed with ${otherName}`
+            : `Mentor request accepted by ${otherName}`,
+        link: "/profile",
+        createdAt: r._creationTime,
+      });
+    }
+    notifications.sort((a, b) => b.createdAt - a.createdAt);
+    return notifications.slice(0, 20);
+  },
+});

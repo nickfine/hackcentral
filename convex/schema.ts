@@ -93,6 +93,7 @@ export default defineSchema({
       v.literal("public")
     ),
     isArsenal: v.boolean(), // Curated AI Arsenal flag
+    isAnonymous: v.optional(v.boolean()), // Hide author in UI when true
   })
     .index("by_author", ["authorId"])
     .index("by_status", ["status"])
@@ -127,6 +128,10 @@ export default defineSchema({
       v.literal("public")
     ),
     isAnonymous: v.boolean(), // Anonymous submission flag
+    // Governance (Phase 3): building readiness, incubation sponsor
+    readinessCompletedAt: v.optional(v.number()),
+    riskCheckNotes: v.optional(v.string()),
+    sponsorCommittedAt: v.optional(v.number()),
   })
     .index("by_owner", ["ownerId"])
     .index("by_status", ["status"])

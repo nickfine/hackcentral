@@ -88,12 +88,20 @@ export function Sidebar() {
           <p className="text-xs text-muted-foreground mb-3">
             Explore the AI Arsenal to find proven prompts and templates.
           </p>
-          <NavLink
-            to="/library"
-            className="btn btn-primary btn-sm w-full"
-          >
-            Explore Library
-          </NavLink>
+          <div className="flex flex-col gap-2">
+            <NavLink
+              to="/library"
+              className="btn btn-primary btn-sm w-full"
+            >
+              Explore Library
+            </NavLink>
+            <NavLink
+              to="/onboarding"
+              className="btn btn-ghost btn-sm w-full text-muted-foreground"
+            >
+              All get-started options
+            </NavLink>
+          </div>
         </div>
       </div>
     </aside>
