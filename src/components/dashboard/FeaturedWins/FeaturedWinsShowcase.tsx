@@ -108,6 +108,9 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
     setTimeout(() => setAutoplay(true), 8000);
   };
 
+  const showLowContentNudge = wins.length >= 1 && wins.length < 4;
+  const showNewbieBanner = wins.length > 0;
+
   return (
     <section aria-labelledby="featured-wins-heading" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -116,7 +119,7 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
           className="flex items-center gap-2 text-2xl font-bold"
         >
           <Sparkles className="h-6 w-6 text-primary" aria-hidden />
-          Featured Wins & Reusable Magic
+          Community Wins — reusable magic from your peers
         </h2>
         <div className="flex items-center gap-2">
           {onShareStory && (
@@ -137,16 +140,39 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
         </div>
       </div>
 
-      {/* Carousel: horizontal scroll on desktop, swipe on mobile */}
-      <div className="relative" ref={containerRef}>
+      {showNewbieBanner && (
+        <p className="text-sm text-muted-foreground">
+          Your first copy could earn Rising Star — start here in under 10 seconds.
+        </p>
+      )}
+
+      {/* Carousel: horizontal scroll on desktop, swipe on mobile; pause on hover; keyboard nav */}
+      <div
+        className="relative"
+        ref={containerRef}
+        onMouseEnter={() => setAutoplay(false)}
+        onMouseLeave={() => setAutoplay(true)}
+        onKeyDown={(e) => {
+          if (!canScroll) return;
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            scrollToIndex((currentScrollIndex - 1 + displayWins.length) % displayWins.length);
+          }
+          if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            scrollToIndex((currentScrollIndex + 1) % displayWins.length);
+          }
+        }}
+        tabIndex={canScroll ? 0 : undefined}
+        role="region"
+        aria-label="Featured wins carousel — use arrow keys to navigate"
+      >
         <div
-          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth md:snap-x md:snap-mandatory md:overflow-x-auto"
+          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth md:snap-x md:snap-mandatory md:overflow-x-auto [scrollbar-width:thin]"
           style={{
             scrollSnapType: 'x mandatory',
             scrollPaddingLeft: '1rem',
           }}
-          role="region"
-          aria-label="Featured wins carousel"
         >
           {displayWins.map((win, index) => (
             <div
@@ -154,12 +180,34 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
               ref={(el) => {
                 cardRefs.current[index] = el;
               }}
-              className="flex shrink-0 snap-center md:min-w-[300px]"
+              className="flex min-w-[min(300px,calc(100vw-2rem))] shrink-0 snap-center sm:min-w-[300px]"
               style={{ scrollSnapAlign: 'start' }}
             >
               <WinCard win={win} />
             </div>
           ))}
+          {showLowContentNudge && onShareStory && (
+            <div
+              className="flex min-w-[280px] max-w-[320px] shrink-0 snap-center flex-col justify-center rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center"
+              style={{ scrollSnapAlign: 'start' }}
+            >
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Be the first Rising Star this week!
+              </p>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Submit your win and get spotted.
+              </p>
+              <button
+                type="button"
+                onClick={onShareStory}
+                className="btn btn-primary btn-sm mx-auto min-h-[44px]"
+                aria-label="Submit your win"
+              >
+                <PenLine className="mr-2 h-4 w-4" aria-hidden />
+                Submit your win →
+              </button>
+            </div>
+          )}
         </div>
 
         {canScroll && (
@@ -171,12 +219,12 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
                   (currentScrollIndex - 1 + displayWins.length) % displayWins.length
                 )
               }
-              className="btn btn-ghost btn-icon"
+              className="btn btn-ghost btn-icon min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
               aria-label="Previous win"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden />
             </button>
-            <div className="flex gap-2" role="tablist" aria-label="Carousel positions">
+            <div className="flex gap-1 sm:gap-2" role="tablist" aria-label="Carousel positions">
               {displayWins.map((_, idx) => (
                 <button
                   key={idx}
@@ -185,12 +233,17 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
                   aria-selected={idx === currentScrollIndex}
                   aria-label={`Go to win ${idx + 1}`}
                   onClick={() => scrollToIndex(idx)}
-                  className={`h-2 rounded-full transition-all ${
-                    idx === currentScrollIndex
-                      ? 'w-8 bg-primary'
-                      : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                  }`}
-                />
+                  className="flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-full sm:min-h-[1.5rem] sm:min-w-[1.5rem]"
+                >
+                  <span
+                    className={`block rounded-full ${
+                      idx === currentScrollIndex
+                        ? 'h-2 w-8 bg-primary'
+                        : 'h-2 w-2 bg-muted-foreground/70'
+                    }`}
+                    aria-hidden
+                  />
+                </button>
               ))}
             </div>
             <button
@@ -198,7 +251,7 @@ export function FeaturedWinsShowcase({ onShareStory }: FeaturedWinsShowcaseProps
               onClick={() =>
                 scrollToIndex((currentScrollIndex + 1) % displayWins.length)
               }
-              className="btn btn-ghost btn-icon"
+              className="btn btn-ghost btn-icon min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
               aria-label="Next win"
             >
               <ChevronRight className="h-5 w-5" aria-hidden />

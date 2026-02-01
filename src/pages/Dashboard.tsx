@@ -1,9 +1,23 @@
 /**
  * Dashboard Page - AI Maturity Dashboard
- * Cultural heartbeat: hero journey, featured wins showcase, stats with micro-stories, quick actions
+ *
+ * Page layout (order of sections):
+ * 1. Optional first-time / graduated nudges (Get started, Add library, Share story)
+ * 2. Personalized nudge (badges, next steps)
+ * 3. Export metrics (slim utility row)
+ * 4. WelcomeHero — "Your AI Superpower Hub", CTAs (Browse Community Wins, Submit Your Magic), slim maturity hint
+ * 5. Community Wins — FeaturedWinsShowcase (carousel/grid, newbie nudge, WallOfThanksStrip)
+ * 6. Our Collective Progress — demoted maturity card (stage icons, progress bar, mini stats)
+ * 7. Stat cards row (AI Contributors, Projects with AI, Library Assets, Weekly Active)
+ * 8. Knowledge Distribution (Gini) + Frontline vs Leader
+ * 9. Tabbed Recognition (Recent Activity, Top Contributors, Top Mentors, Most Reused)
+ * 10. Your Recognition (badges)
+ * 11. Quick Actions panel
+ *
+ * Rationale: Welcoming hero + demoted maturity maximizes adoption (belonging/quick wins first).
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation } from 'convex/react';
 import {
@@ -19,11 +33,14 @@ import {
   Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import confetti from 'canvas-confetti';
+import { useReducedMotion } from 'framer-motion';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import {
-  HeroJourneyVisualization,
+  WelcomeHero,
+  CollectiveProgressCard,
   FeaturedWinsShowcase,
   EnhancedMetricCard,
   GiniRadialProgress,
@@ -55,6 +72,24 @@ export default function Dashboard() {
   const [storyProjectId, setStoryProjectId] = useState<Id<'projects'> | ''>('');
   const [storyAssetId, setStoryAssetId] = useState<Id<'libraryAssets'> | ''>('');
   const [isSubmittingStory, setIsSubmittingStory] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const confettiFiredRef = useRef(false);
+
+  // Optional micro-celebration when weekly active count increases (restrained, once per session)
+  useEffect(() => {
+    if (shouldReduceMotion || metrics?.weeklyActiveCount == null || confettiFiredRef.current) return;
+    const current = metrics.weeklyActiveCount;
+    const key = 'hackcentral_weekly_active';
+    const prevStr = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(key) : null;
+    const prev = prevStr != null ? parseInt(prevStr, 10) : null;
+    if (prev != null && current > prev) {
+      confettiFiredRef.current = true;
+      const fire = (opts: Parameters<typeof confetti>[0]) => confetti(opts);
+      fire({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#06b6d4', '#d946ef', '#a855f7'] });
+      setTimeout(() => fire({ particleCount: 20, spread: 100, origin: { y: 0.6 } }), 200);
+    }
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, String(current));
+  }, [metrics?.weeklyActiveCount, shouldReduceMotion]);
 
   const handleStorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +147,23 @@ export default function Dashboard() {
         )
       : 25;
 
+  const maturityStages = [
+    { name: 'Spark', threshold: 25 },
+    { name: 'Momentum', threshold: 50 },
+    { name: 'Scale', threshold: 75 },
+    { name: 'Transformation', threshold: 100 },
+  ];
+  const currentStageIndex =
+    maturityStages.findIndex((s) => maturityWidth < s.threshold) === -1
+      ? maturityStages.length - 1
+      : maturityStages.findIndex((s) => maturityWidth < s.threshold);
+  const currentStage = maturityStages[currentStageIndex] ?? maturityStages[maturityStages.length - 1];
+  const nextStage = maturityStages[currentStageIndex + 1];
+  const nextMilestoneCopy =
+    nextStage && maturityWidth < 100
+      ? `${Math.max(0, Math.round(nextStage.threshold - maturityWidth))}% to ${nextStage.name}`
+      : undefined;
+
   const showFirstTimeCTA =
     recentActivity !== undefined && recentActivity.length === 0;
   const showGraduatedNudge =
@@ -146,9 +198,9 @@ export default function Dashboard() {
 
   const aiContributorMicroStory =
     metrics !== undefined && metrics.aiContributorCount === 1
-      ? `1 pioneer sparking ${metrics.aiContributorPercentage?.toFixed(0) ?? 0}% — add your spark?`
+      ? `1 pioneer sparked ${metrics.aiContributorPercentage?.toFixed(0) ?? 0}% — add your spark today?`
       : metrics !== undefined && metrics.aiContributorCount > 0
-        ? `${metrics.aiContributorCount} pioneers building momentum — every contributor inspires more. Add your spark?`
+        ? `${metrics.aiContributorCount} pioneers building momentum — add your spark today?`
         : undefined;
 
   const projectsWithAiMicroStory =
@@ -157,9 +209,13 @@ export default function Dashboard() {
       : undefined;
 
   const weeklyActiveMicroStory =
-    metrics !== undefined
-      ? 'Be the one this week — contribute to stay active.'
-      : undefined;
+    metrics !== undefined && metrics.weeklyActiveCount === 1
+      ? '1 active this week — be #2 and unlock the next milestone!'
+      : metrics !== undefined && metrics.weeklyActiveCount > 0
+        ? `${metrics.weeklyActiveCount} active this week — every copy counts.`
+        : metrics !== undefined
+          ? 'Be the one this week — contribute to stay active.'
+          : undefined;
 
   const topAssetMicroStory =
     mostReusedAssets != null && mostReusedAssets.length > 0
@@ -386,18 +442,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            AI Maturity Dashboard
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Track your organization&apos;s AI adoption progress
-          </p>
-        </div>
+      {/* Slim utility row: Export for leaders */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
-          className="btn btn-outline btn-sm inline-flex items-center gap-2"
+          className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center gap-2 sm:min-h-0 sm:min-w-0"
           onClick={() => {
             const exportData = {
               exportedAt: new Date().toISOString(),
@@ -421,13 +470,25 @@ export default function Dashboard() {
             a.click();
             URL.revokeObjectURL(url);
           }}
+          aria-label="Export dashboard metrics as JSON"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4" aria-hidden />
           Export metrics
         </button>
       </div>
 
-      <HeroJourneyVisualization
+      <WelcomeHero
+        onShareStory={() => setStoryModalOpen(true)}
+        currentProgress={maturityWidth}
+        currentStageName={currentStage?.name}
+        nextMilestoneCopy={nextMilestoneCopy}
+      />
+
+      <div id="community-wins" className="scroll-mt-6">
+        <FeaturedWinsShowcase onShareStory={() => setStoryModalOpen(true)} />
+      </div>
+
+      <CollectiveProgressCard
         currentProgress={maturityWidth}
         metrics={{
           aiContributorPercentage: metrics?.aiContributorPercentage ?? 0,
@@ -435,9 +496,7 @@ export default function Dashboard() {
         }}
       />
 
-      <FeaturedWinsShowcase onShareStory={() => setStoryModalOpen(true)} />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <EnhancedMetricCard
           title="AI Contributors"
           value={aiContributorValue}

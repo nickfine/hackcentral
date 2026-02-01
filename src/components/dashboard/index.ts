@@ -1,6 +1,9 @@
 export { HeroJourneyVisualization } from './HeroJourney/HeroJourneyVisualization';
 export { ParticleEffect } from './HeroJourney/ParticleEffect';
 export { MilestoneMarker } from './HeroJourney/MilestoneMarker';
+export { LiveActivityPulse } from './LiveActivityPulse';
+export { WelcomeHero, type WelcomeHeroProps } from './WelcomeHero';
+export { CollectiveProgressCard, type CollectiveProgressCardProps } from './CollectiveProgress';
 
 export {
   ImpactStoriesCarousel,

@@ -65,6 +65,36 @@ export const getDashboardMetrics = query({
 });
 
 /**
+ * Activity pulse for Live Activity Pulse widget: new assets this week, reuses in last 24h, weekly active.
+ * Used for real-time freshness copy and soft pulse animation.
+ */
+export const getActivityPulse = query({
+  args: {},
+  handler: async (ctx) => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+    const assets = await ctx.db.query("libraryAssets").collect();
+    const newAssetsThisWeek = assets.filter((a) => a._creationTime >= sevenDaysAgo).length;
+
+    const reuseEvents = await ctx.db.query("libraryReuseEvents").collect();
+    const reusesLast24h = reuseEvents.filter((e) => e._creationTime >= oneDayAgo).length;
+
+    const contributions7d = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), sevenDaysAgo))
+      .collect();
+    const weeklyActiveCount = new Set(contributions7d.map((c) => c.userId)).size;
+
+    return {
+      newAssetsThisWeek,
+      reusesLast24h,
+      weeklyActiveCount,
+    };
+  },
+});
+
+/**
  * Recent activity feed for dashboard: latest contributions with user and optional asset/project info.
  */
 export const getRecentActivity = query({

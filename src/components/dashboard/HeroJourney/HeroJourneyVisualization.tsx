@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Rocket, Zap, TrendingUp, Sparkles } from 'lucide-react';
 import { ParticleEffect } from './ParticleEffect';
 import { MilestoneMarker } from './MilestoneMarker';
+import { LiveActivityPulse } from '../LiveActivityPulse';
 
 interface Stage {
   name: string;
@@ -91,9 +92,8 @@ export function HeroJourneyVisualization({
         </motion.h2>
 
         <p className="mb-6 text-slate-300">
-          Your organization is in the{' '}
-          <span className="font-semibold text-cyan-300">{currentStage.name}</span>{' '}
-          stage
+          We&apos;re in {currentStage.name} — knowledge spreading like wildfire.
+          {currentProgress < 100 && ' Every copy pushes us to Transformation.'}
         </p>
 
         <div className="relative mb-8">
@@ -111,7 +111,12 @@ export function HeroJourneyVisualization({
           <div className="h-3 overflow-hidden rounded-full bg-slate-800/50 backdrop-blur">
             <motion.div
               initial={{ width: shouldReduceMotion ? undefined : 0 }}
-              animate={{ width: `${Math.min(100, currentProgress)}%` }}
+              animate={{
+                width: `${Math.min(100, currentProgress)}%`,
+                boxShadow: currentProgress >= 65 && currentProgress < 100 && !shouldReduceMotion
+                  ? '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.2)'
+                  : 'none',
+              }}
               transition={
                 shouldReduceMotion ? { duration: 0 } : { duration: 1.5, ease: 'easeOut' }
               }
@@ -151,6 +156,10 @@ export function HeroJourneyVisualization({
             </div>
           </motion.div>
         )}
+
+        <div className="mt-4 flex justify-end">
+          <LiveActivityPulse className="border-cyan-500/30 bg-cyan-500/10 text-slate-200" />
+        </div>
 
         <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
           <div>

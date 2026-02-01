@@ -48,16 +48,26 @@ export function WinCard({ win }: WinCardProps) {
     ? `/library?asset=${win.assetId}`
     : '/library';
 
+  const copyLabel =
+    win.type === 'asset'
+      ? `Copy ${win.title} to clipboard`
+      : `Copy story "${win.title}" to clipboard`;
+  const viewLabel = `View details for ${win.title}`;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={shouldReduceMotion ? undefined : { y: -4, scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className="group relative flex min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg hover:shadow-secondary/20 md:min-w-[280px] md:max-w-[320px]"
+      className={`group relative flex min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg md:min-w-[280px] md:max-w-[320px] ${
+        win.isRisingStar
+          ? 'hover:shadow-secondary/30 hover:ring-2 hover:ring-secondary/20'
+          : 'hover:shadow-primary/20'
+      }`}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/80 p-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/80 p-2" aria-hidden>
           {win.type === 'asset' ? (
             <FileCode className="h-5 w-5 shrink-0 text-primary" aria-hidden />
           ) : (
@@ -66,7 +76,7 @@ export function WinCard({ win }: WinCardProps) {
         </div>
         {win.isRisingStar ? (
           <span
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary group-hover:bg-secondary/20 group-hover:shadow-md group-hover:shadow-secondary/20"
             title="First-time or frontline contributor"
           >
             <Sparkles className="h-3 w-3" aria-hidden />
@@ -97,7 +107,7 @@ export function WinCard({ win }: WinCardProps) {
           type="button"
           onClick={handleCopy}
           className="btn btn-primary btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
-          aria-label={`Copy ${win.type === 'asset' ? 'asset' : 'story'} to clipboard`}
+          aria-label={copyLabel}
         >
           <Copy className="h-4 w-4 shrink-0" aria-hidden />
           Copy {win.type === 'asset' ? 'Asset' : 'Story'}
@@ -105,7 +115,7 @@ export function WinCard({ win }: WinCardProps) {
         <Link
           to={viewDetailsTo}
           className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
-          aria-label={`View details for ${win.title}`}
+          aria-label={viewLabel}
         >
           <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
           View Details
