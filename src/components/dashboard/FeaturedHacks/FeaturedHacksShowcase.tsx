@@ -90,13 +90,13 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
             className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl md:text-2xl"
           >
             <Sparkles className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
-            <span className="break-words">Community Hacks - <span className="font-normal">accelerators and pain removers made by us</span></span>
+            <span className="break-words">Latest Hacks - <span className="font-normal">accelerators and pain removers made by us</span></span>
           </h2>
         </div>
         <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
-          <Link to="/library" className="btn btn-ghost btn-sm">
+          <Link to="/hacks?tab=completed" className="btn btn-ghost btn-sm">
             <Library className="mr-2 h-4 w-4" aria-hidden />
-            Browse Completed Hacks
+            Browse All Hacks
           </Link>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
             Submit your hack from Completed Hacks and get spotted.
           </p>
           <Link
-            to="/library?action=new"
+            to="/hacks?tab=completed&action=new"
             className="btn btn-primary btn-sm mx-auto min-h-[44px] inline-flex items-center justify-center"
             aria-label="Submit your hack"
           >
@@ -149,7 +149,7 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
           <p className="mb-3 text-sm font-medium text-foreground">
             Be the first to share your hack today!
           </p>
-          <Link to="/library?action=new" className="btn btn-primary btn-sm inline-flex items-center gap-2">
+          <Link to="/hacks?tab=completed&action=new" className="btn btn-primary btn-sm inline-flex items-center gap-2">
             <Library className="h-4 w-4" aria-hidden />
             Submit your hack
           </Link>

@@ -11,7 +11,7 @@ export interface EngagementNudgeProps {
   displayName?: string | null;
   /** New assets count this week (e.g. from getActivityPulse.newAssetsThisWeek) */
   newAssetsCount?: number;
-  /** Scroll to Community Hacks when CTA clicked */
+  /** Scroll to Latest Hacks when CTA clicked */
   onScrollToHacks?: () => void;
 }
 
@@ -58,7 +58,7 @@ export function EngagementNudge({
           type="button"
           onClick={onScrollToHacks}
           className="btn btn-primary btn-sm w-full min-h-[44px] shrink-0 touch-manipulation sm:w-auto"
-          aria-label="Scroll to Community Hacks"
+          aria-label="Scroll to Latest Hacks"
         >
           See hacks
         </button>

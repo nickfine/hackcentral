@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   FolderKanban,
-  User,
   Sparkles,
   Activity,
 } from 'lucide-react'
@@ -21,24 +20,19 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    to: '/people',
-    label: 'People',
-    icon: Users,
-  },
-  {
     to: '/hacks',
     label: 'Hacks',
     icon: FolderKanban,
   },
   {
+    to: '/people',
+    label: 'People',
+    icon: Users,
+  },
+  {
     to: '/team-pulse',
     label: 'Team pulse',
     icon: Activity,
-  },
-  {
-    to: '/profile',
-    label: 'Profile',
-    icon: User,
   },
 ]
 
@@ -51,31 +45,6 @@ export function Sidebar() {
             <NavItem key={item.to} {...item} />
           ))}
         </nav>
-
-        {/* Featured Hacks Quick Access */}
-        <div className="mt-6 pt-6 border-t">
-          <div className="px-3 mb-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Quick Access
-            </span>
-          </div>
-          <NavLink
-            to="/hacks?tab=completed&arsenal=true"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                'hover:bg-accent hover:text-accent-foreground',
-                isActive && 'bg-accent text-accent-foreground'
-              )
-            }
-          >
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>Featured Hacks</span>
-            <span className="badge badge-secondary text-xs ml-auto">
-              Curated
-            </span>
-          </NavLink>
-        </div>
       </div>
 
       {/* Footer */}

@@ -18,7 +18,7 @@ export default function Onboarding() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link
-          to="/library?arsenal=true"
+          to="/hacks?tab=completed&arsenal=true"
           className="card p-6 hover:shadow-md transition-shadow flex flex-col"
         >
           <div className="rounded-lg bg-primary/10 p-3 w-fit mb-4">
@@ -34,7 +34,7 @@ export default function Onboarding() {
         </Link>
 
         <Link
-          to="/library?arsenal=true"
+          to="/hacks?tab=completed&arsenal=true"
           className="card p-6 hover:shadow-md transition-shadow flex flex-col"
         >
           <div className="rounded-lg bg-primary/10 p-3 w-fit mb-4">
@@ -50,7 +50,7 @@ export default function Onboarding() {
         </Link>
 
         <Link
-          to="/library?arsenal=true"
+          to="/hacks?tab=completed&arsenal=true"
           className="card p-6 hover:shadow-md transition-shadow flex flex-col"
         >
           <div className="rounded-lg bg-primary/10 p-3 w-fit mb-4">

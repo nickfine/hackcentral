@@ -2,10 +2,10 @@
  * Dashboard Page - AI Maturity Dashboard
  *
  * Hero first, then what to do:
- * 1. WelcomeHero — narrative "Copy a hack, use it, share yours", CTAs, maturity pill (~25–35vh)
+ * 1. WelcomeHero — big title + bold proposition; no buttons, no Spark/maturity info
  * 2. Optional combined nudge (Get started / Next step: add library, create project, share story)
  * 3. PersonalizedNudge (badges, next steps)
- * 4. Community Hacks — FeaturedHacksShowcase (Starter badges, carousel, WallOfThanksStrip)
+ * 4. Latest Hacks — FeaturedHacksShowcase (Starter badges, carousel, WallOfThanksStrip)
  * 5. Your recognition (if authenticated) → Quick Actions
  *
  * Team pulse is a separate page in the left nav (/team-pulse).
@@ -322,11 +322,11 @@ export default function Dashboard() {
                         New to HackDay Central? Copy a hack from Completed Hacks or create your first hack in progress.
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        <Link to="/library" className="btn btn-primary btn-sm">
+                        <Link to="/hacks?tab=completed" className="btn btn-primary btn-sm">
                           <Library className="mr-2 h-4 w-4" />
                           Explore Completed Hacks
                         </Link>
-                        <Link to="/projects" className="btn btn-outline btn-sm">
+                        <Link to="/hacks?tab=in_progress" className="btn btn-outline btn-sm">
                           <Activity className="mr-2 h-4 w-4" />
                           View Hacks In Progress
                         </Link>
@@ -348,7 +348,7 @@ export default function Dashboard() {
                       <p className="mb-3 text-sm text-muted-foreground">
                         You have hacks in progress but no completed hacks yet. Add a hack from Completed Hacks to your project.
                       </p>
-                      <Link to="/library" className="btn btn-primary btn-sm">
+                      <Link to="/hacks?tab=completed" className="btn btn-primary btn-sm">
                         <Library className="mr-2 h-4 w-4" />
                         Explore Completed Hacks
                       </Link>
@@ -359,7 +359,7 @@ export default function Dashboard() {
                       <p className="mb-3 text-sm text-muted-foreground">
                         You&apos;ve added completed hacks. Create a hack in progress to track your work and attach hacks.
                       </p>
-                      <Link to="/projects" className="btn btn-primary btn-sm">
+                      <Link to="/hacks?tab=in_progress" className="btn btn-primary btn-sm">
                         <Activity className="mr-2 h-4 w-4" />
                         Create a project
                       </Link>
@@ -371,7 +371,7 @@ export default function Dashboard() {
                         You&apos;re all set. Explore Completed Hacks or check Team pulse for metrics.
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        <Link to="/library" className="btn btn-primary btn-sm">
+                        <Link to="/hacks?tab=completed" className="btn btn-primary btn-sm">
                           <Library className="mr-2 h-4 w-4" />
                           Explore Completed Hacks
                         </Link>
@@ -412,18 +412,9 @@ export default function Dashboard() {
                 <Award className="h-5 w-5 text-muted-foreground" />
                 Your recognition
               </h2>
-              {!isAuthenticated ? (
-                <p className="text-sm text-muted-foreground">
-                  Sign in to see your recognition and badges.
-                </p>
-              ) : derivedBadges === undefined ? (
+              {derivedBadges === undefined ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : derivedBadges.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Complete mentor sessions, verify completed hacks, or get reuses on
-                  your hacks to earn badges.
-                </p>
-              ) : (
+              ) : derivedBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {derivedBadges.map((badge) => (
                     <span
@@ -441,6 +432,37 @@ export default function Dashboard() {
                     </span>
                   ))}
                 </div>
+              ) : (
+                <>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {!isAuthenticated
+                      ? 'Sign in to see your real badges. Demo badges below:'
+                      : 'Complete mentor sessions, verify hacks, or get reuses to earn badges. Demo badges below:'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { badgeType: 'demo_rising_star', label: 'Rising Star', metricValue: 1 },
+                      { badgeType: 'demo_mentor', label: 'Mentor Champion', metricValue: 3 },
+                      { badgeType: 'demo_verifier', label: 'Verifier', metricValue: 5 },
+                      { badgeType: 'demo_reused', label: 'Most Reused', metricValue: 12 },
+                      { badgeType: 'demo_early', label: 'Early Adopter', metricValue: 1 },
+                    ].map((badge) => (
+                      <span
+                        key={badge.badgeType}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                        title={`${badge.label}: ${badge.metricValue}`}
+                      >
+                        <Award className="h-4 w-4 shrink-0" />
+                        {badge.label}
+                        {badge.metricValue > 1 && (
+                          <span className="text-muted-foreground">
+                            ×{badge.metricValue}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>

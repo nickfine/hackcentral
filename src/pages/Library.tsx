@@ -21,14 +21,6 @@ const ASSET_TYPES = [
   { value: 'app', label: 'App' },
 ] as const;
 
-/** Stage labels for library asset status (Completed Hacks). */
-const ASSET_STAGE_LABELS: Record<string, string> = {
-  draft: 'Draft',
-  in_progress: 'In progress',
-  verified: 'Verified',
-  deprecated: 'Deprecated',
-};
-
 const VISIBILITY_OPTIONS = [
   { value: 'org', label: 'Organization (colleagues)' },
   { value: 'public', label: 'Public' },
@@ -611,16 +603,8 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
     app: <Bot className="h-4 w-4" />,
   };
 
-  const stageColors: Record<string, string> = {
-    draft: 'badge-draft',
-    in_progress: 'badge-in-progress',
-    verified: 'badge-verified',
-    deprecated: 'badge-deprecated',
-  };
-
   const reuseCount = asset.totalReuseEvents ?? 0;
   const typeLabel = ASSET_TYPES.find((t) => t.value === asset.assetType)?.label ?? asset.assetType;
-  const stageLabel = ASSET_STAGE_LABELS[asset.status] ?? asset.status;
 
   return (
     <div
@@ -653,14 +637,11 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
         {asset.description || 'No description'}
       </p>
 
-      {/* Bottom row: lozenges left, reuse count right */}
+      {/* Bottom row: type lozenge left, reuse count right (stage omitted — completed hacks are finished) */}
       <div className="flex items-center justify-between gap-2 pt-1">
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
           <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
             {typeLabel}
-          </span>
-          <span className={`badge ${stageColors[asset.status]} text-xs`}>
-            {stageLabel}
           </span>
         </div>
         <span className="text-xs text-muted-foreground shrink-0">

@@ -1,7 +1,7 @@
 /**
  * CollectiveProgressCard - Demoted maturity pod for leaders
  * Compact "Our Collective Progress" card: stage icons, progress bar, short copy
- * Shown on Team pulse tab; Community Hacks is on Hacks tab. Keeps hero welcoming and value-first.
+ * Shown on Team pulse tab; Latest Hacks is on Hacks tab. Keeps hero welcoming and value-first.
  * Stage names/thresholds (Spark 25, Momentum 50, Scale 75, Transformation 100) align with HeroJourneyVisualization.
  */
 

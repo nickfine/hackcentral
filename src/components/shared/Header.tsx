@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { UserButton } from '@/components/auth'
+import { ProfileLink } from '@/components/auth'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -131,8 +131,8 @@ export function Header() {
               <MessageSquare className="h-5 w-5" />
             </button>
 
-            {/* User menu */}
-            <UserButton />
+            {/* Profile: links to dedicated Profile page (no dropdown) */}
+            <ProfileLink />
           </div>
         )}
       </div>
@@ -282,11 +282,11 @@ function MobileNav({ onClose, onOpenFeedback }: MobileNavProps) {
           <MobileNavLink to="/dashboard" onClick={onClose}>
             Dashboard
           </MobileNavLink>
-          <MobileNavLink to="/people" onClick={onClose}>
-            People
-          </MobileNavLink>
           <MobileNavLink to="/hacks" onClick={onClose}>
             Hacks
+          </MobileNavLink>
+          <MobileNavLink to="/people" onClick={onClose}>
+            People
           </MobileNavLink>
           <MobileNavLink to="/team-pulse" onClick={onClose}>
             Team pulse

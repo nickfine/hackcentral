@@ -4,9 +4,11 @@
  */
 
 import { useState } from 'react';
-import { Settings, Award, BookOpen, Briefcase, X, UserPlus, Clock, Check, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Settings, Award, BookOpen, Briefcase, X, UserPlus, Clock, Check, XCircle, LogOut, UserCog } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../hooks/useAuth';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -24,6 +26,7 @@ type ActiveTab = 'contributions' | 'projects' | 'mentoring' | 'settings';
 
 export default function Profile() {
   const { user } = useUser();
+  const { signOut } = useAuth();
   const profile = useQuery(api.profiles.getCurrentProfile);
   const capabilityTags = useQuery(api.capabilityTags.list);
   const upsertProfile = useMutation(api.profiles.upsert);
@@ -131,12 +134,39 @@ export default function Profile() {
       return acc;
     }, {} as Record<string, typeof capabilityTags>) ?? {};
 
+  const email = profile?.email ?? user?.primaryEmailAddress?.emailAddress ?? '';
+
   return (
     <div className="space-y-6">
       {/* Page title */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground mt-1">View and manage your contributions, projects, and settings</p>
+        <p className="text-muted-foreground mt-1">View and manage your contributions, account, and settings</p>
+      </div>
+
+      {/* Account (unified with top-right profile: sign out, manage account on dedicated page) */}
+      <div className="card p-6">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+          <UserCog className="h-5 w-5 text-muted-foreground" />
+          Account
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Signed in as <span className="font-medium text-foreground">{email || '—'}</span>
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/profile/account" className="btn btn-outline btn-sm inline-flex items-center gap-2">
+            <UserCog className="h-4 w-4" />
+            Manage account
+          </Link>
+          <button
+            type="button"
+            onClick={() => signOut?.()}
+            className="btn btn-outline btn-sm inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
       </div>
 
       {/* Edit Profile Modal */}

@@ -54,7 +54,7 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
 
   const viewDetailsTo = hack.type === 'asset' && hack.assetId
     ? `/library/${hack.assetId}`
-    : '/library';
+    : '/hacks?tab=completed';
 
   // Show Copy for stories, and for assets that are prompt/skill (or when assetType missing for backwards compatibility)
   const showCopy =

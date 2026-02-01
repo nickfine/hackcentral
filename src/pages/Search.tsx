@@ -83,7 +83,7 @@ export default function Search() {
                 {filteredAssets.slice(0, limit).map((asset) => (
                   <li key={asset._id}>
                     <Link
-                      to={`/library?q=${encodeURIComponent(q)}`}
+                      to={`/hacks?tab=completed&q=${encodeURIComponent(q)}`}
                       className="block card p-3 hover:bg-accent/50 transition-colors rounded-lg"
                     >
                       <span className="font-medium">{asset.title}</span>
@@ -99,7 +99,7 @@ export default function Search() {
               </ul>
             )}
             {filteredAssets.length > limit && (
-              <Link to={`/library?q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm mt-2">
+              <Link to={`/hacks?tab=completed&q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm mt-2">
                 View all {filteredAssets.length} hacks →
               </Link>
             )}

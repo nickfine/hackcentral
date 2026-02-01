@@ -110,7 +110,7 @@ function StarterCard({
     }
   };
 
-  const viewTo = hack.type === 'asset' && hack.assetId ? `/library/${hack.assetId}` : '/library';
+  const viewTo = hack.type === 'asset' && hack.assetId ? `/library/${hack.assetId}` : '/hacks?tab=completed';
   // Align with HackCard: show Copy only for story or asset (prompt/skill or missing assetType); app → View only
   const showCopy =
     hack.type === 'story' ||

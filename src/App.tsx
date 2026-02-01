@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default:
 const People = lazy(() => import('@/pages/People').then((m) => ({ default: m.default })))
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail').then((m) => ({ default: m.default })))
 const Profile = lazy(() => import('@/pages/Profile').then((m) => ({ default: m.default })))
+const ProfileAccount = lazy(() => import('@/pages/ProfileAccount').then((m) => ({ default: m.default })))
 const Search = lazy(() => import('@/pages/Search').then((m) => ({ default: m.default })))
 const Onboarding = lazy(() => import('@/pages/Onboarding').then((m) => ({ default: m.default })))
 const Guide = lazy(() => import('@/pages/Guide').then((m) => ({ default: m.default })))
@@ -99,6 +100,14 @@ function App() {
               element={
                 <Suspense fallback={<PageFallback />}>
                   <Profile />
+                </Suspense>
+              }
+            />
+            <Route
+              path="profile/account/*"
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <ProfileAccount />
                 </Suspense>
               }
             />
