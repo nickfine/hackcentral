@@ -905,3 +905,45 @@ const debouncedSearch = useDebounce(searchQuery);
 - Phase 2: Advanced features (monthly capacity reset, mentor ratings, calendar integration)
 - Continued refinement based on user feedback
 - Performance monitoring and optimization
+
+---
+
+## Project Dedicated Page – Playwright Test (Feb 1, 2026)
+
+### What Was Tested
+- Replaced project detail/comments modals with a dedicated route `/projects/:projectId`.
+- Projects list: card click and comment icon click navigate to the project page.
+
+### Test Environment
+- **Tool:** Playwright MCP (browser_navigate, browser_click, browser_snapshot, browser_console_messages).
+- **App:** Vite dev server at `http://localhost:5182` (frontend only; Convex backend assumed running).
+- **Auth:** Signed in as “Nick Test”; Projects list showed two projects.
+
+### Test Steps & Results
+
+1. **Navigate to Projects**
+   - Went to `http://localhost:5182/projects`.
+   - Waited for “Loading…” to disappear.
+   - **Result:** Projects page loaded with heading “Projects”, “New Project” button, search/filters, and two project cards (“Playwright test project”, “Phase 1 Polish Test Project”).
+
+2. **Card click → project detail page**
+   - Clicked the first project card (“View Playwright test project”).
+   - **Result:** URL changed to `/projects/kh7fzrhe7d4gmpc7zawa1n4ncx809qek`. Page showed: “Back to projects” link, title “Playwright test project”, status “Completed”, owner “Nick Test”, Learning summary (lessons learned, AI tools used, workflow transformed), full Comments section with one comment and “Add a comment” form. No “View in full” button; comments are inline.
+
+3. **Back to projects**
+   - Clicked “Back to projects”.
+   - **Result:** URL changed to `/projects`; Projects list visible again.
+
+4. **Comment icon → project page with #comments**
+   - Clicked “View comments” on the first project card.
+   - **Result:** URL changed to `/projects/kh7fzrhe7d4gmpc7zawa1n4ncx809qek#comments`. Same project detail page with Comments section visible in the snapshot.
+
+5. **Console**
+   - Fetched console messages at level `error`.
+   - **Result:** No errors. One warning: Clerk development keys (expected in dev).
+
+### Conclusion
+- Card click and comment icon click both navigate to the project detail page as intended.
+- Project page shows full content (title, status, owner, learning summary, full comments, add-comment form) and “Back to projects” works.
+- Comment icon correctly uses `#comments` in the URL.
+- No console errors during the tested flow.

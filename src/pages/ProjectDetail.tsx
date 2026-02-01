@@ -1,0 +1,389 @@
+/**
+ * Project Detail Page
+ * Dedicated page for a single project: title, status, owner, description,
+ * learning summary, close/archive (owner), and full comments section.
+ */
+
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Archive, CheckCircle, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
+import { useAuth } from '../hooks/useAuth';
+import { PROJECT_STATUS_LABELS } from '../constants/project';
+
+export default function ProjectDetail() {
+  const { projectId: projectIdParam } = useParams<{ projectId: string }>();
+  const projectId = projectIdParam as Id<'projects'> | undefined;
+
+  const { isAuthenticated } = useAuth();
+  const project = useQuery(
+    api.projects.getById,
+    projectId ? { projectId } : 'skip'
+  );
+  const profile = useQuery(api.profiles.getCurrentProfile);
+  const comments = useQuery(
+    api.projectComments.listForProject,
+    projectId ? { projectId: projectId as Id<'projects'> } : 'skip'
+  );
+  const addComment = useMutation(api.projectComments.add);
+  const updateProject = useMutation(api.projects.update);
+
+  const [commentContent, setCommentContent] = useState('');
+  const [commentIsAiRelated, setCommentIsAiRelated] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [closeFormOpen, setCloseFormOpen] = useState(false);
+  const [closeTargetStatus, setCloseTargetStatus] = useState<'completed' | 'archived'>('completed');
+  const [failuresAndLessons, setFailuresAndLessons] = useState('');
+  const [timeSavedEstimate, setTimeSavedEstimate] = useState<string>('');
+  const [workflowTransformed, setWorkflowTransformed] = useState(false);
+  const [aiToolsUsedText, setAiToolsUsedText] = useState('');
+  const [isSubmittingClose, setIsSubmittingClose] = useState(false);
+
+  const isOwner = Boolean(project && profile && project.ownerId === profile._id);
+  const isClosed = project?.status === 'completed' || project?.status === 'archived';
+
+  useEffect(() => {
+    if (project && window.location.hash === '#comments') {
+      document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [project]);
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectId || !commentContent.trim() || isSubmittingComment) return;
+    setIsSubmittingComment(true);
+    try {
+      await addComment({
+        projectId: projectId as Id<'projects'>,
+        content: commentContent.trim(),
+        isAiRelated: commentIsAiRelated,
+      });
+      toast.success('Comment added!');
+      setCommentContent('');
+      setCommentIsAiRelated(false);
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+      toast.error('Failed to add comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCloseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectId || isSubmittingClose) return;
+    if (!failuresAndLessons.trim()) {
+      toast.error('Please add lessons learned.');
+      return;
+    }
+    setIsSubmittingClose(true);
+    try {
+      await updateProject({
+        projectId: projectId as Id<'projects'>,
+        status: closeTargetStatus,
+        failuresAndLessons: failuresAndLessons.trim(),
+        timeSavedEstimate: timeSavedEstimate === '' ? undefined : Number(timeSavedEstimate),
+        workflowTransformed,
+        aiToolsUsed: aiToolsUsedText.trim() ? aiToolsUsedText.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      });
+      toast.success(closeTargetStatus === 'archived' ? 'Project archived.' : 'Project marked as completed.');
+      setCloseFormOpen(false);
+      setFailuresAndLessons('');
+      setTimeSavedEstimate('');
+      setWorkflowTransformed(false);
+      setAiToolsUsedText('');
+    } catch (err) {
+      console.error('Failed to close project:', err);
+      toast.error('Failed to save. Please try again.');
+    } finally {
+      setIsSubmittingClose(false);
+    }
+  };
+
+  if (!projectId) {
+    return (
+      <div className="space-y-4">
+        <p className="text-muted-foreground">Invalid project.</p>
+        <Link to="/projects" className="btn btn-primary">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to projects
+        </Link>
+      </div>
+    );
+  }
+
+  if (project === undefined) {
+    return (
+      <div className="space-y-4">
+        <p className="text-muted-foreground">Loading project…</p>
+      </div>
+    );
+  }
+
+  if (project === null) {
+    return (
+      <div className="space-y-4">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Link to="/projects" className="btn btn-primary">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to projects
+        </Link>
+      </div>
+    );
+  }
+
+  const projectWithOwner = project as typeof project & { ownerFullName?: string };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link
+          to="/projects"
+          className="btn btn-ghost btn-sm inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          aria-label="Back to projects"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to projects
+        </Link>
+      </div>
+
+      <div className="max-w-2xl">
+        <h1 className="text-2xl font-bold tracking-tight mb-2">{project.title}</h1>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="badge badge-outline text-xs">
+            {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+          </span>
+          {projectWithOwner.ownerFullName && (
+            <span className="text-sm text-muted-foreground">
+              Owner: {projectWithOwner.ownerFullName}
+            </span>
+          )}
+        </div>
+        {project.description && (
+          <p className="text-muted-foreground mb-6 whitespace-pre-wrap">{project.description}</p>
+        )}
+
+        {/* Learning summary (when completed/archived) */}
+        {isClosed &&
+          (project.failuresAndLessons ||
+            project.timeSavedEstimate != null ||
+            (project.aiToolsUsed?.length ?? 0) > 0 ||
+            project.workflowTransformed) && (
+            <div className="border-t pt-4 mb-6">
+              <h2 className="font-semibold text-sm mb-2">Learning summary</h2>
+              <dl className="space-y-2 text-sm">
+                {project.failuresAndLessons && (
+                  <>
+                    <dt className="text-muted-foreground">Lessons learned</dt>
+                    <dd className="whitespace-pre-wrap">{project.failuresAndLessons}</dd>
+                  </>
+                )}
+                {project.timeSavedEstimate != null && (
+                  <>
+                    <dt className="text-muted-foreground">Time saved (est. hours)</dt>
+                    <dd>{project.timeSavedEstimate}</dd>
+                  </>
+                )}
+                {project.aiToolsUsed && project.aiToolsUsed.length > 0 && (
+                  <>
+                    <dt className="text-muted-foreground">AI tools used</dt>
+                    <dd>{project.aiToolsUsed.join(', ')}</dd>
+                  </>
+                )}
+                {project.workflowTransformed && (
+                  <dd className="text-muted-foreground">Workflow transformed with AI</dd>
+                )}
+              </dl>
+            </div>
+          )}
+
+        {/* Close / Archive (owner only, when not closed) */}
+        {isOwner && !isClosed && (
+          <div className="border-t pt-4 mb-6">
+            <h2 className="font-semibold text-sm mb-2">Close or archive</h2>
+            {!closeFormOpen ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    setCloseTargetStatus('completed');
+                    setCloseFormOpen(true);
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Mark completed
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    setCloseTargetStatus('archived');
+                    setCloseFormOpen(true);
+                  }}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  Archive
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCloseSubmit} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {closeTargetStatus === 'archived'
+                    ? 'Archive this project and capture what you learned.'
+                    : 'Mark as completed and capture what you learned.'}
+                </p>
+                <div>
+                  <label htmlFor="close-lessons" className="block text-sm font-medium mb-1">
+                    Lessons learned <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    id="close-lessons"
+                    value={failuresAndLessons}
+                    onChange={(e) => setFailuresAndLessons(e.target.value)}
+                    className="input w-full min-h-[80px]"
+                    placeholder="What worked, what didn't, what you'd do differently"
+                    required
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="close-time-saved" className="block text-sm font-medium mb-1">
+                    Time saved (hours, optional)
+                  </label>
+                  <input
+                    id="close-time-saved"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={timeSavedEstimate}
+                    onChange={(e) => setTimeSavedEstimate(e.target.value)}
+                    className="input w-24"
+                    placeholder="e.g. 12"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="close-tools" className="block text-sm font-medium mb-1">
+                    AI tools used (optional, comma-separated)
+                  </label>
+                  <input
+                    id="close-tools"
+                    type="text"
+                    value={aiToolsUsedText}
+                    onChange={(e) => setAiToolsUsedText(e.target.value)}
+                    className="input w-full"
+                    placeholder="e.g. ChatGPT, Cursor, Copilot"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="close-workflow"
+                    type="checkbox"
+                    checked={workflowTransformed}
+                    onChange={(e) => setWorkflowTransformed(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <label htmlFor="close-workflow" className="text-sm">
+                    Workflow transformed with AI
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setCloseFormOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={isSubmittingClose}
+                  >
+                    {isSubmittingClose
+                      ? 'Saving…'
+                      : closeTargetStatus === 'archived'
+                        ? 'Archive'
+                        : 'Mark completed'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Comments (full section, no "View in full") */}
+        <div id="comments" className="border-t pt-6 scroll-mt-4">
+          <h2 className="font-semibold text-lg mb-4">Comments</h2>
+          {comments === undefined ? (
+            <p className="text-muted-foreground">Loading comments…</p>
+          ) : comments.length === 0 ? (
+            <p className="text-muted-foreground mb-6">No comments yet.</p>
+          ) : (
+            <ul className="space-y-3 mb-6">
+              {comments.map(({ comment, author }) => (
+                <li key={comment._id} className="border-b pb-3 last:border-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">
+                      {author?.fullName ?? 'Unknown'}
+                    </span>
+                    {comment.isAiRelated && (
+                      <span className="badge text-xs bg-primary/20 text-primary">
+                        AI-related
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {comment.content}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {isAuthenticated && (
+            <form onSubmit={handleCommentSubmit} className="space-y-3">
+              <div>
+                <label htmlFor="comment-content" className="block text-sm font-medium mb-1">
+                  Add a comment
+                </label>
+                <textarea
+                  id="comment-content"
+                  value={commentContent}
+                  onChange={(e) => setCommentContent(e.target.value)}
+                  className="input w-full min-h-[80px]"
+                  placeholder="Write a comment…"
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="comment-ai-related"
+                  type="checkbox"
+                  checked={commentIsAiRelated}
+                  onChange={(e) => setCommentIsAiRelated(e.target.checked)}
+                  className="rounded border-input"
+                />
+                <label htmlFor="comment-ai-related" className="text-sm">
+                  Mark as AI-related
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingComment || !commentContent.trim()}
+                >
+                  {isSubmittingComment ? 'Posting…' : 'Post comment'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

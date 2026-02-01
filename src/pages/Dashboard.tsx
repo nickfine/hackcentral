@@ -30,8 +30,8 @@ export default function Dashboard() {
   const impactStories = useQuery(api.impactStories.list, { limit: 10 })
   const createStory = useMutation(api.impactStories.create)
   const projects = useQuery(api.projects.list)
-  const libraryAssets = useQuery(api.libraryAssets.list)
-  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser)
+  const libraryAssets = useQuery(api.libraryAssets.list, {})
+  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {})
 
   const [storyModalOpen, setStoryModalOpen] = useState(false)
   const [storyHeadline, setStoryHeadline] = useState('')

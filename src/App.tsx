@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { Layout } from '@/components/shared/Layout'
-import { Dashboard, People, Library, Projects, Profile } from '@/pages'
+import { Dashboard, People, Library, Projects, ProjectDetail, Profile } from '@/pages'
 import '@/styles/globals.css'
 
 function App() {
@@ -15,6 +15,7 @@ function App() {
             <Route path="people" element={<People />} />
             <Route path="library" element={<Library />} />
             <Route path="projects" element={<Projects />} />
+            <Route path="projects/:projectId" element={<ProjectDetail />} />
             <Route path="profile" element={<Profile />} />
             {/* Catch-all route */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
