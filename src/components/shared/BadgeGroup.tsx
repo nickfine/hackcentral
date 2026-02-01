@@ -46,7 +46,9 @@ export function BadgeGroup({
   if (badges.length === 0) return null;
 
   const visible = badges.slice(0, maxVisible);
-  const overflowCount = badges.length - maxVisible;
+  const overflowBadges = badges.slice(maxVisible);
+  const overflowCount = overflowBadges.length;
+  const overflowTitle = overflowCount > 0 ? overflowBadges.map((b) => b.label).join(', ') : undefined;
 
   const sizeClass = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm';
 
@@ -66,6 +68,7 @@ export function BadgeGroup({
       ))}
       {overflowCount > 0 && (
         <span
+          title={overflowTitle}
           className={cn(
             'inline-flex items-center rounded-full font-medium border bg-muted text-muted-foreground border-border',
             sizeClass

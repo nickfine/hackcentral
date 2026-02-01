@@ -52,16 +52,18 @@ export default function Hacks() {
 
   return (
     <div className="min-w-0 space-y-6">
-      <SectionHeader
-        title="Our Hacks"
-        action={{
-          label: activeTab === 'completed' ? 'Submit Hack' : 'New Project',
-          icon: <Plus className="h-4 w-4" />,
-          onClick: activeTab === 'completed'
-            ? () => setLibrarySubmitModalOpen(true)
-            : () => setProjectsCreateOpen(true),
-        }}
-      />
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2">
+        <SectionHeader
+          title="Our Hacks"
+          action={{
+            label: activeTab === 'completed' ? 'Submit Hack' : 'New Project',
+            icon: <Plus className="h-4 w-4" />,
+            onClick: activeTab === 'completed'
+              ? () => setLibrarySubmitModalOpen(true)
+              : () => setProjectsCreateOpen(true),
+          }}
+        />
+      </div>
 
       {/* Search and filters (tab-specific) */}
       <div className="flex gap-4 flex-wrap">

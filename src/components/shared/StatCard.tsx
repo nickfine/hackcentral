@@ -44,7 +44,7 @@ export function StatCard({
 
   return (
     <div
-      className={`rounded-xl border border-border bg-card shadow-sm p-5 md:p-6 hover:shadow-md hover:scale-[1.02] transition-all duration-200 ${className}`}
+      className={`rounded-xl border border-border bg-card shadow-sm p-5 md:p-6 hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
@@ -57,16 +57,18 @@ export function StatCard({
           </div>
         )}
       </div>
-      <div className="mt-3">
-        <div className="text-2xl md:text-3xl font-bold metric-number tabular-nums">
-          {value}
-        </div>
-        <div className="text-sm font-medium text-muted-foreground mt-1">{label}</div>
+      <div className="mt-3 space-y-4">
+        <div>
+          <div className="text-2xl md:text-3xl font-bold metric-number tabular-nums">
+            {value}
+          </div>
+          <div className="text-sm uppercase tracking-wide text-muted-foreground mt-1">{label}</div>
         {description != null && description !== '' && (
           <p className="text-xs text-muted-foreground leading-relaxed mt-2">
             {description}
           </p>
         )}
+        </div>
       </div>
     </div>
   );

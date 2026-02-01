@@ -443,7 +443,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
       )}
 
       {/* Featured Hacks Section — one row, no Curated badge, no category row */}
-      <div className="card p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+      <div className="card p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Featured Hacks</h2>
@@ -452,7 +452,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
           High-trust, curated collection of proven AI hacks
         </p>
         {arsenalAssets === undefined ? (
-          <div className="text-center py-8">Loading featured hacks...</div>
+          <SkeletonGrid count={4} columns={4} />
         ) : arsenalAssets.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No featured hacks yet. Run seedAIArsenal to populate.</p>
@@ -567,43 +567,45 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
 
   return (
     <div
-      className={`card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden ${asset.status === 'verified' ? 'pr-8' : ''} ${asset.status === 'deprecated' ? 'opacity-75' : ''}`}
+      className={`card p-5 md:p-6 hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 ease-out cursor-pointer relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${asset.status === 'deprecated' ? 'opacity-75' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(asset._id)}
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.(asset._id)}
     >
-      {/* Verified: corner flash (green + tick) */}
+      {/* Verified badge (theme success) */}
       {asset.status === 'verified' && (
         <div
-          className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded-bl-md"
+          className="absolute top-3 right-3 size-5 flex items-center justify-center bg-[var(--color-success)] text-white rounded-full p-0.5"
           aria-label="Verified"
         >
-          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <Check className="h-3 w-3" strokeWidth={2.5} />
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
-            {typeIcons[asset.assetType] || <FileText className="h-4 w-4" />}
+      <div className="space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+              {typeIcons[asset.assetType] || <FileText className="h-4 w-4" />}
+            </div>
+            <h3 className="font-semibold text-sm leading-tight truncate">{asset.title}</h3>
           </div>
-          <h3 className="font-semibold text-sm leading-tight truncate">{asset.title}</h3>
         </div>
-      </div>
 
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-        {stripSeedDescriptionSuffix(asset.description) || 'No description'}
-      </p>
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {stripSeedDescriptionSuffix(asset.description) || 'No description'}
+        </p>
 
-      {/* Bottom row: type lozenge left, reuse count right — grid keeps same line on all cards */}
-      <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1 min-w-0">
+        {/* Bottom row: type lozenge left, reuse count right — grid keeps same line on all cards */}
+        <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1 min-w-0">
         <span className={`badge text-xs border w-fit whitespace-nowrap truncate min-w-0 max-w-full ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
           {typeLabel}
         </span>
         <span className="text-xs text-muted-foreground whitespace-nowrap text-right">
           {reuseCount} reuse{reuseCount !== 1 ? 's' : ''}
         </span>
+        </div>
       </div>
     </div>
   )

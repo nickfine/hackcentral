@@ -39,7 +39,7 @@ export function WelcomeHero(_props: WelcomeHeroProps) {
           initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08 }}
-          className="mt-3 break-words text-base font-semibold text-muted-foreground sm:mt-4 sm:text-lg md:mt-6 md:text-xl lg:text-2xl"
+          className="mt-3 break-words text-sm text-muted-foreground sm:mt-4 md:mt-6"
         >
           Our clubhouse for all things AI, vibecoding and hacking
         </motion.p>

@@ -406,29 +406,30 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
 
   return (
     <div
-      className="card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+      className="card p-5 md:p-6 hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 ease-out cursor-pointer relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       onClick={onCardClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onCardClick()}
       aria-label={`View ${project.title}`}
     >
-      {/* Top row: type icon + title (aligned with AssetCard) */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
-            {project.hackType ? PROJECT_TYPE_ICONS[project.hackType] ?? <FileText className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+      <div className="space-y-4">
+        {/* Top row: type icon + title (aligned with AssetCard) */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+              {project.hackType ? PROJECT_TYPE_ICONS[project.hackType] ?? <FileText className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+            </div>
+            <h3 className="font-semibold text-sm leading-tight truncate">{project.title}</h3>
           </div>
-          <h3 className="font-semibold text-sm leading-tight truncate">{project.title}</h3>
         </div>
-      </div>
 
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-        {stripSeedDescriptionSuffix(project.description) || 'No description'}
-      </p>
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {stripSeedDescriptionSuffix(project.description) || 'No description'}
+        </p>
 
-      {/* Bottom row: lozenges left, metrics right (aligned with AssetCard) */}
-      <div className="flex items-center justify-between gap-2 pt-1">
+        {/* Bottom row: lozenges left, metrics right (aligned with AssetCard) */}
+        <div className="flex items-center justify-between gap-2 pt-1">
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
           {typeLabel && (
             <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[project.hackType!] ?? 'bg-muted text-muted-foreground border-border'}`}>
@@ -489,6 +490,7 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
               {project.commentCount}
             </button>
           </span>
+        </div>
         </div>
       </div>
     </div>

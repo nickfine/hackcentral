@@ -152,7 +152,7 @@ export default function People() {
           description="Be the first to set up your profile!"
         />
       ) : (
-        <>
+        <div className="space-y-10">
           {/* HackCentral Helpers Section */}
           {mentorFilter === 'all' && !debouncedSearch && !experienceFilter && (() => {
             const aiHelpers = profiles.filter(p => 
@@ -162,9 +162,10 @@ export default function People() {
             
             return aiHelpers.length > 0 ? (
               <div>
-                <h2 className="text-xl font-semibold mb-4">
-                  HackCentral Helpers ({aiHelpers.length})
-                </h2>
+                <SectionHeader
+                  title="HackCentral Helpers"
+                  titleSuffix={<span className="badge badge-outline text-sm">({aiHelpers.length})</span>}
+                />
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {aiHelpers.slice(0, 6).map((profile) => (
                     <PersonCard
@@ -205,13 +206,15 @@ export default function People() {
                 }
                 return true;
               });
+              const sectionTitle =
+                mentorFilter === 'available' ? 'Available Mentors' :
+                mentorFilter === 'seeking' ? 'Seeking Mentors' : 'Hackers';
               return (
                 <>
-                  <h2 className="text-xl font-semibold mb-4">
-                    {mentorFilter === 'available' ? 'Available Mentors' : 
-                     mentorFilter === 'seeking' ? 'Seeking Mentors' : 
-                     'Hackers'} ({filteredProfiles.length})
-                  </h2>
+                  <SectionHeader
+                    title={sectionTitle}
+                    titleSuffix={<span className="badge badge-outline text-sm">({filteredProfiles.length})</span>}
+                  />
                   {filteredProfiles.length === 0 ? (
                     <EmptyState
                       icon={<Search />}
@@ -246,7 +249,7 @@ export default function People() {
               );
             })()}
           </div>
-        </>
+        </div>
       )}
     </div>
   )

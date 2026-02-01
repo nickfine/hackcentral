@@ -16,9 +16,9 @@ export function GiniRadialProgress({
     circumference - (healthScore / 100) * circumference;
 
   const getColor = () => {
-    if (gini < 0.7) return '#10b981';
-    if (gini < 0.8) return '#f59e0b';
-    return '#ef4444';
+    if (gini < 0.7) return 'var(--color-success)';
+    if (gini < 0.8) return 'var(--color-warning)';
+    return 'var(--color-destructive)';
   };
 
   return (

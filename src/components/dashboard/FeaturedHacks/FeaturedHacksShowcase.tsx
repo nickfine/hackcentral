@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Library } from 'lucide-react';
+import { Library, ArrowRight } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { FeaturedHackItem } from './HackCard';
@@ -99,7 +99,7 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
         </div>
         <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
           <Link to="/hacks?tab=completed" className="btn btn-ghost btn-sm">
-            <Library className="mr-2 h-4 w-4" aria-hidden />
+            <ArrowRight className="mr-2 h-4 w-4" aria-hidden />
             Browse All Hacks
           </Link>
         </div>

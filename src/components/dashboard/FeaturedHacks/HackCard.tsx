@@ -65,15 +65,15 @@ export function HackCard({ hack }: HackCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={shouldReduceMotion ? undefined : { y: -2 }}
       transition={{ duration: 0.2 }}
-      className={`group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:shadow-primary/20 cursor-pointer ${hack.type === 'asset' && hack.status === 'verified' ? 'pr-8' : ''} ${hack.type === 'asset' && hack.status === 'deprecated' ? 'opacity-75' : ''}`}
+      className={`group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:shadow-primary/20 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${hack.type === 'asset' && hack.status === 'deprecated' ? 'opacity-75' : ''}`}
     >
-      {/* Verified corner flash (matches Completed Hacks AssetCard) */}
+      {/* Verified badge (theme success) */}
       {hack.type === 'asset' && hack.status === 'verified' && (
         <div
-          className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded-bl-md"
+          className="absolute top-3 right-3 size-5 flex items-center justify-center bg-[var(--color-success)] text-white rounded-full p-0.5"
           aria-label="Verified"
         >
-          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <Check className="h-3 w-3" strokeWidth={2.5} />
         </div>
       )}
 
@@ -89,7 +89,7 @@ export function HackCard({ hack }: HackCardProps) {
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
         {hack.blurb}
       </p>
 

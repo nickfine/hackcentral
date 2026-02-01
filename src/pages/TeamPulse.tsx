@@ -3,7 +3,7 @@
  */
 
 import { useQuery } from 'convex/react';
-import { Activity, Users, Library, TrendingUp, Download } from 'lucide-react';
+import { Activity, Users, Library, TrendingUp, Download, Info } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import {
   CollectiveProgressCard,
@@ -116,6 +116,7 @@ export default function TeamPulse() {
           label: 'Export metrics',
           icon: <Download className="h-4 w-4" aria-hidden />,
           variant: 'outline',
+          size: 'sm',
           onClick: handleExport,
         }}
       />
@@ -131,36 +132,43 @@ export default function TeamPulse() {
           title="AI Contributors"
           value={aiContributorValue}
           description={aiContributorDesc}
-          icon={<Users className="h-5 w-5 text-muted-foreground" />}
+          icon={<Users className="h-6 w-6 text-muted-foreground" />}
           microStory={aiContributorMicroStory}
         />
         <EnhancedMetricCard
           title="Projects with AI"
           value={projectsWithAiValue}
           description={projectsWithAiDesc}
-          icon={<Activity className="h-5 w-5 text-muted-foreground" />}
+          icon={<Activity className="h-6 w-6 text-muted-foreground" />}
           microStory={projectsWithAiMicroStory}
         />
         <EnhancedMetricCard
           title="Completed Hacks"
           value={libraryAssetValue}
           description="Reusable AI hacks"
-          icon={<Library className="h-5 w-5 text-muted-foreground" />}
+          icon={<Library className="h-6 w-6 text-muted-foreground" />}
           microStory={topAssetMicroStory}
         />
         <EnhancedMetricCard
           title="Weekly Active"
           value={weeklyActiveValue}
           description="Active AI contributors this week"
-          icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
+          icon={<TrendingUp className="h-6 w-6 text-muted-foreground" />}
           microStory={weeklyActiveMicroStory}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="card p-6">
-          <h2 className="mb-4 text-xl font-semibold">
-            Knowledge Distribution
-          </h2>
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-semibold">
+              Knowledge Distribution
+            </h2>
+            <Info
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+              aria-hidden
+              title="Gini coefficient: 0 = equal distribution, 1 = concentrated in few"
+            />
+          </div>
           {gini === undefined ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (

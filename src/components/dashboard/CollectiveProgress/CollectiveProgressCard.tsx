@@ -7,6 +7,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Rocket, Zap, TrendingUp, Sparkles } from 'lucide-react';
+import { SectionHeader } from '../../shared/SectionHeader';
 
 interface Stage {
   name: string;
@@ -46,24 +47,23 @@ export function CollectiveProgressCard({
     : '0';
   const nextLabel = nextStage ? `${nextStage.threshold}% = ${nextStage.name}` : null;
 
+  const description = `Knowledge spreading like wildfire — we're in ${currentStage.name}${nextStage ? `, ${pctToNext}% to ${nextStage.name}` : ''}.`;
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       aria-labelledby="collective-progress-heading"
-      className="card overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6"
+      className="card overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm md:p-6"
     >
-      <h2
-        id="collective-progress-heading"
-        className="mb-3 text-lg font-semibold text-foreground sm:text-xl"
-      >
-        Our Collective Progress
-      </h2>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Knowledge spreading like wildfire — we&apos;re in {currentStage.name}
-        {nextStage ? `, ${pctToNext}% to ${nextStage.name}` : ''}.
-      </p>
+      <div className="mb-4 space-y-4">
+        <SectionHeader
+          title="Our Collective Progress"
+          titleId="collective-progress-heading"
+          description={description}
+        />
+      </div>
 
       {/* Stage icons row — compact */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
@@ -97,14 +97,14 @@ export function CollectiveProgressCard({
 
       {/* Progress bar */}
       <div className="relative mb-4">
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-2 overflow-hidden rounded-full bg-border/50">
           <motion.div
             initial={{ width: shouldReduceMotion ? undefined : 0 }}
             animate={{ width: `${Math.min(100, currentProgress)}%` }}
             transition={
               shouldReduceMotion ? { duration: 0 } : { duration: 1, ease: 'easeOut' }
             }
-            className={`h-full rounded-full bg-gradient-to-r ${currentStage.color}`}
+            className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-400)]"
           />
         </div>
         {nextStage && currentProgress < 100 && (

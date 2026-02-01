@@ -33,16 +33,15 @@ export function EnhancedMetricCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="card group relative overflow-hidden p-6"
+      className="card group relative overflow-hidden p-6 transition-all duration-200 ease-out hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5"
       onMouseEnter={() => microStory && setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
-      <div className="relative z-10">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm uppercase tracking-wide text-muted-foreground">
             {title}
           </span>
           <div className="text-primary/70 transition-colors group-hover:text-primary">
@@ -50,8 +49,8 @@ export function EnhancedMetricCard({
           </div>
         </div>
 
-        <div className="mb-2 flex items-end gap-3">
-          <AnimatedCounter value={value} className="text-4xl font-bold metric-number" />
+        <div className="flex items-end gap-3">
+          <AnimatedCounter value={value} className="text-3xl font-bold metric-number" />
 
           {trend && (
             <div
@@ -78,7 +77,7 @@ export function EnhancedMetricCard({
         </p>
 
         {sparklineData != null && sparklineData.length > 0 && (
-          <div className="mt-3 h-8">
+          <div className="h-8">
             <WeeklyActiveSparkline data={sparklineData} />
           </div>
         )}

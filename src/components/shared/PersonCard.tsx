@@ -76,75 +76,75 @@ export function PersonCard({
           : undefined
       }
       className={cn(
-        'rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200',
-        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5',
+        'rounded-xl border border-border bg-card p-5 md:p-6 shadow-sm transition-all duration-200 ease-out',
+        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className
       )}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="avatar relative size-10 shrink-0 rounded-full overflow-hidden bg-primary/10 text-primary font-semibold flex items-center justify-center">
-          {profile.avatarUrl ? (
-            <img
-              src={profile.avatarUrl}
-              alt=""
-              className="avatar-image w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-sm">{getInitials(profile.fullName, profile.email)}</span>
-          )}
-          {showMentorStatus && isMentor && (
-            <span
-              className={cn(
-                'absolute -top-0.5 -right-0.5 rounded-full p-1 flex items-center justify-center',
-                hasCapacity ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'
-              )}
-              title={hasCapacity ? 'Available Mentor' : 'Fully booked'}
-              aria-hidden
-            >
-              {hasCapacity ? (
-                <GraduationCap className="h-3 w-3" />
-              ) : (
-                <Clock className="h-3 w-3" />
-              )}
-            </span>
-          )}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="avatar relative size-10 shrink-0 rounded-full overflow-hidden bg-primary/10 text-primary font-semibold flex items-center justify-center">
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="avatar-image w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-sm">{getInitials(profile.fullName, profile.email)}</span>
+            )}
+            {showMentorStatus && isMentor && (
+              <span
+                className={cn(
+                  'absolute -top-0.5 -right-0.5 size-5 rounded-full p-0.5 flex items-center justify-center',
+                  hasCapacity ? 'bg-[var(--color-success)] text-white' : 'bg-muted text-muted-foreground'
+                )}
+                title={hasCapacity ? 'Available Mentor' : 'Fully booked'}
+                aria-hidden
+              >
+                {hasCapacity ? (
+                  <GraduationCap className="h-3 w-3" />
+                ) : (
+                  <Clock className="h-3 w-3" />
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate">{displayName}</h3>
+            {profile.experienceLevel && (
+              <span
+                className={cn(
+                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border mt-1',
+                  experienceBadgeClass
+                )}
+              >
+                {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel] ?? profile.experienceLevel}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm truncate">{displayName}</h3>
-          {profile.experienceLevel && (
-            <span
-              className={cn(
-                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border mt-1',
-                experienceBadgeClass
-              )}
-            >
-              {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel] ?? profile.experienceLevel}
-            </span>
-          )}
-        </div>
-      </div>
 
-      {tags.length > 0 && (
-        <div className="mb-3">
+        {tags.length > 0 && (
           <BadgeGroup badges={tags} maxVisible={3} size="sm" />
-        </div>
-      )}
+        )}
 
-      {showMentorStatus && isMentor && (
-        <div className="flex items-center gap-2 text-xs">
-          {hasCapacity ? (
-            <span className="flex items-center gap-1.5 text-green-700">
-              <GraduationCap className="h-3 w-3 shrink-0" />
-              Available: {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="h-3 w-3 shrink-0" />
-              Fully booked
-            </span>
-          )}
-        </div>
-      )}
+        {showMentorStatus && isMentor && (
+          <div className="flex items-center gap-2 text-xs">
+            {hasCapacity ? (
+              <span className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium bg-success/10 text-success border-success/30">
+                <GraduationCap className="h-3 w-3 shrink-0" />
+                Available: {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3 w-3 shrink-0" />
+                Fully booked
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
