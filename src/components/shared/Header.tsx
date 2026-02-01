@@ -1,11 +1,12 @@
 /**
  * Header Component
- * Top navigation bar with search, notifications, feedback, and user menu
+ * Top navigation bar with centralised search, notifications, feedback, and user menu.
+ * On small viewports the search is an icon that expands to show the search input.
  */
 
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Bell, Menu, Sparkles, MessageSquare } from 'lucide-react'
-import { useState } from 'react'
+import { Search, Bell, Menu, Sparkles, MessageSquare, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -15,8 +16,16 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const createFeedback = useMutation(api.feedback.create)
+
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      mobileSearchInputRef.current?.focus()
+    }
+  }, [mobileSearchOpen])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,80 +35,106 @@ export function Header() {
     } else {
       navigate('/search')
     }
+    setMobileSearchOpen(false)
   }
+
+  const openMobileSearch = () => setMobileSearchOpen(true)
+  const closeMobileSearch = () => setMobileSearchOpen(false)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center px-4 lg:px-6">
-        {/* Mobile menu button */}
+      <div className="flex h-14 items-center px-4 lg:px-6 gap-3">
+        {/* Mobile menu button - hidden when search expanded */}
         <button
           type="button"
-          className="lg:hidden mr-2 p-2 hover:bg-accent rounded-md"
+          className={`lg:hidden shrink-0 p-2 hover:bg-accent rounded-md ${mobileSearchOpen ? 'invisible' : ''}`}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-hidden={mobileSearchOpen}
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* Logo */}
-        <Link to="/dashboard" className="flex items-center gap-2 mr-6">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <span className="font-semibold text-lg hidden sm:inline-block">
-            HackDay Central
-          </span>
-        </Link>
+        {/* Logo - hidden when mobile search expanded */}
+        {!mobileSearchOpen && (
+          <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <span className="font-semibold text-lg hidden sm:inline-block">
+              HackDay Central
+            </span>
+          </Link>
+        )}
 
-        {/* Global search */}
-        <form className="flex-1 max-w-md hidden md:block" onSubmit={handleSearchSubmit} role="search">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Centralised search (desktop): centered in the middle region */}
+        <form
+          className={`flex-1 min-w-0 flex justify-center ${mobileSearchOpen ? 'block' : 'hidden md:flex'}`}
+          onSubmit={handleSearchSubmit}
+          role="search"
+        >
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
+              ref={mobileSearchInputRef}
               type="search"
               placeholder="Search Completed Hacks and people..."
-              className="input pl-10 h-9 w-full"
+              className="input pl-10 pr-10 h-9 w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && closeMobileSearch()}
               aria-label="Search Completed Hacks and people"
             />
+            {mobileSearchOpen && (
+              <button
+                type="button"
+                onClick={closeMobileSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent rounded-md"
+                aria-label="Close search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </form>
 
-        {/* Right side actions */}
-        <div className="flex items-center gap-2 ml-auto">
-          {/* Mobile: link to search page */}
-          <Link
-            to="/search"
-            className="md:hidden p-2 hover:bg-accent rounded-md"
-            aria-label="Search"
-          >
-            <Search className="h-5 w-5" />
-          </Link>
+        {/* Right side actions - hidden when mobile search expanded */}
+        {!mobileSearchOpen && (
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            {/* Mobile: search icon that expands to search bar */}
+            <button
+              type="button"
+              className="md:hidden p-2 hover:bg-accent rounded-md"
+              onClick={openMobileSearch}
+              aria-label="Open search"
+            >
+              <Search className="h-5 w-5" />
+            </button>
 
-          {/* Notifications */}
-          <Link
-            to="/notifications"
-            className="p-2 hover:bg-accent rounded-md relative"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" aria-hidden />
-          </Link>
+            {/* Notifications */}
+            <Link
+              to="/notifications"
+              className="p-2 hover:bg-accent rounded-md relative"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" aria-hidden />
+            </Link>
 
-          {/* Feedback */}
-          <button
-            type="button"
-            onClick={() => setFeedbackModalOpen(true)}
-            className="p-2 hover:bg-accent rounded-md"
-            aria-label="Send feedback"
-          >
-            <MessageSquare className="h-5 w-5" />
-          </button>
+            {/* Feedback */}
+            <button
+              type="button"
+              onClick={() => setFeedbackModalOpen(true)}
+              className="p-2 hover:bg-accent rounded-md"
+              aria-label="Send feedback"
+            >
+              <MessageSquare className="h-5 w-5" />
+            </button>
 
-          {/* User menu */}
-          <UserButton />
-        </div>
+            {/* User menu */}
+            <UserButton />
+          </div>
+        )}
       </div>
 
       {/* Mobile navigation overlay */}
@@ -250,11 +285,11 @@ function MobileNav({ onClose, onOpenFeedback }: MobileNavProps) {
           <MobileNavLink to="/people" onClick={onClose}>
             People
           </MobileNavLink>
-          <MobileNavLink to="/library" onClick={onClose}>
-            Completed Hacks
+          <MobileNavLink to="/hacks" onClick={onClose}>
+            Hacks
           </MobileNavLink>
-          <MobileNavLink to="/projects" onClick={onClose}>
-            Hacks In Progress
+          <MobileNavLink to="/team-pulse" onClick={onClose}>
+            Team pulse
           </MobileNavLink>
           <MobileNavLink to="/profile" onClick={onClose}>
             Profile

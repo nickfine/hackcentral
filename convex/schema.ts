@@ -64,9 +64,10 @@ export default defineSchema({
       v.literal("app")
     ),
     content: v.any(), // Structured content (prompt text, config, etc.)
-    // Status: 'draft' | 'verified' | 'deprecated'
+    // Status: 'in_progress' | 'verified' | 'deprecated' (legacy 'draft' kept until migration runs)
     status: v.union(
       v.literal("draft"),
+      v.literal("in_progress"),
       v.literal("verified"),
       v.literal("deprecated")
     ),

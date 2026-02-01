@@ -88,3 +88,9 @@ function handleButtonPress() {
 Use the Convex CLI to push your functions to a deployment. See everything
 the Convex CLI can do by running `npx convex -h` in your project root
 directory. To learn more, launch the docs with `npx convex docs`.
+
+### Migrations
+
+- **Completed Hacks status: draft → in progress**  
+  Run once: Convex dashboard → Functions → `libraryAssets` → `migrateDraftToInProgress` (no args).  
+  After it runs, you can remove `"draft"` from the `libraryAssets.status` union in `schema.ts` if you want the schema to allow only `in_progress` going forward.

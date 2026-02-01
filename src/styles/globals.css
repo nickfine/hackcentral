@@ -228,8 +228,9 @@
     color: var(--color-destructive-foreground);
   }
 
-  /* Quality gate badges */
-  .badge-draft {
+  /* Quality gate badges (Completed Hacks) */
+  .badge-draft,
+  .badge-in-progress {
     background-color: #fef3c7;
     color: #92400e;
     border-color: #fde68a;

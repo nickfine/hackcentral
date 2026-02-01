@@ -551,7 +551,7 @@ export type AssetType =
   | 'skill'
   | 'app'
 
-export type QualityGateStatus = 'draft' | 'verified' | 'deprecated'
+export type QualityGateStatus = 'draft' | 'in_progress' | 'verified' | 'deprecated'
 
 export type ProjectStatus =
   | 'idea'

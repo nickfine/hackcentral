@@ -1,6 +1,6 @@
 # Next Steps - HackCentral
 
-**Status:** v0.4.17 · Phases 1–4 complete  
+**Status:** v0.6.4 · Phases 1–4 complete  
 **Last updated:** February 1, 2026
 
 For detailed implementation notes, browser test results, and technical patterns see **`learnings.md`**. For full spec and schema see **`ROADMAP.md`**.
@@ -11,7 +11,7 @@ For detailed implementation notes, browser test results, and technical patterns 
 
 - **Phases 1–4** (MVP → Pull Dynamics → Core Features → Advanced Features → Continuous Optimization) are implemented and browser-tested.
 - **Stack:** Convex + Clerk, React 19, Vite 7, Tailwind 4. Sentry and Vercel Analytics wired for production.
-- **In place:** Dashboard (metrics, Gini, export, leaderboards, impact stories, derived badges), Projects (CRUD, dedicated `/projects/:id` page, close/archive + learning capture), People, Library (submit/verify, “more like this”, improved search), Profile (Activity, Mentoring, Settings), mentor matching (Phase 1.5), global search, onboarding, guide, notifications, feedback modal, learning-summary nudge, A/B nudge copy.
+- **In place:** Dashboard (metrics, Gini, export, leaderboards, impact stories, derived badges), Projects (CRUD, dedicated `/projects/:id` page, close/archive + learning capture), People, Library (submit/verify, “more like this”, improved search), Profile (Activity, Mentoring, Settings), mentor matching (Phase 1.5), global search, onboarding, guide, notifications, feedback modal, learning-summary nudge, A/B nudge copy. **Featured hacks (v0.6.4):** Type-appropriate CTAs (prompt/skill → Copy Hack + View Details; app → View Details only); dashboard ensures at least one prompt, skill, app in featured set; QuickStartHacks aligned; HackCard tests; consistency review (CODE_REVIEW_CONSISTENCY_INTEGRITY_FEATURED_HACKS.md).
 
 ---
 

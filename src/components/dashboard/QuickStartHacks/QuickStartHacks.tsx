@@ -45,7 +45,7 @@ function mapApiHackToItem(hack: {
 
 function getAssetDetailUrlForCard(assetId: string): string {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${base}/library?asset=${assetId}`;
+  return `${base}/library/${assetId}`;
 }
 
 export interface QuickStartHacksProps {
@@ -110,7 +110,7 @@ function StarterCard({
     }
   };
 
-  const viewTo = hack.type === 'asset' && hack.assetId ? `/library?asset=${hack.assetId}` : '/library';
+  const viewTo = hack.type === 'asset' && hack.assetId ? `/library/${hack.assetId}` : '/library';
   // Align with HackCard: show Copy only for story or asset (prompt/skill or missing assetType); app → View only
   const showCopy =
     hack.type === 'story' ||

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 
 /**
  * List library assets (filtered by visibility)
@@ -16,6 +16,7 @@ export const list = query({
     status: v.optional(
       v.union(
         v.literal("draft"),
+        v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
       )
@@ -98,6 +99,7 @@ export const listWithReuseCounts = query({
     status: v.optional(
       v.union(
         v.literal("draft"),
+        v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
       )
@@ -328,7 +330,7 @@ export const create = mutation({
       description: args.description,
       assetType: args.assetType,
       content: args.content,
-      status: "draft",
+      status: "in_progress",
       authorId: profile._id,
       visibility: args.visibility || "org",
       isArsenal: false,
@@ -359,6 +361,7 @@ export const update = mutation({
     status: v.optional(
       v.union(
         v.literal("draft"),
+        v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
       )
@@ -408,5 +411,25 @@ export const update = mutation({
         assetId,
       });
     }
+  },
+});
+
+/**
+ * One-off migration: set status to "in_progress" for all libraryAssets with status "draft".
+ * Run once from Convex dashboard (Functions → libraryAssets → migrateDraftToInProgress).
+ * After running, you can remove "draft" from the libraryAssets status union in schema.ts.
+ */
+export const migrateDraftToInProgress = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const assets = await ctx.db.query("libraryAssets").collect();
+    let count = 0;
+    for (const asset of assets) {
+      if (asset.status === "draft") {
+        await ctx.db.patch(asset._id, { status: "in_progress" });
+        count++;
+      }
+    }
+    return { updated: count, total: assets.length };
   },
 });

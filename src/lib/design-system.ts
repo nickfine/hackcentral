@@ -70,9 +70,10 @@ export const designTokens = {
         dark: '#1d4ed8',
       },
     },
-    // Quality gate status colors
+    // Quality gate status colors (Completed Hacks)
     qualityGates: {
-      draft: '#f59e0b',      // amber
+      draft: '#f59e0b',      // amber (legacy, same as in_progress)
+      in_progress: '#f59e0b', // amber
       verified: '#22c55e',   // green
       deprecated: '#71717a', // gray
     },
@@ -241,9 +242,10 @@ export const maturityStageLabels: Record<string, string> = {
   transforming: 'Transforming',
 }
 
-// Quality gate status labels
+// Quality gate status labels (Completed Hacks)
 export const qualityGateLabels: Record<string, string> = {
-  draft: 'Draft',
+  draft: 'In progress',      // legacy
+  in_progress: 'In progress',
   verified: 'Verified',
   deprecated: 'Deprecated',
 }

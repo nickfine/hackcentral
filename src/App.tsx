@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { Layout } from '@/components/shared/Layout'
@@ -7,14 +7,26 @@ import '@/styles/globals.css'
 
 const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.default })))
 const People = lazy(() => import('@/pages/People').then((m) => ({ default: m.default })))
-const Library = lazy(() => import('@/pages/Library').then((m) => ({ default: m.default })))
-const Projects = lazy(() => import('@/pages/Projects').then((m) => ({ default: m.default })))
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail').then((m) => ({ default: m.default })))
 const Profile = lazy(() => import('@/pages/Profile').then((m) => ({ default: m.default })))
 const Search = lazy(() => import('@/pages/Search').then((m) => ({ default: m.default })))
 const Onboarding = lazy(() => import('@/pages/Onboarding').then((m) => ({ default: m.default })))
 const Guide = lazy(() => import('@/pages/Guide').then((m) => ({ default: m.default })))
 const Notifications = lazy(() => import('@/pages/Notifications').then((m) => ({ default: m.default })))
+const TeamPulse = lazy(() => import('@/pages/TeamPulse').then((m) => ({ default: m.default })))
+const LibraryAssetDetail = lazy(() => import('@/pages/LibraryAssetDetail').then((m) => ({ default: m.default })))
+const Hacks = lazy(() => import('@/pages/Hacks').then((m) => ({ default: m.default })))
+
+/**
+ * Redirect component that preserves query params and adds tab param.
+ * Used to redirect /library → /hacks?tab=completed and /projects → /hacks?tab=in_progress.
+ */
+function RedirectToHacks({ tab }: { tab: 'completed' | 'in_progress' }) {
+  const [searchParams] = useSearchParams();
+  const newParams = new URLSearchParams(searchParams);
+  newParams.set('tab', tab);
+  return <Navigate to={`/hacks?${newParams.toString()}`} replace />;
+}
 
 function PageFallback() {
   return (
@@ -47,19 +59,21 @@ function App() {
                 </Suspense>
               }
             />
+            {/* Unified Hacks page */}
             <Route
-              path="library"
+              path="hacks"
               element={
                 <Suspense fallback={<PageFallback />}>
-                  <Library />
+                  <Hacks />
                 </Suspense>
               }
             />
+            {/* Detail routes (unchanged) */}
             <Route
-              path="projects"
+              path="library/:assetId"
               element={
                 <Suspense fallback={<PageFallback />}>
-                  <Projects />
+                  <LibraryAssetDetail />
                 </Suspense>
               }
             />
@@ -70,6 +84,15 @@ function App() {
                   <ProjectDetail />
                 </Suspense>
               }
+            />
+            {/* Redirects from old URLs to unified Hacks page */}
+            <Route
+              path="library"
+              element={<RedirectToHacks tab="completed" />}
+            />
+            <Route
+              path="projects"
+              element={<RedirectToHacks tab="in_progress" />}
             />
             <Route
               path="profile"
@@ -108,6 +131,14 @@ function App() {
               element={
                 <Suspense fallback={<PageFallback />}>
                   <Notifications />
+                </Suspense>
+              }
+            />
+            <Route
+              path="team-pulse"
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <TeamPulse />
                 </Suspense>
               }
             />

@@ -49,7 +49,7 @@ export default function Guide() {
       <section className="space-y-4">
         <h2 className="font-semibold text-lg">How do I contribute?</h2>
         <p className="text-muted-foreground">
-          Submit a new hack from Completed Hacks (&quot;Submit Hack&quot;). Start as a draft, then mark it
+          Submit a new hack from Completed Hacks (&quot;Submit Hack&quot;). Start as In progress, then mark it
           verified when it&apos;s ready for others. Attach hacks to your <Link to="/projects" className="text-primary underline">Hacks In Progress</Link> so
           your work is visible on the Dashboard and in metrics. Share impact stories from the Dashboard
           to tell others how AI helped.

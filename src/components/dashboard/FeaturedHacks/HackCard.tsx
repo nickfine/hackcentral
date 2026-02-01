@@ -28,7 +28,7 @@ interface HackCardProps {
 
 function getAssetDetailUrl(assetId: string): string {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${base}/library?asset=${assetId}`;
+  return `${base}/library/${assetId}`;
 }
 
 export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
@@ -53,7 +53,7 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
   };
 
   const viewDetailsTo = hack.type === 'asset' && hack.assetId
-    ? `/library?asset=${hack.assetId}`
+    ? `/library/${hack.assetId}`
     : '/library';
 
   // Show Copy for stories, and for assets that are prompt/skill (or when assetType missing for backwards compatibility)

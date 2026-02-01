@@ -18,7 +18,7 @@ const actions: Action[] = [
     label: 'Submit your first hack',
     sublabel: 'AI-assisted form',
     icon: <Upload className="h-5 w-5" />,
-    href: '/library?action=new',
+    href: '/hacks?tab=completed&action=new',
     color: 'from-cyan-500 to-blue-500',
   },
   {
@@ -34,7 +34,7 @@ const actions: Action[] = [
     label: 'Browse Featured Hacks',
     sublabel: 'Copy top hack',
     icon: <Library className="h-5 w-5" />,
-    href: '/library?filter=arsenal',
+    href: '/hacks?tab=completed&arsenal=true',
     color: 'from-emerald-500 to-teal-500',
   },
 ];

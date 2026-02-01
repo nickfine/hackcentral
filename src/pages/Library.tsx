@@ -4,13 +4,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Sparkles, FileText, Bot, Code, X, Link2 } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Plus, Sparkles, FileText, Bot, Code, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { EmptyState } from '../components/shared';
 
@@ -308,22 +307,34 @@ export default function Library() {
   useEffect(() => {
     setSearchQuery(qFromUrl);
   }, [qFromUrl]);
+  const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [selectedAssetId, setSelectedAssetId] = useState<Id<'libraryAssets'> | null>(null);
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [assetLimit, setAssetLimit] = useState(30);
 
+  // Redirect old ?asset=xxx URLs to dedicated page
+  const assetFromUrl = searchParams.get('asset');
+  useEffect(() => {
+    if (assetFromUrl) {
+      navigate(`/library/${assetFromUrl}`, { replace: true });
+    }
+  }, [assetFromUrl, navigate]);
+
+  // Open Submit Hack modal when ?action=new is present (deep link from Quick Actions / Featured Hacks)
+  const actionFromUrl = searchParams.get('action');
+  useEffect(() => {
+    if (actionFromUrl === 'new') {
+      setSubmitModalOpen(true);
+    }
+  }, [actionFromUrl]);
+
   const createAsset = useMutation(api.libraryAssets.create);
   const arsenalAssets = useQuery(api.libraryAssets.getArsenalWithReuseCounts);
-  const selectedAsset = useQuery(
-    api.libraryAssets.getById,
-    selectedAssetId ? { assetId: selectedAssetId } : 'skip'
-  );
   // Build query args - only include if value is set
   const queryArgs: {
     assetType?: "prompt" | "skill" | "app";
-    status?: "draft" | "verified" | "deprecated";
+    status?: "in_progress" | "verified" | "deprecated";
     arsenalOnly?: boolean;
     limit?: number;
   } = { limit: assetLimit };
@@ -340,52 +351,6 @@ export default function Library() {
 
   return (
     <div className="space-y-6">
-      {/* Asset Detail Modal */}
-      {selectedAssetId !== null && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedAssetId(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="asset-detail-title"
-        >
-          <div
-            className="max-w-2xl w-full max-h-[90vh] overflow-y-auto card p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {selectedAsset === undefined ? (
-              <div className="py-8 text-center">
-                <h2 id="asset-detail-title" className="text-xl font-semibold mb-2">Loading...</h2>
-                <p className="text-muted-foreground">Loading hack details</p>
-              </div>
-            ) : selectedAsset === null ? (
-              <div className="space-y-4">
-                <h2 id="asset-detail-title" className="text-xl font-semibold">
-                  Hack not found
-                </h2>
-                <p className="text-muted-foreground">
-                  This hack may be private or no longer available.
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setSelectedAssetId(null)}
-                >
-                  Close
-                </button>
-              </div>
-            ) : (
-              <AssetDetailContent
-                asset={selectedAsset}
-                assetId={selectedAssetId}
-                onClose={() => setSelectedAssetId(null)}
-                onSelectAsset={(id) => setSelectedAssetId(id)}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Completed Hacks</h1>
@@ -406,11 +371,16 @@ export default function Library() {
       {/* Submit Asset Modal */}
       {submitModalOpen && (
         <SubmitAssetModal
-          onClose={() => setSubmitModalOpen(false)}
+          onClose={() => {
+            setSubmitModalOpen(false);
+            if (searchParams.get('action') === 'new') {
+              navigate('/hacks?tab=completed', { replace: true });
+            }
+          }}
           onSubmitSuccess={(newAssetId) => {
             setSubmitModalOpen(false);
-            setSelectedAssetId(newAssetId);
-            toast.success('Hack submitted! It will appear as Draft.');
+            navigate(`/library/${newAssetId}`);
+            toast.success('Hack submitted! It will appear as In progress.');
           }}
           createAsset={createAsset}
         />
@@ -444,7 +414,7 @@ export default function Library() {
           onChange={(e) => setSelectedStatus(e.target.value)}
         >
           <option value="">All Status</option>
-          <option value="draft">Draft</option>
+          <option value="in_progress">In progress</option>
           <option value="verified">Verified</option>
           <option value="deprecated">Deprecated</option>
         </select>
@@ -487,7 +457,7 @@ export default function Library() {
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {arsenalAssets.slice(0, 6).map((asset) => (
-                <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
+                <AssetCard key={asset._id} asset={asset} onSelect={(id) => navigate(`/library/${id}`)} />
               ))}
             </div>
           </>
@@ -506,7 +476,7 @@ export default function Library() {
               <li key={assetId}>
                 <button
                   type="button"
-                  onClick={() => setSelectedAssetId(assetId)}
+                  onClick={() => navigate(`/library/${assetId}`)}
                   className="w-full text-left card p-3 hover:bg-accent/50 transition-colors rounded-lg flex items-center justify-between"
                 >
                   <span className="font-medium">{title}</span>
@@ -545,8 +515,8 @@ export default function Library() {
             const metaMatch = metaText.length > 0 && metaText.includes(searchLower);
             return titleMatch || descMatch || typeMatch || metaMatch;
           });
-          // Down-rank deprecated: verified first, then draft, then deprecated
-          const statusOrder: Record<string, number> = { verified: 0, draft: 1, deprecated: 2 };
+          // Down-rank deprecated: verified first, then in_progress, then deprecated
+          const statusOrder: Record<string, number> = { verified: 0, in_progress: 1, draft: 1, deprecated: 2 };
           const sortedAssets = [...filteredAssets].sort(
             (a, b) => (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1)
           );
@@ -564,7 +534,7 @@ export default function Library() {
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {sortedAssets.map((asset) => (
-                  <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
+                  <AssetCard key={asset._id} asset={asset} onSelect={(id) => navigate(`/library/${id}`)} />
                 ))}
               </div>
               {allAssets != null && allAssets.length === assetLimit && (
@@ -611,7 +581,7 @@ function AssetPlaceholder() {
     <div className="card p-4 animate-pulse">
       <div className="flex items-start justify-between mb-3">
         <div className="h-5 bg-muted rounded w-32" />
-        <span className="badge badge-draft text-xs">Loading</span>
+        <span className="badge badge-in-progress text-xs">Loading</span>
       </div>
       <div className="h-4 bg-muted rounded w-full mb-2" />
       <div className="h-4 bg-muted rounded w-3/4 mb-4" />
@@ -621,397 +591,6 @@ function AssetPlaceholder() {
       </div>
     </div>
   )
-}
-
-type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
-
-interface AssetDetailContentProps {
-  asset: {
-    title: string;
-    description?: string;
-    assetType: string;
-    status: string;
-    content: unknown;
-    authorId: Id<'profiles'>;
-    verifiedByFullName?: string;
-    verifiedAt?: number;
-    metadata?: {
-      intendedUser?: string;
-      context?: string;
-      limitations?: string;
-      riskNotes?: string;
-      exampleInput?: string;
-      exampleOutput?: string;
-    };
-    isArsenal: boolean;
-    isAnonymous?: boolean;
-  };
-  assetId: Id<'libraryAssets'>;
-  onClose: () => void;
-  onSelectAsset?: (id: Id<'libraryAssets'>) => void;
-}
-
-function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDetailContentProps) {
-  const { isAuthenticated } = useAuth();
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<Id<'projects'> | ''>('');
-  const [attachmentType, setAttachmentType] = useState<AttachmentType>('attached');
-  const [isSubmittingAttach, setIsSubmittingAttach] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-
-  const profile = useQuery(api.profiles.getCurrentProfile);
-  const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
-  const similarAssets = useQuery(api.libraryAssets.getSimilar, { assetId, limit: 6 });
-  const projects = useQuery(api.projects.list);
-  const attachToProject = useMutation(api.libraryReuse.attachToProject);
-  const recordReuse = useMutation(api.libraryReuse.recordReuse);
-  const updateAsset = useMutation(api.libraryAssets.update);
-  const [quickReuseType, setQuickReuseType] = useState<AttachmentType>('copied');
-  const [isRecordingReuse, setIsRecordingReuse] = useState(false);
-  const isAuthor = Boolean(profile?._id && asset.authorId === profile._id);
-
-  const handleRecordReuse = async () => {
-    if (isRecordingReuse) return;
-    setIsRecordingReuse(true);
-    try {
-      await recordReuse({ assetId, reuseType: quickReuseType });
-      toast.success('Use recorded. Thanks for contributing!');
-    } catch (err) {
-      console.error('Record reuse failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to record use. Please try again.');
-    } finally {
-      setIsRecordingReuse(false);
-    }
-  };
-
-  const handleAttachSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProjectId || isSubmittingAttach) return;
-    setIsSubmittingAttach(true);
-    try {
-      await attachToProject({
-        projectId: selectedProjectId as Id<'projects'>,
-        assetId,
-        attachmentType,
-      });
-      toast.success('Hack attached to project!');
-      setAttachOpen(false);
-      setSelectedProjectId('');
-      setAttachmentType('attached');
-    } catch (err) {
-      console.error('Attach failed:', err);
-      toast.error('Failed to attach to project. Please try again.');
-    } finally {
-      setIsSubmittingAttach(false);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: 'draft' | 'verified' | 'deprecated') => {
-    if (!isAuthor || isUpdatingStatus) return;
-    setIsUpdatingStatus(true);
-    try {
-      await updateAsset({ assetId, status: newStatus });
-      toast.success(newStatus === 'verified' ? 'Hack marked as verified.' : newStatus === 'deprecated' ? 'Hack marked as deprecated.' : 'Hack reverted to draft.');
-    } catch (err) {
-      console.error('Failed to update asset status:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to update status.');
-    } finally {
-      setIsUpdatingStatus(false);
-    }
-  };
-
-  const statusColors: Record<string, string> = {
-    draft: 'badge-draft',
-    verified: 'badge-verified',
-    deprecated: 'badge-deprecated',
-  };
-
-  const contentDisplay =
-    typeof asset.content === 'string'
-      ? asset.content
-      : typeof asset.content === 'object' && asset.content !== null
-        ? JSON.stringify(asset.content, null, 2)
-        : String(asset.content ?? '');
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <h2 id="asset-detail-title" className="text-xl font-semibold mb-2">
-            {asset.title}
-          </h2>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <span className={`badge ${statusColors[asset.status] ?? 'badge-outline'} text-xs`}>
-              {asset.status}
-            </span>
-            <span className="badge badge-outline text-xs capitalize">
-              {asset.assetType.replace('_', ' ')}
-            </span>
-            {asset.isArsenal && (
-              <span className="badge badge-secondary text-xs flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Featured Hacks
-              </span>
-            )}
-          </div>
-          {asset.description && (
-            <p className="text-muted-foreground mb-4">{asset.description}</p>
-          )}
-        </div>
-        <button
-          type="button"
-          className="btn btn-ghost btn-icon shrink-0"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Reuse summary */}
-      <div className="text-sm text-muted-foreground">
-        {reuseCount === undefined ? (
-          <span>Loading reuse…</span>
-        ) : (
-          <span>
-            {reuseCount.totalReuseEvents === 0
-              ? 'No reuses yet'
-              : `${reuseCount.totalReuseEvents} reuse${reuseCount.totalReuseEvents !== 1 ? 's' : ''} (${reuseCount.distinctProjectReuses} project${reuseCount.distinctProjectReuses !== 1 ? 's' : ''})`}
-          </span>
-        )}
-      </div>
-
-      {/* Verified by (when status is verified) */}
-      {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt || asset.isAnonymous) && (
-        <div className="text-sm text-muted-foreground">
-          Verified{asset.isAnonymous ? ' (anonymous)' : asset.verifiedByFullName ? ` by ${asset.verifiedByFullName}` : ''}
-          {asset.verifiedAt ? ` on ${new Date(asset.verifiedAt).toLocaleDateString()}` : ''}
-        </div>
-      )}
-
-      {/* More like this (same type) */}
-      {similarAssets !== undefined && (
-        <div className="border-t pt-4">
-          <h3 className="font-semibold text-sm mb-2">More like this</h3>
-          {similarAssets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No other {asset.assetType.replace('_', ' ')}s in Completed Hacks yet.</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {similarAssets.map((a) => (
-                <button
-                  key={a._id}
-                  type="button"
-                  className="text-left p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  onClick={() => onSelectAsset?.(a._id)}
-                >
-                  <span className="font-medium text-sm block truncate">{a.title}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{a.status}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Status actions (author only) */}
-      {isAuthor && (
-        <div className="border-t pt-4">
-          <h3 className="font-semibold text-sm mb-2">Status</h3>
-          <div className="flex flex-wrap gap-2">
-            {asset.status !== 'verified' && (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => handleStatusChange('verified')}
-                disabled={isUpdatingStatus}
-              >
-                {isUpdatingStatus ? 'Updating…' : 'Mark as Verified'}
-              </button>
-            )}
-            {asset.status !== 'deprecated' && (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => handleStatusChange('deprecated')}
-                disabled={isUpdatingStatus}
-              >
-                Mark as Deprecated
-              </button>
-            )}
-            {asset.status !== 'draft' && (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => handleStatusChange('draft')}
-                disabled={isUpdatingStatus}
-              >
-                Revert to Draft
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Record use & Attach to project (authenticated only) */}
-      {isAuthenticated && (
-        <div className="border-t pt-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium">I used this:</span>
-            <select
-              value={quickReuseType}
-              onChange={(e) => setQuickReuseType(e.target.value as AttachmentType)}
-              className="input w-32 text-sm"
-              aria-label="How you used this hack"
-            >
-              <option value="copied">Copied</option>
-              <option value="referenced">Referenced</option>
-              <option value="linked">Linked</option>
-            </select>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={handleRecordReuse}
-              disabled={isRecordingReuse}
-            >
-              {isRecordingReuse ? 'Recording…' : 'Record use'}
-            </button>
-          </div>
-          {!attachOpen ? (
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={() => setAttachOpen(true)}
-            >
-              <Link2 className="h-4 w-4 mr-2" />
-              Attach to project
-            </button>
-          ) : (
-            <form onSubmit={handleAttachSubmit} className="space-y-3">
-              <h3 className="font-semibold text-sm">Attach to project</h3>
-              <div>
-                <label htmlFor="attach-project" className="block text-sm font-medium mb-1">
-                  Project
-                </label>
-                <select
-                  id="attach-project"
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId((e.target.value || '') as Id<'projects'> | '')}
-                  className="input w-full"
-                  required
-                >
-                  <option value="">Select a project</option>
-                  {projects?.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="attach-type" className="block text-sm font-medium mb-1">
-                  Attachment type
-                </label>
-                <select
-                  id="attach-type"
-                  value={attachmentType}
-                  onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
-                  className="input w-full"
-                >
-                  <option value="attached">Attached</option>
-                  <option value="referenced">Referenced</option>
-                  <option value="copied">Copied</option>
-                  <option value="linked">Linked</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => {
-                    setAttachOpen(false);
-                    setSelectedProjectId('');
-                    setAttachmentType('attached');
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={!selectedProjectId || isSubmittingAttach}
-                >
-                  {isSubmittingAttach ? 'Attaching…' : 'Attach'}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
-
-      {asset.metadata && (
-        <div className="space-y-3 border-t pt-4">
-          <h3 className="font-semibold text-sm">Details</h3>
-          <dl className="grid gap-2 text-sm">
-            {asset.metadata.intendedUser && (
-              <>
-                <dt className="text-muted-foreground">Intended user</dt>
-                <dd>{asset.metadata.intendedUser}</dd>
-              </>
-            )}
-            {asset.metadata.context && (
-              <>
-                <dt className="text-muted-foreground">Context</dt>
-                <dd>{asset.metadata.context}</dd>
-              </>
-            )}
-            {asset.metadata.limitations && (
-              <>
-                <dt className="text-muted-foreground">Limitations</dt>
-                <dd>{asset.metadata.limitations}</dd>
-              </>
-            )}
-            {asset.metadata.riskNotes && (
-              <>
-                <dt className="text-muted-foreground">Risk notes</dt>
-                <dd>{asset.metadata.riskNotes}</dd>
-              </>
-            )}
-            {asset.metadata.exampleInput && (
-              <>
-                <dt className="text-muted-foreground">Example input</dt>
-                <dd className="whitespace-pre-wrap font-mono text-xs bg-muted p-2 rounded">
-                  {asset.metadata.exampleInput}
-                </dd>
-              </>
-            )}
-            {asset.metadata.exampleOutput && (
-              <>
-                <dt className="text-muted-foreground">Example output</dt>
-                <dd className="whitespace-pre-wrap font-mono text-xs bg-muted p-2 rounded">
-                  {asset.metadata.exampleOutput}
-                </dd>
-              </>
-            )}
-          </dl>
-        </div>
-      )}
-
-      {contentDisplay && (
-        <div className="border-t pt-4">
-          <h3 className="font-semibold text-sm mb-2">Content</h3>
-          <pre className="text-xs bg-muted p-4 rounded overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
-            {contentDisplay}
-          </pre>
-        </div>
-      )}
-
-      <div className="flex justify-end pt-2">
-        <button type="button" className="btn btn-primary" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
 }
 
 interface AssetCardProps {
@@ -1036,6 +615,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
 
   const statusColors: Record<string, string> = {
     draft: 'badge-draft',
+    in_progress: 'badge-in-progress',
     verified: 'badge-verified',
     deprecated: 'badge-deprecated',
   };

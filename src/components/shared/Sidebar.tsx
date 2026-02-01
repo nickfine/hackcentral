@@ -7,10 +7,10 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
-  Library,
   FolderKanban,
   User,
   Sparkles,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,14 +26,14 @@ const navItems = [
     icon: Users,
   },
   {
-    to: '/library',
-    label: 'Completed Hacks',
-    icon: Library,
+    to: '/hacks',
+    label: 'Hacks',
+    icon: FolderKanban,
   },
   {
-    to: '/projects',
-    label: 'Hacks In Progress',
-    icon: FolderKanban,
+    to: '/team-pulse',
+    label: 'Team pulse',
+    icon: Activity,
   },
   {
     to: '/profile',
@@ -60,7 +60,7 @@ export function Sidebar() {
             </span>
           </div>
           <NavLink
-            to="/library?arsenal=true"
+            to="/hacks?tab=completed&arsenal=true"
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
@@ -90,10 +90,10 @@ export function Sidebar() {
           </p>
           <div className="flex flex-col gap-2">
             <NavLink
-              to="/library"
+              to="/hacks"
               className="btn btn-primary btn-sm w-full"
             >
-              Explore Completed Hacks
+              Explore Hacks
             </NavLink>
             <NavLink
               to="/onboarding"

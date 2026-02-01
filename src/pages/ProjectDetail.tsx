@@ -201,7 +201,7 @@ export default function ProjectDetail() {
     return (
       <div className="space-y-4">
         <p className="text-muted-foreground">Invalid project.</p>
-        <Link to="/projects" className="btn btn-primary">
+        <Link to="/hacks?tab=in_progress" className="btn btn-primary">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Hacks In Progress
         </Link>
@@ -221,7 +221,7 @@ export default function ProjectDetail() {
     return (
       <div className="space-y-4">
         <p className="text-muted-foreground">Project not found.</p>
-        <Link to="/projects" className="btn btn-primary">
+        <Link to="/hacks?tab=in_progress" className="btn btn-primary">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Hacks In Progress
         </Link>
@@ -235,7 +235,7 @@ export default function ProjectDetail() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link
-          to="/projects"
+          to="/hacks?tab=in_progress"
           className="btn btn-ghost btn-sm inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
           aria-label="Back to Hacks In Progress"
         >

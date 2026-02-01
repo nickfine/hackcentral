@@ -1,19 +1,14 @@
 /**
  * Dashboard Page - AI Maturity Dashboard
  *
- * Tabs: Hacks (default) | Team pulse.
- *
- * Hacks tab (hero first, then what to do):
+ * Hero first, then what to do:
  * 1. WelcomeHero — narrative "Copy a hack, use it, share yours", CTAs, maturity pill (~25–35vh)
  * 2. Optional combined nudge (Get started / Next step: add library, create project, share story)
  * 3. PersonalizedNudge (badges, next steps)
  * 4. Community Hacks — FeaturedHacksShowcase (Starter badges, carousel, WallOfThanksStrip)
- * 6. Your recognition (if authenticated) → Quick Actions
+ * 5. Your recognition (if authenticated) → Quick Actions
  *
- * Team pulse tab: Collective Progress card, Export, stat cards, Knowledge Distribution,
- * Frontline vs leader, Tabbed Recognition.
- *
- * Rationale: Hero-first hierarchy; maturity only in hero pill on Hacks (no duplicate); leaders get full metrics in Pulse.
+ * Team pulse is a separate page in the left nav (/team-pulse).
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -23,13 +18,11 @@ import {
   Activity,
   Users,
   Library,
-  TrendingUp,
   PenLine,
   X,
   Award,
   Sparkles,
   User,
-  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
@@ -39,13 +32,9 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import {
   WelcomeHero,
-  CollectiveProgressCard,
   FeaturedHacksShowcase,
-  EnhancedMetricCard,
-  GiniRadialProgress,
   QuickActionsPanel,
   PersonalizedNudge,
-  TabbedRecognition,
   WallOfThanksStrip,
 } from '../components/dashboard';
 
@@ -53,20 +42,13 @@ export default function Dashboard() {
   const { isAuthenticated } = useAuth();
   const metrics = useQuery(api.metrics.getDashboardMetrics);
   const recentActivity = useQuery(api.metrics.getRecentActivity);
-  const topContributors = useQuery(api.metrics.getTopContributors);
-  const topMentors = useQuery(api.metrics.getTopMentors);
-  const mostReusedAssets = useQuery(api.metrics.getMostReusedAssets);
-  const impactStories = useQuery(api.impactStories.list, { limit: 10 });
   const createStory = useMutation(api.impactStories.create);
   const projects = useQuery(api.projects.list, {});
   const libraryAssets = useQuery(api.libraryAssets.list, {});
   const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {});
-  const gini = useQuery(api.metrics.getEarlyAdopterGini);
-  const frontlineLeaderGap = useQuery(api.metrics.getFrontlineLeaderGap);
   const profile = useQuery(api.profiles.getCurrentProfile);
   const userCounts = useQuery(api.profiles.getCurrentUserCounts);
 
-  const [dashboardTab, setDashboardTab] = useState<'hacks' | 'pulse'>('hacks');
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [storyHeadline, setStoryHeadline] = useState('');
   const [storyText, setStoryText] = useState('');
@@ -132,25 +114,6 @@ export default function Dashboard() {
     }
   };
 
-  const aiContributorValue =
-    metrics !== undefined ? String(metrics.aiContributorCount) : '--';
-  const aiContributorDesc =
-    metrics !== undefined && metrics.aiContributorPercentage !== undefined
-      ? `${metrics.aiContributorPercentage.toFixed(1)}% of employees with AI contributions`
-      : 'Employees with AI contributions';
-
-  const projectsWithAiValue =
-    metrics !== undefined ? String(metrics.projectsWithAiCount) : '--';
-  const projectsWithAiDesc =
-    metrics !== undefined && metrics.projectsWithAiPercentage !== undefined
-      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI hacks`
-      : 'Projects using AI hacks';
-
-  const libraryAssetValue =
-    metrics !== undefined ? String(metrics.libraryAssetCount) : '--';
-  const weeklyActiveValue =
-    metrics !== undefined ? String(metrics.weeklyActiveCount) : '--';
-
   const maturityWidth =
     metrics !== undefined &&
     metrics.aiContributorPercentage !== undefined &&
@@ -200,41 +163,6 @@ export default function Dashboard() {
     userCounts &&
     userCounts.projectCount > 0 &&
     userCounts.libraryAssetCount > 0;
-
-  const giniInterpretation =
-    gini === undefined
-      ? '—'
-      : gini < 0.7
-        ? 'Low concentration'
-        : gini < 0.8
-          ? 'Moderate concentration'
-          : 'High concentration';
-
-  const aiContributorMicroStory =
-    metrics !== undefined && metrics.aiContributorCount === 1
-      ? `1 pioneer sparked ${metrics.aiContributorPercentage?.toFixed(0) ?? 0}% — add your spark today?`
-      : metrics !== undefined && metrics.aiContributorCount > 0
-        ? `${metrics.aiContributorCount} pioneers building momentum — add your spark today?`
-        : undefined;
-
-  const projectsWithAiMicroStory =
-    metrics !== undefined && metrics.projectsWithAiCount > 0
-      ? 'Join the wildfire — add your project to the count.'
-      : undefined;
-
-  const weeklyActiveMicroStory =
-    metrics !== undefined && metrics.weeklyActiveCount === 1
-      ? '1 active this week — be #2 and unlock the next milestone!'
-      : metrics !== undefined && metrics.weeklyActiveCount > 0
-        ? `${metrics.weeklyActiveCount} active this week — every copy counts.`
-        : metrics !== undefined
-          ? 'Be the one this week — contribute to stay active.'
-          : undefined;
-
-  const topAssetMicroStory =
-    mostReusedAssets != null && mostReusedAssets.length > 0
-      ? `"${mostReusedAssets[0].title}" — Battle-tested in ${mostReusedAssets[0].count} projects. Copy risk-free.`
-      : undefined;
 
   const showCombinedNudge = showFirstTimeCTA || nudgeAddLibrary || nudgeCreateProject || nudgeShareStory;
 
@@ -372,30 +300,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Dashboard tabs: Hacks (default) vs Team pulse */}
-      <div className="flex gap-2 border-b border-border pb-2">
-        <button
-          type="button"
-          onClick={() => setDashboardTab('hacks')}
-          className={`btn btn-sm ${dashboardTab === 'hacks' ? 'btn-primary' : 'btn-ghost'}`}
-          aria-pressed={dashboardTab === 'hacks'}
-          aria-label="Hacks tab"
-        >
-          Hacks
-        </button>
-        <button
-          type="button"
-          onClick={() => setDashboardTab('pulse')}
-          className={`btn btn-sm ${dashboardTab === 'pulse' ? 'btn-primary' : 'btn-ghost'}`}
-          aria-pressed={dashboardTab === 'pulse'}
-          aria-label="Team pulse tab"
-        >
-          Team pulse
-        </button>
-      </div>
-
-      {dashboardTab === 'hacks' && (
-        <>
+      <>
           <WelcomeHero
             onScrollToHacks={scrollToCommunityHacks}
             currentProgress={maturityWidth}
@@ -470,14 +375,10 @@ export default function Dashboard() {
                           <Library className="mr-2 h-4 w-4" />
                           Explore Completed Hacks
                         </Link>
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={() => setDashboardTab('pulse')}
-                        >
+                        <Link to="/team-pulse" className="btn btn-outline btn-sm">
                           <Activity className="mr-2 h-4 w-4" />
                           Team pulse
-                        </button>
+                        </Link>
                       </div>
                     </>
                   )}
@@ -545,139 +446,7 @@ export default function Dashboard() {
           </div>
 
           <QuickActionsPanel />
-        </>
-      )}
-
-      {dashboardTab === 'pulse' && (
-        <div className="min-w-0 space-y-6">
-          <h2 className="text-xl font-semibold">Team pulse</h2>
-          <CollectiveProgressCard
-            currentProgress={maturityWidth}
-            metrics={{
-              aiContributorPercentage: metrics?.aiContributorPercentage ?? 0,
-              projectsWithAiPercentage: metrics?.projectsWithAiPercentage ?? 0,
-            }}
-          />
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center gap-2 sm:min-h-0 sm:min-w-0"
-              onClick={() => {
-                const exportData = {
-                  exportedAt: new Date().toISOString(),
-                  metrics: metrics ?? null,
-                  gini: gini ?? null,
-                  giniInterpretation:
-                    gini !== undefined ? giniInterpretation : null,
-                  frontlineLeaderGap: frontlineLeaderGap ?? null,
-                  topContributors: topContributors ?? [],
-                  topMentors: topMentors ?? [],
-                  mostReusedAssets: mostReusedAssets ?? [],
-                  impactStoriesCount: impactStories?.length ?? 0,
-                };
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-                  type: 'application/json',
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              aria-label="Export dashboard metrics as JSON"
-            >
-              <Download className="h-4 w-4" aria-hidden />
-              Export metrics
-            </button>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <EnhancedMetricCard
-              title="AI Contributors"
-              value={aiContributorValue}
-              description={aiContributorDesc}
-              icon={<Users className="h-5 w-5 text-muted-foreground" />}
-              microStory={aiContributorMicroStory}
-            />
-            <EnhancedMetricCard
-              title="Projects with AI"
-              value={projectsWithAiValue}
-              description={projectsWithAiDesc}
-              icon={<Activity className="h-5 w-5 text-muted-foreground" />}
-              microStory={projectsWithAiMicroStory}
-            />
-            <EnhancedMetricCard
-              title="Completed Hacks"
-              value={libraryAssetValue}
-              description="Reusable AI hacks"
-              icon={<Library className="h-5 w-5 text-muted-foreground" />}
-              microStory={topAssetMicroStory}
-            />
-            <EnhancedMetricCard
-              title="Weekly Active"
-              value={weeklyActiveValue}
-              description="Active AI contributors this week"
-              icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
-              microStory={weeklyActiveMicroStory}
-            />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="card p-6">
-              <h2 className="mb-4 text-xl font-semibold">
-                Knowledge Distribution
-              </h2>
-              {gini === undefined ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : (
-                <GiniRadialProgress gini={gini} interpretation={giniInterpretation} />
-              )}
-            </div>
-            {frontlineLeaderGap !== undefined && (
-              <div className="card p-6">
-                <h2 className="mb-4 text-xl font-semibold">
-                  Frontline vs leader contributions
-                </h2>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  Contributions in the last 30 days by experience level (frontline =
-                  newbie/curious/comfortable; leader = power user/expert).
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
-                  <div>
-                    <span className="font-medium text-foreground">Frontline</span>
-                    <p className="text-muted-foreground">
-                      {frontlineLeaderGap.frontlineContributions} contributions from{' '}
-                      {frontlineLeaderGap.frontlineUsers} active user
-                      {frontlineLeaderGap.frontlineUsers !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Leader</span>
-                    <p className="text-muted-foreground">
-                      {frontlineLeaderGap.leaderContributions} contributions from{' '}
-                      {frontlineLeaderGap.leaderUsers} active user
-                      {frontlineLeaderGap.leaderUsers !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Other</span>
-                    <p className="text-muted-foreground">
-                      {frontlineLeaderGap.otherContributions} contributions from{' '}
-                      {frontlineLeaderGap.otherUsers} active user
-                      {frontlineLeaderGap.otherUsers !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <TabbedRecognition
-            recentActivity={recentActivity}
-            topContributors={topContributors}
-            topMentors={topMentors}
-            mostReusedAssets={mostReusedAssets}
-          />
-        </div>
-      )}
+      </>
     </div>
   );
 }
