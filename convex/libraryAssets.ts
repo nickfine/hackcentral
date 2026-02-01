@@ -231,6 +231,56 @@ export const getById = query({
 });
 
 /**
+ * Get similar assets (same type, same visibility rules), excluding the given asset.
+ * Returns [] if the asset is not found or not visible to the caller (consistent with getById).
+ */
+export const getSimilar = query({
+  args: {
+    assetId: v.id("libraryAssets"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { assetId, limit = 6 }) => {
+    const current = await ctx.db.get(assetId);
+    if (!current) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    let currentProfile = null;
+    if (identity) {
+      currentProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+        .first();
+    }
+
+    const canSeeCurrent =
+      current.visibility === "public" ||
+      (current.visibility === "org" && identity) ||
+      (current.visibility === "private" && currentProfile && current.authorId === currentProfile._id);
+    if (!canSeeCurrent) return [];
+
+    const candidates = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_type", (q) => q.eq("assetType", current.assetType))
+      .collect();
+
+    const similar: typeof candidates = [];
+    for (const asset of candidates) {
+      if (asset._id === assetId) continue;
+      const isAuthor = currentProfile && asset.authorId === currentProfile._id;
+      const visibilityOk =
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity) ||
+        (asset.visibility === "private" && isAuthor);
+      if (!visibilityOk) continue;
+      similar.push(asset);
+      if (similar.length >= limit) break;
+    }
+
+    return similar;
+  },
+});
+
+/**
  * Create a new library asset
  */
 export const create = mutation({

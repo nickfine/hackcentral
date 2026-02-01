@@ -353,6 +353,7 @@ export default function Library() {
                 asset={selectedAsset}
                 assetId={selectedAssetId}
                 onClose={() => setSelectedAssetId(null)}
+                onSelectAsset={(id) => setSelectedAssetId(id)}
               />
             )}
           </div>
@@ -581,9 +582,10 @@ interface AssetDetailContentProps {
   };
   assetId: Id<'libraryAssets'>;
   onClose: () => void;
+  onSelectAsset?: (id: Id<'libraryAssets'>) => void;
 }
 
-function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps) {
+function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDetailContentProps) {
   const { isAuthenticated } = useAuth();
   const [attachOpen, setAttachOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<Id<'projects'> | ''>('');
@@ -593,6 +595,7 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
 
   const profile = useQuery(api.profiles.getCurrentProfile);
   const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
+  const similarAssets = useQuery(api.libraryAssets.getSimilar, { assetId, limit: 6 });
   const projects = useQuery(api.projects.list);
   const attachToProject = useMutation(api.libraryReuse.attachToProject);
   const recordReuse = useMutation(api.libraryReuse.recordReuse);
@@ -717,6 +720,30 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
         <div className="text-sm text-muted-foreground">
           Verified{asset.verifiedByFullName ? ` by ${asset.verifiedByFullName}` : ''}
           {asset.verifiedAt ? ` on ${new Date(asset.verifiedAt).toLocaleDateString()}` : ''}
+        </div>
+      )}
+
+      {/* More like this (same type) */}
+      {similarAssets !== undefined && (
+        <div className="border-t pt-4">
+          <h3 className="font-semibold text-sm mb-2">More like this</h3>
+          {similarAssets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No other {asset.assetType.replace('_', ' ')}s in the library yet.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {similarAssets.map((a) => (
+                <button
+                  key={a._id}
+                  type="button"
+                  className="text-left p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  onClick={() => onSelectAsset?.(a._id)}
+                >
+                  <span className="font-medium text-sm block truncate">{a.title}</span>
+                  <span className="text-xs text-muted-foreground capitalize">{a.status}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

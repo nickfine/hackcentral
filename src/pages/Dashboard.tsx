@@ -59,7 +59,7 @@ export default function Dashboard() {
       setStoryAssetId('')
     } catch (err) {
       console.error('Failed to share story:', err)
-      toast.error('Failed to share story. Please try again.')
+      toast.error(err instanceof Error ? err.message : 'Failed to share story. Please try again.')
     } finally {
       setIsSubmittingStory(false)
     }

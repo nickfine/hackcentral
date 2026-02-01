@@ -788,6 +788,49 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Library "More like this" (Similar assets) – Browser Testing (Jan 31, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Asset detail – "More like this" section (with similar assets)
+**Status:** ✅ Pass  
+- Navigated to Library, clicked asset card "Code Review Prompt - Security Focus".
+- Asset detail dialog opened with heading "Code Review Prompt - Security Focus".
+- **More like this** heading (level 3) present.
+- Six similar assets displayed as clickable buttons: Meeting Notes Summarizer, Technical Documentation Generator, User Story Expander, Bug Report Analyzer, SQL Query Generator, Email Response Draft Generator (all same type: prompt; current asset excluded).
+
+#### 2. Click similar asset – detail updates (onSelectAsset)
+**Status:** ✅ Pass  
+- Clicked "Meeting Notes Summarizer verified" in More like this.
+- Dialog content updated: heading changed to "Meeting Notes Summarizer", description and details for that asset.
+- **More like this** section updated to show similar prompts including "Code Review Prompt - Security Focus" (the previously viewed asset).
+
+#### 3. "More like this" empty state
+**Status:** ✅ Pass  
+- Closed dialog, clicked "Risk Assessment Output Schema" (only structured output in library).
+- Dialog opened with heading "Risk Assessment Output Schema".
+- **More like this** heading present.
+- Empty state message: "No other structured outputs in the library yet."
+
+### Test Summary
+
+| Feature                    | Status | Notes                                                |
+|----------------------------|--------|------------------------------------------------------|
+| More like this (with data) | ✅ Pass | Heading + 6 similar prompts (same type, visibility)   |
+| Click similar → new detail | ✅ Pass | onSelectAsset switches detail view correctly         |
+| More like this (empty)     | ✅ Pass | "No other X in the library yet." message             |
+| Console                    | ✅ Pass | No errors (Chrome DevTools MCP: no error messages)  |
+
+### Conclusion
+**Library "More like this" (Phase 2):** ✅ **PASS** – `getSimilar` returns same-type assets with visibility respected; "More like this" section shows up to 6 similar assets or empty state; clicking a similar asset opens that asset’s detail in the same panel; no console errors.
+
+---
+
 ## Development Notes
 
 ### Common Patterns
