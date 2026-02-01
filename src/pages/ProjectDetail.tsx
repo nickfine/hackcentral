@@ -13,6 +13,7 @@ import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 import { PROJECT_STATUS_LABELS, HACK_TYPE_LABELS, HACK_TYPE_BADGE_COLORS, HACK_TYPES } from '../constants/project';
+import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 export default function ProjectDetail() {
   const { projectId: projectIdParam } = useParams<{ projectId: string }>();
@@ -305,7 +306,7 @@ export default function ProjectDetail() {
           )}
         </div>
         {project.description && (
-          <p className="text-muted-foreground mb-6 whitespace-pre-wrap">{project.description}</p>
+          <p className="text-muted-foreground mb-6 whitespace-pre-wrap">{stripSeedDescriptionSuffix(project.description)}</p>
         )}
 
         {/* Learning summary (when completed/archived) */}

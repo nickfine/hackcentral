@@ -35,6 +35,7 @@ export default function Hacks() {
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
   const [librarySelectedType, setLibrarySelectedType] = useState('');
   const [librarySelectedStatus, setLibrarySelectedStatus] = useState('');
+  const [libraryShowDeprecated, setLibraryShowDeprecated] = useState(false);
   const [librarySubmitModalOpen, setLibrarySubmitModalOpen] = useState(false);
 
   // Projects filter state (for In progress tab)
@@ -111,6 +112,15 @@ export default function Hacks() {
               <option value="verified">Verified</option>
               <option value="deprecated">Deprecated</option>
             </select>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={libraryShowDeprecated}
+                onChange={(e) => setLibraryShowDeprecated(e.target.checked)}
+                className="rounded border-border"
+              />
+              <span className="text-sm text-muted-foreground">Show Deprecated</span>
+            </label>
           </>
         ) : (
           <>
@@ -194,6 +204,7 @@ export default function Hacks() {
           setSelectedType={setLibrarySelectedType}
           selectedStatus={librarySelectedStatus}
           setSelectedStatus={setLibrarySelectedStatus}
+          showDeprecated={libraryShowDeprecated}
           submitModalOpen={librarySubmitModalOpen}
           setSubmitModalOpen={setLibrarySubmitModalOpen}
         />

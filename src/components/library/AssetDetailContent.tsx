@@ -10,6 +10,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '../../hooks/useAuth';
+import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
 
@@ -152,7 +153,7 @@ export function AssetDetailContent({
             )}
           </div>
           {asset.description && (
-            <p className="text-muted-foreground mb-4">{asset.description}</p>
+            <p className="text-muted-foreground mb-4">{stripSeedDescriptionSuffix(asset.description)}</p>
           )}
         </div>
         <button

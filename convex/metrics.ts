@@ -418,6 +418,14 @@ export const getGraduatedAssets = query({
 
 const FRONTLINE_LEVELS = ["newbie", "curious", "comfortable"] as const;
 
+/** Strip seed-data "(type, status)." suffix so blurb doesn't duplicate type/status shown in UI. */
+function stripSeedDescriptionSuffix(description: string | undefined): string {
+  if (!description) return "";
+  return description
+    .replace(/\s*\((?:prompt|skill|app),\s*(?:draft|in_progress|verified|deprecated)\)\.?\s*$/i, "")
+    .trim();
+}
+
 export type FeaturedHack = {
   type: "asset" | "story";
   id: string;
@@ -431,6 +439,7 @@ export type FeaturedHack = {
   assetId?: Id<"libraryAssets">;
   storyId?: Id<"impactStories">;
   assetType?: "prompt" | "skill" | "app";
+  status?: string;
 };
 
 /**
@@ -477,6 +486,8 @@ export const getFeaturedHacks = query({
     }
 
     for (const asset of assets) {
+      if (asset.status === "deprecated") continue;
+
       const isAuthor = currentProfile && asset.authorId === currentProfile._id;
       const visible =
         asset.visibility === "public" ||
@@ -495,15 +506,16 @@ export const getFeaturedHacks = query({
         totalContributions < 3;
 
       const reuseCount = reuseCountByAsset.get(asset._id) ?? 0;
+      const rawDesc = stripSeedDescriptionSuffix(asset.description);
       const blurb =
-        asset.description?.slice(0, 120) ||
+        rawDesc.slice(0, 120) ||
         `Reusable ${asset.assetType.replace("_", " ")} — battle-tested in ${reuseCount} project${reuseCount !== 1 ? "s" : ""}.`;
 
       hacks.push({
         type: "asset",
         id: asset._id,
         title: asset.title,
-        blurb: blurb + (asset.description && asset.description.length > 120 ? "…" : ""),
+        blurb: blurb + (rawDesc.length > 120 ? "…" : ""),
         authorName,
         authorLevel,
         reuseCount,
@@ -511,6 +523,7 @@ export const getFeaturedHacks = query({
         _creationTime: asset._creationTime,
         assetId: asset._id,
         assetType: asset.assetType,
+        status: asset.status,
       });
     }
 

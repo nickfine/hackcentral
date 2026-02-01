@@ -15,6 +15,7 @@ import { TabButton, EmptyState } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
+import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 type Visibility = 'private' | 'org' | 'public';
 type HackTypeValue = (typeof HACK_TYPES)[number]['value'];
@@ -438,7 +439,7 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
       </div>
 
       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-        {project.description || 'No description'}
+        {stripSeedDescriptionSuffix(project.description) || 'No description'}
       </p>
 
       {/* Bottom row: lozenges left, metrics right (aligned with AssetCard) */}

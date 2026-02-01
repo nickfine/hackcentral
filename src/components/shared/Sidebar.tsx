@@ -38,7 +38,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-64 border-r bg-background pt-14">
+    <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-64 bg-background pt-20">
       {/* 8pt spacing: py-6 px-4 for nav breathing room */}
       <div className="flex-1 overflow-y-auto py-6 px-4">
         <nav className="space-y-1">
@@ -49,7 +49,7 @@ export function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t">
+      <div className="p-4">
         <div className="card p-3 bg-primary/5 border-primary/20">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />

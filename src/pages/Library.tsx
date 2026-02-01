@@ -14,6 +14,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { EmptyState } from '../components/shared';
 import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 const ASSET_TYPES = [
   { value: 'prompt', label: 'Prompt' },
@@ -308,6 +309,8 @@ export interface LibraryEmbeddedProps {
   setSelectedType?: (t: string) => void;
   selectedStatus?: string;
   setSelectedStatus?: (s: string) => void;
+  /** When true, include deprecated assets in the list. When false (default), exclude them unless status filter is "deprecated". */
+  showDeprecated?: boolean;
   submitModalOpen?: boolean;
   setSubmitModalOpen?: (open: boolean) => void;
 }
@@ -321,6 +324,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
     setSelectedType: setSelectedTypeProp,
     selectedStatus: selectedStatusProp,
     setSelectedStatus: setSelectedStatusProp,
+    showDeprecated = false,
     submitModalOpen: submitModalOpenProp,
     setSubmitModalOpen: setSubmitModalOpenProp,
   } = props;
@@ -371,7 +375,8 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
     status?: "in_progress" | "verified" | "deprecated";
     arsenalOnly?: boolean;
     limit?: number;
-  } = { limit: assetLimit };
+    excludeDeprecated?: boolean;
+  } = { limit: assetLimit, excludeDeprecated: !showDeprecated };
   
   if (selectedType) {
     queryArgs.assetType = selectedType as typeof queryArgs.assetType;
@@ -608,7 +613,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
 
   return (
     <div
-      className={`card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden ${asset.status === 'verified' ? 'pr-8' : ''}`}
+      className={`card p-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden ${asset.status === 'verified' ? 'pr-8' : ''} ${asset.status === 'deprecated' ? 'opacity-75' : ''}`}
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(asset._id)}
@@ -634,17 +639,15 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
       </div>
 
       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-        {asset.description || 'No description'}
+        {stripSeedDescriptionSuffix(asset.description) || 'No description'}
       </p>
 
-      {/* Bottom row: type lozenge left, reuse count right (stage omitted — completed hacks are finished) */}
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-          <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
-            {typeLabel}
-          </span>
-        </div>
-        <span className="text-xs text-muted-foreground shrink-0">
+      {/* Bottom row: type lozenge left, reuse count right — grid keeps same line on all cards */}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1 min-w-0">
+        <span className={`badge text-xs border w-fit whitespace-nowrap truncate min-w-0 max-w-full ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
+          {typeLabel}
+        </span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap text-right">
           {reuseCount} reuse{reuseCount !== 1 ? 's' : ''}
         </span>
       </div>

@@ -106,8 +106,10 @@ export const listWithReuseCounts = query({
     ),
     arsenalOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
+    /** When true, exclude assets with status "deprecated" (unless status filter is explicitly "deprecated"). */
+    excludeDeprecated: v.optional(v.boolean()),
   },
-  handler: async (ctx, { assetType, status, arsenalOnly, limit }) => {
+  handler: async (ctx, { assetType, status, arsenalOnly, limit, excludeDeprecated }) => {
     const identity = await ctx.auth.getUserIdentity();
     const assets = await ctx.db.query("libraryAssets").collect();
 
@@ -129,6 +131,7 @@ export const listWithReuseCounts = query({
       if (assetType && asset.assetType !== assetType) return false;
       if (status && asset.status !== status) return false;
       if (arsenalOnly && !asset.isArsenal) return false;
+      if (excludeDeprecated && asset.status === "deprecated" && status !== "deprecated") return false;
       return true;
     });
 

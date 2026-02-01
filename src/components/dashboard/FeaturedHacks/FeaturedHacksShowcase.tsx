@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Library, Sparkles } from 'lucide-react';
+import { Library } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { FeaturedHackItem } from './HackCard';
@@ -53,6 +53,7 @@ function mapApiHackToItem(hack: {
   assetId?: string;
   storyId?: string;
   assetType?: 'prompt' | 'skill' | 'app';
+  status?: string;
 }): FeaturedHackItem {
   return {
     type: hack.type,
@@ -67,6 +68,7 @@ function mapApiHackToItem(hack: {
     assetId: hack.assetId,
     storyId: hack.storyId,
     assetType: hack.assetType,
+    status: hack.status,
   };
 }
 
@@ -86,14 +88,14 @@ export function FeaturedHacksShowcase({ onCopySuccess, starterCount = DEFAULT_ST
       {/* 8pt spacing: section gap-6, header gap-4, generous breathing */}
       <section aria-labelledby="featured-hacks-heading" className="min-w-0 space-y-6">
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
           <h2
             id="featured-hacks-heading"
-            className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl md:text-2xl"
+            className="min-w-0 text-lg font-bold sm:text-xl md:text-2xl"
           >
-            <Sparkles className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
-            <span className="break-words">Latest Hacks - <span className="font-normal">accelerators and pain removers made by us</span></span>
+            <span className="break-words">Latest Hacks</span>
           </h2>
+          <p className="text-sm font-normal text-muted-foreground">accelerators and pain removers made by us</p>
         </div>
         <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
           <Link to="/hacks?tab=completed" className="btn btn-ghost btn-sm">

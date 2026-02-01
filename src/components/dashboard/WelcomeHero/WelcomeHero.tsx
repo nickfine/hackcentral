@@ -24,7 +24,7 @@ export function WelcomeHero(_props: WelcomeHeroProps) {
   return (
     <section
       aria-label="HackDay Central"
-      className="relative w-full min-w-0 overflow-hidden py-10 sm:py-12 md:py-16 lg:py-20"
+      className="relative w-full min-w-0 overflow-hidden pt-6 pb-2 sm:pb-3 md:pb-4 lg:pb-5"
     >
       <div className="relative z-10 w-full min-w-0 max-w-3xl text-left">
         <motion.h1

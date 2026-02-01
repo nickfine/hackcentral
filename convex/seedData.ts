@@ -1208,7 +1208,7 @@ export const seedDemoHacks = internalMutation({
       const assetType = ASSET_TYPES[i % ASSET_TYPES.length];
       await ctx.db.insert("libraryAssets", {
         title: demoAssetTitles[i],
-        description: `Demo asset for variety (${assetType}, ${status}).`,
+        description: "Demo asset for variety.",
         assetType,
         content: { prompt: "Demo content." },
         status,
@@ -1225,7 +1225,7 @@ export const seedDemoHacks = internalMutation({
       const hackType = ASSET_TYPES[i % ASSET_TYPES.length];
       await ctx.db.insert("projects", {
         title: demoProjectTitles[i],
-        description: `Demo project (${hackType}, ${status}).`,
+        description: "Demo project.",
         status,
         ownerId: owner._id,
         visibility: "org",

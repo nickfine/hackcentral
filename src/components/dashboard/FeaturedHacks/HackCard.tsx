@@ -1,7 +1,13 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Copy, ExternalLink, FileCode, PenLine, Sparkles, User } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Code, Bot, PenLine, Check } from 'lucide-react';
+import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+
+const TYPE_LABELS: Record<string, string> = {
+  prompt: 'Prompt',
+  skill: 'Skill',
+  app: 'App',
+};
 
 export interface FeaturedHackItem {
   type: 'asset' | 'story';
@@ -16,139 +22,85 @@ export interface FeaturedHackItem {
   assetId?: string;
   storyId?: string;
   assetType?: 'prompt' | 'skill' | 'app';
+  status?: string;
 }
 
 interface HackCardProps {
   hack: FeaturedHackItem;
-  /** Called when copy to clipboard succeeds (e.g. for first-copy confetti) */
+  /** Optional: called when copy to clipboard succeeds (kept for API compatibility) */
   onCopySuccess?: () => void;
-  /** Show "Starter" badge (copy in seconds) for newbie-friendly hacks */
+  /** Optional: show Starter badge (kept for API compatibility) */
   isStarter?: boolean;
 }
 
-function getAssetDetailUrl(assetId: string): string {
-  const base = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${base}/library/${assetId}`;
-}
-
-export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
+export function HackCard({ hack }: HackCardProps) {
   const shouldReduceMotion = useReducedMotion();
-
-  const handleCopy = () => {
-    const text =
-      hack.type === 'asset' && hack.assetId
-        ? `${hack.title}\n\n${hack.blurb}\n\nView: ${getAssetDetailUrl(hack.assetId)}`
-        : `${hack.title}\n\n${hack.blurb}`;
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(
-        () => {
-          toast.success('Copied to clipboard!');
-          onCopySuccess?.();
-        },
-        () => toast.error('Failed to copy')
-      );
-    } else {
-      toast.error('Clipboard not available');
-    }
-  };
+  const navigate = useNavigate();
 
   const viewDetailsTo = hack.type === 'asset' && hack.assetId
     ? `/library/${hack.assetId}`
     : '/hacks?tab=completed';
 
-  // Show Copy for stories, and for assets that are prompt/skill (or when assetType missing for backwards compatibility)
-  const showCopy =
-    hack.type === 'story' ||
-    (hack.type === 'asset' && (hack.assetType === undefined || hack.assetType === 'prompt' || hack.assetType === 'skill'));
-  const copyLabel =
-    hack.type === 'asset'
-      ? `Copy ${hack.title} to clipboard`
-      : `Copy story "${hack.title}" to clipboard`;
-  const viewLabel = `View details for ${hack.title}`;
+  const handleCardClick = () => {
+    navigate(viewDetailsTo);
+  };
 
-  {/* 8pt card: p-6 padding, rounded-xl, subtle lift on hover (Linear-like) */}
+  const typeIcons: Record<string, React.ReactNode> = {
+    prompt: <FileText className="h-4 w-4" />,
+    skill: <Code className="h-4 w-4" />,
+    app: <Bot className="h-4 w-4" />,
+  };
+  const typeLabel = hack.type === 'asset' && hack.assetType
+    ? (TYPE_LABELS[hack.assetType] ?? hack.assetType)
+    : 'Story';
+
   return (
     <motion.article
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${hack.title}`}
+      onClick={handleCardClick}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleCardClick())}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={shouldReduceMotion ? undefined : { y: -2 }}
       transition={{ duration: 0.2 }}
-      className={`group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-        hack.isRisingStar
-          ? 'hover:shadow-secondary/30 hover:ring-2 hover:ring-secondary/20'
-          : 'hover:shadow-primary/20'
-      }`}
+      className={`group relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:shadow-primary/20 cursor-pointer ${hack.type === 'asset' && hack.status === 'verified' ? 'pr-8' : ''} ${hack.type === 'asset' && hack.status === 'deprecated' ? 'opacity-75' : ''}`}
     >
-      {/* 8pt internal: mb-4 badge row, generous icon padding */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/60 p-2.5" aria-hidden>
-          {hack.type === 'asset' ? (
-            <FileCode className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-          ) : (
-            <PenLine className="h-5 w-5 shrink-0 text-secondary" aria-hidden />
-          )}
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {isStarter && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
-              title="Copy in seconds"
-            >
-              Starter
-            </span>
-          )}
-          {hack.isRisingStar ? (
-            <span
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary group-hover:bg-secondary/20 group-hover:shadow-md group-hover:shadow-secondary/20"
-              title="First-time or frontline contributor"
-            >
-              <Sparkles className="h-3 w-3" aria-hidden />
-              Rising Star
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <h3 className="mb-3 min-w-0 line-clamp-2 break-words text-lg font-semibold leading-snug text-foreground">
-        {hack.title}
-      </h3>
-      <div className="min-h-0 flex-1 mb-4">
-        <p className="line-clamp-3 break-words text-sm leading-relaxed text-muted-foreground">{hack.blurb}</p>
-      </div>
-
-      {/* Metadata pushed to bottom with mt-auto for uniform card height */}
-      <div className="mt-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <User className="h-3.5 w-3.5" aria-hidden />
-          {hack.authorName}
-        </span>
-        {hack.reuseCount > 0 && (
-          <span className="rounded-md bg-muted px-2 py-0.5 font-medium">
-            Reused {hack.reuseCount}×
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-3 mt-4">
-        {showCopy && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="btn btn-primary btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
-            aria-label={copyLabel}
-          >
-            <Copy className="h-4 w-4 shrink-0" aria-hidden />
-            Copy {hack.type === 'asset' ? 'Hack' : 'Story'}
-          </button>
-        )}
-        <Link
-          to={viewDetailsTo}
-          className={`btn btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0 ${showCopy ? 'btn-outline' : 'btn-primary'}`}
-          aria-label={viewLabel}
+      {/* Verified corner flash (matches Completed Hacks AssetCard) */}
+      {hack.type === 'asset' && hack.status === 'verified' && (
+        <div
+          className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded-bl-md"
+          aria-label="Verified"
         >
-          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-          View Details
-        </Link>
+          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </div>
+      )}
+
+      {/* Top row: type icon + title (title flows to two lines) */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+            {hack.type === 'asset' && hack.assetType
+              ? (typeIcons[hack.assetType] ?? <FileText className="h-4 w-4" />)
+              : <PenLine className="h-4 w-4 text-secondary" />}
+          </div>
+          <h3 className="font-semibold text-sm leading-tight line-clamp-2 break-words min-w-0">{hack.title}</h3>
+        </div>
+      </div>
+
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+        {hack.blurb}
+      </p>
+
+      {/* Bottom row: type badge + reuse count — grid keeps same line on all cards */}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-2 pt-1 min-w-0 mt-auto">
+        <span className={`badge text-xs border w-fit whitespace-nowrap truncate min-w-0 max-w-full ${hack.type === 'asset' && hack.assetType ? (HACK_TYPE_BADGE_COLORS[hack.assetType] ?? 'bg-muted text-muted-foreground border-border') : 'bg-secondary/10 text-secondary border-secondary/20'}`}>
+          {typeLabel}
+        </span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap text-right">
+          {hack.reuseCount} reuse{hack.reuseCount !== 1 ? 's' : ''}
+        </span>
       </div>
     </motion.article>
   );

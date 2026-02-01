@@ -226,3 +226,12 @@ export function getErrorMessage(error: unknown): string {
   }
   return 'An unknown error occurred'
 }
+
+/** Seed data appends "(type, status)." to descriptions; strip it so type/status aren't duplicated in the UI. */
+/** Matches both library asset statuses (draft|in_progress|verified|deprecated) and project statuses (idea|building|incubation|completed|archived). */
+const SEED_DESCRIPTION_SUFFIX = /\s*\((?:prompt|skill|app),\s*(?:draft|in_progress|verified|deprecated|idea|building|incubation|completed|archived)\)\.?\s*$/i;
+
+export function stripSeedDescriptionSuffix(description: string | null | undefined): string {
+  if (description == null || description === '') return '';
+  return description.replace(SEED_DESCRIPTION_SUFFIX, '').trim() || description;
+}

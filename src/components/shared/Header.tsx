@@ -42,7 +42,7 @@ export function Header() {
   const closeMobileSearch = () => setMobileSearchOpen(false)
 
   return (
-    <header className="sticky top-0 z-50 shrink-0 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 shrink-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4 lg:px-6 gap-3">
         {/* Mobile menu button - hidden when search expanded */}
         <button
