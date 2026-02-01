@@ -144,6 +144,17 @@ Vercel will automatically:
 - Deploy the `dist/` folder
 - Configure SPA routing (via `vercel.json`)
 
+### Monitoring & feedback (Phase 4)
+
+- **Error tracking (Sentry)**  
+  Set `VITE_SENTRY_DSN` in production (e.g. in Vercel env) to report unhandled errors. Leave unset in dev. See `.env.example`.
+
+- **Vercel Analytics**  
+  Page views and Web Vitals are reported when the app is deployed on Vercel (`@vercel/analytics` is included).
+
+- **A/B testing (lightweight)**  
+  Convex env vars drive copy variants. In Convex Dashboard → Settings → Environment Variables, set `NUDGE_COPY_VARIANT=a` or `b` to switch the learning-summary nudge copy on project detail. The app uses `settings.getPublicConfig`; add more keys there to run other experiments.
+
 ## 📖 Key Concepts
 
 ### AI Maturity Dashboard

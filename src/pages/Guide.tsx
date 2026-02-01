@@ -3,7 +3,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { BookOpen, Library, FolderKanban, Sparkles, ArrowLeft } from 'lucide-react';
+import { BookOpen, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function Guide() {
   return (

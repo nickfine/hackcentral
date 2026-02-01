@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { Layout } from '@/components/shared/Layout'
 import '@/styles/globals.css'
@@ -115,6 +116,7 @@ function App() {
           </Route>
         </Routes>
       </AuthGuard>
+      <Analytics />
     </BrowserRouter>
   )
 }

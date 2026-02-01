@@ -28,6 +28,7 @@ export default function ProjectDetail() {
     api.projectComments.listForProject,
     projectId ? { projectId: projectId as Id<'projects'> } : 'skip'
   );
+  const publicConfig = useQuery(api.settings.getPublicConfig);
   const addComment = useMutation(api.projectComments.add);
   const updateProject = useMutation(api.projects.update);
 
@@ -47,9 +48,20 @@ export default function ProjectDetail() {
   const [isSubmittingReadiness, setIsSubmittingReadiness] = useState(false);
   const [sponsorFormOpen, setSponsorFormOpen] = useState(false);
   const [isSubmittingSponsor, setIsSubmittingSponsor] = useState(false);
+  const [learningSummaryFormOpen, setLearningSummaryFormOpen] = useState(false);
+  const [isSubmittingLearningSummary, setIsSubmittingLearningSummary] = useState(false);
 
   const isOwner = Boolean(project && profile && project.ownerId === profile._id);
   const isClosed = project?.status === 'completed' || project?.status === 'archived';
+  const hasLearningSummary = Boolean(
+    project &&
+      (project.failuresAndLessons?.trim() ||
+        project.timeSavedEstimate != null ||
+        (project.aiToolsUsed?.length ?? 0) > 0 ||
+        project.workflowTransformed)
+  );
+  const showLearningSummaryNudge =
+    isClosed && isOwner && !hasLearningSummary;
 
   useEffect(() => {
     if (project && window.location.hash === '#comments') {
@@ -150,6 +162,38 @@ export default function ProjectDetail() {
       toast.error(err instanceof Error ? err.message : 'Failed to save. Please try again.');
     } finally {
       setIsSubmittingSponsor(false);
+    }
+  };
+
+  const handleLearningSummarySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectId || isSubmittingLearningSummary) return;
+    if (!failuresAndLessons.trim()) {
+      toast.error('Please add lessons learned.');
+      return;
+    }
+    setIsSubmittingLearningSummary(true);
+    try {
+      await updateProject({
+        projectId: projectId as Id<'projects'>,
+        failuresAndLessons: failuresAndLessons.trim(),
+        timeSavedEstimate: timeSavedEstimate === '' ? undefined : Number(timeSavedEstimate),
+        workflowTransformed,
+        aiToolsUsed: aiToolsUsedText.trim()
+          ? aiToolsUsedText.split(',').map((s) => s.trim()).filter(Boolean)
+          : undefined,
+      });
+      toast.success('Learning summary saved.');
+      setLearningSummaryFormOpen(false);
+      setFailuresAndLessons('');
+      setTimeSavedEstimate('');
+      setWorkflowTransformed(false);
+      setAiToolsUsedText('');
+    } catch (err) {
+      console.error('Failed to save learning summary:', err);
+      toast.error('Failed to save. Please try again.');
+    } finally {
+      setIsSubmittingLearningSummary(false);
     }
   };
 
@@ -261,6 +305,113 @@ export default function ProjectDetail() {
               </dl>
             </div>
           )}
+
+        {/* Learning summary nudge (owner, completed/archived, no summary yet) */}
+        {showLearningSummaryNudge && (
+          <div className="border-t pt-4 mb-6">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              {!learningSummaryFormOpen ? (
+                <>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {publicConfig?.nudgeCopyVariant === 'b'
+                      ? "This project hasn't posted an AI lesson — want help summarizing?"
+                      : "This project doesn't have a learning summary yet. Add what you learned to help others."}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setLearningSummaryFormOpen(true)}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Add learning summary
+                  </button>
+                </>
+              ) : (
+                <form onSubmit={handleLearningSummarySubmit} className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Capture lessons learned, time saved, and AI tools used.
+                  </p>
+                  <div>
+                    <label htmlFor="nudge-lessons" className="block text-sm font-medium mb-1">
+                      Lessons learned <span className="text-destructive">*</span>
+                    </label>
+                    <textarea
+                      id="nudge-lessons"
+                      value={failuresAndLessons}
+                      onChange={(e) => setFailuresAndLessons(e.target.value)}
+                      className="input w-full min-h-[80px]"
+                      placeholder="What worked, what didn't, what you'd do differently"
+                      required
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="nudge-time-saved" className="block text-sm font-medium mb-1">
+                      Time saved (hours, optional)
+                    </label>
+                    <input
+                      id="nudge-time-saved"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={timeSavedEstimate}
+                      onChange={(e) => setTimeSavedEstimate(e.target.value)}
+                      className="input w-24"
+                      placeholder="e.g. 12"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="nudge-tools" className="block text-sm font-medium mb-1">
+                      AI tools used (optional, comma-separated)
+                    </label>
+                    <input
+                      id="nudge-tools"
+                      type="text"
+                      value={aiToolsUsedText}
+                      onChange={(e) => setAiToolsUsedText(e.target.value)}
+                      className="input w-full"
+                      placeholder="e.g. ChatGPT, Cursor, Copilot"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="nudge-workflow"
+                      type="checkbox"
+                      checked={workflowTransformed}
+                      onChange={(e) => setWorkflowTransformed(e.target.checked)}
+                      className="rounded border-input"
+                    />
+                    <label htmlFor="nudge-workflow" className="text-sm">
+                      Workflow transformed with AI
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setLearningSummaryFormOpen(false);
+                        setFailuresAndLessons('');
+                        setTimeSavedEstimate('');
+                        setWorkflowTransformed(false);
+                        setAiToolsUsedText('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={isSubmittingLearningSummary || !failuresAndLessons.trim()}
+                    >
+                      {isSubmittingLearningSummary ? 'Saving…' : 'Save learning summary'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Move to Building (owner only, when idea) */}
         {isOwner && project.status === 'idea' && (

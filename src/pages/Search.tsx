@@ -7,7 +7,6 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search as SearchIcon, BookOpen, Users } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
 import { getInitials } from '../lib/utils';
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
@@ -47,7 +46,7 @@ export default function Search() {
   const q = searchParams.get('q') ?? '';
 
   const allAssets = useQuery(api.libraryAssets.listWithReuseCounts, {});
-  const profiles = useQuery(api.profiles.list);
+  const profiles = useQuery(api.profiles.list, {});
 
   const filteredAssets = allAssets === undefined ? [] : allAssets.filter((a) => matchAsset(q, a));
   const filteredProfiles = profiles === undefined ? [] : profiles.filter((p) => matchProfile(q, p));

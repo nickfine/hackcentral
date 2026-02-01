@@ -290,6 +290,15 @@ export default defineSchema({
     .index("by_period", ["periodStart", "periodEnd"]),
 
   // ============================================================================
+  // FEEDBACK (Phase 4: user feedback loop)
+  // ============================================================================
+  feedback: defineTable({
+    userId: v.optional(v.id("profiles")),
+    message: v.string(),
+    category: v.optional(v.string()),
+  }),
+
+  // ============================================================================
   // IMPACT STORIES
   // ============================================================================
   impactStories: defineTable({

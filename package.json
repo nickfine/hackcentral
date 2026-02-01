@@ -1,7 +1,7 @@
 {
   "name": "hackcentral",
   "private": true,
-  "version": "0.4.16",
+  "version": "0.4.17",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:backend & npm run dev:frontend",
@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.60.0",
+    "@sentry/react": "^10.38.0",
+    "@vercel/analytics": "^1.6.1",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "convex": "^1.31.7",

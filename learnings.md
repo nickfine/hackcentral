@@ -209,6 +209,50 @@ export default {
 
 ---
 
+## Phase 4 – Browser Testing (Jan 30, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173), Convex dev
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. User Feedback (Phase 4)
+**Status:** ✅ Verified Working
+
+**Test:** Opened feedback modal from header "Send feedback" button
+**Steps:**
+1. Click "Send feedback" (header) → modal opened with heading "Send feedback", Message (required), Category (optional: Bug / Idea / Other), Cancel and Send feedback (disabled until message filled)
+2. Filled Message: "Phase 4 feedback test: modal and submit work correctly."
+3. Selected Category: Idea
+4. Clicked "Send feedback"
+
+**Result:**
+- Modal closed after submit
+- Toast appeared: "Thanks, your feedback was sent."
+- No console errors
+
+**Conclusion:** Feedback flow (Header → modal → `feedback.create` → toast) works as specified.
+
+#### 2. Learning Summary Nudge (Phase 4)
+**Status:** ✅ Logic Verified
+
+**Test:** Opened completed project "Playwright test project" (owner: Nick Test)
+**Expected:** Nudge appears only when project is completed/archived, user is owner, and learning summary is empty (no failuresAndLessons, timeSavedEstimate, aiToolsUsed, workflowTransformed).
+
+**Result:** This project already had a learning summary (Lessons learned, AI tools used, Workflow transformed). Nudge did **not** appear — correct behavior per `showLearningSummaryNudge = isClosed && isOwner && !hasLearningSummary`.
+
+**Conclusion:** Nudge visibility logic is correct. To see the nudge in-browser, use a completed/archived project with no learning summary filled.
+
+#### 3. Vercel Analytics
+**Observation:** Console showed `[Vercel Web Analytics] [pageview]` on navigation — analytics script is active in dev.
+
+#### 4. Console
+**No errors** during Phase 4 testing. Warnings: Clerk dev key, React DevTools (expected).
+
+---
+
 ## Phase 1.5: Mentor Matching – Browser Testing (Jan 31, 2026)
 
 ### Test Environment
