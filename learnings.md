@@ -744,6 +744,50 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Derived Badges (Your recognition) – Browser Testing (Jan 30, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Your recognition section visible (authenticated)
+**Status:** ✅ Pass  
+- Navigated to `/dashboard`.
+- **Your recognition** section present: heading "Your recognition" with Award icon.
+- Section only shown when authenticated (Nick Test).
+- Badge chip displayed: **Verifier** (user had verified at least one library asset; most_verified badge with metricValue 1). Chip shows label only (×N not shown when value is 1, per implementation).
+
+#### 2. Derived badges display
+**Status:** ✅ Pass  
+- Query `getDerivedBadgesForCurrentUser` returned at least one badge (Verifier).
+- Badge chip: Award icon + label "Verifier"; tooltip "Verifier: 1" (title attribute).
+- No Mentor Champion or Most Reused shown (user had no completed mentor sessions in last 30d; reuses on user's assets may be 0 or not in scope for this test).
+
+#### 3. Section placement and empty state
+**Status:** ✅ Pass  
+- Section appears above Impact Stories.
+- Loading and empty states implemented (empty copy: "Complete mentor sessions, verify library assets...").
+
+### Test Summary
+
+| Feature              | Status | Notes                                        |
+|----------------------|--------|----------------------------------------------|
+| Your recognition section | ✅ Pass | Heading, icon; shown when authenticated     |
+| Badge chips          | ✅ Pass | Verifier badge displayed with icon + label   |
+| Tooltip (title)      | ✅ Pass | "Verifier: 1" on chip                        |
+| Loading/empty states | ✅ Pass | Appropriate copy                             |
+
+### Console
+- No errors. Only React DevTools and Clerk development key warnings.
+
+### Conclusion
+**Derived Badges (Phase 2):** ✅ **PASS** – "Your recognition" section renders when authenticated; derived badges (Verifier) display correctly; no console errors.
+
+---
+
 ## Development Notes
 
 ### Common Patterns

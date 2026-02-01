@@ -31,6 +31,10 @@
 - **Backend:** `convex/impactStories.ts` – `create` mutation (headline, storyText?, projectId?, assetId?, metrics?, featured?); `list` query (limit?, featuredOnly?) with authorName, projectTitle, assetTitle for display.
 - **Frontend:** `src/pages/Dashboard.tsx` – "Impact Stories" section with feed (headline, author, optional project/asset, date, story text); "Share your story" button (authenticated) opens modal with form (headline required, story text, optional project/asset links), submit → toast and close.
 
+### ✅ Derived badges (recognition)
+- **Backend:** `convex/recognition.ts` – `getDerivedBadgesForCurrentUser()` query: computes mentor_champion (completed sessions in last 30d), most_verified (assets verified by user), most_reused (reuse events on user's assets in last 30d); returns { badgeType, label, metricValue }[].
+- **Frontend:** `src/pages/Dashboard.tsx` – "Your recognition" section (authenticated only): badge chips with Award icon, label, and ×N when metricValue > 1; loading and empty states.
+
 ---
 
 ## Remaining Phase 2 Tasks (in suggested order)

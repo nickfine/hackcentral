@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
-import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X } from 'lucide-react'
+import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X, Award } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -31,6 +31,7 @@ export default function Dashboard() {
   const createStory = useMutation(api.impactStories.create)
   const projects = useQuery(api.projects.list)
   const libraryAssets = useQuery(api.libraryAssets.list)
+  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser)
 
   const [storyModalOpen, setStoryModalOpen] = useState(false)
   const [storyHeadline, setStoryHeadline] = useState('')
@@ -370,6 +371,39 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Your recognition (authenticated) */}
+      {isAuthenticated && (
+        <div className="card p-6">
+          <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
+            <Award className="h-5 w-5 text-muted-foreground" />
+            Your recognition
+          </h2>
+          {derivedBadges === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : derivedBadges.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Complete mentor sessions, verify library assets, or get reuses on your assets to earn badges.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {derivedBadges.map((badge) => (
+                <span
+                  key={badge.badgeType}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                  title={`${badge.label}: ${badge.metricValue}`}
+                >
+                  <Award className="h-4 w-4 shrink-0" />
+                  {badge.label}
+                  {badge.metricValue > 1 && (
+                    <span className="text-muted-foreground">×{badge.metricValue}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Impact Stories */}
       <div className="card p-6">
