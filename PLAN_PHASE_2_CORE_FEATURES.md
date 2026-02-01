@@ -23,6 +23,10 @@
 - Submit Asset modal, author verification workflow (draft/verified/deprecated), “Verified by” display, reuse counts on cards, attach-to-project (v0.4.2).
 - **Reuse recording:** `convex/libraryReuse.ts` – `recordReuse(assetId, reuseType, projectId?)`; when `projectId` is provided, also ensures `projectLibraryAssets` row. `src/pages/Library.tsx` – asset detail “I used this” quick action (Copied / Referenced / Linked + “Record use” button) so reuse can be recorded without attaching to a project.
 
+### ✅ Recognition – Leaderboards (first slice)
+- **Backend:** `convex/metrics.ts` – `getTopMentors` (top 10 by completed sessions, last 30d), `getMostReusedAssets` (top 10 by reuse events, last 30d; public/org only).
+- **Frontend:** `src/pages/Dashboard.tsx` – "Top Mentors" card (GraduationCap), "Most Reused Assets" card (BookOpen), empty/loading states.
+
 ---
 
 ## Remaining Phase 2 Tasks (in suggested order)

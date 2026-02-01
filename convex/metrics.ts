@@ -138,3 +138,81 @@ export const getTopContributors = query({
     return results;
   },
 });
+
+/**
+ * Top mentors in the last 30 days (by completed mentor sessions).
+ */
+export const getTopMentors = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const requests = await ctx.db
+      .query("mentorRequests")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("status"), "completed"),
+          q.gte(q.field("_creationTime"), thirtyDaysAgo)
+        )
+      )
+      .collect();
+
+    const countByMentor = new Map<Id<"profiles">, number>();
+    for (const r of requests) {
+      countByMentor.set(r.mentorId, (countByMentor.get(r.mentorId) ?? 0) + 1);
+    }
+
+    const sorted = [...countByMentor.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const results = await Promise.all(
+      sorted.map(async ([mentorId, count]) => {
+        const profile = await ctx.db.get(mentorId);
+        return {
+          mentorId,
+          name: profile?.fullName ?? profile?.email ?? "Unknown",
+          count,
+        };
+      })
+    );
+    return results;
+  },
+});
+
+/**
+ * Most reused library assets in the last 30 days (by reuse event count).
+ * Returns only assets that are public or org-visible (no private asset titles).
+ */
+export const getMostReusedAssets = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const identity = await ctx.auth.getUserIdentity();
+    const events = await ctx.db
+      .query("libraryReuseEvents")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+
+    const countByAsset = new Map<Id<"libraryAssets">, number>();
+    for (const e of events) {
+      countByAsset.set(e.assetId, (countByAsset.get(e.assetId) ?? 0) + 1);
+    }
+
+    const sorted = [...countByAsset.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const results: { assetId: Id<"libraryAssets">; title: string; count: number }[] = [];
+    for (const [assetId, count] of sorted) {
+      const asset = await ctx.db.get(assetId);
+      if (!asset) continue;
+      const visible =
+        asset.visibility === "public" ||
+        (asset.visibility === "org" && identity);
+      if (visible) {
+        results.push({ assetId, title: asset.title, count });
+      }
+    }
+    return results;
+  },
+});

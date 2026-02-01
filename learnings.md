@@ -651,6 +651,50 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Recognition Leaderboards – Browser Testing (Jan 30, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Dashboard – new leaderboard sections visible
+**Status:** ✅ Pass  
+- Navigated to `/dashboard`.
+- Page loaded with heading "AI Maturity Dashboard", metric cards, Maturity Stage, Recent Activity, Top Contributors.
+- **Top Mentors** section present: heading "Top Mentors" with GraduationCap icon; empty state message: "No completed mentor sessions in the last 30 days. Complete mentoring sessions to appear here."
+- **Most Reused Assets** section present: heading "Most Reused Assets" with BookOpen icon; list showed assets with reuse counts (e.g. "1. Code Review Prompt - Security Focus" – 1 reuse, "2. Meeting Notes Summarizer" – 1 reuse).
+
+#### 2. Top Mentors – empty state
+**Status:** ✅ Pass  
+- Correct empty state when no completed mentor sessions in last 30 days.
+- Copy is clear and actionable.
+
+#### 3. Most Reused Assets – data display
+**Status:** ✅ Pass  
+- Query returned assets with reuse events in last 30 days.
+- List displayed: rank, asset title (truncated with title attribute), reuse count.
+- Only public/org-visible assets shown (visibility respected).
+
+### Test Summary
+
+| Feature              | Status | Notes                                        |
+|----------------------|--------|----------------------------------------------|
+| Top Mentors section  | ✅ Pass | Heading, icon, empty state message            |
+| Most Reused Assets   | ✅ Pass | Heading, icon, list with title + reuse count |
+| Visibility filter    | ✅ Pass | Only public/org assets in Most Reused        |
+| Loading/empty states | ✅ Pass | Appropriate copy for both sections           |
+
+### Console
+- No errors. Only React DevTools and Clerk development key warnings.
+
+### Conclusion
+**Recognition Leaderboards (Phase 2):** ✅ **PASS** – Top Mentors and Most Reused Assets sections render on Dashboard; empty state and data display correct; no console errors.
+
+---
+
 ## Development Notes
 
 ### Common Patterns

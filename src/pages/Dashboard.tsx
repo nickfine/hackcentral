@@ -4,7 +4,7 @@
  */
 
 import { useQuery } from 'convex/react'
-import { Activity, Users, Library, TrendingUp } from 'lucide-react'
+import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 
 function formatRelativeTime(ms: number): string {
@@ -20,6 +20,8 @@ export default function Dashboard() {
   const metrics = useQuery(api.metrics.getDashboardMetrics)
   const recentActivity = useQuery(api.metrics.getRecentActivity)
   const topContributors = useQuery(api.metrics.getTopContributors)
+  const topMentors = useQuery(api.metrics.getTopMentors)
+  const mostReusedAssets = useQuery(api.metrics.getMostReusedAssets)
 
   const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--'
   const aiContributorDesc =
@@ -159,6 +161,60 @@ export default function Dashboard() {
                     <span className="font-medium">{entry.name}</span>
                   </span>
                   <span className="text-muted-foreground">{entry.count} contributions</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Recognition: Top Mentors & Most Reused Assets */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="card p-6">
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+            Top Mentors
+          </h3>
+          {topMentors === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : topMentors.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No completed mentor sessions in the last 30 days. Complete mentoring sessions to appear here.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {topMentors.map((entry, i) => (
+                <li key={entry.mentorId} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-5">{i + 1}.</span>
+                    <span className="font-medium">{entry.name}</span>
+                  </span>
+                  <span className="text-muted-foreground">{entry.count} session{entry.count !== 1 ? 's' : ''}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="card p-6">
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            Most Reused Assets
+          </h3>
+          {mostReusedAssets === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : mostReusedAssets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No reuse events in the last 30 days. Record &quot;I used this&quot; on library assets to see them here.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {mostReusedAssets.map((entry, i) => (
+                <li key={entry.assetId} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                    <span className="font-medium truncate" title={entry.title}>{entry.title}</span>
+                  </span>
+                  <span className="text-muted-foreground shrink-0 ml-2">{entry.count} reuse{entry.count !== 1 ? 's' : ''}</span>
                 </li>
               ))}
             </ul>
