@@ -3,9 +3,13 @@
  * Shows org-wide metrics and maturity progress
  */
 
-import { useQuery } from 'convex/react'
-import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import { useQuery, useMutation } from 'convex/react'
+import { Activity, Users, Library, TrendingUp, GraduationCap, BookOpen, PenLine, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
+import { useAuth } from '../hooks/useAuth'
 
 function formatRelativeTime(ms: number): string {
   const sec = Math.floor((Date.now() - ms) / 1000)
@@ -17,11 +21,48 @@ function formatRelativeTime(ms: number): string {
 }
 
 export default function Dashboard() {
+  const { isAuthenticated } = useAuth()
   const metrics = useQuery(api.metrics.getDashboardMetrics)
   const recentActivity = useQuery(api.metrics.getRecentActivity)
   const topContributors = useQuery(api.metrics.getTopContributors)
   const topMentors = useQuery(api.metrics.getTopMentors)
   const mostReusedAssets = useQuery(api.metrics.getMostReusedAssets)
+  const impactStories = useQuery(api.impactStories.list, { limit: 10 })
+  const createStory = useMutation(api.impactStories.create)
+  const projects = useQuery(api.projects.list)
+  const libraryAssets = useQuery(api.libraryAssets.list)
+
+  const [storyModalOpen, setStoryModalOpen] = useState(false)
+  const [storyHeadline, setStoryHeadline] = useState('')
+  const [storyText, setStoryText] = useState('')
+  const [storyProjectId, setStoryProjectId] = useState<Id<'projects'> | ''>('')
+  const [storyAssetId, setStoryAssetId] = useState<Id<'libraryAssets'> | ''>('')
+  const [isSubmittingStory, setIsSubmittingStory] = useState(false)
+
+  const handleStorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!storyHeadline.trim() || isSubmittingStory) return
+    setIsSubmittingStory(true)
+    try {
+      await createStory({
+        headline: storyHeadline.trim(),
+        storyText: storyText.trim() || undefined,
+        projectId: storyProjectId || undefined,
+        assetId: storyAssetId || undefined,
+      })
+      toast.success('Impact story shared!')
+      setStoryModalOpen(false)
+      setStoryHeadline('')
+      setStoryText('')
+      setStoryProjectId('')
+      setStoryAssetId('')
+    } catch (err) {
+      console.error('Failed to share story:', err)
+      toast.error('Failed to share story. Please try again.')
+    } finally {
+      setIsSubmittingStory(false)
+    }
+  }
 
   const aiContributorValue = metrics !== undefined ? String(metrics.aiContributorCount) : '--'
   const aiContributorDesc =
@@ -53,6 +94,114 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Share impact story modal */}
+      {storyModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setStoryModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-story-title"
+        >
+          <div
+            className="max-w-lg w-full max-h-[90vh] overflow-y-auto card p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 id="share-story-title" className="text-xl font-semibold flex items-center gap-2">
+                <PenLine className="h-5 w-5" />
+                Share your impact story
+              </h2>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon shrink-0"
+                onClick={() => setStoryModalOpen(false)}
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleStorySubmit} className="space-y-4">
+              <div>
+                <label htmlFor="story-headline" className="block text-sm font-medium mb-1">
+                  Headline <span className="text-destructive">*</span>
+                </label>
+                <input
+                  id="story-headline"
+                  type="text"
+                  required
+                  value={storyHeadline}
+                  onChange={(e) => setStoryHeadline(e.target.value)}
+                  className="input w-full"
+                  placeholder="e.g. How a prompt template saved 12 hours per week"
+                />
+              </div>
+              <div>
+                <label htmlFor="story-text" className="block text-sm font-medium mb-1">
+                  Your story (optional)
+                </label>
+                <textarea
+                  id="story-text"
+                  value={storyText}
+                  onChange={(e) => setStoryText(e.target.value)}
+                  className="input w-full min-h-[100px]"
+                  placeholder="Share what worked, what you learned..."
+                  rows={4}
+                />
+              </div>
+              <div>
+                <label htmlFor="story-project" className="block text-sm font-medium mb-1">
+                  Link to project (optional)
+                </label>
+                <select
+                  id="story-project"
+                  value={storyProjectId}
+                  onChange={(e) => setStoryProjectId((e.target.value || '') as Id<'projects'> | '')}
+                  className="input w-full"
+                >
+                  <option value="">None</option>
+                  {projects?.map((p) => (
+                    <option key={p._id} value={p._id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="story-asset" className="block text-sm font-medium mb-1">
+                  Link to library asset (optional)
+                </label>
+                <select
+                  id="story-asset"
+                  value={storyAssetId}
+                  onChange={(e) => setStoryAssetId((e.target.value || '') as Id<'libraryAssets'> | '')}
+                  className="input w-full"
+                >
+                  <option value="">None</option>
+                  {libraryAssets?.map((a) => (
+                    <option key={a._id} value={a._id}>{a.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setStoryModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingStory || !storyHeadline.trim()}
+                >
+                  {isSubmittingStory ? 'Sharing…' : 'Share story'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight">AI Maturity Dashboard</h1>
         <p className="text-muted-foreground mt-2">
@@ -220,6 +369,55 @@ export default function Dashboard() {
             </ul>
           )}
         </div>
+      </div>
+
+      {/* Impact Stories */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <PenLine className="h-5 w-5 text-muted-foreground" />
+            Impact Stories
+          </h2>
+          {isAuthenticated && (
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setStoryModalOpen(true)}
+            >
+              <PenLine className="h-4 w-4 mr-2" />
+              Share your story
+            </button>
+          )}
+        </div>
+        {impactStories === undefined ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : impactStories.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No impact stories yet. Share how AI has helped your work to inspire others.
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {impactStories.map((story) => (
+              <li key={story._id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                <h3 className="font-semibold text-foreground">{story.headline}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {story.authorName}
+                  {(story.projectTitle ?? story.assetTitle) && (
+                    <span>
+                      {' · '}
+                      {[story.projectTitle, story.assetTitle].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                  {' · '}
+                  {formatRelativeTime(story._creationTime)}
+                </p>
+                {story.storyText && (
+                  <p className="text-sm mt-2 whitespace-pre-wrap text-foreground/90">{story.storyText}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

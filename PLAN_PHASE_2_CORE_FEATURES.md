@@ -27,6 +27,10 @@
 - **Backend:** `convex/metrics.ts` – `getTopMentors` (top 10 by completed sessions, last 30d), `getMostReusedAssets` (top 10 by reuse events, last 30d; public/org only).
 - **Frontend:** `src/pages/Dashboard.tsx` – "Top Mentors" card (GraduationCap), "Most Reused Assets" card (BookOpen), empty/loading states.
 
+### ✅ Impact Stories (first slice)
+- **Backend:** `convex/impactStories.ts` – `create` mutation (headline, storyText?, projectId?, assetId?, metrics?, featured?); `list` query (limit?, featuredOnly?) with authorName, projectTitle, assetTitle for display.
+- **Frontend:** `src/pages/Dashboard.tsx` – "Impact Stories" section with feed (headline, author, optional project/asset, date, story text); "Share your story" button (authenticated) opens modal with form (headline required, story text, optional project/asset links), submit → toast and close.
+
 ---
 
 ## Remaining Phase 2 Tasks (in suggested order)
