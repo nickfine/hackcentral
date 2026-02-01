@@ -57,14 +57,11 @@ export default defineSchema({
   libraryAssets: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
-    // Asset types: 'prompt' | 'template' | 'agent_blueprint' | 'guardrail' | 'evaluation_rubric' | 'structured_output'
+    // Asset types: 'prompt' | 'skill' | 'app'
     assetType: v.union(
       v.literal("prompt"),
-      v.literal("template"),
-      v.literal("agent_blueprint"),
-      v.literal("guardrail"),
-      v.literal("evaluation_rubric"),
-      v.literal("structured_output")
+      v.literal("skill"),
+      v.literal("app")
     ),
     content: v.any(), // Structured content (prompt text, config, etc.)
     // Status: 'draft' | 'verified' | 'deprecated'
@@ -132,16 +129,12 @@ export default defineSchema({
     readinessCompletedAt: v.optional(v.number()),
     riskCheckNotes: v.optional(v.string()),
     sponsorCommittedAt: v.optional(v.number()),
-    // Hack type: 'prompt' | 'app' | 'extension' | 'skill' | 'template' | 'agent_flow' | 'playbook'
+    // Hack type: 'prompt' | 'skill' | 'app'
     hackType: v.optional(
       v.union(
         v.literal("prompt"),
-        v.literal("app"),
-        v.literal("extension"),
         v.literal("skill"),
-        v.literal("template"),
-        v.literal("agent_flow"),
-        v.literal("playbook")
+        v.literal("app")
       )
     ),
   })

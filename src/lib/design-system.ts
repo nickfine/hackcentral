@@ -220,11 +220,8 @@ export const experienceLevelLabels: Record<string, string> = {
 // Asset type display labels
 export const assetTypeLabels: Record<string, string> = {
   prompt: 'Prompt',
-  template: 'Template',
-  agent_blueprint: 'Agent Blueprint',
-  guardrail: 'Guardrail',
-  evaluation_rubric: 'Evaluation Rubric',
-  structured_output: 'Structured Output',
+  skill: 'Skill',
+  app: 'App',
 }
 
 // Project status display labels

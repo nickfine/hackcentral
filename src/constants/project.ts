@@ -22,32 +22,20 @@ export const PROJECT_STATUS_BADGE_COLORS: Record<string, string> = {
 /** Hack type (project category) labels for display. */
 export const HACK_TYPE_LABELS: Record<string, string> = {
   prompt: 'Prompts',
-  app: 'Apps',
-  extension: 'Extensions',
   skill: 'Skills',
-  template: 'Templates',
-  agent_flow: 'Agents / flows',
-  playbook: 'Playbooks / guides',
+  app: 'Apps',
 };
 
 /** Hack types for dropdowns (value + label). */
 export const HACK_TYPES = [
   { value: 'prompt', label: 'Prompts' },
-  { value: 'app', label: 'Apps' },
-  { value: 'extension', label: 'Extensions' },
   { value: 'skill', label: 'Skills' },
-  { value: 'template', label: 'Templates' },
-  { value: 'agent_flow', label: 'Agents / flows' },
-  { value: 'playbook', label: 'Playbooks / guides' },
+  { value: 'app', label: 'Apps' },
 ] as const;
 
 /** Hack type badge colors for list/detail. */
 export const HACK_TYPE_BADGE_COLORS: Record<string, string> = {
   prompt: 'bg-violet-100 text-violet-800 border-violet-200',
-  app: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  extension: 'bg-sky-100 text-sky-800 border-sky-200',
   skill: 'bg-amber-100 text-amber-800 border-amber-200',
-  template: 'bg-slate-100 text-slate-800 border-slate-200',
-  agent_flow: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-  playbook: 'bg-teal-100 text-teal-800 border-teal-200',
+  app: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 };

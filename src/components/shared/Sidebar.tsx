@@ -86,7 +86,7 @@ export function Sidebar() {
             <span className="text-sm font-medium">Get Started</span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Explore the AI Arsenal to find proven prompts and templates.
+            Explore the AI Arsenal to find proven prompts, skills, and apps.
           </p>
           <div className="flex flex-col gap-2">
             <NavLink

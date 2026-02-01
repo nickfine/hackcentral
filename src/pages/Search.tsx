@@ -11,11 +11,8 @@ import { getInitials } from '../lib/utils';
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
   prompt: 'Prompt',
-  template: 'Template',
-  agent_blueprint: 'Agent Blueprint',
-  guardrail: 'Guardrail',
-  evaluation_rubric: 'Evaluation Rubric',
-  structured_output: 'Structured Output',
+  skill: 'Skill',
+  app: 'App',
 };
 
 function matchAsset(query: string, asset: { title: string; description?: string; assetType: string; metadata?: unknown }): boolean {

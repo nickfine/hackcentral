@@ -9,11 +9,8 @@ export const list = query({
     assetType: v.optional(
       v.union(
         v.literal("prompt"),
-        v.literal("template"),
-        v.literal("agent_blueprint"),
-        v.literal("guardrail"),
-        v.literal("evaluation_rubric"),
-        v.literal("structured_output")
+        v.literal("skill"),
+        v.literal("app")
       )
     ),
     status: v.optional(
@@ -94,11 +91,8 @@ export const listWithReuseCounts = query({
     assetType: v.optional(
       v.union(
         v.literal("prompt"),
-        v.literal("template"),
-        v.literal("agent_blueprint"),
-        v.literal("guardrail"),
-        v.literal("evaluation_rubric"),
-        v.literal("structured_output")
+        v.literal("skill"),
+        v.literal("app")
       )
     ),
     status: v.optional(
@@ -291,11 +285,8 @@ export const create = mutation({
     description: v.optional(v.string()),
     assetType: v.union(
       v.literal("prompt"),
-      v.literal("template"),
-      v.literal("agent_blueprint"),
-      v.literal("guardrail"),
-      v.literal("evaluation_rubric"),
-      v.literal("structured_output")
+      v.literal("skill"),
+      v.literal("app")
     ),
     content: v.any(),
     visibility: v.optional(

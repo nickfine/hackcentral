@@ -1,11 +1,11 @@
 /**
  * Library Page - Library & AI Arsenal
- * Shows reusable AI assets, prompts, templates, and agent blueprints
+ * Shows reusable AI assets: prompts, skills, and apps
  */
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Sparkles, FileText, Bot, Shield, Award, X, Link2 } from 'lucide-react';
+import { Search, Plus, Sparkles, FileText, Bot, Code, X, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -16,11 +16,8 @@ import { EmptyState } from '../components/shared';
 
 const ASSET_TYPES = [
   { value: 'prompt', label: 'Prompt' },
-  { value: 'template', label: 'Template' },
-  { value: 'agent_blueprint', label: 'Agent Blueprint' },
-  { value: 'guardrail', label: 'Guardrail' },
-  { value: 'evaluation_rubric', label: 'Evaluation Rubric' },
-  { value: 'structured_output', label: 'Structured Output' },
+  { value: 'skill', label: 'Skill' },
+  { value: 'app', label: 'App' },
 ] as const;
 
 const VISIBILITY_OPTIONS = [
@@ -35,7 +32,7 @@ interface SubmitAssetModalProps {
   createAsset: (args: {
     title: string;
     description?: string;
-    assetType: 'prompt' | 'template' | 'agent_blueprint' | 'guardrail' | 'evaluation_rubric' | 'structured_output';
+    assetType: 'prompt' | 'skill' | 'app';
     content: string | Record<string, unknown>;
     visibility?: 'private' | 'org' | 'public';
     isAnonymous?: boolean;
@@ -325,7 +322,7 @@ export default function Library() {
   );
   // Build query args - only include if value is set
   const queryArgs: {
-    assetType?: "prompt" | "template" | "agent_blueprint" | "guardrail" | "evaluation_rubric" | "structured_output";
+    assetType?: "prompt" | "skill" | "app";
     status?: "draft" | "verified" | "deprecated";
     arsenalOnly?: boolean;
     limit?: number;
@@ -393,7 +390,7 @@ export default function Library() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Library</h1>
           <p className="text-muted-foreground mt-2">
-            Reusable AI assets, prompts, and templates. The <strong>AI Arsenal</strong> is curated; <strong>All Assets</strong> shows everything in the library.
+            Reusable AI assets: prompts, skills, and apps. The <strong>AI Arsenal</strong> is curated; <strong>All Assets</strong> shows everything in the library.
           </p>
         </div>
         <button
@@ -438,11 +435,8 @@ export default function Library() {
         >
           <option value="">All Types</option>
           <option value="prompt">Prompts</option>
-          <option value="template">Templates</option>
-          <option value="agent_blueprint">Agent Blueprints</option>
-          <option value="guardrail">Guardrails</option>
-          <option value="evaluation_rubric">Evaluation Rubrics</option>
-          <option value="structured_output">Structured Outputs</option>
+          <option value="skill">Skills</option>
+          <option value="app">Apps</option>
         </select>
         <select 
           className="input w-36"
@@ -474,26 +468,21 @@ export default function Library() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <ArsenalCategory
                 icon={<FileText className="h-5 w-5" />}
                 title="Prompts"
                 count={arsenalAssets.filter(a => a.assetType === 'prompt').length}
               />
               <ArsenalCategory
-                icon={<FileText className="h-5 w-5" />}
-                title="Templates"
-                count={arsenalAssets.filter(a => a.assetType === 'template').length}
+                icon={<Code className="h-5 w-5" />}
+                title="Skills"
+                count={arsenalAssets.filter(a => a.assetType === 'skill').length}
               />
               <ArsenalCategory
                 icon={<Bot className="h-5 w-5" />}
-                title="Agent Blueprints"
-                count={arsenalAssets.filter(a => a.assetType === 'agent_blueprint').length}
-              />
-              <ArsenalCategory
-                icon={<Shield className="h-5 w-5" />}
-                title="Guardrails"
-                count={arsenalAssets.filter(a => a.assetType === 'guardrail').length}
+                title="Apps"
+                count={arsenalAssets.filter(a => a.assetType === 'app').length}
               />
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1041,11 +1030,8 @@ interface AssetCardProps {
 function AssetCard({ asset, onSelect }: AssetCardProps) {
   const typeIcons: Record<string, React.ReactNode> = {
     prompt: <FileText className="h-4 w-4" />,
-    template: <FileText className="h-4 w-4" />,
-    agent_blueprint: <Bot className="h-4 w-4" />,
-    guardrail: <Shield className="h-4 w-4" />,
-    evaluation_rubric: <Award className="h-4 w-4" />,
-    structured_output: <FileText className="h-4 w-4" />,
+    skill: <Code className="h-4 w-4" />,
+    app: <Bot className="h-4 w-4" />,
   };
 
   const statusColors: Record<string, string> = {

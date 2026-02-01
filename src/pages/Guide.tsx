@@ -31,8 +31,7 @@ export default function Guide() {
       <section className="space-y-4">
         <h2 className="font-semibold text-lg">What are AI assets?</h2>
         <p className="text-muted-foreground">
-          AI assets are reusable building blocks for AI-assisted work: prompts, templates, guardrails,
-          evaluation rubrics, and agent blueprints. They live in the <strong>Library</strong> and can be
+          AI assets are reusable building blocks for AI-assisted work: prompts, skills, and apps. They live in the <strong>Library</strong> and can be
           attached to <strong>Projects</strong> so your team reuses what works instead of starting from scratch.
         </p>
       </section>

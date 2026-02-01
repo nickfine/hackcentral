@@ -359,7 +359,7 @@ Bug report:
       {
         title: "AI Experiment Starter Template",
         description: "Template for starting a new AI experiment with proper structure and risk assessment.",
-        assetType: "template" as const,
+        assetType: "skill" as const,
         content: {
           sections: {
             hypothesis: "What problem are we solving with AI?",
@@ -390,7 +390,7 @@ Bug report:
       {
         title: "Prompt Engineering Checklist",
         description: "Checklist to improve prompt quality and reduce hallucinations.",
-        assetType: "template" as const,
+        assetType: "skill" as const,
         content: {
           checklist: [
             "✓ Clear instructions (what you want, not what you don't want)",
@@ -421,7 +421,7 @@ Bug report:
       {
         title: "Customer Support Triage Agent",
         description: "Agent blueprint for automatically triaging and categorizing customer support requests.",
-        assetType: "agent_blueprint" as const,
+        assetType: "app" as const,
         content: {
           agentType: "Classifier",
           systemPrompt: `You are a customer support triage agent. Analyze support requests and output:
@@ -458,7 +458,7 @@ Bug report:
       {
         title: "Content Moderation Agent",
         description: "Agent for flagging inappropriate content with severity levels and reasoning.",
-        assetType: "agent_blueprint" as const,
+        assetType: "app" as const,
         content: {
           agentType: "Content Moderator",
           systemPrompt: `Analyze content for:
@@ -503,7 +503,7 @@ Output:
       {
         title: "PII Detection Guardrail",
         description: "Prevent personally identifiable information from being sent to AI systems.",
-        assetType: "guardrail" as const,
+        assetType: "skill" as const,
         content: {
           guardrailType: "Input Filter",
           patterns: [
@@ -531,7 +531,7 @@ Output:
       {
         title: "Prompt Injection Defense",
         description: "Detect and prevent prompt injection attacks in user inputs.",
-        assetType: "guardrail" as const,
+        assetType: "skill" as const,
         content: {
           guardrailType: "Security Filter",
           detectionPatterns: [
@@ -575,7 +575,7 @@ function detectPromptInjection(input: string): boolean {
       {
         title: "Output Validation Guardrail",
         description: "Validate AI outputs before showing to users to catch hallucinations and errors.",
-        assetType: "guardrail" as const,
+        assetType: "skill" as const,
         content: {
           guardrailType: "Output Validator",
           validations: [
@@ -605,7 +605,7 @@ function detectPromptInjection(input: string): boolean {
       {
         title: "Prompt Quality Rubric",
         description: "Evaluate prompt quality across multiple dimensions.",
-        assetType: "evaluation_rubric" as const,
+        assetType: "skill" as const,
         content: {
           criteria: [
             { dimension: "Clarity", weight: 0.25, scale: "1-5", description: "Instructions are clear and unambiguous" },
@@ -641,7 +641,7 @@ function detectPromptInjection(input: string): boolean {
       {
         title: "Risk Assessment Output Schema",
         description: "Structured JSON schema for consistent AI risk assessments.",
-        assetType: "structured_output" as const,
+        assetType: "skill" as const,
         content: {
           schema: {
             type: "object",

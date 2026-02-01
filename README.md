@@ -161,7 +161,7 @@ Vercel will automatically:
 Visualizes org-wide AI maturity progress using a staged behavioral model (Experimenting → Repeating → Scaling → Transforming).
 
 ### Library & AI Arsenal
-Repository of reusable AI assets (prompts, templates, agent blueprints, guardrails) with quality gates (Draft → Verified → Deprecated).
+Repository of reusable AI assets (prompts, skills, and apps) with quality gates (Draft → Verified → Deprecated).
 
 ### People Module
 Pull engine for adoption - makes support visible, enables mentorship, and routes late joiners to appropriate resources.

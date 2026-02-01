@@ -185,12 +185,8 @@ export const getById = query({
 const hackTypeValidator = v.optional(
   v.union(
     v.literal("prompt"),
-    v.literal("app"),
-    v.literal("extension"),
     v.literal("skill"),
-    v.literal("template"),
-    v.literal("agent_flow"),
-    v.literal("playbook")
+    v.literal("app")
   )
 );
 

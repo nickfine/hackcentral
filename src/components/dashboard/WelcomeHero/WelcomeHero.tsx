@@ -93,7 +93,7 @@ export function WelcomeHero({
             transition={{ duration: 0.35, delay: 0.08 }}
             className="max-w-xl break-words text-xs text-indigo-200/90 sm:text-sm"
           >
-            Prompts, apps, extensions, skills — copy one, share yours.
+            Prompts, skills, and apps — copy one, share yours.
           </motion.p>
         </div>
 

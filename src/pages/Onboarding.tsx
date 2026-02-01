@@ -42,7 +42,7 @@ export default function Onboarding() {
           </div>
           <h2 className="font-semibold text-lg mb-2">Copilot prompt pack for your role</h2>
           <p className="text-muted-foreground text-sm mb-4 flex-1">
-            Curated prompts and templates by use case: code review, meeting notes, docs, and more.
+            Curated prompts, skills, and apps by use case: code review, meeting notes, docs, and more.
           </p>
           <span className="text-primary text-sm font-medium inline-flex items-center gap-1">
             Browse AI Arsenal <ArrowRight className="h-4 w-4" />
@@ -58,7 +58,7 @@ export default function Onboarding() {
           </div>
           <h2 className="font-semibold text-lg mb-2">Reuse an AI Arsenal item</h2>
           <p className="text-muted-foreground text-sm mb-4 flex-1">
-            Copy first, create later. Start by reusing a verified prompt or template from the Library.
+            Copy first, create later. Start by reusing a verified prompt, skill, or app from the Library.
           </p>
           <span className="text-primary text-sm font-medium inline-flex items-center gap-1">
             Explore Library <ArrowRight className="h-4 w-4" />

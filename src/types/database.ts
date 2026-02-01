@@ -548,11 +548,8 @@ export type ExperienceLevel =
 
 export type AssetType =
   | 'prompt'
-  | 'template'
-  | 'agent_blueprint'
-  | 'guardrail'
-  | 'evaluation_rubric'
-  | 'structured_output'
+  | 'skill'
+  | 'app'
 
 export type QualityGateStatus = 'draft' | 'verified' | 'deprecated'
 
@@ -565,12 +562,8 @@ export type ProjectStatus =
 
 export type HackType =
   | 'prompt'
-  | 'app'
-  | 'extension'
   | 'skill'
-  | 'template'
-  | 'agent_flow'
-  | 'playbook'
+  | 'app'
 
 export type Visibility = 'private' | 'org' | 'public'
 
