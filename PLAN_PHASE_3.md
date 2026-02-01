@@ -2,7 +2,7 @@
 
 **Goal:** Onboarding and barrier reduction, governance, standardization pathways, advanced metrics (Gini, export), global search and notifications, performance optimization.
 
-**Status:** In progress  
+**Status:** Complete (v0.4.15)  
 **Reference:** ROADMAP.md § Phase 3 (Weeks 11–14), UX_REVIEW_PRE_PHASE3.md
 
 ---
@@ -75,28 +75,28 @@
 ## Done in Phase 3 (check off as completed)
 
 ### 1. Global search
-- [ ] Header wired; Search page; route; Library/People URL q sync.
+- [x] Header wired; Search page; route; Library/People URL q sync.
 
 ### 2. Gini
-- [ ] getEarlyAdopterGini; Dashboard card.
+- [x] getEarlyAdopterGini; Dashboard card.
 
 ### 3. Contribution recording
-- [ ] verification + project_ai_artefact writes.
+- [x] verification + project_ai_artefact writes.
 
 ### 4. Onboarding
-- [ ] OnboardingFlow / CTA; AI 101; starter kits.
+- [x] OnboardingFlow / CTA; AI 101; starter kits.
 
 ### 5. Governance
-- [ ] Schema; projects.update validation; readiness form; GovernanceBadge.
+- [x] Schema; projects.update validation; readiness form; GovernanceBadge.
 
 ### 6. Standardization
-- [ ] getGraduatedAssets; notifications query; Header bell.
+- [x] getGraduatedAssets; notifications query; Header bell.
 
 ### 7. Metrics export
-- [ ] Export button; frontline/leader optional.
+- [x] Export button; frontline/leader optional.
 
 ### 8. Performance
-- [ ] Pagination; lazy routes.
+- [x] Pagination; lazy routes.
 
 ### 9. Polish
-- [ ] Anonymous; sandbox; nudges; AI 101.
+- [x] Anonymous; sandbox; nudges; AI 101.

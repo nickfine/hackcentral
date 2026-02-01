@@ -31,8 +31,9 @@ export default function People() {
   const [selectedProfileId, setSelectedProfileId] = useState<Id<'profiles'> | null>(null);
   const [mentorRequestOpen, setMentorRequestOpen] = useState(false);
   const [selectedMentorId, setSelectedMentorId] = useState<Id<'profiles'> | null>(null);
+  const [profileLimit, setProfileLimit] = useState(30);
 
-  const profiles = useQuery(api.profiles.list);
+  const profiles = useQuery(api.profiles.list, { limit: profileLimit });
   const capabilityTags = useQuery(api.capabilityTags.list);
   const availableMentors = useQuery(api.mentorRequests.getAvailableMentors);
   const createMentorRequest = useMutation(api.mentorRequests.create);
@@ -201,17 +202,30 @@ export default function People() {
                       description="Try adjusting your search, experience level, or mentor availability filter."
                     />
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {filteredProfiles.map((profile) => (
-                        <ProfileCard 
-                          key={profile._id} 
-                          profile={profile}
-                          capabilityTags={capabilityTags || []}
-                          onSelect={() => setSelectedProfileId(profile._id)}
-                          onRequestMentor={openMentorRequest}
-                        />
-                      ))}
-                    </div>
+                    <>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {filteredProfiles.map((profile) => (
+                          <ProfileCard 
+                            key={profile._id} 
+                            profile={profile}
+                            capabilityTags={capabilityTags || []}
+                            onSelect={() => setSelectedProfileId(profile._id)}
+                            onRequestMentor={openMentorRequest}
+                          />
+                        ))}
+                      </div>
+                      {profiles != null && profiles.length === profileLimit && (
+                        <div className="mt-4 flex justify-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() => setProfileLimit((prev) => prev + 30)}
+                          >
+                            Load more
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               );

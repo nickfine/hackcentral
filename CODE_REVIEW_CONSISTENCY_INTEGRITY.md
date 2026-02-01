@@ -147,9 +147,29 @@ The codebase is **consistent and sound**. One optional consistency tweak was app
 
 ---
 
-## 6. Conclusion
+## 6. Phase 3 clean-up follow-up (Post clean-up)
 
-- **Consistency:** Shared project constants, EmptyState, terminology (assets in UI, artefact in internal types), Profile Activity/Library activity, Header placeholders, and heading hierarchy are consistent. Phase 3: contribution label and anonymous verifier handling updated.
-- **Integrity:** Routing, project detail flow, Convex usage, type casts, accessibility, and removal of obsolete modal code are sound. Phase 3 governance, metrics, and contribution recording are consistent with schema and plan.
+**Date:** Jan 30, 2026  
+**Scope:** Consistency and integrity after Phase 3 clean-up (frontline/leader, pagination, sandbox labelling, graduated nudges).
+
+### 6.1 Verification
+
+- **Frontline vs leader:** `getFrontlineLeaderGap` in `convex/metrics.ts` segments by `experienceLevel` (newbie, curious, comfortable = frontline; power_user, expert = leader; else other). Values match `profiles.experienceLevel` schema and `src/constants/profile.ts`. Dashboard card and export include `frontlineLeaderGap`; copy is consistent.
+- **Pagination:** `profiles.list` and `projects.listWithCounts` accept optional `limit`; when `limit` is undefined (e.g. `Search` calls `api.profiles.list` with no args), handlers return full filtered list (`limit != null ? filtered.slice(0, limit) : filtered`). People and Projects pass `{ limit: profileLimit }` / `{ limit: projectLimit }` (default 30); "Load more" shown only when `list.length === limit`. No breaking change for Search.
+- **Sandbox labelling:** Library (Submit Asset) and Projects (New Project) use the same visibility option label ("Private (sandbox — only you until published)") and the same helper text ("Sandbox: choose Private to draft until you're ready to share with your org or publicly."). Consistent.
+- **Graduated nudges:** `getCurrentUserCounts` in `convex/profiles.ts` returns `{ projectCount, libraryAssetCount }` using `by_owner` and `by_author` indexes. Dashboard uses `profile` and `userCounts`; nudge visibility is gated on `!showFirstTimeCTA && profile != null && userCounts != null` and the three nudge branches (add library, create project, share story) are mutually exclusive and correct.
+- **Types:** No new type/API mismatches; Convex query return shapes match frontend usage.
+
+### 6.2 Conclusion (Phase 3 clean-up)
+
+- **Consistency:** Frontline/leader segment labels, sandbox copy, pagination pattern (limit + Load more), and nudge logic are consistent across backend and frontend.
+- **Integrity:** Optional `limit` on list queries is backward-compatible (Search and any caller omitting `limit` get full list). No new integrity issues found.
+
+---
+
+## 7. Conclusion
+
+- **Consistency:** Shared project constants, EmptyState, terminology (assets in UI, artefact in internal types), Profile Activity/Library activity, Header placeholders, and heading hierarchy are consistent. Phase 3: contribution label and anonymous verifier handling updated. Phase 3 clean-up: frontline/leader, sandbox copy, pagination, and graduated nudges aligned.
+- **Integrity:** Routing, project detail flow, Convex usage, type casts, accessibility, and removal of obsolete modal code are sound. Phase 3 governance, metrics, and contribution recording are consistent with schema and plan. Phase 3 clean-up: list `limit` optional and backward-compatible; no new issues.
 
 No blocking issues. Safe to proceed with further feature work or release.

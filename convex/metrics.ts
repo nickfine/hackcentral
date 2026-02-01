@@ -271,6 +271,82 @@ export const getEarlyAdopterGini = query({
 });
 
 /**
+ * Frontline vs leader contribution gap (last 30 days).
+ * Segment by experienceLevel: leader = power_user | expert; frontline = newbie | curious | comfortable; other = unset/other.
+ * Returns contribution counts and active user counts per segment for Dashboard and export.
+ */
+export const getFrontlineLeaderGap = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
+    const allProfiles = await ctx.db.query("profiles").collect();
+    const activeProfiles = allProfiles.filter((p) => p._creationTime >= ninetyDaysAgo);
+
+    const contributions = await ctx.db
+      .query("aiContributions")
+      .filter((q) => q.gte(q.field("_creationTime"), thirtyDaysAgo))
+      .collect();
+
+    const contributionCountByUser = new Map<Id<"profiles">, number>();
+    for (const c of contributions) {
+      contributionCountByUser.set(
+        c.userId,
+        (contributionCountByUser.get(c.userId) ?? 0) + 1
+      );
+    }
+
+    let frontlineContributions = 0;
+    let leaderContributions = 0;
+    let frontlineUsers = 0;
+    let leaderUsers = 0;
+    let otherContributions = 0;
+    let otherUsers = 0;
+
+    for (const profile of activeProfiles) {
+      const count = contributionCountByUser.get(profile._id) ?? 0;
+      const level = profile.experienceLevel;
+      if (level === "power_user" || level === "expert") {
+        leaderContributions += count;
+        if (count > 0) leaderUsers += 1;
+      } else if (level === "newbie" || level === "curious" || level === "comfortable") {
+        frontlineContributions += count;
+        if (count > 0) frontlineUsers += 1;
+      } else {
+        otherContributions += count;
+        if (count > 0) otherUsers += 1;
+      }
+    }
+
+    return {
+      frontlineContributions,
+      leaderContributions,
+      otherContributions,
+      frontlineUsers,
+      leaderUsers,
+      otherUsers,
+      frontlineTotalUsers: activeProfiles.filter(
+        (p) =>
+          p.experienceLevel === "newbie" ||
+          p.experienceLevel === "curious" ||
+          p.experienceLevel === "comfortable"
+      ).length,
+      leaderTotalUsers: activeProfiles.filter(
+        (p) => p.experienceLevel === "power_user" || p.experienceLevel === "expert"
+      ).length,
+      otherTotalUsers: activeProfiles.filter(
+        (p) =>
+          !p.experienceLevel ||
+          !["newbie", "curious", "comfortable", "power_user", "expert"].includes(
+            p.experienceLevel
+          )
+      ).length,
+    };
+  },
+});
+
+/**
  * Assets that have reached the reuse threshold (graduated).
  * Returns assets with total reuse count >= minReuses (default 10).
  * Only returns public/org-visible assets.

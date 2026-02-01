@@ -27,10 +27,11 @@ export default function Projects() {
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectLimit, setProjectLimit] = useState(30);
 
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const projects = useQuery(api.projects.listWithCounts);
+  const projects = useQuery(api.projects.listWithCounts, { limit: projectLimit });
   const createProject = useMutation(api.projects.create);
   const toggleLike = useMutation(api.projectSupportEvents.toggleLike);
   const toggleOfferHelp = useMutation(api.projectSupportEvents.toggleOfferHelp);
@@ -123,10 +124,13 @@ export default function Projects() {
                   onChange={(e) => setVisibility(e.target.value as Visibility)}
                   className="input w-full"
                 >
-                  <option value="private">Private</option>
+                  <option value="private">Private (sandbox — only you until published)</option>
                   <option value="org">Organization</option>
                   <option value="public">Public</option>
                 </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sandbox: choose Private to draft until you’re ready to share with your org or publicly.
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -260,25 +264,38 @@ export default function Projects() {
             description="Try adjusting your search or status filter."
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project._id}
-                project={project}
-                isAuthenticated={isAuthenticated}
-                onCardClick={() => navigate(`/projects/${project._id}`)}
-                onCommentsClick={() => navigate(`/projects/${project._id}#comments`)}
-                onLikeClick={() => toggleLike({ projectId: project._id }).catch((err) => {
-                  console.error('Like failed:', err);
-                  toast.error('Something went wrong. Please try again.');
-                })}
-                onOfferHelpClick={() => toggleOfferHelp({ projectId: project._id }).catch((err) => {
-                  console.error('Offer help failed:', err);
-                  toast.error('Something went wrong. Please try again.');
-                })}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project._id}
+                  project={project}
+                  isAuthenticated={isAuthenticated}
+                  onCardClick={() => navigate(`/projects/${project._id}`)}
+                  onCommentsClick={() => navigate(`/projects/${project._id}#comments`)}
+                  onLikeClick={() => toggleLike({ projectId: project._id }).catch((err) => {
+                    console.error('Like failed:', err);
+                    toast.error('Something went wrong. Please try again.');
+                  })}
+                  onOfferHelpClick={() => toggleOfferHelp({ projectId: project._id }).catch((err) => {
+                    console.error('Offer help failed:', err);
+                    toast.error('Something went wrong. Please try again.');
+                  })}
+                />
+              ))}
+            </div>
+            {projects != null && projects.length === projectLimit && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setProjectLimit((prev) => prev + 30)}
+                >
+                  Load more
+                </button>
+              </div>
+            )}
+          </>
         );
       })()}
     </div>

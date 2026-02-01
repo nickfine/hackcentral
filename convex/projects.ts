@@ -49,11 +49,11 @@ export const list = query({
 
 /**
  * List projects with comment/support counts and current user's like/offer-help state.
- * Same visibility as list; one query for the Projects page.
+ * Same visibility as list; one query for the Projects page. Optional limit for pagination.
  */
 export const listWithCounts = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
     const identity = await ctx.auth.getUserIdentity();
     const projects = await ctx.db.query("projects").collect();
 
@@ -127,7 +127,8 @@ export const listWithCounts = query({
       })
     );
 
-    return projectsWithAccess.filter((p) => p !== null);
+    const list = projectsWithAccess.filter((p) => p !== null);
+    return limit != null ? list.slice(0, limit) : list;
   },
 });
 

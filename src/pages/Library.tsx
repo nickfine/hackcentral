@@ -26,7 +26,7 @@ const ASSET_TYPES = [
 const VISIBILITY_OPTIONS = [
   { value: 'org', label: 'Organization (colleagues)' },
   { value: 'public', label: 'Public' },
-  { value: 'private', label: 'Private (only me)' },
+  { value: 'private', label: 'Private (sandbox — only you until published)' },
 ] as const;
 
 interface SubmitAssetModalProps {
@@ -199,6 +199,9 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
                 </option>
               ))}
             </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sandbox: choose Private to draft until you’re ready to share with your org or publicly.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <input

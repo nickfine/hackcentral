@@ -1079,3 +1079,57 @@ const debouncedSearch = useDebounce(searchQuery);
 
 ### Conclusion
 **Phase 3 browser testing:** ✅ **PASS** – Global search, Gini/Export, Onboarding, Guide, Notifications, Library (anonymous submit, graduated/load-more behavior), and Project governance (readiness form) all verified. One bug fixed during testing: missing `isAnonymous` state in SubmitAssetModal.
+
+---
+
+## Phase 3 Clean-up: Browser Testing (Playwright MCP) – Jan 30, 2026
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Dashboard – Frontline vs leader
+**Status:** ✅ Pass  
+- **Frontline vs leader contributions** card visible: heading, copy “Contributions in the last 30 days by experience level (frontline = newbie/curious/comfortable; leader = power user/expert).”
+- Segments displayed: **Frontline** “1 contributions from 1 active user”, **Leader** “0 contributions from 0 active users”, **Other** “0 contributions from 0 active users”.
+
+#### 2. Dashboard – Graduated nudges
+**Status:** ✅ Pass  
+- User has both projects and library assets → **“Share your story”** nudge card: “Share how AI helped your work — it inspires others and surfaces on the Dashboard.” with “Share your story” button.
+- First-time “Get started” CTA not shown (user has recent activity); graduated nudge shown instead.
+
+#### 3. Library – Sandbox labelling (Submit Asset)
+**Status:** ✅ Pass  
+- Submit Asset modal: **Visibility** combobox includes option **“Private (sandbox — only you until published)”**.
+- Helper text: “Sandbox: choose Private to draft until you’re ready to share with your org or publicly.”
+
+#### 4. Projects – Sandbox labelling (New Project)
+**Status:** ✅ Pass  
+- New Project modal: **Visibility** combobox shows **“Private (sandbox — only you until published)”** (selected by default).
+- Same helper text: “Sandbox: choose Private to draft until you’re ready to share with your org or publicly.”
+
+#### 5. People / Projects – Pagination
+**Status:** ✅ Pass (behavior as implemented)  
+- **People:** 1 profile; no “Load more” (1 &lt; 30). Query uses `limit: profileLimit` (30).
+- **Projects:** 2 projects; no “Load more” (2 &lt; 30). Query uses `limit: projectLimit` (30).
+- Load more appears only when `list.length === limit`; logic correct.
+
+### Test Summary
+
+| Feature | Status | Notes |
+|--------|--------|-------|
+| Frontline vs leader card | ✅ Pass | Segments and copy correct |
+| Graduated nudges | ✅ Pass | “Share your story” nudge when user has both projects and assets |
+| Library sandbox label | ✅ Pass | Private option + helper text in Submit Asset |
+| Projects sandbox label | ✅ Pass | Private option + helper text in New Project |
+| People/Projects pagination | ✅ Pass | No Load more when &lt; 30 items; API limit wired |
+
+### Console
+- **Playwright** `browser_console_messages` (level: error): no errors.
+- Only expected warning: Clerk development keys.
+
+### Conclusion
+**Phase 3 clean-up browser testing:** ✅ **PASS** – Frontline vs leader card, graduated nudges, sandbox labelling (Library and Projects), and People/Projects pagination behavior verified. Export metrics includes `frontlineLeaderGap` (verified in code; download not exercised in this run).

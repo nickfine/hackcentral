@@ -34,6 +34,9 @@ export default function Dashboard() {
   const libraryAssets = useQuery(api.libraryAssets.list, {});
   const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {});
   const gini = useQuery(api.metrics.getEarlyAdopterGini);
+  const frontlineLeaderGap = useQuery(api.metrics.getFrontlineLeaderGap);
+  const profile = useQuery(api.profiles.getCurrentProfile);
+  const userCounts = useQuery(api.profiles.getCurrentUserCounts);
 
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [storyHeadline, setStoryHeadline] = useState('');
@@ -96,6 +99,17 @@ export default function Dashboard() {
       : 25;
 
   const showFirstTimeCTA = recentActivity !== undefined && recentActivity.length === 0;
+  const showGraduatedNudge =
+    !showFirstTimeCTA &&
+    profile != null &&
+    userCounts != null &&
+    (userCounts.projectCount > 0 || userCounts.libraryAssetCount > 0);
+  const nudgeAddLibrary =
+    showGraduatedNudge && userCounts.projectCount > 0 && userCounts.libraryAssetCount === 0;
+  const nudgeCreateProject =
+    showGraduatedNudge && userCounts.projectCount === 0 && userCounts.libraryAssetCount > 0;
+  const nudgeShareStory =
+    showGraduatedNudge && userCounts.projectCount > 0 && userCounts.libraryAssetCount > 0;
 
   const giniValue = gini !== undefined ? gini.toFixed(2) : '--';
   const giniInterpretation =
@@ -143,6 +157,45 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Graduated nudges: contextual CTAs by user state */}
+      {nudgeAddLibrary && (
+        <div className="card p-4 border-primary/10 bg-primary/5">
+          <p className="text-sm text-foreground mb-2">
+            You have projects but no library assets yet. Add a prompt or template from the Library to your project to boost adoption metrics.
+          </p>
+          <Link to="/library" className="btn btn-outline btn-sm">
+            <Library className="h-4 w-4 mr-2" />
+            Explore Library
+          </Link>
+        </div>
+      )}
+      {nudgeCreateProject && (
+        <div className="card p-4 border-primary/10 bg-primary/5">
+          <p className="text-sm text-foreground mb-2">
+            You’ve added library assets. Create a project to track your AI work and attach assets for visibility.
+          </p>
+          <Link to="/projects" className="btn btn-outline btn-sm">
+            <Activity className="h-4 w-4 mr-2" />
+            Create a project
+          </Link>
+        </div>
+      )}
+      {nudgeShareStory && (
+        <div className="card p-4 border-primary/10 bg-primary/5">
+          <p className="text-sm text-foreground mb-2">
+            Share how AI helped your work — it inspires others and surfaces on the Dashboard.
+          </p>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => setStoryModalOpen(true)}
+          >
+            <PenLine className="h-4 w-4 mr-2" />
+            Share your story
+          </button>
         </div>
       )}
 
@@ -270,6 +323,7 @@ export default function Dashboard() {
               metrics: metrics ?? null,
               gini: gini ?? null,
               giniInterpretation: gini !== undefined ? giniInterpretation : null,
+              frontlineLeaderGap: frontlineLeaderGap ?? null,
               topContributors: topContributors ?? [],
               topMentors: topMentors ?? [],
               mostReusedAssets: mostReusedAssets ?? [],
@@ -364,6 +418,30 @@ export default function Dashboard() {
           &lt; 0.7 healthy · ≥ 0.7 consider interventions · ≥ 0.8 escalate
         </p>
       </div>
+
+      {/* Frontline vs leader (contributions by segment, last 30 days) */}
+      {frontlineLeaderGap !== undefined && (
+        <div className="card p-4">
+          <h2 className="text-lg font-semibold mb-2">Frontline vs leader contributions</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Contributions in the last 30 days by experience level (frontline = newbie/curious/comfortable; leader = power user/expert).
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="font-medium text-foreground">Frontline</span>
+              <p className="text-muted-foreground">{frontlineLeaderGap.frontlineContributions} contributions from {frontlineLeaderGap.frontlineUsers} active user{frontlineLeaderGap.frontlineUsers !== 1 ? 's' : ''}</p>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Leader</span>
+              <p className="text-muted-foreground">{frontlineLeaderGap.leaderContributions} contributions from {frontlineLeaderGap.leaderUsers} active user{frontlineLeaderGap.leaderUsers !== 1 ? 's' : ''}</p>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Other</span>
+              <p className="text-muted-foreground">{frontlineLeaderGap.otherContributions} contributions from {frontlineLeaderGap.otherUsers} active user{frontlineLeaderGap.otherUsers !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity & Top Contributors */}
       <div className="grid gap-4 md:grid-cols-2">

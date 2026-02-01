@@ -49,16 +49,15 @@ export const getById = query({
 });
 
 /**
- * List all profiles (filtered by visibility)
+ * List all profiles (filtered by visibility). Optional limit for pagination.
  */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
     const identity = await ctx.auth.getUserIdentity();
     const profiles = await ctx.db.query("profiles").collect();
 
-    // Filter by visibility
-    return profiles.filter((profile) => {
+    const filtered = profiles.filter((profile) => {
       const isOwner = identity && profile.userId === identity.subject;
       return (
         profile.profileVisibility === "public" ||
@@ -66,6 +65,38 @@ export const list = query({
         isOwner
       );
     });
+    return limit != null ? filtered.slice(0, limit) : filtered;
+  },
+});
+
+/**
+ * Current user's project and library asset counts (for graduated nudges on Dashboard).
+ */
+export const getCurrentUserCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return { projectCount: 0, libraryAssetCount: 0 };
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .first();
+    if (!profile) return { projectCount: 0, libraryAssetCount: 0 };
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", profile._id))
+      .collect();
+    const assets = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_author", (q) => q.eq("authorId", profile._id))
+      .collect();
+
+    return {
+      projectCount: projects.length,
+      libraryAssetCount: assets.length,
+    };
   },
 });
 
