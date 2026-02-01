@@ -492,10 +492,16 @@ export default function Library() {
           const filteredAssets = allAssets.filter((asset) => {
             if (!debouncedSearch) return true;
             const searchLower = debouncedSearch.toLowerCase();
-            return (
-              asset.title.toLowerCase().includes(searchLower) ||
-              asset.description?.toLowerCase().includes(searchLower)
-            );
+            const titleMatch = asset.title.toLowerCase().includes(searchLower);
+            const descMatch = asset.description?.toLowerCase().includes(searchLower);
+            const typeMatch = asset.assetType.replace('_', ' ').toLowerCase().includes(searchLower);
+            const meta = asset.metadata as { intendedUser?: string; context?: string; limitations?: string; riskNotes?: string } | undefined;
+            const metaParts = meta
+              ? [meta.intendedUser, meta.context, meta.limitations, meta.riskNotes].filter((x): x is string => typeof x === 'string')
+              : [];
+            const metaText = metaParts.join(' ').toLowerCase();
+            const metaMatch = metaText.length > 0 && metaText.includes(searchLower);
+            return titleMatch || descMatch || typeMatch || metaMatch;
           });
           // Down-rank deprecated: verified first, then draft, then deprecated
           const statusOrder: Record<string, number> = { verified: 0, draft: 1, deprecated: 2 };

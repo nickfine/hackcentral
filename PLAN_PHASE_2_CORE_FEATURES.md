@@ -30,6 +30,9 @@
 ### ✅ Library – Deprecation UX (v0.4.10)
 - **Frontend:** `src/pages/Library.tsx` – “All Assets” list down-ranks deprecated assets (verified first, then draft, then deprecated) so deprecated appear last in default views; still findable via status filter.
 
+### ✅ Library – Improved search (AI-assisted)
+- **Frontend:** `src/pages/Library.tsx` – Library search now matches **title**, **description**, **asset type** (e.g. “prompt”), and **metadata** (intendedUser, context, limitations, riskNotes). No new backend or API; extends existing client-side filter so queries like “security” or “developers” match metadata.
+
 ### ✅ Recognition – Leaderboards (first slice)
 - **Backend:** `convex/metrics.ts` – `getTopMentors` (top 10 by completed sessions, last 30d), `getMostReusedAssets` (top 10 by reuse events, last 30d; public/org only).
 - **Frontend:** `src/pages/Dashboard.tsx` – "Top Mentors" card (GraduationCap), "Most Reused Assets" card (BookOpen), empty/loading states.
@@ -65,9 +68,9 @@
 - **Celebration UI:** Optional animations or toasts when someone gets a badge or story is published.
 
 ### 4. AI-Assisted Features
-- **Search:** Better library (and optionally project) search: semantic similarity or search metadata.
-- **Recommendations:** “Recommended for you” based on reuse patterns or embeddings if added later.
-- **Deliverables:** Improved search, recommendation surfaces, optional AI-assisted fields.
+- **Search:** ✅ Library search now matches title, description, asset type, and metadata (intendedUser, context, limitations, riskNotes). Semantic/LLM search deferred.
+- **Recommendations:** “More like this” (same-type) done; “Recommended for you” by reuse patterns or embeddings deferred.
+- **Deliverables:** Improved search (done); optional AI-assisted submission and semantic search later.
 
 ---
 
@@ -83,9 +86,9 @@
 - [x] Dashboard: activity + leaderboard live; optional team comparison (deferred).
 - [x] Library: submit assets, quality gates (Draft/Verified/Deprecated), verification + deprecation, reuse tracking and counts, similar assets, deprecation down-rank.
 - [x] Recognition: derived badges and leaderboards; impact stories feed.
-- [ ] AI-assisted: improved search and recommendations (and optionally AI-assisted submission).
+- [x] AI-assisted: improved library search (title, description, type, metadata); recommendations via “More like this”; optional AI-assisted submission deferred.
 - [x] Close/archive: form with learning capture and learning summary display.
 
 ---
 
-*Last updated: v0.4.10 – Phase 2 plan aligned with done work; deprecation UX and Similar assets reflected.*
+*Last updated: after improved library search (Phase 2 success criteria complete).*

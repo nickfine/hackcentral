@@ -831,6 +831,44 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Library Improved Search – Browser Testing (Jan 31, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Search by metadata (intendedUser)
+**Status:** ✅ Pass  
+- Typed "Developers" in Library search box.
+- List filtered: "Code Review Prompt - Security Focus" (metadata intendedUser: "Developers, Team Leads") and other assets with "Developers" in metadata/description remained visible; list reduced from full 25 to matching subset.
+
+#### 2. Search by asset type
+**Status:** ✅ Pass  
+- Typed "guardrail" in search.
+- List showed only guardrail-type assets (e.g. PII Detection Guardrail, Output Validation Guardrail, Prompt Injection Defense).
+
+#### 3. Empty state (no matches)
+**Status:** ✅ Pass  
+- Typed "xyznonexistent123".
+- "No assets found" heading and message "No assets match your filters. Try adjusting your search or filters." displayed.
+
+### Test Summary
+
+| Feature           | Status | Notes                                                |
+|-------------------|--------|------------------------------------------------------|
+| Metadata search   | ✅ Pass | "Developers" matched assets with intendedUser/metadata |
+| Type search       | ✅ Pass | "guardrail" showed only guardrail assets             |
+| Empty state       | ✅ Pass | Correct message when no matches                      |
+| Debounced filter  | ✅ Pass | Filter applied after input (300ms debounce)          |
+
+### Conclusion
+**Library Improved Search (Phase 2):** ✅ **PASS** – Search matches title, description, asset type, and metadata (intendedUser, context, limitations, riskNotes); metadata and type search verified in browser; empty state correct; no errors observed during session.
+
+---
+
 ## Development Notes
 
 ### Common Patterns
