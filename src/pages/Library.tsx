@@ -497,7 +497,12 @@ export default function Library() {
               asset.description?.toLowerCase().includes(searchLower)
             );
           });
-          return filteredAssets.length === 0 ? (
+          // Down-rank deprecated: verified first, then draft, then deprecated
+          const statusOrder: Record<string, number> = { verified: 0, draft: 1, deprecated: 2 };
+          const sortedAssets = [...filteredAssets].sort(
+            (a, b) => (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1)
+          );
+          return sortedAssets.length === 0 ? (
             <div className="card p-12 text-center">
               <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No assets found</h3>
@@ -510,7 +515,7 @@ export default function Library() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredAssets.map((asset) => (
+              {sortedAssets.map((asset) => (
                 <AssetCard key={asset._id} asset={asset} onSelect={setSelectedAssetId} />
               ))}
             </div>
