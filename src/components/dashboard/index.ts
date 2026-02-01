@@ -11,11 +11,11 @@ export {
 } from './ImpactStories/ImpactStoriesCarousel';
 
 export {
-  FeaturedWinsShowcase,
-  WinCard,
+  FeaturedHacksShowcase,
+  HackCard,
   WallOfThanksStrip,
-  type FeaturedWinItem,
-} from './FeaturedWins';
+  type FeaturedHackItem,
+} from './FeaturedHacks';
 
 export { EnhancedMetricCard } from './StatCards/EnhancedMetricCard';
 export { AnimatedCounter } from './StatCards/AnimatedCounter';
@@ -27,7 +27,7 @@ export { WeeklyActiveSparkline } from './DataViz/WeeklyActiveSparkline';
 export { QuickActionsPanel } from './QuickActions/QuickActionsPanel';
 export { PersonalizedNudge } from './QuickActions/PersonalizedNudge';
 export { EngagementNudge, type EngagementNudgeProps } from './Engagement';
-export { QuickStartWins, type QuickStartWinsProps } from './QuickStartWins';
+export { QuickStartHacks, type QuickStartHacksProps } from './QuickStartHacks';
 
-export { WallOfWins } from './Recognition/WallOfWins';
+export { WallOfHacks } from './Recognition/WallOfHacks';
 export { TabbedRecognition } from './Recognition/TabbedRecognition';

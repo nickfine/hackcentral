@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Quote } from 'lucide-react';
 
 const SAMPLE_THANKS = [
-  { text: 'Saved my team 5 hours with this win!', author: 'Alex M.' },
+  { text: 'Saved my team 5 hours with this hack!', author: 'Alex M.' },
   { text: 'The guardrail prevented a costly mistake. Thank you!', author: 'Jamie K.' },
   { text: 'Copy-paste ready. This is gold.', author: 'Taylor R.' },
   { text: 'Finally, a reusable blueprint that actually works.', author: 'Jordan P.' },

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Quote } from 'lucide-react';
 
-const sampleWins = [
+const sampleHacks = [
   {
-    text: "Saved my team 5 hours with Sarah's win!",
+    text: "Saved my team 5 hours with Sarah's hack!",
     author: 'Alex M.',
   },
   {
@@ -21,17 +21,17 @@ const sampleWins = [
   },
 ];
 
-export function WallOfWins() {
+export function WallOfHacks() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % sampleWins.length);
+      setCurrentIndex((prev) => (prev + 1) % sampleHacks.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const win = sampleWins[currentIndex];
+  const hack = sampleHacks[currentIndex];
 
   return (
     <div className="card border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-800 dark:from-amber-950/20 dark:to-orange-950/20">
@@ -47,9 +47,9 @@ export function WallOfWins() {
               transition={{ duration: 0.3 }}
             >
               <p className="mb-1 text-sm font-medium text-foreground">
-                &quot;{win.text}&quot;
+                &quot;{hack.text}&quot;
               </p>
-              <p className="text-xs text-muted-foreground">— {win.author}</p>
+              <p className="text-xs text-muted-foreground">— {hack.author}</p>
             </motion.div>
           </AnimatePresence>
         </div>

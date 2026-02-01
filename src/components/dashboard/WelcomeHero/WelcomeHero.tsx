@@ -9,8 +9,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { FileCode, Copy, Check, Sparkles, PenLine } from 'lucide-react';
 
 export interface WelcomeHeroProps {
-  /** Scroll to Community Wins section (e.g. #community-wins) */
-  onScrollToWins?: () => void;
+  /** Scroll to Community Hacks section (e.g. #community-hacks) */
+  onScrollToHacks?: () => void;
   /** Optional: open share story modal */
   onShareStory?: () => void;
   /** Maturity progress 0–100 for slim hint */
@@ -34,7 +34,7 @@ function getStageName(progress: number): string {
 }
 
 export function WelcomeHero({
-  onScrollToWins,
+  onScrollToHacks,
   onShareStory,
   currentProgress = 50,
   currentStageName,
@@ -43,14 +43,14 @@ export function WelcomeHero({
   const shouldReduceMotion = useReducedMotion();
   const stageName = currentStageName ?? getStageName(currentProgress);
 
-  const scrollToWins = useCallback(() => {
-    if (onScrollToWins) {
-      onScrollToWins();
+  const scrollToHacks = useCallback(() => {
+    if (onScrollToHacks) {
+      onScrollToHacks();
       return;
     }
-    const el = document.getElementById('community-wins');
+    const el = document.getElementById('community-hacks');
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [onScrollToWins]);
+  }, [onScrollToHacks]);
 
   return (
     <section
@@ -85,7 +85,7 @@ export function WelcomeHero({
             transition={{ duration: 0.35, delay: 0.05 }}
             className="max-w-xl break-words text-sm text-indigo-100 sm:text-base"
           >
-            Copy a win, use it, share yours.
+            Copy a hack, use it, share yours.
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 4 }}
@@ -97,7 +97,7 @@ export function WelcomeHero({
           </motion.p>
         </div>
 
-        {/* Mini icon row: snippet → copy → win (compact) */}
+        {/* Mini icon row: snippet → copy → hack (compact) */}
         {!shouldReduceMotion && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -106,7 +106,7 @@ export function WelcomeHero({
             className="flex items-center justify-center gap-1.5 sm:justify-start"
             aria-hidden
           >
-            <MiniSnippetCopyWin />
+            <MiniSnippetCopyHack />
           </motion.div>
         )}
 
@@ -114,15 +114,15 @@ export function WelcomeHero({
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <motion.button
             type="button"
-            onClick={scrollToWins}
+            onClick={scrollToHacks}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
             className="btn-hero-primary order-1 min-h-[44px] min-w-[44px] touch-manipulation rounded-xl px-5 py-2.5 text-base font-semibold shadow-lg transition-all hover:shadow-primary/30 focus-visible:ring-2 focus-visible:ring-white/50 sm:order-1 sm:px-6 sm:py-3"
-            aria-label="Browse Community Wins — scroll to featured wins"
+            aria-label="Browse Community Hacks — scroll to featured hacks"
           >
             <Sparkles className="mr-2 inline-block h-5 w-5" aria-hidden />
-            Browse Community Wins
+            Browse Community Hacks
           </motion.button>
           {onShareStory ? (
             <motion.button
@@ -218,8 +218,8 @@ function FloatingAssetIcons() {
   );
 }
 
-/** Compact snippet → copy → win icon row */
-function MiniSnippetCopyWin() {
+/** Compact snippet → copy → hack icon row */
+function MiniSnippetCopyHack() {
   return (
     <div className="flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5">
       <FileCode className="h-3.5 w-3.5 text-cyan-200" aria-hidden />

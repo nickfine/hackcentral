@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Copy, ExternalLink, FileCode, PenLine, Sparkles, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export interface FeaturedWinItem {
+export interface FeaturedHackItem {
   type: 'asset' | 'story';
   id: string;
   title: string;
@@ -17,11 +17,11 @@ export interface FeaturedWinItem {
   storyId?: string;
 }
 
-interface WinCardProps {
-  win: FeaturedWinItem;
+interface HackCardProps {
+  hack: FeaturedHackItem;
   /** Called when copy to clipboard succeeds (e.g. for first-copy confetti) */
   onCopySuccess?: () => void;
-  /** Show "Starter" badge (copy in seconds) for newbie-friendly wins */
+  /** Show "Starter" badge (copy in seconds) for newbie-friendly hacks */
   isStarter?: boolean;
 }
 
@@ -30,14 +30,14 @@ function getAssetDetailUrl(assetId: string): string {
   return `${base}/library?asset=${assetId}`;
 }
 
-export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
+export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
   const handleCopy = () => {
     const text =
-      win.type === 'asset' && win.assetId
-        ? `${win.title}\n\n${win.blurb}\n\nView: ${getAssetDetailUrl(win.assetId)}`
-        : `${win.title}\n\n${win.blurb}`;
+      hack.type === 'asset' && hack.assetId
+        ? `${hack.title}\n\n${hack.blurb}\n\nView: ${getAssetDetailUrl(hack.assetId)}`
+        : `${hack.title}\n\n${hack.blurb}`;
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(
         () => {
@@ -51,15 +51,15 @@ export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
     }
   };
 
-  const viewDetailsTo = win.type === 'asset' && win.assetId
-    ? `/library?asset=${win.assetId}`
+  const viewDetailsTo = hack.type === 'asset' && hack.assetId
+    ? `/library?asset=${hack.assetId}`
     : '/library';
 
   const copyLabel =
-    win.type === 'asset'
-      ? `Copy ${win.title} to clipboard`
-      : `Copy story "${win.title}" to clipboard`;
-  const viewLabel = `View details for ${win.title}`;
+    hack.type === 'asset'
+      ? `Copy ${hack.title} to clipboard`
+      : `Copy story "${hack.title}" to clipboard`;
+  const viewLabel = `View details for ${hack.title}`;
 
   return (
     <motion.article
@@ -68,14 +68,14 @@ export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
       whileHover={shouldReduceMotion ? undefined : { y: -4, scale: 1.02 }}
       transition={{ duration: 0.2 }}
       className={`group relative flex min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg md:min-w-[280px] md:max-w-[320px] ${
-        win.isRisingStar
+        hack.isRisingStar
           ? 'hover:shadow-secondary/30 hover:ring-2 hover:ring-secondary/20'
           : 'hover:shadow-primary/20'
       }`}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg bg-muted/80 p-2" aria-hidden>
-          {win.type === 'asset' ? (
+          {hack.type === 'asset' ? (
             <FileCode className="h-5 w-5 shrink-0 text-primary" aria-hidden />
           ) : (
             <PenLine className="h-5 w-5 shrink-0 text-secondary" aria-hidden />
@@ -90,7 +90,7 @@ export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
               Starter
             </span>
           )}
-          {win.isRisingStar ? (
+          {hack.isRisingStar ? (
             <span
               className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary group-hover:bg-secondary/20 group-hover:shadow-md group-hover:shadow-secondary/20"
               title="First-time or frontline contributor"
@@ -103,18 +103,18 @@ export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
       </div>
 
       <h3 className="mb-2 min-w-0 line-clamp-2 break-words text-base font-semibold text-foreground">
-        {win.title}
+        {hack.title}
       </h3>
-      <p className="mb-4 min-w-0 line-clamp-3 break-words text-sm text-muted-foreground">{win.blurb}</p>
+      <p className="mb-4 min-w-0 line-clamp-3 break-words text-sm text-muted-foreground">{hack.blurb}</p>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <User className="h-3.5 w-3" aria-hidden />
-          {win.authorName}
+          {hack.authorName}
         </span>
-        {win.reuseCount > 0 && (
+        {hack.reuseCount > 0 && (
           <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-            Reused {win.reuseCount}×
+            Reused {hack.reuseCount}×
           </span>
         )}
       </div>
@@ -127,7 +127,7 @@ export function WinCard({ win, onCopySuccess, isStarter }: WinCardProps) {
           aria-label={copyLabel}
         >
           <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          Copy {win.type === 'asset' ? 'Asset' : 'Story'}
+          Copy {hack.type === 'asset' ? 'Asset' : 'Story'}
         </button>
         <Link
           to={viewDetailsTo}

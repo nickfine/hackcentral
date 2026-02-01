@@ -1,20 +1,20 @@
 /**
  * Dashboard Page - AI Maturity Dashboard
  *
- * Tabs: Wins (default) | Team pulse.
+ * Tabs: Hacks (default) | Team pulse.
  *
- * Wins tab (hero first, then what to do):
- * 1. WelcomeHero — narrative "Copy a win, use it, share yours", CTAs, maturity pill (~25–35vh)
+ * Hacks tab (hero first, then what to do):
+ * 1. WelcomeHero — narrative "Copy a hack, use it, share yours", CTAs, maturity pill (~25–35vh)
  * 2. Optional combined nudge (Get started / Next step: add library, create project, share story)
  * 3. PersonalizedNudge (badges, next steps)
  * 4. EngagementNudge — "Hey [Name], X new team assets — copy one?"
- * 5. Community Wins — FeaturedWinsShowcase (Starter badges, Live badge, carousel, WallOfThanksStrip)
+ * 5. Community Hacks — FeaturedHacksShowcase (Starter badges, Live badge, carousel, WallOfThanksStrip)
  * 6. Your recognition (if authenticated) → Quick Actions
  *
  * Team pulse tab: Collective Progress card, Export, stat cards, Knowledge Distribution,
  * Frontline vs leader, Tabbed Recognition.
  *
- * Rationale: Hero-first hierarchy; maturity only in hero pill on Wins (no duplicate); leaders get full metrics in Pulse.
+ * Rationale: Hero-first hierarchy; maturity only in hero pill on Hacks (no duplicate); leaders get full metrics in Pulse.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -41,7 +41,7 @@ import { useAuth } from '../hooks/useAuth';
 import {
   WelcomeHero,
   CollectiveProgressCard,
-  FeaturedWinsShowcase,
+  FeaturedHacksShowcase,
   EnhancedMetricCard,
   GiniRadialProgress,
   QuickActionsPanel,
@@ -68,7 +68,7 @@ export default function Dashboard() {
   const userCounts = useQuery(api.profiles.getCurrentUserCounts);
   const pulse = useQuery(api.metrics.getActivityPulse);
 
-  const [dashboardTab, setDashboardTab] = useState<'wins' | 'pulse'>('wins');
+  const [dashboardTab, setDashboardTab] = useState<'hacks' | 'pulse'>('hacks');
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [storyHeadline, setStoryHeadline] = useState('');
   const [storyText, setStoryText] = useState('');
@@ -103,8 +103,8 @@ export default function Dashboard() {
     confetti({ particleCount: 24, spread: 50, origin: { y: 0.6 }, colors: ['#06b6d4', '#d946ef'] });
   };
 
-  const scrollToCommunityWins = () => {
-    document.getElementById('community-wins')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToCommunityHacks = () => {
+    document.getElementById('community-hacks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleStorySubmit = async (e: React.FormEvent) => {
@@ -286,7 +286,7 @@ export default function Dashboard() {
                   value={storyHeadline}
                   onChange={(e) => setStoryHeadline(e.target.value)}
                   className="input w-full"
-                  placeholder="e.g. How a win saved 12 hours per week"
+                  placeholder="e.g. How a hack saved 12 hours per week"
                 />
               </div>
               <div>
@@ -374,16 +374,16 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Dashboard tabs: Wins (default) vs Team pulse */}
+      {/* Dashboard tabs: Hacks (default) vs Team pulse */}
       <div className="flex gap-2 border-b border-border pb-2">
         <button
           type="button"
-          onClick={() => setDashboardTab('wins')}
-          className={`btn btn-sm ${dashboardTab === 'wins' ? 'btn-primary' : 'btn-ghost'}`}
-          aria-pressed={dashboardTab === 'wins'}
-          aria-label="Wins tab"
+          onClick={() => setDashboardTab('hacks')}
+          className={`btn btn-sm ${dashboardTab === 'hacks' ? 'btn-primary' : 'btn-ghost'}`}
+          aria-pressed={dashboardTab === 'hacks'}
+          aria-label="Hacks tab"
         >
-          Wins
+          Hacks
         </button>
         <button
           type="button"
@@ -396,9 +396,10 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {dashboardTab === 'wins' && (
+      {dashboardTab === 'hacks' && (
         <>
           <WelcomeHero
+            onScrollToHacks={scrollToCommunityHacks}
             onShareStory={() => setStoryModalOpen(true)}
             currentProgress={maturityWidth}
             currentStageName={currentStage?.name}
@@ -416,7 +417,7 @@ export default function Dashboard() {
                     <>
                       <h2 className="mb-1 text-base font-semibold">Get started</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        New to HackDay Central? Copy a win from the Library or create your first project.
+                        New to HackDay Central? Copy a hack from the Library or create your first project.
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <Link to="/library" className="btn btn-primary btn-sm">
@@ -443,7 +444,7 @@ export default function Dashboard() {
                     <>
                       <h2 className="mb-1 text-base font-semibold">Next step</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        You have projects but no library assets yet. Add a win from the Library to your project.
+                        You have projects but no library assets yet. Add a hack from the Library to your project.
                       </p>
                       <Link to="/library" className="btn btn-primary btn-sm">
                         <Library className="mr-2 h-4 w-4" />
@@ -493,11 +494,11 @@ export default function Dashboard() {
           <EngagementNudge
             displayName={profile?.fullName}
             newAssetsCount={pulse?.newAssetsThisWeek ?? 0}
-            onScrollToWins={scrollToCommunityWins}
+            onScrollToHacks={scrollToCommunityHacks}
           />
 
-          <div id="community-wins" className="scroll-mt-6">
-            <FeaturedWinsShowcase
+          <div id="community-hacks" className="scroll-mt-6">
+            <FeaturedHacksShowcase
               onShareStory={() => setStoryModalOpen(true)}
               onCopySuccess={handleFirstCopySuccess}
               starterCount={4}

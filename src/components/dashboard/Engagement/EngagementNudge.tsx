@@ -11,8 +11,8 @@ export interface EngagementNudgeProps {
   displayName?: string | null;
   /** New assets count this week (e.g. from getActivityPulse.newAssetsThisWeek) */
   newAssetsCount?: number;
-  /** Scroll to Community Wins when CTA clicked */
-  onScrollToWins?: () => void;
+  /** Scroll to Community Hacks when CTA clicked */
+  onScrollToHacks?: () => void;
 }
 
 function getFirstName(fullName: string | undefined | null): string {
@@ -24,7 +24,7 @@ function getFirstName(fullName: string | undefined | null): string {
 export function EngagementNudge({
   displayName,
   newAssetsCount = 0,
-  onScrollToWins,
+  onScrollToHacks,
 }: EngagementNudgeProps) {
   const firstName = getFirstName(displayName);
   const showName = firstName.length > 0;
@@ -35,7 +35,7 @@ export function EngagementNudge({
   const copy = showName
     ? count > 0
       ? `Hey ${firstName}, ${count} new team asset${count !== 1 ? 's' : ''} — copy one?`
-      : `Hey ${firstName}, copy a win from your peers below.`
+      : `Hey ${firstName}, copy a hack from your peers below.`
     : count > 0
       ? `${count} new team asset${count !== 1 ? 's' : ''} this week — copy one?`
       : null;
@@ -53,14 +53,14 @@ export function EngagementNudge({
         <Sparkles className="mr-2 inline-block h-4 w-4 shrink-0 text-primary" aria-hidden />
         {copy}
       </p>
-      {onScrollToWins && (
+      {onScrollToHacks && (
         <button
           type="button"
-          onClick={onScrollToWins}
+          onClick={onScrollToHacks}
           className="btn btn-primary btn-sm w-full min-h-[44px] shrink-0 touch-manipulation sm:w-auto"
-          aria-label="Scroll to Community Wins"
+          aria-label="Scroll to Community Hacks"
         >
-          See wins
+          See hacks
         </button>
       )}
     </motion.div>

@@ -4,25 +4,25 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Library, PenLine, Sparkles } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
-import type { FeaturedWinItem } from './WinCard';
-import { WinCard } from './WinCard';
+import type { FeaturedHackItem } from './HackCard';
+import { HackCard } from './HackCard';
 import { WallOfThanksStrip } from './WallOfThanksStrip';
 
 const DEFAULT_STARTER_COUNT = 4;
 
-interface FeaturedWinsShowcaseProps {
+interface FeaturedHacksShowcaseProps {
   onShareStory?: () => void;
   /** Called when user successfully copies an asset/story (e.g. first-copy confetti) */
   onCopySuccess?: () => void;
-  /** First N wins show "Starter" badge (copy in seconds). Default 4. */
+  /** First N hacks show "Starter" badge (copy in seconds). Default 4. */
   starterCount?: number;
 }
 
-const PLACEHOLDER_WINS: FeaturedWinItem[] = [
+const PLACEHOLDER_HACKS: FeaturedHackItem[] = [
   {
     type: 'asset',
     id: 'placeholder-1',
-    title: 'Your win could be here',
+    title: 'Your hack could be here',
     blurb: 'Share a reusable AI asset from the Library — your peers can copy and adapt it.',
     authorName: '—',
     reuseCount: 0,
@@ -41,7 +41,7 @@ const PLACEHOLDER_WINS: FeaturedWinItem[] = [
   },
 ];
 
-function mapApiWinToItem(win: {
+function mapApiHackToItem(hack: {
   type: 'asset' | 'story';
   id: string;
   title: string;
@@ -53,53 +53,53 @@ function mapApiWinToItem(win: {
   _creationTime: number;
   assetId?: string;
   storyId?: string;
-}): FeaturedWinItem {
+}): FeaturedHackItem {
   return {
-    type: win.type,
-    id: win.id,
-    title: win.title,
-    blurb: win.blurb,
-    authorName: win.authorName,
-    authorLevel: win.authorLevel,
-    reuseCount: win.reuseCount,
-    isRisingStar: win.isRisingStar,
-    _creationTime: win._creationTime,
-    assetId: win.assetId,
-    storyId: win.storyId,
+    type: hack.type,
+    id: hack.id,
+    title: hack.title,
+    blurb: hack.blurb,
+    authorName: hack.authorName,
+    authorLevel: hack.authorLevel,
+    reuseCount: hack.reuseCount,
+    isRisingStar: hack.isRisingStar,
+    _creationTime: hack._creationTime,
+    assetId: hack.assetId,
+    storyId: hack.storyId,
   };
 }
 
-export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount = DEFAULT_STARTER_COUNT }: FeaturedWinsShowcaseProps) {
+export function FeaturedHacksShowcase({ onShareStory, onCopySuccess, starterCount = DEFAULT_STARTER_COUNT }: FeaturedHacksShowcaseProps) {
   const shouldReduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const featuredWins = useQuery(api.metrics.getFeaturedWins, { limit: 10 });
+  const featuredHacks = useQuery(api.metrics.getFeaturedHacks, { limit: 10 });
   const pulse = useQuery(api.metrics.getActivityPulse);
   const [currentScrollIndex, setCurrentScrollIndex] = useState(0);
   const [autoplay, setAutoplay] = useState(!shouldReduceMotion);
 
-  const wins: FeaturedWinItem[] =
-    featuredWins === undefined
+  const hacks: FeaturedHackItem[] =
+    featuredHacks === undefined
       ? []
-      : featuredWins.map(mapApiWinToItem);
-  const displayWins = wins.length > 0 ? wins : PLACEHOLDER_WINS;
-  const isEmpty = wins.length === 0;
-  const canScroll = displayWins.length > 1;
+      : featuredHacks.map(mapApiHackToItem);
+  const displayHacks = hacks.length > 0 ? hacks : PLACEHOLDER_HACKS;
+  const isEmpty = hacks.length === 0;
+  const canScroll = displayHacks.length > 1;
 
-  // Keep scroll index in bounds when wins list length changes
+  // Keep scroll index in bounds when hacks list length changes
   useEffect(() => {
     setCurrentScrollIndex((prev) =>
-      displayWins.length > 0 ? Math.min(prev, displayWins.length - 1) : 0
+      displayHacks.length > 0 ? Math.min(prev, displayHacks.length - 1) : 0
     );
-  }, [displayWins.length]);
+  }, [displayHacks.length]);
 
   useEffect(() => {
     if (!autoplay || !canScroll || shouldReduceMotion) return;
     const interval = setInterval(() => {
-      setCurrentScrollIndex((prev) => (prev + 1) % displayWins.length);
+      setCurrentScrollIndex((prev) => (prev + 1) % displayHacks.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [autoplay, canScroll, displayWins.length, shouldReduceMotion]);
+  }, [autoplay, canScroll, displayHacks.length, shouldReduceMotion]);
 
   useEffect(() => {
     if (!canScroll || !containerRef.current) return;
@@ -115,19 +115,19 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
     setTimeout(() => setAutoplay(true), 8000);
   };
 
-  const showLowContentNudge = wins.length >= 1 && wins.length < 4;
-  const showNewbieBanner = wins.length > 0;
+  const showLowContentNudge = hacks.length >= 1 && hacks.length < 4;
+  const showNewbieBanner = hacks.length > 0;
 
-  const risingStarCount = wins.filter((w) => w.isRisingStar).length;
+  const risingStarCount = hacks.filter((h) => h.isRisingStar).length;
   const liveBadgeCopy =
     pulse?.newAssetsThisWeek != null && pulse.newAssetsThisWeek > 0
-      ? `Live: ${pulse.newAssetsThisWeek} new win${pulse.newAssetsThisWeek !== 1 ? 's' : ''} this week`
+      ? `Live: ${pulse.newAssetsThisWeek} new hack${pulse.newAssetsThisWeek !== 1 ? 's' : ''} this week`
       : risingStarCount > 0
         ? `${risingStarCount} Rising Star${risingStarCount !== 1 ? 's' : ''}`
         : null;
 
   return (
-    <section aria-labelledby="featured-wins-heading" className="min-w-0 space-y-4">
+    <section aria-labelledby="featured-hacks-heading" className="min-w-0 space-y-4">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           {liveBadgeCopy && (
@@ -151,11 +151,11 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
             </motion.span>
           )}
           <h2
-            id="featured-wins-heading"
+            id="featured-hacks-heading"
             className="flex min-w-0 items-center gap-2 text-lg font-bold sm:text-xl md:text-2xl"
           >
             <Sparkles className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
-            <span className="break-words">Community Wins — reusable magic from your peers</span>
+            <span className="break-words">Community Hacks — reusable magic from your peers</span>
           </h2>
         </div>
         <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">
@@ -193,16 +193,16 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
           if (!canScroll) return;
           if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            scrollToIndex((currentScrollIndex - 1 + displayWins.length) % displayWins.length);
+            scrollToIndex((currentScrollIndex - 1 + displayHacks.length) % displayHacks.length);
           }
           if (e.key === 'ArrowRight') {
             e.preventDefault();
-            scrollToIndex((currentScrollIndex + 1) % displayWins.length);
+            scrollToIndex((currentScrollIndex + 1) % displayHacks.length);
           }
         }}
         tabIndex={canScroll ? 0 : undefined}
         role="region"
-        aria-label="Featured wins carousel — use arrow keys to navigate"
+        aria-label="Featured hacks carousel — use arrow keys to navigate"
       >
         <div
           className="flex gap-4 overflow-x-auto pb-2 scroll-smooth md:snap-x md:snap-mandatory md:overflow-x-auto [scrollbar-width:thin]"
@@ -211,17 +211,17 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
             scrollPaddingLeft: '1rem',
           }}
         >
-          {displayWins.map((win, index) => (
+          {displayHacks.map((hack, index) => (
             <div
-              key={win.id}
+              key={hack.id}
               ref={(el) => {
                 cardRefs.current[index] = el;
               }}
               className="flex min-w-[min(300px,calc(100vw-2rem))] shrink-0 snap-center sm:min-w-[300px]"
               style={{ scrollSnapAlign: 'start' }}
             >
-              <WinCard
-                win={win}
+              <HackCard
+                hack={hack}
                 onCopySuccess={onCopySuccess}
                 isStarter={!isEmpty && index < starterCount}
               />
@@ -236,16 +236,16 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
                 Be the first Rising Star this week!
               </p>
               <p className="mb-4 text-xs text-muted-foreground">
-                Submit your win and get spotted.
+                Submit your hack and get spotted.
               </p>
               <button
                 type="button"
                 onClick={onShareStory}
                 className="btn btn-primary btn-sm mx-auto min-h-[44px]"
-                aria-label="Submit your win"
+                aria-label="Submit your hack"
               >
                 <PenLine className="mr-2 h-4 w-4" aria-hidden />
-                Submit your win →
+                Submit your hack →
               </button>
             </div>
           )}
@@ -257,22 +257,22 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
               type="button"
               onClick={() =>
                 scrollToIndex(
-                  (currentScrollIndex - 1 + displayWins.length) % displayWins.length
+                  (currentScrollIndex - 1 + displayHacks.length) % displayHacks.length
                 )
               }
               className="btn btn-ghost btn-icon min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
-              aria-label="Previous win"
+              aria-label="Previous hack"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden />
             </button>
             <div className="flex gap-1 sm:gap-2" role="tablist" aria-label="Carousel positions">
-              {displayWins.map((_, idx) => (
+              {displayHacks.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   role="tab"
                   aria-selected={idx === currentScrollIndex}
-                  aria-label={`Go to win ${idx + 1}`}
+                  aria-label={`Go to hack ${idx + 1}`}
                   onClick={() => scrollToIndex(idx)}
                   className="flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-full sm:min-h-[1.5rem] sm:min-w-[1.5rem]"
                 >
@@ -290,10 +290,10 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
             <button
               type="button"
               onClick={() =>
-                scrollToIndex((currentScrollIndex + 1) % displayWins.length)
+                scrollToIndex((currentScrollIndex + 1) % displayHacks.length)
               }
               className="btn btn-ghost btn-icon min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
-              aria-label="Next win"
+              aria-label="Next hack"
             >
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
@@ -304,7 +304,7 @@ export function FeaturedWinsShowcase({ onShareStory, onCopySuccess, starterCount
       {isEmpty && (
         <div className="rounded-lg border-2 border-dashed border-primary/20 bg-primary/5 p-6 text-center">
           <p className="mb-3 text-sm font-medium text-foreground">
-            Be the first to share your win today!
+            Be the first to share your hack today!
           </p>
           {onShareStory && (
             <button

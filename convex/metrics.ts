@@ -418,7 +418,7 @@ export const getGraduatedAssets = query({
 
 const FRONTLINE_LEVELS = ["newbie", "curious", "comfortable"] as const;
 
-export type FeaturedWin = {
+export type FeaturedHack = {
   type: "asset" | "story";
   id: string;
   title: string;
@@ -433,14 +433,14 @@ export type FeaturedWin = {
 };
 
 /**
- * Unified featured wins for showcase: high-reuse assets + recent impact stories.
+ * Unified featured hacks for showcase: high-reuse assets + recent impact stories.
  * Sort: highest reuse first, then recent. Rising Star = frontline level or fewer than 3 total contributions.
  */
-export const getFeaturedWins = query({
+export const getFeaturedHacks = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { limit = 10 }): Promise<FeaturedWin[]> => {
+  handler: async (ctx, { limit = 10 }): Promise<FeaturedHack[]> => {
     const identity = await ctx.auth.getUserIdentity();
 
     // Contribution count per user (for Rising Star: total contributions < 3)
@@ -463,7 +463,7 @@ export const getFeaturedWins = query({
       );
     }
 
-    const wins: FeaturedWin[] = [];
+    const hacks: FeaturedHack[] = [];
 
     // 1. Library assets (visible: public or org when authenticated)
     const assets = await ctx.db.query("libraryAssets").collect();
@@ -498,7 +498,7 @@ export const getFeaturedWins = query({
         asset.description?.slice(0, 120) ||
         `Reusable ${asset.assetType.replace("_", " ")} — battle-tested in ${reuseCount} project${reuseCount !== 1 ? "s" : ""}.`;
 
-      wins.push({
+      hacks.push({
         type: "asset",
         id: asset._id,
         title: asset.title,
@@ -534,7 +534,7 @@ export const getFeaturedWins = query({
       }
       if (blurb.length > 120) blurb = blurb.slice(0, 117) + "…";
 
-      wins.push({
+      hacks.push({
         type: "story",
         id: story._id,
         title: story.headline,
@@ -550,11 +550,11 @@ export const getFeaturedWins = query({
     }
 
     // Sort: reuse desc, then creation time desc; cap at limit
-    wins.sort((a, b) => {
+    hacks.sort((a, b) => {
       if (b.reuseCount !== a.reuseCount) return b.reuseCount - a.reuseCount;
       return b._creationTime - a._creationTime;
     });
 
-    return wins.slice(0, limit);
+    return hacks.slice(0, limit);
   },
 });
