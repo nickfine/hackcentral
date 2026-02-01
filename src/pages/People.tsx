@@ -13,9 +13,38 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { EXPERIENCE_LEVEL_LABELS } from '../constants/profile';
 import { getInitials } from '../lib/utils';
 import { useDebounce } from '../hooks/useDebounce';
-import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid } from '../components/shared';
+import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid, PersonCard } from '../components/shared';
+import type { PersonCardProfile } from '../components/shared';
 
 type MentorFilter = 'all' | 'available' | 'seeking';
+
+function toPersonCardProfile(
+  profile: {
+    _id: Id<'profiles'>;
+    fullName?: string;
+    email: string;
+    avatarUrl?: string;
+    experienceLevel?: string;
+    mentorCapacity: number;
+    mentorSessionsUsed: number;
+    capabilityTags: Id<'capabilityTags'>[];
+  },
+  capabilityTags: Array<{ _id: Id<'capabilityTags'>; code: string; displayLabel: string }>
+): PersonCardProfile {
+  const tags = capabilityTags
+    .filter((t) => profile.capabilityTags.includes(t._id))
+    .map((t) => ({ id: t._id, label: t.displayLabel }));
+  return {
+    _id: profile._id,
+    avatarUrl: profile.avatarUrl,
+    fullName: profile.fullName,
+    email: profile.email,
+    experienceLevel: profile.experienceLevel,
+    capabilityTags: tags,
+    mentorCapacity: profile.mentorCapacity,
+    mentorSessionsUsed: profile.mentorSessionsUsed,
+  };
+}
 
 export default function People() {
   const [searchParams] = useSearchParams();
@@ -46,7 +75,7 @@ export default function People() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Profile Detail Modal */}
       {selectedProfileId !== null && (
         <ProfileDetailModal
@@ -138,12 +167,10 @@ export default function People() {
                 </h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {aiHelpers.slice(0, 6).map((profile) => (
-                    <ProfileCard 
-                      key={profile._id} 
-                      profile={profile} 
-                      capabilityTags={capabilityTags || []}
-                      onSelect={() => setSelectedProfileId(profile._id)}
-                      onRequestMentor={openMentorRequest}
+                    <PersonCard
+                      key={profile._id}
+                      profile={toPersonCardProfile(profile, capabilityTags ?? [])}
+                      onClick={() => setSelectedProfileId(profile._id)}
                     />
                   ))}
                 </div>
@@ -195,12 +222,10 @@ export default function People() {
                     <>
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {filteredProfiles.map((profile) => (
-                          <ProfileCard 
-                            key={profile._id} 
-                            profile={profile}
-                            capabilityTags={capabilityTags || []}
-                            onSelect={() => setSelectedProfileId(profile._id)}
-                            onRequestMentor={openMentorRequest}
+                          <PersonCard
+                            key={profile._id}
+                            profile={toPersonCardProfile(profile, capabilityTags ?? [])}
+                            onClick={() => setSelectedProfileId(profile._id)}
                           />
                         ))}
                       </div>
@@ -374,111 +399,6 @@ function ProfileDetailModal({
         )}
     </ModalWrapper>
   );
-}
-
-interface ProfileCardProps {
-  profile: {
-    _id: Id<"profiles">;
-    fullName?: string;
-    email: string;
-    avatarUrl?: string;
-    experienceLevel?: string;
-    mentorCapacity: number;
-    mentorSessionsUsed: number;
-    capabilityTags: Id<"capabilityTags">[];
-  };
-  capabilityTags: Array<{
-    _id: Id<"capabilityTags">;
-    code: string;
-    displayLabel: string;
-  }>;
-  onSelect?: () => void;
-  onRequestMentor?: (mentorId: Id<"profiles">) => void;
-}
-
-function ProfileCard({ profile, capabilityTags, onSelect }: ProfileCardProps) {
-  const userTags = capabilityTags.filter(tag => 
-    profile.capabilityTags.includes(tag._id)
-  );
-  
-  const isMentor = profile.mentorCapacity > 0;
-  const availableSlots = profile.mentorCapacity - profile.mentorSessionsUsed;
-  const hasCapacity = availableSlots > 0;
-
-  return (
-    <div
-      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (onSelect && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      role={onSelect ? 'button' : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="avatar relative">
-          {profile.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={profile.fullName} className="avatar-image" />
-          ) : (
-            <div className="avatar-fallback bg-primary/10 text-primary font-semibold">
-              {getInitials(profile.fullName, profile.email)}
-            </div>
-          )}
-          {isMentor && hasCapacity && (
-            <div className="absolute -top-1 -right-1 bg-success text-success-foreground rounded-full p-1" title="Available Mentor">
-              <GraduationCap className="h-3 w-3" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">
-            {profile.fullName || profile.email}
-          </h3>
-          {profile.experienceLevel && (
-            <p className="text-sm text-muted-foreground">
-              {EXPERIENCE_LEVEL_LABELS[profile.experienceLevel]}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Capability Tags */}
-      {userTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {userTags.slice(0, 3).map((tag) => (
-            <span key={tag._id} className="badge badge-outline text-xs">
-              {tag.displayLabel}
-            </span>
-          ))}
-          {userTags.length > 3 && (
-            <span className="badge badge-muted text-xs">
-              +{userTags.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Mentor Indicator */}
-      {isMentor && (
-        <div>
-          {hasCapacity ? (
-            <div className="flex items-center gap-2 text-xs text-success">
-              <GraduationCap className="h-3 w-3" />
-              <span>Available: {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>Fully booked</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
 
 /** Mentor Request Modal: Request mentoring from available mentors */

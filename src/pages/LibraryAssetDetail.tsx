@@ -8,6 +8,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { AssetDetailContent } from '@/components/library/AssetDetailContent';
+import { SkeletonCard } from '@/components/shared';
 
 export default function LibraryAssetDetail() {
   const { assetId } = useParams<{ assetId: string }>();
@@ -25,11 +26,8 @@ export default function LibraryAssetDetail() {
 
   if (asset === undefined) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="py-12 text-center">
-          <h1 className="text-xl font-semibold mb-2">Loading...</h1>
-          <p className="text-muted-foreground">Loading hack details</p>
-        </div>
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 min-w-0 space-y-6">
+        <SkeletonCard variant="wide" />
       </div>
     );
   }
@@ -55,7 +53,7 @@ export default function LibraryAssetDetail() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 min-w-0 space-y-6">
       <AssetDetailContent
         asset={asset}
         assetId={assetId as Id<'libraryAssets'>}

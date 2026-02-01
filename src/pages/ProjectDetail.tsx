@@ -233,7 +233,7 @@ export default function ProjectDetail() {
   const projectWithOwner = project as typeof project & { ownerFullName?: string };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex items-center gap-4">
         <Link
           to="/hacks?tab=in_progress"

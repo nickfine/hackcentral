@@ -7,10 +7,11 @@
 import { Link } from 'react-router-dom';
 import { UserProfile } from '@clerk/clerk-react';
 import { ArrowLeft } from 'lucide-react';
+import { SectionHeader } from '@/components/shared';
 
 export default function ProfileAccount() {
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex items-center gap-4">
         <Link
           to="/profile"
@@ -20,6 +21,10 @@ export default function ProfileAccount() {
           Back to Profile
         </Link>
       </div>
+      <SectionHeader
+        title="Account"
+        description="Manage your account, security, and preferences."
+      />
       <div className="flex justify-center min-h-[400px]">
         <UserProfile
           routing="path"

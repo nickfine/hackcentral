@@ -7,12 +7,13 @@ import { Bell, ArrowLeft } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { formatRelativeTime } from '../lib/utils';
+import { SectionHeader, EmptyState, SkeletonCard } from '@/components/shared';
 
 export default function Notifications() {
   const notifications = useQuery(api.mentorRequests.getNotificationsForUser);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex items-center gap-4">
         <Link
           to="/dashboard"
@@ -22,25 +23,19 @@ export default function Notifications() {
           Back to Dashboard
         </Link>
       </div>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Bell className="h-7 w-7 text-muted-foreground" />
-          Notifications
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Mentor request updates and other activity.
-        </p>
-      </div>
+      <SectionHeader
+        title="Notifications"
+        description="Mentor request updates and other activity."
+      />
       {notifications === undefined ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <SkeletonCard variant="wide" />
       ) : notifications.length === 0 ? (
-        <div className="card p-8 text-center text-muted-foreground">
-          <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>No notifications yet.</p>
-          <p className="text-sm mt-1">
-            When mentor requests are accepted or completed, they&apos;ll appear here.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Bell />}
+          title="No notifications yet"
+          description="When mentor requests are accepted or completed, they'll appear here."
+          variant="compact"
+        />
       ) : (
         <ul className="space-y-2">
           {notifications.map((n) => (

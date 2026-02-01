@@ -8,6 +8,7 @@ import { Search as SearchIcon, BookOpen, Users } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { getInitials, stripSeedDescriptionSuffix } from '../lib/utils';
+import { SectionHeader, EmptyState, SkeletonCard } from '@/components/shared';
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
   prompt: 'Prompt',
@@ -51,19 +52,19 @@ export default function Search() {
   const limit = 10;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Search</h1>
-        <p className="text-muted-foreground mt-1">
-          {q ? `Results for "${q}"` : 'Enter a search term above to find completed hacks and people.'}
-        </p>
-      </div>
+    <div className="min-w-0 space-y-6">
+      <SectionHeader
+        title="Search"
+        description={q ? `Results for "${q}"` : 'Enter a search term above to find completed hacks and people.'}
+      />
 
       {!q && (
-        <div className="card p-8 text-center text-muted-foreground">
-          <SearchIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>Use the search bar in the header to search across Completed Hacks and People.</p>
-        </div>
+        <EmptyState
+          icon={<SearchIcon />}
+          title="Search Completed Hacks and People"
+          description="Use the search bar in the header to search across Completed Hacks and People."
+          variant="compact"
+        />
       )}
 
       {q && (
@@ -75,7 +76,7 @@ export default function Search() {
               Completed Hacks ({filteredAssets.length})
             </h2>
             {allAssets === undefined ? (
-              <div className="card p-4 text-muted-foreground">Loading…</div>
+              <SkeletonCard variant="compact" className="max-w-md" />
             ) : filteredAssets.length === 0 ? (
               <p className="text-muted-foreground text-sm">No completed hacks match.</p>
             ) : (
@@ -112,7 +113,7 @@ export default function Search() {
               People ({filteredProfiles.length})
             </h2>
             {profiles === undefined ? (
-              <div className="card p-4 text-muted-foreground">Loading…</div>
+              <SkeletonCard variant="compact" className="max-w-md" />
             ) : filteredProfiles.length === 0 ? (
               <p className="text-muted-foreground text-sm">No people match.</p>
             ) : (

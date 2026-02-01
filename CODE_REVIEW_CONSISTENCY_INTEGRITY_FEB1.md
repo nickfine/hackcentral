@@ -10,12 +10,18 @@
 |------|--------|--------|
 | **Dashboard** | ✅ Aligned | Uses ModalWrapper, design tokens |
 | **Profile** | ✅ Aligned | SectionHeader, StatCard, ActivityItem, ModalWrapper, EmptyState, SkeletonCard |
-| **Team Pulse** | ⚠️ Partial | Uses dashboard components; page header is raw `h1` |
-| **People** | ⚠️ Partial | Raw page header, raw modals, local PlaceholderCard; uses EmptyState |
-| **Hacks** | ⚠️ Partial | Raw page header; mixed primary button classes |
-| **Library** | ⚠️ Partial | Raw modal, local AssetPlaceholder; uses EmptyState |
-| **Projects** | ⚠️ Partial | Raw create modal, local ProjectPlaceholder; uses EmptyState, TabButton |
-| **ProjectDetail** | 🔍 Deferred | Phase 3; many forms/modals |
+| **Team Pulse** | ✅ Aligned | SectionHeader, dashboard components (Phase 2) |
+| **People** | ✅ Aligned | SectionHeader, ModalWrapper (×2), SkeletonGrid, EmptyState (Phase 2) |
+| **Hacks** | ✅ Aligned | SectionHeader, dynamic action (Phase 2) |
+| **Library** | ✅ Aligned | SectionHeader (standalone), ModalWrapper, SkeletonGrid, EmptyState (Phase 2) |
+| **Projects** | ✅ Aligned | SectionHeader (standalone), ModalWrapper, EmptyState, TabButton (Phase 2) |
+| **ProjectDetail** | ✅ Aligned | min-w-0 space-y-6 layout (Phase 3); forms remain inline by design |
+| **LibraryAssetDetail** | ✅ Aligned | SkeletonCard loading, min-w-0 space-y-6 (Phase 3) |
+| **Guide** | ✅ Aligned | SectionHeader, min-w-0 (redesign Phase 4) |
+| **Onboarding** | ✅ Aligned | SectionHeader, min-w-0 (redesign Phase 4) |
+| **Notifications** | ✅ Aligned | SectionHeader, EmptyState, SkeletonCard, min-w-0 (redesign Phase 4) |
+| **Search** | ✅ Aligned | SectionHeader, EmptyState, SkeletonCard loading, min-w-0 (redesign Phase 4) |
+| **ProfileAccount** | ✅ Aligned | SectionHeader, min-w-0 (final review) |
 
 ---
 
@@ -108,4 +114,23 @@
 
 ---
 
-*Review completed Feb 1; fixes applied in same session.*
+## 11. Phase 3 (continuation)
+
+- **ProjectDetail:** Main container uses `min-w-0 space-y-6` for layout consistency; close/readiness/sponsor/learning-summary forms remain inline (no overlay modals).
+- **LibraryAssetDetail:** Loading state uses shared `SkeletonCard` (variant `wide`); page wrapper uses `min-w-0 space-y-6`.
+- **Documentation:** DESIGN_SYSTEM.md added; CODE_REVIEW summary table updated to show all major pages aligned.
+
+---
+
+## 12. Redesign Phase 4 (continuation)
+
+- **Guide:** SectionHeader (title "AI 101 micro-guide", description); min-w-0 space-y-6; removed raw h1/p.
+- **Onboarding:** SectionHeader ("Get started", description); min-w-0 space-y-6.
+- **Notifications:** SectionHeader ("Notifications", description); EmptyState for no notifications; SkeletonCard (wide) for loading; min-w-0 space-y-6.
+- **Search:** SectionHeader ("Search", dynamic description); EmptyState when no query; SkeletonCard (compact) for Library/People section loading; min-w-0 space-y-6.
+- **People:** Migrated local ProfileCard to shared **PersonCard**; added `toPersonCardProfile()` to map profile + capabilityTags to PersonCardProfile; People page wrapper uses min-w-0 space-y-6.
+- **Build:** Removed unused `BookOpen` import from Guide. All pages aligned with design system.
+
+---
+
+*Review completed Feb 1; Phase 2, Phase 3, and Phase 4 (redesign) applied.*

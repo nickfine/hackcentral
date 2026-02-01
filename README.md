@@ -107,6 +107,10 @@ HackCentral/
 
 ```
 
+## 🎨 Design system
+
+Shared UI components and page patterns (SectionHeader, ModalWrapper, SkeletonGrid, etc.) are documented in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md). Use these for new pages and modals to keep the app consistent.
+
 ## 🧪 Testing
 
 ```bash

@@ -51,7 +51,7 @@ export default function Hacks() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <SectionHeader
         title="Our Hacks"
         action={{

@@ -5,16 +5,15 @@
 
 import { Link } from 'react-router-dom';
 import { Sparkles, BookOpen, Library, FileText, Bot, ArrowRight } from 'lucide-react';
+import { SectionHeader } from '@/components/shared';
 
 export default function Onboarding() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Get started</h1>
-        <p className="text-muted-foreground mt-1">
-          Choose a path to start using AI hacks in your work.
-        </p>
-      </div>
+    <div className="min-w-0 space-y-6">
+      <SectionHeader
+        title="Get started"
+        description="Choose a path to start using AI hacks in your work."
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Link

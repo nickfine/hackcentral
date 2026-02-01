@@ -3,11 +3,12 @@
  */
 
 import { Link } from 'react-router-dom';
-import { BookOpen, Sparkles, ArrowLeft } from 'lucide-react';
+import { Sparkles, ArrowLeft } from 'lucide-react';
+import { SectionHeader } from '@/components/shared';
 
 export default function Guide() {
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="min-w-0 space-y-6 max-w-2xl">
       <div className="flex items-center gap-4">
         <Link
           to="/dashboard"
@@ -18,15 +19,10 @@ export default function Guide() {
         </Link>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <BookOpen className="h-7 w-7 text-primary" />
-          AI 101 micro-guide
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          A short intro to AI hacks and how to use HackDay Central.
-        </p>
-      </div>
+      <SectionHeader
+        title="AI 101 micro-guide"
+        description="A short intro to AI hacks and how to use HackDay Central."
+      />
 
       <section className="space-y-4">
         <h2 className="font-semibold text-lg">What are AI hacks?</h2>
