@@ -547,6 +547,52 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Library Verification Workflow – Browser Testing (Jan 31, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Asset detail – Status section (author view)
+**Status:** ✅ Pass  
+- Opened draft asset "Playwright test prompt" (owned by current user).
+- **Status** section visible with:
+  - **Mark as Verified** button
+  - **Mark as Deprecated** button
+- No "Revert to Draft" (correct – already draft).
+- No "Verified by" line (correct – status is draft).
+
+#### 2. Mark as Verified
+**Status:** ✅ Pass  
+- Clicked **Mark as Verified**.
+- **Toast:** "Asset marked as verified."
+- Modal updated:
+  - Badge changed from **draft** to **verified**.
+  - **"Verified by Nick Test on 31/01/2026"** displayed.
+  - Status section now shows **Mark as Deprecated** and **Revert to Draft** (no "Mark as Verified").
+- List card for "Playwright test prompt" now shows badge **verified** (was draft).
+
+### Test Summary
+
+| Feature              | Status | Notes                                      |
+|----------------------|--------|--------------------------------------------|
+| Status section (author) | ✅ Pass | Mark as Verified, Mark as Deprecated shown for draft |
+| Mark as Verified     | ✅ Pass | Toast, verified badge, Verified by + date  |
+| Verified by display  | ✅ Pass | "Verified by Nick Test on 31/01/2026"       |
+| Status buttons after verify | ✅ Pass | Mark as Deprecated, Revert to Draft        |
+| List card update    | ✅ Pass | Card shows verified badge                  |
+
+### Console
+- No errors. Only React DevTools and Clerk development key warnings.
+
+### Conclusion
+**Library Verification Workflow (Phase 2):** ✅ **PASS** – Author can mark asset as verified; verifiedById/verifiedAt are set; "Verified by" and date display correctly; status actions update as expected.
+
+---
+
 ## Development Notes
 
 ### Common Patterns

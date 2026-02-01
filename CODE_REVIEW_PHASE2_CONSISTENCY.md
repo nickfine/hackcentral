@@ -121,3 +121,44 @@ Same semantics, different copy. Acceptable as-is. If labels are ever unified, co
 | Lint / TypeScript | ✅ Pass  | No issues reported                                   |
 
 **Conclusion:** Integrity is good; schema and types are aligned. Consistency is high; the only suggested change is tightening error handling in People (Mentor Request) and optionally elsewhere. No blocking issues; optional improvements can be done in a follow-up.
+
+---
+
+## 6. Addendum: Verification Workflow (Library)
+
+**Scope:** Review after adding Library verification workflow (Mark as Verified / Deprecated / Revert to Draft, Verified by display).
+
+### 6.1 Integrity ✅
+
+- **Backend (`convex/libraryAssets.ts`):**
+  - `getById` returns `verifiedByFullName` (from verifier profile: `fullName ?? email`); schema uses `profiles.fullName` – correct.
+  - `update` sets `verifiedById` and `verifiedAt` when `status === "verified"`; only author can update – correct.
+  - Author check: `asset.authorId !== profile._id` → "Not authorized" – correct.
+- **Frontend (`src/pages/Library.tsx`):**
+  - `AssetDetailContentProps.asset` includes `authorId`, `verifiedByFullName?`, `verifiedAt?` – matches `getById` return.
+  - `isAuthor = profile?._id && asset.authorId === profile._id` – correct.
+  - Status section and "Verified by" only shown when appropriate (author vs non-author, status verified).
+
+### 6.2 Consistency ✅
+
+- **Toast:** Success messages for status change: "Asset marked as verified.", "Asset marked as deprecated.", "Asset reverted to draft." – consistent.
+- **Error:** `err instanceof Error ? err.message : 'Failed to update status.'` – matches Library Submit Asset pattern.
+- **Date display:** `new Date(asset.verifiedAt).toLocaleDateString()` – same pattern as Profile.tsx for request dates; appropriate for "Verified on date".
+- **Buttons:** Disabled while `isUpdatingStatus`; "Updating…" label – consistent with other forms.
+
+### 6.3 Behaviour ✅
+
+- When status is set to draft or deprecated, backend does not clear `verifiedById`/`verifiedAt`; UI only shows "Verified by" when `status === 'verified'` – no stale display.
+- Re-verifying overwrites `verifiedById` and `verifiedAt` – correct.
+
+### 6.4 Summary (addendum)
+
+| Area                    | Status  | Notes                                              |
+|-------------------------|--------|----------------------------------------------------|
+| getById verifiedByFullName | ✅ Pass | Uses profile.fullName/email                        |
+| update verifiedById/At | ✅ Pass | Set only when status === 'verified'; author-only   |
+| Frontend asset type     | ✅ Pass | authorId, verifiedByFullName?, verifiedAt?          |
+| Status actions / Verified by | ✅ Pass | Author-only actions; Verified by when verified    |
+| Toast / error handling  | ✅ Pass | Consistent with existing Library patterns          |
+
+**Conclusion (addendum):** Verification workflow is consistent and integrity is maintained; no further changes required.

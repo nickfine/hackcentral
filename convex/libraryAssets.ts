@@ -215,7 +215,15 @@ export const getById = query({
       (asset.visibility === "org" && identity) ||
       (asset.visibility === "private" && isAuthor)
     ) {
-      return asset;
+      let verifiedByFullName: string | undefined;
+      if (asset.verifiedById) {
+        const verifier = await ctx.db.get(asset.verifiedById);
+        verifiedByFullName = verifier?.fullName ?? verifier?.email;
+      }
+      return {
+        ...asset,
+        verifiedByFullName,
+      };
     }
 
     return null;
@@ -339,6 +347,12 @@ export const update = mutation({
       throw new Error("Not authorized");
     }
 
-    await ctx.db.patch(assetId, updates);
+    const patch: Record<string, unknown> = { ...updates };
+    if (updates.status === "verified") {
+      patch.verifiedById = profile._id;
+      patch.verifiedAt = Date.now();
+    }
+
+    await ctx.db.patch(assetId, patch);
   },
 });

@@ -86,6 +86,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
       });
       onSubmitSuccess(newAssetId);
     } catch (err) {
+      console.error('Failed to submit asset:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to submit asset');
     } finally {
       setIsSubmitting(false);
@@ -565,6 +566,9 @@ interface AssetDetailContentProps {
     assetType: string;
     status: string;
     content: unknown;
+    authorId: Id<'profiles'>;
+    verifiedByFullName?: string;
+    verifiedAt?: number;
     metadata?: {
       intendedUser?: string;
       context?: string;
@@ -585,10 +589,14 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
   const [selectedProjectId, setSelectedProjectId] = useState<Id<'projects'> | ''>('');
   const [attachmentType, setAttachmentType] = useState<AttachmentType>('attached');
   const [isSubmittingAttach, setIsSubmittingAttach] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  const profile = useQuery(api.profiles.getCurrentProfile);
   const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
   const projects = useQuery(api.projects.list);
   const attachToProject = useMutation(api.libraryReuse.attachToProject);
+  const updateAsset = useMutation(api.libraryAssets.update);
+  const isAuthor = Boolean(profile?._id && asset.authorId === profile._id);
 
   const handleAttachSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -609,6 +617,20 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
       toast.error('Failed to attach to project. Please try again.');
     } finally {
       setIsSubmittingAttach(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: 'draft' | 'verified' | 'deprecated') => {
+    if (!isAuthor || isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    try {
+      await updateAsset({ assetId, status: newStatus });
+      toast.success(newStatus === 'verified' ? 'Asset marked as verified.' : newStatus === 'deprecated' ? 'Asset marked as deprecated.' : 'Asset reverted to draft.');
+    } catch (err) {
+      console.error('Failed to update asset status:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update status.');
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -672,6 +694,53 @@ function AssetDetailContent({ asset, assetId, onClose }: AssetDetailContentProps
           </span>
         )}
       </div>
+
+      {/* Verified by (when status is verified) */}
+      {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt) && (
+        <div className="text-sm text-muted-foreground">
+          Verified{asset.verifiedByFullName ? ` by ${asset.verifiedByFullName}` : ''}
+          {asset.verifiedAt ? ` on ${new Date(asset.verifiedAt).toLocaleDateString()}` : ''}
+        </div>
+      )}
+
+      {/* Status actions (author only) */}
+      {isAuthor && (
+        <div className="border-t pt-4">
+          <h3 className="font-semibold text-sm mb-2">Status</h3>
+          <div className="flex flex-wrap gap-2">
+            {asset.status !== 'verified' && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => handleStatusChange('verified')}
+                disabled={isUpdatingStatus}
+              >
+                {isUpdatingStatus ? 'Updating…' : 'Mark as Verified'}
+              </button>
+            )}
+            {asset.status !== 'deprecated' && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => handleStatusChange('deprecated')}
+                disabled={isUpdatingStatus}
+              >
+                Mark as Deprecated
+              </button>
+            )}
+            {asset.status !== 'draft' && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => handleStatusChange('draft')}
+                disabled={isUpdatingStatus}
+              >
+                Revert to Draft
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Attach to project (authenticated only) */}
       {isAuthenticated && (
