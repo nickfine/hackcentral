@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Award, BookOpen, Briefcase, X, UserPlus, Clock, Check, XCircle, LogOut, UserCog } from 'lucide-react';
+import { Settings, Award, BookOpen, Briefcase, UserPlus, Clock, Check, XCircle, LogOut, UserCog, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useUser } from '@clerk/clerk-react';
 import { useAuth } from '../hooks/useAuth';
@@ -19,7 +19,15 @@ import {
   type ExperienceLevel,
   type Visibility,
 } from '../constants/profile';
-import { TabButton } from '../components/shared';
+import {
+  TabButton,
+  SectionHeader,
+  StatCard,
+  ActivityItem,
+  ModalWrapper,
+  SkeletonCard,
+  EmptyState,
+} from '../components/shared';
 import { getInitials } from '../lib/utils';
 
 type ActiveTab = 'contributions' | 'projects' | 'mentoring' | 'settings';
@@ -28,6 +36,8 @@ export default function Profile() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const profile = useQuery(api.profiles.getCurrentProfile);
+  const userCounts = useQuery(api.profiles.getCurrentUserCounts);
+  const derivedBadges = useQuery(api.recognition.getDerivedBadgesForCurrentUser, {});
   const capabilityTags = useQuery(api.capabilityTags.list);
   const upsertProfile = useMutation(api.profiles.upsert);
   const updateMentorCapacity = useMutation(api.profiles.updateMentorCapacity);
@@ -137,15 +147,14 @@ export default function Profile() {
   const email = profile?.email ?? user?.primaryEmailAddress?.emailAddress ?? '';
 
   return (
-    <div className="space-y-6">
-      {/* Page title */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground mt-1">View and manage your contributions, account, and settings</p>
-      </div>
+    <div className="space-y-6 md:space-y-8">
+      <SectionHeader
+        title="My Profile"
+        description="View and manage your contributions, account, and settings"
+      />
 
-      {/* Account (unified with top-right profile: sign out, manage account on dedicated page) */}
-      <div className="card p-6">
+      {/* Account card */}
+      <div className="card rounded-xl border border-border shadow-sm p-6 space-y-4">
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
           <UserCog className="h-5 w-5 text-muted-foreground" />
           Account
@@ -170,31 +179,13 @@ export default function Profile() {
       </div>
 
       {/* Edit Profile Modal */}
-      {editOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={closeEditModal}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-profile-title"
-        >
-          <div
-            className="max-w-2xl w-full max-h-[90vh] overflow-y-auto card p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="edit-profile-title" className="text-xl font-semibold">
-                Edit Profile
-              </h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon shrink-0"
-                onClick={closeEditModal}
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <ModalWrapper
+        isOpen={editOpen}
+        onClose={closeEditModal}
+        title="Edit Profile"
+        maxWidth="2xl"
+        titleId="edit-profile-title"
+      >
             <form onSubmit={handleEditSubmit} className="space-y-6">
               <div>
                 <label htmlFor="edit-fullName" className="block text-sm font-medium mb-1">
@@ -331,25 +322,15 @@ export default function Profile() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ModalWrapper>
 
       {/* Profile Header */}
-      <div className="card p-6">
+      <div className="card rounded-xl border border-border shadow-sm p-6">
         {profile === undefined ? (
-          <div className="animate-pulse">
-            <div className="flex items-start gap-6">
-              <div className="w-24 h-24 rounded-full bg-muted" />
-              <div className="flex-1">
-                <div className="h-8 bg-muted rounded w-48 mb-2" />
-                <div className="h-4 bg-muted rounded w-64 mb-4" />
-              </div>
-            </div>
-          </div>
+          <SkeletonCard variant="wide" />
         ) : (
-          <div className="flex items-start gap-6">
-            <div className="avatar w-24 h-24">
+            <div className="flex items-start gap-6">
+            <div className="avatar size-24 shrink-0 rounded-full overflow-hidden">
               {profile?.avatarUrl || user?.imageUrl ? (
                 <img 
                   src={profile?.avatarUrl || user?.imageUrl} 
@@ -392,26 +373,26 @@ export default function Profile() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<BookOpen className="h-5 w-5" />}
           label="Completed Hacks"
-          value="--"
+          value={userCounts?.libraryAssetCount ?? '—'}
         />
         <StatCard
           icon={<Briefcase className="h-5 w-5" />}
           label="Hacks In Progress"
-          value="--"
+          value={userCounts?.projectCount ?? '—'}
         />
         <StatCard
           icon={<Award className="h-5 w-5" />}
           label="Badges Earned"
-          value="--"
+          value={derivedBadges?.length ?? '—'}
         />
         <StatCard
-          icon={<Award className="h-5 w-5" />}
+          icon={<GraduationCap className="h-5 w-5" />}
           label="Mentor Sessions"
-          value="--"
+          value={profile?.mentorSessionsUsed ?? '—'}
         />
       </div>
 
@@ -433,13 +414,33 @@ export default function Profile() {
 
       {/* Tab Content */}
       {activeTab === 'contributions' && (
-        <div>
-          <h2 className="text-xl font-semibold mb-1">Recent Activity</h2>
-          <p className="text-sm text-muted-foreground mb-4">Your contributions from Completed Hacks and Hacks In Progress</p>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Recent Activity</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Your contributions from Completed Hacks and Hacks In Progress
+          </p>
           <div className="space-y-3">
-            <ContributionPlaceholder type="library" />
-            <ContributionPlaceholder type="project" />
-            <ContributionPlaceholder type="verification" />
+            <ActivityItem
+              name="You"
+              action="Added a hack to Completed Hacks"
+              type="library"
+              timestamp={Date.now() - 86400000 * 2}
+              badge={{ label: 'Prompt', variant: 'prompt' }}
+            />
+            <ActivityItem
+              name="You"
+              action="Created a project"
+              type="project"
+              timestamp={Date.now() - 86400000 * 5}
+              badge={{ label: 'Skill', variant: 'skill' }}
+            />
+            <ActivityItem
+              name="You"
+              action="Verified a hack"
+              type="verification"
+              timestamp={Date.now() - 86400000 * 7}
+              badge={{ label: 'Verified', variant: 'verified' }}
+            />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             Activity from Completed Hacks and Hacks In Progress will appear here once you contribute.
@@ -461,12 +462,12 @@ export default function Profile() {
             {requestsAsRequester === undefined ? (
               <div className="text-muted-foreground">Loading requests...</div>
             ) : requestsAsRequester.length === 0 ? (
-              <div className="card p-8 text-center">
-                <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">
-                  You haven't requested any mentoring yet. Visit the People page to find mentors!
-                </p>
-              </div>
+              <EmptyState
+                icon={<UserPlus className="h-12 w-12" />}
+                title="No mentoring requests yet"
+                description="You haven't requested any mentoring yet. Visit the People page to find mentors!"
+                action={{ label: 'Find mentors', to: '/people', icon: <UserPlus className="h-4 w-4" /> }}
+              />
             ) : (
               <div className="space-y-3">
                 {['pending', 'accepted', 'completed'].map((status) => {
@@ -505,12 +506,11 @@ export default function Profile() {
               {requestsAsMentor === undefined ? (
                 <div className="text-muted-foreground">Loading requests...</div>
               ) : requestsAsMentor.length === 0 ? (
-                <div className="card p-8 text-center">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">
-                    No mentoring requests yet. Others can find you on the People page!
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<Clock className="h-12 w-12" />}
+                  title="No mentoring requests yet"
+                  description="Others can find you on the People page when they need help."
+                />
               ) : (
                 <div className="space-y-3">
                   {['pending', 'accepted', 'completed'].map((status) => {
@@ -541,18 +541,12 @@ export default function Profile() {
           )}
 
           {profile && profile.mentorCapacity === 0 && !requestsAsRequester?.length && (
-            <div className="card p-8 text-center">
-              <p className="text-muted-foreground mb-3">
-                Set your mentor capacity in Settings to start mentoring others.
-              </p>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => setActiveTab('settings')}
-              >
-                Go to Settings
-              </button>
-            </div>
+            <EmptyState
+              icon={<GraduationCap className="h-12 w-12" />}
+              title="Start mentoring"
+              description="Set your mentor capacity in Settings to start mentoring others."
+              action={{ label: 'Go to Settings', onClick: () => setActiveTab('settings') }}
+            />
           )}
         </div>
       )}
@@ -560,7 +554,7 @@ export default function Profile() {
       {activeTab === 'settings' && (
         <div className="space-y-6">
           {/* Capability Tags */}
-          <div className="card p-6">
+          <div className="card rounded-xl border border-border shadow-sm p-6">
             <h3 className="font-semibold mb-3">Capability Tags</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Tags help others find you for AI collaboration
@@ -587,7 +581,7 @@ export default function Profile() {
           </div>
 
           {/* Mentor Settings */}
-          <div className="card p-6">
+          <div className="card rounded-xl border border-border shadow-sm p-6">
             <h3 className="font-semibold mb-3">Mentor Availability</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Your capacity for mentoring others on AI topics. Update this in Edit Profile.
@@ -609,53 +603,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-interface StatCardProps {
-  icon: React.ReactNode
-  label: string
-  value: string
-}
-
-function StatCard({ icon, label, value }: StatCardProps) {
-  return (
-    <div className="card p-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-md bg-primary/10 text-primary">
-          {icon}
-        </div>
-        <div>
-          <div className="text-2xl font-bold">{value}</div>
-          <div className="text-sm text-muted-foreground">{label}</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface ContributionPlaceholderProps {
-  type: 'library' | 'project' | 'verification'
-}
-
-function ContributionPlaceholder({ type }: ContributionPlaceholderProps) {
-  const typeLabels = {
-    library: 'Completed Hack',
-    project: 'Project AI hack',
-    verification: 'Verification',
-  }
-
-  return (
-    <div className="card p-4 flex items-center gap-4">
-      <div className="w-10 h-10 rounded bg-muted" />
-      <div className="flex-1">
-        <div className="h-4 bg-muted rounded w-48 mb-2" />
-        <div className="flex items-center gap-2">
-          <span className="badge badge-outline text-xs">{typeLabels[type]}</span>
-          <span className="text-xs text-muted-foreground">-- ago</span>
-        </div>
-      </div>
     </div>
   )
 }
@@ -698,15 +645,13 @@ function MentorRequestCard({ request, profile, role, onAccept, onCancel, onCompl
   };
 
   return (
-    <div className="card p-4">
+    <div className="card rounded-xl border border-border shadow-sm p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
-        <div className="avatar">
+        <div className="avatar size-10 shrink-0 rounded-full overflow-hidden bg-primary/10 text-primary font-semibold flex items-center justify-center">
           {profile?.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={profile.fullName || 'User'} className="avatar-image" />
+            <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="avatar-fallback bg-primary/10 text-primary font-semibold">
-              {getInitials(profile?.fullName, profile?.email)}
-            </div>
+            <span className="text-sm">{getInitials(profile?.fullName, profile?.email)}</span>
           )}
         </div>
         <div className="flex-1 min-w-0">

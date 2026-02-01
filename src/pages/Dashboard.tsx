@@ -17,8 +17,6 @@ import { useQuery, useMutation } from 'convex/react';
 import {
   Activity,
   Library,
-  PenLine,
-  X,
   Award,
   Sparkles,
   User,
@@ -36,6 +34,7 @@ import {
   PersonalizedNudge,
   WallOfThanksStrip,
 } from '../components/dashboard';
+import { ModalWrapper } from '../components/shared';
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuth();
@@ -169,35 +168,13 @@ export default function Dashboard() {
     <>
       {/* 8pt spacing: section gaps 40px/48px for premium breathing room */}
       <div className="min-w-0 space-y-10 lg:space-y-12">
-      {storyModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setStoryModalOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="share-story-title"
-        >
-          <div
-            className="card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="share-story-title"
-                className="flex items-center gap-2 text-xl font-semibold"
-              >
-                <PenLine className="h-5 w-5" />
-                Share your impact story
-              </h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon shrink-0"
-                onClick={() => setStoryModalOpen(false)}
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <ModalWrapper
+        isOpen={storyModalOpen}
+        onClose={() => setStoryModalOpen(false)}
+        title="Share your impact story"
+        maxWidth="lg"
+        titleId="share-story-title"
+      >
             <form onSubmit={handleStorySubmit} className="space-y-4">
               <div>
                 <label
@@ -297,9 +274,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ModalWrapper>
 
       <>
           <WelcomeHero
@@ -408,7 +383,7 @@ export default function Dashboard() {
             <div className="min-w-0 h-full">
               <WallOfThanksStrip />
             </div>
-            <div className="card min-w-0 p-8 lg:p-10 rounded-xl min-h-[220px] flex flex-col">
+            <div className="card min-w-0 p-8 lg:p-10 rounded-xl border border-border shadow-sm min-h-[220px] flex flex-col">
               <h2 className="mb-6 flex items-center gap-3 text-xl font-semibold">
                 <Award className="h-5 w-5 text-muted-foreground" />
                 Your recognition

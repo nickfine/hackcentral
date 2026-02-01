@@ -1,11 +1,11 @@
 /**
  * People Page - People Directory
- * Shows profiles, AI helpers, and enables mentor matching
+ * Shows profiles, HackCentral Helpers, and enables mentor matching
  */
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, UserPlus, X, GraduationCap, Clock } from 'lucide-react';
+import { Search, UserPlus, GraduationCap, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -13,7 +13,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { EXPERIENCE_LEVEL_LABELS } from '../constants/profile';
 import { getInitials } from '../lib/utils';
 import { useDebounce } from '../hooks/useDebounce';
-import { EmptyState } from '../components/shared';
+import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid } from '../components/shared';
 
 type MentorFilter = 'all' | 'available' | 'seeking';
 
@@ -56,21 +56,15 @@ export default function People() {
           onRequestMentor={openMentorRequest}
         />
       )}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">People</h1>
-          <p className="text-muted-foreground mt-2">
-            Find AI helpers and mentors in your organization
-          </p>
-        </div>
-        <button 
-          className="btn btn-primary btn-md"
-          onClick={() => openMentorRequest()}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Get Paired with Mentor
-        </button>
-      </div>
+      <SectionHeader
+        title="People"
+        description="Find HackCentral Helpers and mentors in your organization"
+        action={{
+          label: 'Get Paired with Mentor',
+          icon: <UserPlus className="h-4 w-4" />,
+          onClick: () => openMentorRequest(),
+        }}
+      />
 
       {/* Mentor Request Modal */}
       {mentorRequestOpen && (
@@ -114,18 +108,14 @@ export default function People() {
           onChange={(e) => setMentorFilter(e.target.value as MentorFilter)}
           className="input w-52"
         >
-          <option value="all">All People</option>
+          <option value="all">Hackers</option>
           <option value="available">Available Mentors</option>
           <option value="seeking">Seeking Mentors</option>
         </select>
       </div>
 
       {profiles === undefined ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <PlaceholderCard />
-          <PlaceholderCard />
-          <PlaceholderCard />
-        </div>
+        <SkeletonGrid count={6} columns={3} variant="compact" />
       ) : profiles.length === 0 ? (
         <EmptyState
           icon={<UserPlus />}
@@ -134,7 +124,7 @@ export default function People() {
         />
       ) : (
         <>
-          {/* AI Helpers Section */}
+          {/* HackCentral Helpers Section */}
           {mentorFilter === 'all' && !debouncedSearch && !experienceFilter && (() => {
             const aiHelpers = profiles.filter(p => 
               p.mentorCapacity > 0 || 
@@ -144,7 +134,7 @@ export default function People() {
             return aiHelpers.length > 0 ? (
               <div>
                 <h2 className="text-xl font-semibold mb-4">
-                  AI Helpers ({aiHelpers.length})
+                  HackCentral Helpers ({aiHelpers.length})
                 </h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {aiHelpers.slice(0, 6).map((profile) => (
@@ -161,7 +151,7 @@ export default function People() {
             ) : null;
           })()}
 
-          {/* All People Section */}
+          {/* Hackers Section */}
           <div>
             {(() => {
               const filteredProfiles = profiles.filter(p => {
@@ -193,7 +183,7 @@ export default function People() {
                   <h2 className="text-xl font-semibold mb-4">
                     {mentorFilter === 'available' ? 'Available Mentors' : 
                      mentorFilter === 'seeking' ? 'Seeking Mentors' : 
-                     'All People'} ({filteredProfiles.length})
+                     'Hackers'} ({filteredProfiles.length})
                   </h2>
                   {filteredProfiles.length === 0 ? (
                     <EmptyState
@@ -264,51 +254,26 @@ function ProfileDetailModal({
   const hasCapacity = availableSlots > 0;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="profile-detail-title"
+    <ModalWrapper
+      isOpen
+      onClose={onClose}
+      title={profile === undefined ? 'Loading...' : profile === null ? 'Profile not found' : 'Profile'}
+      titleId="profile-detail-title"
+      maxWidth="md"
     >
-      <div
-        className="max-w-md w-full max-h-[90vh] overflow-y-auto card p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {profile === undefined ? (
-          <div className="py-8 text-center">
-            <h2 id="profile-detail-title" className="text-xl font-semibold mb-2">
-              Loading...
-            </h2>
-            <p className="text-muted-foreground">Loading profile</p>
-          </div>
-        ) : profile === null ? (
-          <div className="space-y-4">
-            <h2 id="profile-detail-title" className="text-xl font-semibold">
-              Profile not found
-            </h2>
-            <p className="text-muted-foreground">
-              This profile may be private or no longer available.
-            </p>
-            <button type="button" className="btn btn-primary" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start justify-between mb-4">
-              <h2 id="profile-detail-title" className="text-xl font-semibold">
-                Profile
-              </h2>
-              <button
-                type="button"
-                className="p-1 rounded hover:bg-muted"
-                onClick={onClose}
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      {profile === undefined ? (
+        <p className="text-muted-foreground py-4">Loading profile</p>
+      ) : profile === null ? (
+        <div className="space-y-4">
+          <p className="text-muted-foreground">
+            This profile may be private or no longer available.
+          </p>
+          <button type="button" className="btn btn-primary" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      ) : (
+        <>
             <div className="flex items-center gap-3 mb-4">
               <div className="avatar">
                 {profile.avatarUrl ? (
@@ -407,30 +372,8 @@ function ProfileDetailModal({
             </div>
           </>
         )}
-      </div>
-    </div>
+    </ModalWrapper>
   );
-}
-
-function PlaceholderCard() {
-  return (
-    <div className="card p-4 animate-pulse">
-      <div className="flex items-center gap-3">
-        <div className="avatar">
-          <div className="avatar-fallback bg-primary/10 text-primary">
-            ?
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="h-4 bg-muted rounded w-24 mb-2" />
-          <div className="h-3 bg-muted rounded w-16" />
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <span className="badge badge-outline text-xs">Loading...</span>
-      </div>
-    </div>
-  )
 }
 
 interface ProfileCardProps {
@@ -593,31 +536,13 @@ function MentorRequestModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mentor-request-title"
+    <ModalWrapper
+      isOpen
+      onClose={onClose}
+      title="Request Mentoring"
+      titleId="mentor-request-title"
+      maxWidth="2xl"
     >
-      <div
-        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto card p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <h2 id="mentor-request-title" className="text-xl font-semibold">
-            Request Mentoring
-          </h2>
-          <button
-            type="button"
-            className="p-1 rounded hover:bg-muted"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Mentor Selection */}
           {!mentorId && (
@@ -742,7 +667,6 @@ function MentorRequestModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

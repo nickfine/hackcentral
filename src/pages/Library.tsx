@@ -5,14 +5,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Sparkles, FileText, Bot, Code, X, Check } from 'lucide-react';
+import { Search, Plus, Sparkles, FileText, Bot, Code, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useDebounce } from '../hooks/useDebounce';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { EmptyState } from '../components/shared';
+import { EmptyState, ModalWrapper, SkeletonGrid, SectionHeader } from '../components/shared';
 import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
@@ -98,30 +98,13 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="submit-asset-title"
+    <ModalWrapper
+      isOpen
+      onClose={onClose}
+      title="Submit Hack"
+      titleId="submit-asset-title"
+      maxWidth="xl"
     >
-      <div
-        className="max-w-xl w-full max-h-[90vh] overflow-y-auto card p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 id="submit-asset-title" className="text-xl font-semibold">
-            Submit Hack
-          </h2>
-          <button
-            type="button"
-            className="p-2 rounded hover:bg-muted"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="submit-title" className="block text-sm font-medium mb-1">
@@ -296,8 +279,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }
 
@@ -398,22 +380,15 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
     <div className="space-y-6">
       {!embedded && (
         <>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Completed Hacks</h1>
-              <p className="text-muted-foreground mt-2">
-                Reusable AI hacks: prompts, skills, and apps. The <strong>Featured Hacks</strong> is curated; <strong>All Hacks</strong> shows everything in Completed Hacks.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => setSubmitModalOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Submit Hack
-            </button>
-          </div>
+          <SectionHeader
+            title="Completed Hacks"
+            description="Reusable AI hacks: prompts, skills, and apps. The Featured Hacks is curated; All Hacks shows everything in Completed Hacks."
+            action={{
+              label: 'Submit Hack',
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setSubmitModalOpen(true),
+            }}
+          />
           <div className="flex gap-4 flex-wrap">
             <div className="flex-1 min-w-64 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -518,11 +493,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
       {/* All Hacks list (no section heading) */}
       <div>
         {allAssets === undefined ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <AssetPlaceholder />
-            <AssetPlaceholder />
-            <AssetPlaceholder />
-          </div>
+          <SkeletonGrid count={6} columns={3} />
         ) : (() => {
           const filteredAssets = allAssets.filter((asset) => {
             if (!debouncedSearch) return true;
@@ -566,23 +537,6 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
             </>
           );
         })()}
-      </div>
-    </div>
-  )
-}
-
-function AssetPlaceholder() {
-  return (
-    <div className="card p-4 animate-pulse">
-      <div className="flex items-start justify-between mb-3">
-        <div className="h-5 bg-muted rounded w-32" />
-        <span className="badge badge-in-progress text-xs">Loading</span>
-      </div>
-      <div className="h-4 bg-muted rounded w-full mb-2" />
-      <div className="h-4 bg-muted rounded w-3/4 mb-4" />
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">-- reuses</span>
-        <span className="text-muted-foreground">by --</span>
       </div>
     </div>
   )

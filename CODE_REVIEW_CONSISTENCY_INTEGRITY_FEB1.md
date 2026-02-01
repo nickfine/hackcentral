@@ -1,127 +1,111 @@
-# Code Review: Consistency and Integrity (Dashboard narrative + hack types)
+# Code Review: Consistency & Integrity (Feb 1)
 
-**Scope:** Post-implementation review of the dashboard narrative and hack types feature set for consistency (naming, patterns, types) and integrity (schema vs Convex vs UI, optional handling, edge cases).
-
-**Date:** Feb 1, 2026.
+**Scope:** Align all major pages with the design system established on Dashboard and Profile (gold standard). Shared components live in `src/components/shared/`.
 
 ---
 
-## 1. Hack types: schema, Convex, constants, UI
+## 1. Summary
 
-### 1.1 Schema and Convex alignment
-
-- **Schema** ([convex/schema.ts](convex/schema.ts)): `hackType` optional union of 7 literals (`prompt`, `app`, `extension`, `skill`, `template`, `agent_flow`, `playbook`). Index `by_hack_type` on `["hackType"]`.
-- **Convex** ([convex/projects.ts](convex/projects.ts)): `hackTypeValidator` reused for `create` and `update` args; `create` inserts `hackType: args.hackType`; `update` patches `...updates` (includes `hackType` when provided).
-- **Constants** ([src/constants/project.ts](src/constants/project.ts)): `HACK_TYPE_LABELS`, `HACK_TYPES`, `HACK_TYPE_BADGE_COLORS` — keys/values match schema literals. Order and labels are consistent.
-
-**Verdict:** Schema, Convex, and constants are aligned. No inconsistency.
-
-### 1.2 Types: Convex (camelCase) vs database.ts (snake_case)
-
-- **Runtime:** Projects data comes from Convex (`list`, `listWithCounts`, `getById`). Convex returns camelCase (`hackType`).
-- **UI:** [Projects.tsx](src/pages/Projects.tsx) and [ProjectDetail.tsx](src/pages/ProjectDetail.tsx) use `project.hackType` — correct for Convex.
-- **Types:** [src/types/database.ts](src/types/database.ts) defines Supabase-style `Project` with `hack_type: HackType | null`. That file is legacy/Supabase-oriented; the app does not use `Project` from database.ts for Convex project results. [Projects.tsx](src/pages/Projects.tsx) uses a local `ProjectWithCounts` interface with `hackType?: string`.
-
-**Verdict:** No conflict. Convex data is camelCase; UI and local types use `hackType`. database.ts remains snake_case for legacy table shape; no code path uses it for Convex project documents.
-
-### 1.3 Optional hackType handling
-
-- **List/cards:** Filter `p.hackType !== hackTypeFilter` correctly excludes projects without `hackType` when a filter is selected. Cards show hack type badge only when `project.hackType` is set (`{project.hackType && (...)}`).
-- **Detail:** Badge only when `project.hackType`; owner sees combobox with `value={project.hackType ?? ''}` and option "Set hack type" (value `''`).
-- **Create:** Hack type is optional; `hackType: hackType || undefined` passed to `createProject`.
-
-**Verdict:** Optional handling is consistent. Existing projects without `hackType` behave correctly (no badge, filter excludes them when a type is selected).
-
-### 1.4 Clearing hack type (integrity)
-
-- **Current behavior:** In ProjectDetail, when owner selects "Set hack type" (value `''`), the code calls `updateProject({ projectId, hackType: value as ... })` with `value === undefined`. Client sends mutation args; in JSON, `undefined` is omitted, so the server receives an updates object that does not include `hackType`. The patch therefore does not change `hackType`, and the field is not cleared.
-- **User impact:** The UI shows "Hack type cleared." but the stored value does not change; after reload, the previous type still appears.
-
-**Recommendation:** Either (1) avoid calling the mutation when value is `''` and show a short message like "Select a type to update" or "Hack type cannot be cleared", or (2) support explicit unset in the backend (e.g. accept `null` and patch to remove the field, if Convex supports it). Option (1) is the minimal fix and avoids misleading the user.
+| Area | Status | Notes |
+|------|--------|--------|
+| **Dashboard** | ✅ Aligned | Uses ModalWrapper, design tokens |
+| **Profile** | ✅ Aligned | SectionHeader, StatCard, ActivityItem, ModalWrapper, EmptyState, SkeletonCard |
+| **Team Pulse** | ⚠️ Partial | Uses dashboard components; page header is raw `h1` |
+| **People** | ⚠️ Partial | Raw page header, raw modals, local PlaceholderCard; uses EmptyState |
+| **Hacks** | ⚠️ Partial | Raw page header; mixed primary button classes |
+| **Library** | ⚠️ Partial | Raw modal, local AssetPlaceholder; uses EmptyState |
+| **Projects** | ⚠️ Partial | Raw create modal, local ProjectPlaceholder; uses EmptyState, TabButton |
+| **ProjectDetail** | 🔍 Deferred | Phase 3; many forms/modals |
 
 ---
 
-## 2. Dashboard: structure and consistency
+## 2. Page headers
 
-### 2.1 Tab structure and fragment (updated post-ECD nits)
+**Standard:** `SectionHeader` with `title`, optional `description`, optional `action` (primary/outline button).
 
-- **Tabs:** "Wins" (default) and "Team pulse" with `dashboardTab` state. Only one tab’s content is rendered at a time.
-- **Wins tab:** Content is wrapped in a fragment (`<>...</>`): **WelcomeHero first**, then optional combined nudge, then PersonalizedNudge, EngagementNudge, FeaturedWinsShowcase (Community Wins), Your recognition (if authenticated), QuickActionsPanel. **No CollectiveProgressCard on Wins** — hero pill is the only maturity hint there.
-- **Pulse tab:** "Team pulse" heading, **CollectiveProgressCard** (moved here from Wins to remove redundancy), Export, stat cards, Knowledge Distribution (Gini), Frontline vs leader, TabbedRecognition — all inside `{dashboardTab === 'pulse' && (...)}`.
-
-**Verdict:** Structure is correct. No stray content; tab switching is consistent.
-
-### 2.2 Combined nudge placement (updated post-ECD nits)
-
-- **Current:** The combined nudge and PersonalizedNudge are **inside the Wins tab only**, and appear **after the WelcomeHero**. Order: Hero → combined nudge (when applicable) → PersonalizedNudge → EngagementNudge → Community Wins → Your recognition → Quick actions. This gives "where we are" (narrative + primary CTA) first, then "what to do" (nudges).
-- **Pulse tab:** No nudge blocks; leaders see Collective Progress, Export, stat cards, Gini, Frontline, TabbedRecognition only.
-
-**Verdict:** Hero-first hierarchy is satisfied. Nudges no longer compete with the hero for first read.
-
-### 2.3 QuickStartWins export
-
-- **Current:** [QuickStartWins](src/components/dashboard/QuickStartWins/QuickStartWins.tsx) is still exported from [src/components/dashboard/index.ts](src/components/dashboard/index.ts) but is no longer used in [Dashboard.tsx](src/pages/Dashboard.tsx) (replaced by FeaturedWinsShowcase with Starter badges).
-- **Verdict:** Export is redundant but harmless. Keeping it allows reuse elsewhere (e.g. onboarding). Optional: remove the export or add a short comment that it is retained for potential reuse.
+- **People:** Uses raw `<h1 className="text-3xl font-bold tracking-tight">` + `<p className="text-muted-foreground mt-2">` + primary button. **Fix:** Use `SectionHeader` with `title="People"`, `description="Find HackCentral Helpers and mentors..."`, `action={{ label: "Get Paired with Mentor", icon: <UserPlus />, onClick }}`.
+- **Team Pulse:** Raw `<h1 className="text-2xl font-bold">Team pulse</h1>`. **Fix:** Use `SectionHeader` with `title="Team Pulse"`; optional `action` for Export (outline).
+- **Hacks:** Raw `<h1 className="text-3xl font-bold tracking-tight">Our Hacks</h1>` and tab-specific primary button. **Fix:** Use `SectionHeader` with dynamic `action` (Submit Hack vs New Project).
+- **Library (standalone):** Same pattern when `!embedded`. **Fix:** Use `SectionHeader` when not embedded.
+- **Projects (standalone):** Same when `!embedded`. **Fix:** Use `SectionHeader` when not embedded.
 
 ---
 
-## 3. Wins block: Starter badges and placeholders
+## 3. Modals
 
-### 3.1 Starter badge logic
+**Standard:** `ModalWrapper` (backdrop, card, title, close button, Escape, scroll).
 
-- **FeaturedWinsShowcase:** Receives `starterCount` (default 4). Passes `isStarter={!isEmpty && index < starterCount}` to WinCard.
-- **When empty:** `isEmpty === true` → placeholder wins shown; `isStarter` is false for all (correct).
-- **When has wins:** First `starterCount` cards get Starter badge; rest do not.
-
-**Verdict:** Logic is correct and consistent.
-
-### 3.2 Placeholder copy
-
-- **FeaturedWinsShowcase** PLACEHOLDER_WINS: First item title is "Your win could be here"; second remains "Share how AI helped your work". Blurbs are unchanged and still appropriate.
-
-**Verdict:** Placeholder copy is consistent with the "wins" narrative.
+- **People – ProfileDetailModal:** Custom `fixed inset-0 bg-black/50` + `card p-6`. **Fix:** Wrap content in `ModalWrapper` with `title="Profile"`, `maxWidth="md"`.
+- **People – MentorRequestModal:** Same. **Fix:** `ModalWrapper` with `title="Request Mentoring"`, `maxWidth="2xl"`.
+- **Library – SubmitAssetModal:** Same. **Fix:** `ModalWrapper` with `title="Submit Hack"`, `maxWidth="xl"`.
+- **Projects – Create project modal:** Same; missing explicit close button in header. **Fix:** `ModalWrapper` with `title="New Project"`, `maxWidth="md"`.
 
 ---
 
-## 4. Copy and wording
+## 4. Loading skeletons
 
-- **Hero:** "Copy a win, use it, share yours." and "Prompts, apps, extensions, skills — copy one, share yours." — aligned with hack types and narrative.
-- **Dashboard nudge:** "Add a win from the Library", "Create a project to track your work and attach assets", "Share how AI helped your work" — consistent.
-- **Story modal placeholder:** "e.g. How a win saved 12 hours per week".
-- **WallOfThanksStrip / WallOfWins:** "Saved my team 5 hours with this win!" — consistent.
-- **Projects empty state (no match):** Description is "Try adjusting your search or status filter." — does not mention the hack type filter.
+**Standard:** `SkeletonGrid` + `SkeletonCard` (variant `default` | `compact` | `wide` | `stat`).
 
-**Recommendation:** Update the Projects empty state to "Try adjusting your search, status, or type filter." for consistency with the new filter.
+- **People:** Local `PlaceholderCard` × 3 in a grid. **Fix:** `<SkeletonGrid count={6} columns={3} variant="compact" />` (person-like cards).
+- **Library:** Local `AssetPlaceholder` × 3. **Fix:** `<SkeletonGrid count={6} columns={3} />` (default card variant).
+- **Projects:** Local `ProjectPlaceholder` × 3 with status badge. **Optional:** Keep custom placeholder for status, or use `SkeletonGrid` with default for consistency.
 
 ---
 
-## 5. Summary
+## 5. Cards & buttons
 
-| Area | Consistency | Integrity | Notes |
-|------|-------------|-----------|--------|
-| Hack type schema/Convex/constants | OK | OK | Literals and usage aligned. |
-| Types (Convex vs database.ts) | OK | OK | UI uses Convex shape; database.ts is legacy. |
-| Optional hackType (list, detail, create) | OK | OK | Filter and badges behave correctly. |
-| Clearing hack type in ProjectDetail | OK | Issue | Selecting "Set hack type" does not clear DB; toast is misleading. |
-| Dashboard tabs and fragment | OK | OK | Wins vs Pulse content correctly scoped. |
-| Combined nudge placement | OK | OK | Inside Wins only; after hero (ECD nits fix). |
-| QuickStartWins export | Minor | OK | Unused in Dashboard; export kept for reuse. |
-| Starter badges and placeholders | OK | OK | Logic and copy correct. |
-| Projects empty state copy | Minor | OK | Add "or type filter" for consistency. |
-
-**Recommended code changes:**
-
-1. **ProjectDetail:** When owner selects "Set hack type" (value `''`), do not call `updateProject` with `hackType: undefined`. Instead show a toast like "Select a type to update" or "Hack type cannot be cleared." so the user is not told the type was cleared when it was not.
-2. **Projects:** Update the empty-state description (when no projects match filters) to "Try adjusting your search, status, or type filter."
-
-Optional: Add a comment on the QuickStartWins export; or implement backend support for clearing hack type if product requires it.
+- **Cards:** Pages use `card p-4` or `card p-6` consistently. Library/Projects use `hover:shadow-md transition-shadow` on list cards; PersonCard uses `hover:scale-[1.02] hover:-translate-y-0.5`. No change required for this pass.
+- **Buttons:** Profile/Dashboard use `btn btn-primary`, `btn btn-outline`. People/Hacks use `btn btn-primary btn-md`. `btn-md` exists in `globals.css`. **Fix (Hacks):** One branch uses long custom classes; replace with `btn btn-primary btn-md` for "Submit Hack".
 
 ---
 
-## 6. Post-ECD nits (Feb 1) — addendum
+## 6. Layout container
 
-**Changes applied:** (1) Hero first, then nudges: combined nudge and PersonalizedNudge moved inside the Wins tab and placed **after** WelcomeHero so the narrative is the first thing. (2) Collective Progress redundancy removed from Wins: CollectiveProgressCard removed from the Wins tab (hero pill is the only maturity hint there); CollectiveProgressCard added to the Team pulse tab so leaders still have access.
+**Standard:** Main content wrapper `min-w-0 space-y-6` (or `space-y-6` only) for consistent spacing and overflow.
 
-**Consistency:** Dashboard.tsx page comment updated to match the new layout. Wins tab fragment order and indentation (Your recognition block, QuickActionsPanel) aligned for consistency.
+- **Team Pulse:** Already uses `min-w-0 space-y-6`.
+- **People:** Uses `space-y-6` only. **Optional:** Add `min-w-0` for overflow safety.
+- **Hacks / Library / Projects:** Use `space-y-6`. **Optional:** Add `min-w-0` when used as main content.
 
-**Integrity:** No duplicate maturity block on Wins; CollectiveProgressCard used only once (Pulse). All props (profile, userCounts, derivedBadges, pulse, maturityWidth, metrics) remain in scope for both tabs; story modal remains at top level (shared).
+---
+
+## 7. People – PersonCard vs ProfileCard
+
+**PersonCard** (shared) expects `PersonCardProfile`: `capabilityTags: Array<{ id: string; label: string }>`. **ProfileCard** (local) uses API shape `capabilityTags: Id<'capabilityTags'>[]` + lookup. Migrating to PersonCard would require mapping `capabilityTags` to `{ id, label }` and passing `onClick`; otherwise keep ProfileCard and align styling (e.g. `rounded-xl border border-border`) in a later pass.
+
+---
+
+## 8. Integrity checks
+
+- **Exports:** `src/components/shared/index.ts` exports all new components and types. ✅
+- **Imports:** Dashboard and Profile use `@/components/shared` or `../components/shared`. Some pages use `../components/shared` or `@/components/shared`; no broken imports. ✅
+- **Design tokens:** Cards use `border-border`, `bg-card`, `text-muted-foreground`; buttons use `btn btn-primary` / `btn-outline`. ✅
+- **Accessibility:** Modals use `role="dialog"`, `aria-modal="true"`, `aria-labelledby`. ModalWrapper centralizes this. ✅
+
+---
+
+## 9. Recommended next steps (Phase 2)
+
+1. **Apply consistency fixes (this pass):**
+   - People: SectionHeader, ModalWrapper for both modals, SkeletonGrid (compact) for loading.
+   - Team Pulse: SectionHeader (title "Team Pulse", optional Export action).
+   - Hacks: SectionHeader with dynamic action; unify "Submit Hack" button to `btn btn-primary btn-md`.
+   - Library: ModalWrapper for SubmitAssetModal; SkeletonGrid for loading when `allAssets === undefined`.
+   - Projects: ModalWrapper for create project modal; optionally SkeletonGrid for loading.
+2. **Phase 3:** ProjectDetail modals/forms, LibraryAssetDetail, any remaining raw modals; consider PersonCard migration for People.
+3. **Doc:** Update any "design system" or "component usage" doc to reference SectionHeader, ModalWrapper, SkeletonGrid for new pages.
+
+---
+
+## 10. Fixes applied (same session)
+
+- **People:** SectionHeader (title + description + “Get Paired with Mentor”); ModalWrapper for ProfileDetailModal and MentorRequestModal; SkeletonGrid (compact) for loading; removed PlaceholderCard and duplicate modal markup; dropped unused `X` import.
+- **Team Pulse:** SectionHeader (“Team Pulse” + “Export metrics” outline action); export logic moved into `handleExport`.
+- **Hacks:** SectionHeader (“Our Hacks” + dynamic primary action “Submit Hack” / “New Project”); unified primary button to design system.
+- **Library:** SectionHeader when not embedded (“Completed Hacks” + “Submit Hack”); ModalWrapper for SubmitAssetModal; SkeletonGrid for asset loading; removed AssetPlaceholder and unused `X` import.
+- **Projects:** SectionHeader when not embedded (“Hacks In Progress” + “New Project”); ModalWrapper for create-project modal.
+- **Build:** `npm run build` succeeds after removing unused `AssetPlaceholder` from Library.
+
+---
+
+*Review completed Feb 1; fixes applied in same session.*

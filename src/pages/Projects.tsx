@@ -11,7 +11,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
-import { TabButton, EmptyState } from '../components/shared';
+import { TabButton, EmptyState, ModalWrapper, SectionHeader } from '../components/shared';
 import { useDebounce } from '../hooks/useDebounce';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
@@ -119,20 +119,13 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
   return (
     <div className="space-y-6">
       {createOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={handleCreateCancel}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-project-title"
+        <ModalWrapper
+          isOpen
+          onClose={handleCreateCancel}
+          title="New Project"
+          titleId="create-project-title"
+          maxWidth="md"
         >
-          <div
-            className="max-w-md w-full card p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="create-project-title" className="text-xl font-semibold mb-4">
-              New Project
-            </h2>
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div>
                 <label htmlFor="project-title" className="block text-sm font-medium mb-1">
@@ -226,27 +219,19 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </ModalWrapper>
       )}
       {!embedded && (
         <>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Hacks In Progress</h1>
-              <p className="text-muted-foreground mt-2">
-                Explore hacks in progress using AI to transform workflows
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </button>
-          </div>
+          <SectionHeader
+            title="Hacks In Progress"
+            description="Explore hacks in progress using AI to transform workflows"
+            action={{
+              label: 'New Project',
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setCreateOpen(true),
+            }}
+          />
           <div className="flex gap-4 flex-wrap">
             <div className="flex-1 min-w-64 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

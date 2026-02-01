@@ -35,13 +35,13 @@ export function EmptyState({
   const iconMarginClass = variant === 'compact' ? 'mb-3' : 'mb-4'
 
   return (
-    <div className={`card ${paddingClass} text-center`}>
+    <div className={`card rounded-xl border border-border ${paddingClass} text-center`}>
       <div className={`text-muted-foreground mx-auto ${iconMarginClass} [&>svg]:h-12 [&>svg]:w-12`}>
         {icon}
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
       {description != null && (
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
           {description}
         </p>
       )}

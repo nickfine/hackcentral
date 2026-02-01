@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Plus, Filter } from 'lucide-react';
-import { TabButton } from '@/components/shared/TabButton';
+import { TabButton, SectionHeader } from '@/components/shared';
 import Library from './Library';
 import Projects from './Projects';
 import { HACK_TYPES } from '@/constants/project';
@@ -52,29 +52,16 @@ export default function Hacks() {
 
   return (
     <div className="space-y-6">
-      {/* Title + primary CTA */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Our Hacks</h1>
-        {activeTab === 'completed' ? (
-          <button
-            type="button"
-            className="btn btn-md min-w-[11rem] bg-primary text-white hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 border border-primary"
-            onClick={() => setLibrarySubmitModalOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Submit Hack
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-md"
-            onClick={() => setProjectsCreateOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Our Hacks"
+        action={{
+          label: activeTab === 'completed' ? 'Submit Hack' : 'New Project',
+          icon: <Plus className="h-4 w-4" />,
+          onClick: activeTab === 'completed'
+            ? () => setLibrarySubmitModalOpen(true)
+            : () => setProjectsCreateOpen(true),
+        }}
+      />
 
       {/* Search and filters (tab-specific) */}
       <div className="flex gap-4 flex-wrap">

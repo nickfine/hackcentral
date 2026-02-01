@@ -11,6 +11,7 @@ import {
   GiniRadialProgress,
   TabbedRecognition,
 } from '../components/dashboard';
+import { SectionHeader } from '../components/shared';
 
 export default function TeamPulse() {
   const metrics = useQuery(api.metrics.getDashboardMetrics);
@@ -85,9 +86,39 @@ export default function TeamPulse() {
       ? `"${mostReusedAssets[0].title}" — Battle-tested in ${mostReusedAssets[0].count} projects. Copy risk-free.`
       : undefined;
 
+  const handleExport = () => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      metrics: metrics ?? null,
+      gini: gini ?? null,
+      giniInterpretation: gini !== undefined ? giniInterpretation : null,
+      frontlineLeaderGap: frontlineLeaderGap ?? null,
+      topContributors: topContributors ?? [],
+      topMentors: topMentors ?? [],
+      mostReusedAssets: mostReusedAssets ?? [],
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-w-0 space-y-6">
-      <h1 className="text-2xl font-bold">Team pulse</h1>
+      <SectionHeader
+        title="Team Pulse"
+        action={{
+          label: 'Export metrics',
+          icon: <Download className="h-4 w-4" aria-hidden />,
+          variant: 'outline',
+          onClick: handleExport,
+        }}
+      />
       <CollectiveProgressCard
         currentProgress={maturityWidth}
         metrics={{
@@ -95,38 +126,6 @@ export default function TeamPulse() {
           projectsWithAiPercentage: metrics?.projectsWithAiPercentage ?? 0,
         }}
       />
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center gap-2 sm:min-h-0 sm:min-w-0"
-          onClick={() => {
-            const exportData = {
-              exportedAt: new Date().toISOString(),
-              metrics: metrics ?? null,
-              gini: gini ?? null,
-              giniInterpretation:
-                gini !== undefined ? giniInterpretation : null,
-              frontlineLeaderGap: frontlineLeaderGap ?? null,
-              topContributors: topContributors ?? [],
-              topMentors: topMentors ?? [],
-              mostReusedAssets: mostReusedAssets ?? [],
-            };
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-              type: 'application/json',
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `dashboard-metrics-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          aria-label="Export dashboard metrics as JSON"
-        >
-          <Download className="h-4 w-4" aria-hidden />
-          Export metrics
-        </button>
-      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <EnhancedMetricCard
           title="AI Contributors"
