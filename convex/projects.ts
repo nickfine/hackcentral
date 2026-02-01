@@ -167,7 +167,11 @@ export const getById = query({
       (project.visibility === "org" && identity) ||
       (project.visibility === "private" && (isOwner || isMember))
     ) {
-      return project;
+      const owner = await ctx.db.get(project.ownerId);
+      return {
+        ...project,
+        ownerFullName: owner?.fullName ?? owner?.email ?? "Unknown",
+      };
     }
 
     return null;

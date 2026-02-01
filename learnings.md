@@ -593,6 +593,64 @@ All features implemented correctly with proper:
 
 ---
 
+## Phase 2: Close/Archive Capture – Browser Testing (Jan 30, 2026)
+
+### Test Environment
+- **Browser:** Playwright MCP (Chromium)
+- **Server:** Vite dev server (http://localhost:5173)
+- **Auth:** Clerk (authenticated as Nick Test)
+
+### Features Tested
+
+#### 1. Project detail modal – open on card click
+**Status:** ✅ Pass  
+- Navigated to `/projects`.
+- Clicked project card "Playwright test project".
+- **Dialog** opened with:
+  - Heading "Playwright test project"
+  - Status badge "Idea"
+  - "Owner: Nick Test"
+  - **Close or archive** section with "Mark completed" and "Archive" buttons (owner view)
+  - **Comments** section with one comment ("First comment from Playwright test"), add-comment textbox, "View in full" button
+
+#### 2. Close form – Mark completed
+**Status:** ✅ Pass  
+- Clicked **Mark completed**.
+- Form appeared: "Mark as completed and capture what you learned."
+- Fields: Lessons learned * (required), Time saved (optional), AI tools used (optional), Workflow transformed with AI (checkbox), Cancel / Mark completed.
+- Filled: Lessons learned, AI tools used (Cursor, Playwright), Workflow transformed checked.
+- Clicked **Mark completed** (submit).
+- **Toast:** "Project marked as completed."
+- Modal updated: status changed to **Completed**; **Learning summary** section appeared with lessons learned, AI tools used, "Workflow transformed with AI"; **Close or archive** section no longer visible (correct – project is closed).
+
+#### 3. List card and completed project detail
+**Status:** ✅ Pass  
+- Closed modal. Project card "Playwright test project" now shows badge **Completed** (was Idea).
+- Re-opened same project. Dialog showed:
+  - Status "Completed", Owner "Nick Test"
+  - **Learning summary** with: Lessons learned, AI tools used (Cursor, Playwright), Workflow transformed with AI
+  - No "Close or archive" section (correct)
+  - Comments section unchanged
+
+### Test Summary
+
+| Feature                    | Status | Notes                                              |
+|----------------------------|--------|----------------------------------------------------|
+| Card click → detail modal  | ✅ Pass | Title, status, owner, close/archive, comments     |
+| Mark completed form        | ✅ Pass | Lessons, optional fields, submit                   |
+| Toast & status update       | ✅ Pass | "Project marked as completed.", status → Completed |
+| Learning summary display   | ✅ Pass | Shown when completed; lessons, tools, workflow    |
+| Close form hidden when done| ✅ Pass | Owner no longer sees Mark completed / Archive      |
+| List card badge update     | ✅ Pass | Card shows "Completed" after close                 |
+
+### Console
+- No errors. Only React DevTools and Clerk development key warnings.
+
+### Conclusion
+**Close/Archive Capture (Phase 2):** ✅ **PASS** – Project detail modal opens on card click; owner can mark project completed with learning capture; learning summary displays for completed projects; list card badge updates; no console errors.
+
+---
+
 ## Development Notes
 
 ### Common Patterns

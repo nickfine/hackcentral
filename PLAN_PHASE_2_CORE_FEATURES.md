@@ -75,16 +75,14 @@
 
 **Deliverables:** Better search, recommendation surfaces, optional AI-assisted fields.
 
-### 5. Close/Archive Capture
+### 5. Close/Archive Capture ✅ (first slice done)
 - **Project close/archive**
-  - Form: status → closed/archived, lessons learned, AI usage summary.
+  - Form: status → completed/archived, lessons learned (required), time saved (optional), AI tools used (optional), workflow transformed (optional).
 - **AI learning capture**
-  - Structured fields: what worked, what didn’t, reuse of library assets.
-  - Validation/nudges so close form isn’t skipped.
+  - Structured fields: failuresAndLessons, timeSavedEstimate, aiToolsUsed, workflowTransformed (schema already had these).
 - **Learning summary**
-  - Display closed-project learnings on project detail or a “Learnings” view.
-
-**Deliverables:** Close/archive form with learning fields, learning summary display.
+  - Display closed-project learnings in project detail modal when status is completed/archived.
+- **Implemented:** `convex/projects.ts` – `getById` returns `ownerFullName`; `src/pages/Projects.tsx` – ProjectDetailModal (card click), learning section, owner-only “Mark completed” / “Archive” form with learning fields; comments inline + “View in full”.
 
 ---
 
@@ -103,7 +101,7 @@
 - [ ] Library: submit assets, quality gates (Draft/Verified/Deprecated), verification + deprecation, reuse tracking and counts.
 - [ ] Recognition: badges and leaderboards; impact stories feed.
 - [ ] AI-assisted: improved search and recommendations (and optionally AI-assisted submission).
-- [ ] Close/archive: form with learning capture and learning summary display.
+- [x] Close/archive: form with learning capture and learning summary display (done).
 
 ---
 

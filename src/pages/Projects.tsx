@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Search, Plus, Filter, Heart, MessageCircle, HandHelping, X } from 'lucide-react';
+import { Search, Plus, Filter, Heart, MessageCircle, HandHelping, X, Archive, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -26,10 +26,12 @@ export default function Projects() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<Id<'projects'> | null>(null);
+  const [selectedDetailProjectId, setSelectedDetailProjectId] = useState<Id<'projects'> | null>(null);
 
   const { isAuthenticated } = useAuth();
   const projects = useQuery(api.projects.listWithCounts);
   const createProject = useMutation(api.projects.create);
+  const updateProject = useMutation(api.projects.update);
   const addComment = useMutation(api.projectComments.add);
   const toggleLike = useMutation(api.projectSupportEvents.toggleLike);
   const toggleOfferHelp = useMutation(api.projectSupportEvents.toggleOfferHelp);
@@ -69,6 +71,20 @@ export default function Projects() {
 
   return (
     <div className="space-y-6">
+      {/* Project detail modal */}
+      {selectedDetailProjectId !== null && (
+        <ProjectDetailModal
+          projectId={selectedDetailProjectId}
+          onClose={() => setSelectedDetailProjectId(null)}
+          isAuthenticated={isAuthenticated}
+          addComment={addComment}
+          updateProject={updateProject}
+          onOpenComments={() => {
+            setSelectedProjectId(selectedDetailProjectId);
+            setSelectedDetailProjectId(null);
+          }}
+        />
+      )}
       {/* Comments modal */}
       {selectedProjectId !== null && (
         <CommentsModal
@@ -273,6 +289,7 @@ export default function Projects() {
                 key={project._id}
                 project={project}
                 isAuthenticated={isAuthenticated}
+                onCardClick={() => setSelectedDetailProjectId(project._id)}
                 onCommentsClick={() => setSelectedProjectId(project._id)}
                 onLikeClick={() => toggleLike({ projectId: project._id }).catch((err) => {
                   console.error('Like failed:', err);
@@ -425,6 +442,325 @@ function CommentsModal({
   );
 }
 
+/** Project detail modal: full project info, learning display, close/archive form (owner), comments. */
+function ProjectDetailModal({
+  projectId,
+  onClose,
+  isAuthenticated,
+  addComment,
+  updateProject,
+  onOpenComments,
+}: {
+  projectId: Id<'projects'>;
+  onClose: () => void;
+  isAuthenticated: boolean;
+  addComment: (args: { projectId: Id<'projects'>; content: string; isAiRelated?: boolean }) => Promise<unknown>;
+  updateProject: (args: {
+    projectId: Id<'projects'>;
+    status?: 'idea' | 'building' | 'incubation' | 'completed' | 'archived';
+    failuresAndLessons?: string;
+    timeSavedEstimate?: number;
+    workflowTransformed?: boolean;
+    aiToolsUsed?: string[];
+  }) => Promise<unknown>;
+  onOpenComments: () => void;
+}) {
+  const [commentContent, setCommentContent] = useState('');
+  const [commentIsAiRelated, setCommentIsAiRelated] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [closeFormOpen, setCloseFormOpen] = useState(false);
+  const [closeTargetStatus, setCloseTargetStatus] = useState<'completed' | 'archived'>('completed');
+  const [failuresAndLessons, setFailuresAndLessons] = useState('');
+  const [timeSavedEstimate, setTimeSavedEstimate] = useState<string>('');
+  const [workflowTransformed, setWorkflowTransformed] = useState(false);
+  const [aiToolsUsedText, setAiToolsUsedText] = useState('');
+  const [isSubmittingClose, setIsSubmittingClose] = useState(false);
+
+  const project = useQuery(api.projects.getById, { projectId });
+  const profile = useQuery(api.profiles.getCurrentProfile);
+  const comments = useQuery(api.projectComments.listForProject, { projectId });
+
+  const isOwner = Boolean(project && profile && project.ownerId === profile._id);
+  const isClosed = project?.status === 'completed' || project?.status === 'archived';
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentContent.trim() || isSubmittingComment) return;
+    setIsSubmittingComment(true);
+    try {
+      await addComment({
+        projectId,
+        content: commentContent.trim(),
+        isAiRelated: commentIsAiRelated,
+      });
+      toast.success('Comment added!');
+      setCommentContent('');
+      setCommentIsAiRelated(false);
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+      toast.error('Failed to add comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCloseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmittingClose) return;
+    if (!failuresAndLessons.trim()) {
+      toast.error('Please add lessons learned.');
+      return;
+    }
+    setIsSubmittingClose(true);
+    try {
+      await updateProject({
+        projectId,
+        status: closeTargetStatus,
+        failuresAndLessons: failuresAndLessons.trim(),
+        timeSavedEstimate: timeSavedEstimate === '' ? undefined : Number(timeSavedEstimate),
+        workflowTransformed,
+        aiToolsUsed: aiToolsUsedText.trim() ? aiToolsUsedText.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      });
+      toast.success(closeTargetStatus === 'archived' ? 'Project archived.' : 'Project marked as completed.');
+      setCloseFormOpen(false);
+      setFailuresAndLessons('');
+      setTimeSavedEstimate('');
+      setWorkflowTransformed(false);
+      setAiToolsUsedText('');
+    } catch (err) {
+      console.error('Failed to close project:', err);
+      toast.error('Failed to save. Please try again.');
+    } finally {
+      setIsSubmittingClose(false);
+    }
+  };
+
+  const statusLabels: Record<string, string> = {
+    idea: 'Idea',
+    building: 'Building',
+    incubation: 'Incubation',
+    completed: 'Completed',
+    archived: 'Archived',
+  };
+
+  if (project === undefined) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="max-w-2xl w-full card p-6" onClick={(e) => e.stopPropagation()}>
+          <p className="text-muted-foreground">Loading project…</p>
+        </div>
+      </div>
+    );
+  }
+  if (project === null) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="max-w-2xl w-full card p-6" onClick={(e) => e.stopPropagation()}>
+          <p className="text-muted-foreground">Project not found.</p>
+          <button type="button" className="btn btn-primary mt-2" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  const projectWithOwner = project as typeof project & { ownerFullName?: string };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-detail-title"
+    >
+      <div
+        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto card p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h2 id="project-detail-title" className="text-xl font-semibold">{project.title}</h2>
+          <button type="button" className="btn btn-ghost btn-icon shrink-0" onClick={onClose} aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="badge badge-outline text-xs">{statusLabels[project.status] ?? project.status}</span>
+          {projectWithOwner.ownerFullName && (
+            <span className="text-sm text-muted-foreground">Owner: {projectWithOwner.ownerFullName}</span>
+          )}
+        </div>
+        {project.description && (
+          <p className="text-muted-foreground mb-4 whitespace-pre-wrap">{project.description}</p>
+        )}
+
+        {/* Learning summary (when completed/archived) */}
+        {isClosed && (project.failuresAndLessons || project.timeSavedEstimate != null || (project.aiToolsUsed?.length ?? 0) > 0 || project.workflowTransformed) && (
+          <div className="border-t pt-4 mb-4">
+            <h3 className="font-semibold text-sm mb-2">Learning summary</h3>
+            <dl className="space-y-2 text-sm">
+              {project.failuresAndLessons && (
+                <>
+                  <dt className="text-muted-foreground">Lessons learned</dt>
+                  <dd className="whitespace-pre-wrap">{project.failuresAndLessons}</dd>
+                </>
+              )}
+              {project.timeSavedEstimate != null && (
+                <>
+                  <dt className="text-muted-foreground">Time saved (est. hours)</dt>
+                  <dd>{project.timeSavedEstimate}</dd>
+                </>
+              )}
+              {project.aiToolsUsed && project.aiToolsUsed.length > 0 && (
+                <>
+                  <dt className="text-muted-foreground">AI tools used</dt>
+                  <dd>{project.aiToolsUsed.join(', ')}</dd>
+                </>
+              )}
+              {project.workflowTransformed && (
+                <dd className="text-muted-foreground">Workflow transformed with AI</dd>
+              )}
+            </dl>
+          </div>
+        )}
+
+        {/* Close / Archive (owner only, when not closed) */}
+        {isOwner && !isClosed && (
+          <div className="border-t pt-4 mb-4">
+            <h3 className="font-semibold text-sm mb-2">Close or archive</h3>
+            {!closeFormOpen ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => { setCloseTargetStatus('completed'); setCloseFormOpen(true); }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Mark completed
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => { setCloseTargetStatus('archived'); setCloseFormOpen(true); }}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  Archive
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCloseSubmit} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {closeTargetStatus === 'archived' ? 'Archive this project and capture what you learned.' : 'Mark as completed and capture what you learned.'}
+                </p>
+                <div>
+                  <label htmlFor="close-lessons" className="block text-sm font-medium mb-1">Lessons learned <span className="text-destructive">*</span></label>
+                  <textarea
+                    id="close-lessons"
+                    value={failuresAndLessons}
+                    onChange={(e) => setFailuresAndLessons(e.target.value)}
+                    className="input w-full min-h-[80px]"
+                    placeholder="What worked, what didn’t, what you’d do differently"
+                    required
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="close-time-saved" className="block text-sm font-medium mb-1">Time saved (hours, optional)</label>
+                  <input
+                    id="close-time-saved"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={timeSavedEstimate}
+                    onChange={(e) => setTimeSavedEstimate(e.target.value)}
+                    className="input w-24"
+                    placeholder="e.g. 12"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="close-tools" className="block text-sm font-medium mb-1">AI tools used (optional, comma-separated)</label>
+                  <input
+                    id="close-tools"
+                    type="text"
+                    value={aiToolsUsedText}
+                    onChange={(e) => setAiToolsUsedText(e.target.value)}
+                    className="input w-full"
+                    placeholder="e.g. ChatGPT, Cursor, Copilot"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="close-workflow"
+                    type="checkbox"
+                    checked={workflowTransformed}
+                    onChange={(e) => setWorkflowTransformed(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <label htmlFor="close-workflow" className="text-sm">Workflow transformed with AI</label>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => setCloseFormOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmittingClose}>
+                    {isSubmittingClose ? 'Saving…' : closeTargetStatus === 'archived' ? 'Archive' : 'Mark completed'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Comments */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm">Comments</h3>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenComments} aria-label="Open comments in full view">
+              View in full
+            </button>
+          </div>
+          {comments === undefined ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No comments yet.</p>
+          ) : (
+            <ul className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+              {comments.map(({ comment, author }) => (
+                <li key={comment._id} className="text-sm border-b pb-2 last:border-0">
+                  <span className="font-medium">{author?.fullName ?? 'Unknown'}</span>
+                  {comment.isAiRelated && <span className="badge text-xs bg-primary/20 text-primary ml-1">AI</span>}
+                  <p className="text-muted-foreground whitespace-pre-wrap mt-0.5">{comment.content}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isAuthenticated && (
+            <form onSubmit={handleCommentSubmit} className="space-y-2">
+              <textarea
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                className="input w-full min-h-[60px] text-sm"
+                placeholder="Add a comment…"
+                rows={2}
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  id="detail-comment-ai"
+                  type="checkbox"
+                  checked={commentIsAiRelated}
+                  onChange={(e) => setCommentIsAiRelated(e.target.checked)}
+                  className="rounded border-input"
+                />
+                <label htmlFor="detail-comment-ai" className="text-xs text-muted-foreground">AI-related</label>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmittingComment || !commentContent.trim()}>
+                  {isSubmittingComment ? 'Posting…' : 'Post'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ProjectPlaceholderProps {
   status: 'idea' | 'building' | 'incubation' | 'completed'
 }
@@ -446,12 +782,13 @@ interface ProjectWithCounts {
 interface ProjectCardProps {
   project: ProjectWithCounts;
   isAuthenticated: boolean;
+  onCardClick: () => void;
   onCommentsClick: () => void;
   onLikeClick: () => void;
   onOfferHelpClick: () => void;
 }
 
-function ProjectCard({ project, isAuthenticated, onCommentsClick, onLikeClick, onOfferHelpClick }: ProjectCardProps) {
+function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, onLikeClick, onOfferHelpClick }: ProjectCardProps) {
   const statusColors: Record<string, string> = {
     idea: 'bg-amber-100 text-amber-800 border-amber-200',
     building: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -469,7 +806,14 @@ function ProjectCard({ project, isAuthenticated, onCommentsClick, onLikeClick, o
   };
 
   return (
-    <div className="card p-4 hover:shadow-md transition-shadow">
+    <div
+      className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onCardClick()}
+      aria-label={`View ${project.title}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-lg leading-tight">{project.title}</h3>
         <span className={`badge text-xs ${statusColors[project.status] ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}>
