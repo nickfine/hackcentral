@@ -27,12 +27,12 @@ const navItems = [
   },
   {
     to: '/library',
-    label: 'Library',
+    label: 'Completed Hacks',
     icon: Library,
   },
   {
     to: '/projects',
-    label: 'Projects',
+    label: 'Hacks In Progress',
     icon: FolderKanban,
   },
   {
@@ -52,7 +52,7 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {/* AI Arsenal Quick Access */}
+        {/* Featured Hacks Quick Access */}
         <div className="mt-6 pt-6 border-t">
           <div className="px-3 mb-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -70,7 +70,7 @@ export function Sidebar() {
             }
           >
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>AI Arsenal</span>
+            <span>Featured Hacks</span>
             <span className="badge badge-secondary text-xs ml-auto">
               Curated
             </span>
@@ -86,14 +86,14 @@ export function Sidebar() {
             <span className="text-sm font-medium">Get Started</span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Explore the AI Arsenal to find proven prompts, skills, and apps.
+            Explore Featured Hacks to find proven prompts, skills, and apps.
           </p>
           <div className="flex flex-col gap-2">
             <NavLink
               to="/library"
               className="btn btn-primary btn-sm w-full"
             >
-              Explore Library
+              Explore Completed Hacks
             </NavLink>
             <NavLink
               to="/onboarding"

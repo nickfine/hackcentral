@@ -24,33 +24,33 @@ export default function Guide() {
           AI 101 micro-guide
         </h1>
         <p className="text-muted-foreground mt-1">
-          A short intro to AI assets and how to use HackDay Central.
+          A short intro to AI hacks and how to use HackDay Central.
         </p>
       </div>
 
       <section className="space-y-4">
-        <h2 className="font-semibold text-lg">What are AI assets?</h2>
+        <h2 className="font-semibold text-lg">What are AI hacks?</h2>
         <p className="text-muted-foreground">
-          AI assets are reusable building blocks for AI-assisted work: prompts, skills, and apps. They live in the <strong>Library</strong> and can be
-          attached to <strong>Projects</strong> so your team reuses what works instead of starting from scratch.
+          AI hacks are reusable building blocks for AI-assisted work: prompts, skills, and apps. They live in <strong>Completed Hacks</strong> and can be
+          attached to <strong>Hacks In Progress</strong> so your team reuses what works instead of starting from scratch.
         </p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="font-semibold text-lg">How do I reuse an asset?</h2>
+        <h2 className="font-semibold text-lg">How do I reuse a hack?</h2>
         <p className="text-muted-foreground">
-          Go to the <Link to="/library" className="text-primary underline">Library</Link> and open the
-          <strong> AI Arsenal</strong> for curated, verified assets. Click an asset to see its content and
+          Go to <Link to="/library" className="text-primary underline">Completed Hacks</Link> and open the
+          <strong> Featured Hacks</strong> for curated, verified hacks. Click a hack to see its content and
           description. Use &quot;I used this&quot; to record that you copied, referenced, or linked it—and
-          optionally attach it to a project so it counts toward project AI adoption.
+          optionally attach it to a hack in progress so it counts toward project AI adoption.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="font-semibold text-lg">How do I contribute?</h2>
         <p className="text-muted-foreground">
-          Submit a new asset from the Library (&quot;Submit Asset&quot;). Start as a draft, then mark it
-          verified when it&apos;s ready for others. Attach assets to your <Link to="/projects" className="text-primary underline">Projects</Link> so
+          Submit a new hack from Completed Hacks (&quot;Submit Hack&quot;). Start as a draft, then mark it
+          verified when it&apos;s ready for others. Attach hacks to your <Link to="/projects" className="text-primary underline">Hacks In Progress</Link> so
           your work is visible on the Dashboard and in metrics. Share impact stories from the Dashboard
           to tell others how AI helped.
         </p>
@@ -59,9 +59,9 @@ export default function Guide() {
       <section className="space-y-4">
         <h2 className="font-semibold text-lg">Where to go next</h2>
         <ul className="list-disc list-inside text-muted-foreground space-y-2">
-          <li><Link to="/library" className="text-primary underline">Library</Link> — Browse and submit AI assets</li>
-          <li><Link to="/library?arsenal=true" className="text-primary underline">AI Arsenal</Link> — Curated, high-trust assets</li>
-          <li><Link to="/projects" className="text-primary underline">Projects</Link> — Create projects and attach assets</li>
+          <li><Link to="/library" className="text-primary underline">Completed Hacks</Link> — Browse and submit AI hacks</li>
+          <li><Link to="/library?arsenal=true" className="text-primary underline">Featured Hacks</Link> — Curated, high-trust hacks</li>
+          <li><Link to="/projects" className="text-primary underline">Hacks In Progress</Link> — Create projects and attach hacks</li>
           <li><Link to="/onboarding" className="text-primary underline">Get started</Link> — All onboarding paths</li>
         </ul>
       </section>

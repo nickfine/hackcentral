@@ -1,6 +1,6 @@
 /**
- * Search Page - Global search across Library and People
- * Reads q from URL; shows combined results from assets and profiles.
+ * Search Page - Global search across Completed Hacks and People
+ * Reads q from URL; shows combined results from hacks and profiles.
  */
 
 import { useSearchParams, Link } from 'react-router-dom';
@@ -55,14 +55,14 @@ export default function Search() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Search</h1>
         <p className="text-muted-foreground mt-1">
-          {q ? `Results for "${q}"` : 'Enter a search term above to find library assets and people.'}
+          {q ? `Results for "${q}"` : 'Enter a search term above to find completed hacks and people.'}
         </p>
       </div>
 
       {!q && (
         <div className="card p-8 text-center text-muted-foreground">
           <SearchIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>Use the search bar in the header to search across Library and People.</p>
+          <p>Use the search bar in the header to search across Completed Hacks and People.</p>
         </div>
       )}
 
@@ -72,12 +72,12 @@ export default function Search() {
           <section>
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
               <BookOpen className="h-5 w-5 text-muted-foreground" />
-              Library ({filteredAssets.length})
+              Completed Hacks ({filteredAssets.length})
             </h2>
             {allAssets === undefined ? (
               <div className="card p-4 text-muted-foreground">Loading…</div>
             ) : filteredAssets.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No library assets match.</p>
+              <p className="text-muted-foreground text-sm">No completed hacks match.</p>
             ) : (
               <ul className="space-y-2">
                 {filteredAssets.slice(0, limit).map((asset) => (
@@ -100,7 +100,7 @@ export default function Search() {
             )}
             {filteredAssets.length > limit && (
               <Link to={`/library?q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm mt-2">
-                View all {filteredAssets.length} assets →
+                View all {filteredAssets.length} hacks →
               </Link>
             )}
           </section>

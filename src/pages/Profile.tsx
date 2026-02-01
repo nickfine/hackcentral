@@ -365,12 +365,12 @@ export default function Profile() {
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
           icon={<BookOpen className="h-5 w-5" />}
-          label="Library activity"
+          label="Completed Hacks"
           value="--"
         />
         <StatCard
           icon={<Briefcase className="h-5 w-5" />}
-          label="Projects"
+          label="Hacks In Progress"
           value="--"
         />
         <StatCard
@@ -391,7 +391,7 @@ export default function Profile() {
           Activity
         </TabButton>
         <TabButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')}>
-          Projects
+          Hacks In Progress
         </TabButton>
         <TabButton active={activeTab === 'mentoring'} onClick={() => setActiveTab('mentoring')}>
           Mentoring
@@ -405,21 +405,21 @@ export default function Profile() {
       {activeTab === 'contributions' && (
         <div>
           <h2 className="text-xl font-semibold mb-1">Recent Activity</h2>
-          <p className="text-sm text-muted-foreground mb-4">Your library and project contributions</p>
+          <p className="text-sm text-muted-foreground mb-4">Your contributions from Completed Hacks and Hacks In Progress</p>
           <div className="space-y-3">
             <ContributionPlaceholder type="library" />
             <ContributionPlaceholder type="project" />
             <ContributionPlaceholder type="verification" />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Activity from the Library and Projects will appear here once you contribute.
+            Activity from Completed Hacks and Hacks In Progress will appear here once you contribute.
           </p>
         </div>
       )}
 
       {activeTab === 'projects' && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">My Projects</h2>
+          <h2 className="text-xl font-semibold mb-4">My Hacks In Progress</h2>
           <p className="text-muted-foreground">Project activity will appear here</p>
         </div>
       )}
@@ -611,8 +611,8 @@ interface ContributionPlaceholderProps {
 
 function ContributionPlaceholder({ type }: ContributionPlaceholderProps) {
   const typeLabels = {
-    library: 'Library Asset',
-    project: 'Project AI asset',
+    library: 'Completed Hack',
+    project: 'Project AI hack',
     verification: 'Verification',
   }
 

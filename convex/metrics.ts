@@ -430,6 +430,7 @@ export type FeaturedHack = {
   _creationTime: number;
   assetId?: Id<"libraryAssets">;
   storyId?: Id<"impactStories">;
+  assetType?: "prompt" | "skill" | "app";
 };
 
 /**
@@ -509,6 +510,7 @@ export const getFeaturedHacks = query({
         isRisingStar,
         _creationTime: asset._creationTime,
         assetId: asset._id,
+        assetType: asset.assetType,
       });
     }
 
@@ -549,12 +551,35 @@ export const getFeaturedHacks = query({
       });
     }
 
-    // Sort: reuse desc, then creation time desc; cap at limit
+    // Sort: reuse desc, then creation time desc
     hacks.sort((a, b) => {
       if (b.reuseCount !== a.reuseCount) return b.reuseCount - a.reuseCount;
       return b._creationTime - a._creationTime;
     });
 
-    return hacks.slice(0, limit);
+    // Ensure at least one asset of each type (prompt, skill, app) in the returned set when available
+    const assetHacks = hacks.filter((h): h is FeaturedHack & { type: "asset"; assetType: "prompt" | "skill" | "app" } =>
+      h.type === "asset" && h.assetType != null
+    );
+    const bestPrompt = assetHacks.find((a) => a.assetType === "prompt");
+    const bestSkill = assetHacks.find((a) => a.assetType === "skill");
+    const bestApp = assetHacks.find((a) => a.assetType === "app");
+    const mustHaveIds = new Set(
+      [bestPrompt?.id, bestSkill?.id, bestApp?.id].filter(Boolean) as string[]
+    );
+    const mustHave = [bestPrompt, bestSkill, bestApp].filter(
+      (h): h is NonNullable<typeof h> => h != null
+    ) as FeaturedHack[];
+    const result: FeaturedHack[] = [...mustHave];
+    for (const h of hacks) {
+      if (mustHaveIds.has(h.id)) continue;
+      if (result.length >= limit) break;
+      result.push(h);
+    }
+    result.sort((a, b) => {
+      if (b.reuseCount !== a.reuseCount) return b.reuseCount - a.reuseCount;
+      return b._creationTime - a._creationTime;
+    });
+    return result.slice(0, limit);
   },
 });

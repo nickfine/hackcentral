@@ -203,7 +203,7 @@ export default function ProjectDetail() {
         <p className="text-muted-foreground">Invalid project.</p>
         <Link to="/projects" className="btn btn-primary">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to projects
+          Back to Hacks In Progress
         </Link>
       </div>
     );
@@ -223,7 +223,7 @@ export default function ProjectDetail() {
         <p className="text-muted-foreground">Project not found.</p>
         <Link to="/projects" className="btn btn-primary">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to projects
+          Back to Hacks In Progress
         </Link>
       </div>
     );
@@ -237,10 +237,10 @@ export default function ProjectDetail() {
         <Link
           to="/projects"
           className="btn btn-ghost btn-sm inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-          aria-label="Back to projects"
+          aria-label="Back to Hacks In Progress"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to projects
+          Back to Hacks In Progress
         </Link>
       </div>
 

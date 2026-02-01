@@ -57,7 +57,7 @@ export function WelcomeHero({
       aria-label="Welcome to HackDay Central"
       className="relative min-h-0 max-h-[35vh] overflow-x-hidden overflow-y-auto rounded-2xl bg-gradient-to-br from-indigo-600/90 via-indigo-700/85 to-cyan-700/90 p-4 text-white shadow-xl sm:p-5 md:p-6 [@media (max-height:400px)]:max-h-[50vh]"
     >
-      {/* Subtle grid + faint floating asset icons */}
+      {/* Subtle grid + faint floating hack icons */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.06]"
         aria-hidden
@@ -142,10 +142,10 @@ export function WelcomeHero({
               <Link
                 to="/library"
                 className="btn-hero-secondary inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center rounded-xl border-2 border-white/30 bg-white/10 px-4 py-2.5 text-sm font-medium backdrop-blur-sm transition-all hover:bg-white/20 hover:border-white/50 focus-visible:ring-2 focus-visible:ring-white/50"
-                aria-label="Copy your first asset — go to Library"
+                aria-label="Copy your first hack — go to Completed Hacks"
               >
                 <Copy className="mr-2 h-4 w-4" aria-hidden />
-                Copy Your First Asset
+                Copy Your First Hack
               </Link>
             </motion.div>
           )}
@@ -186,7 +186,7 @@ export function WelcomeHero({
   );
 }
 
-/** Faint floating asset icons (gentle float-in); hidden on narrow viewports to avoid overlap */
+/** Faint floating hack icons (gentle float-in); hidden on narrow viewports to avoid overlap */
 function FloatingAssetIcons() {
   return (
     <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block" aria-hidden>

@@ -25,6 +25,7 @@ function mapApiHackToItem(hack: {
   _creationTime: number;
   assetId?: string;
   storyId?: string;
+  assetType?: 'prompt' | 'skill' | 'app';
 }): FeaturedHackItem {
   return {
     type: hack.type,
@@ -38,6 +39,7 @@ function mapApiHackToItem(hack: {
     _creationTime: hack._creationTime,
     assetId: hack.assetId,
     storyId: hack.storyId,
+    assetType: hack.assetType,
   };
 }
 
@@ -109,6 +111,10 @@ function StarterCard({
   };
 
   const viewTo = hack.type === 'asset' && hack.assetId ? `/library?asset=${hack.assetId}` : '/library';
+  // Align with HackCard: show Copy only for story or asset (prompt/skill or missing assetType); app → View only
+  const showCopy =
+    hack.type === 'story' ||
+    (hack.type === 'asset' && (hack.assetType === undefined || hack.assetType === 'prompt' || hack.assetType === 'skill'));
 
   return (
     <motion.article
@@ -131,18 +137,20 @@ function StarterCard({
       <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold text-foreground">{hack.title}</h3>
       <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">{hack.blurb}</p>
       <div className="mt-auto flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="btn btn-primary btn-sm min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
-          aria-label={`Copy ${hack.title} to clipboard`}
-        >
-          <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-          Copy
-        </button>
+        {showCopy && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="btn btn-primary btn-sm min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
+            aria-label={`Copy ${hack.title} to clipboard`}
+          >
+            <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+            Copy
+          </button>
+        )}
         <Link
           to={viewTo}
-          className="btn btn-outline btn-sm min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0"
+          className={`btn btn-sm min-h-[44px] min-w-[44px] touch-manipulation sm:min-h-0 sm:min-w-0 ${showCopy ? 'btn-outline' : 'btn-primary'}`}
           aria-label={`View details for ${hack.title}`}
         >
           <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden />

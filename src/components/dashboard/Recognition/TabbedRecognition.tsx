@@ -51,7 +51,7 @@ export function TabbedRecognition({
     { id: 'activity', label: 'Recent Activity' },
     { id: 'contributors', label: 'Top Contributors' },
     { id: 'mentors', label: 'Top Mentors' },
-    { id: 'assets', label: 'Most Reused' },
+    { id: 'assets', label: 'Most Reused Hacks' },
   ];
 
   return (
@@ -100,7 +100,7 @@ export function TabbedRecognition({
                   <p className="text-sm text-muted-foreground">Loading…</p>
                 ) : recentActivity.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No recent activity. Add library assets or project activity to
+                    No recent activity. Add completed hacks or hacks in progress activity to
                     see contributions here.
                   </p>
                 ) : (
@@ -204,7 +204,7 @@ export function TabbedRecognition({
                 ) : mostReusedAssets.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No reuse events in the last 30 days. Record &quot;I used
-                    this&quot; on library assets to see them here.
+                    this&quot; on completed hacks to see them here.
                   </p>
                 ) : (
                   <ul className="space-y-2">

@@ -125,7 +125,7 @@ export const seedCapabilityTags = internalMutation({
 });
 
 /**
- * Seed AI Arsenal library assets
+ * Seed Featured Hacks library assets
  * Run this to populate initial high-quality AI assets
  */
 export const seedAIArsenal = internalMutation({
@@ -138,7 +138,7 @@ export const seedAIArsenal = internalMutation({
       .first();
     
     if (existing) {
-      console.log("AI Arsenal already seeded");
+      console.log("Featured Hacks already seeded");
       return { message: "Arsenal already exists" };
     }
 
@@ -166,6 +166,7 @@ export const seedAIArsenal = internalMutation({
       throw new Error("Failed to create system profile");
     }
 
+    // At least one of each type (prompt, skill, app) so dashboard featured and Library show full mix.
     const arsenalAssets = [
       // === PROMPTS ===
       {
@@ -1053,7 +1054,7 @@ Provide:
     }
 
     return { 
-      message: "Seeded AI Arsenal successfully", 
+      message: "Seeded Featured Hacks successfully", 
       count: arsenalAssets.length,
       ids: insertedIds,
     };

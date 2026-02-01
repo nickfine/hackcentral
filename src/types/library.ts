@@ -170,7 +170,7 @@ export interface VerificationFormData {
 }
 
 /**
- * AI Arsenal section data
+ * Featured Hacks section data
  */
 export interface AIArsenalSection {
   title: string

@@ -48,7 +48,7 @@ export function PersonalizedNudge({
         <div>
           <h3 className="mb-1 text-sm font-semibold">You&apos;re close to a badge!</h3>
           <p className="text-sm text-muted-foreground">
-            Your asset has been reused {assetReuseCount}×. Get {remaining} more
+            Your hack has been reused {assetReuseCount}×. Get {remaining} more
             reuse{remaining > 1 ? 's' : ''} to unlock the{' '}
             <span className="font-semibold text-primary">Reuser Magnet</span>{' '}
             badge.

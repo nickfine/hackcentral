@@ -1,6 +1,6 @@
 /**
  * Projects Page - Project Listings
- * Shows projects with AI assets and collaboration features
+ * Shows projects with AI hacks and collaboration features
  */
 
 import { useState } from 'react';
@@ -190,9 +190,9 @@ export default function Projects() {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Hacks In Progress</h1>
           <p className="text-muted-foreground mt-2">
-            Explore projects using AI to transform workflows
+            Explore hacks in progress using AI to transform workflows
           </p>
         </div>
         <button
@@ -211,7 +211,7 @@ export default function Projects() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder="Search hacks in progress..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input pl-10"
@@ -273,8 +273,8 @@ export default function Projects() {
       ) : projects.length === 0 ? (
         <EmptyState
           icon={<Plus />}
-          title="No projects yet"
-          description="Create your first project with AI assets"
+          title="No hacks in progress yet"
+          description="Create your first project with AI hacks"
           action={{
             label: 'New Project',
             icon: <Plus className="h-4 w-4" />,
@@ -297,7 +297,7 @@ export default function Projects() {
         return filteredProjects.length === 0 ? (
           <EmptyState
             icon={<Search />}
-            title="No projects match your filters"
+            title="No hacks in progress match your filters"
             description="Try adjusting your search, status, or type filter."
           />
         ) : (
@@ -408,7 +408,7 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
             </>
           )}
           <span className="text-muted-foreground">
-            {project.attachedAssetsCount} asset{project.attachedAssetsCount !== 1 ? 's' : ''}
+            {project.attachedAssetsCount} hack{project.attachedAssetsCount !== 1 ? 's' : ''}
           </span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
@@ -473,14 +473,14 @@ function ProjectPlaceholder({ status }: ProjectPlaceholderProps) {
       <div className="h-4 bg-muted rounded w-full mb-2" />
       <div className="h-4 bg-muted rounded w-2/3 mb-4" />
 
-      {/* AI assets indicator */}
+      {/* AI hacks indicator */}
       <div className="flex items-center gap-2 mb-3">
         <div className="flex -space-x-1">
           <div className="w-6 h-6 rounded bg-primary/20 border-2 border-background" />
           <div className="w-6 h-6 rounded bg-secondary/20 border-2 border-background" />
         </div>
         <span className="text-xs text-muted-foreground">
-          -- AI assets attached
+          -- AI hacks attached
         </span>
       </div>
 

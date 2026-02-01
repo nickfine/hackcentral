@@ -1,6 +1,6 @@
 /**
- * Library Page - Library & AI Arsenal
- * Shows reusable AI assets: prompts, skills, and apps
+ * Library Page - Completed Hacks & Featured Hacks
+ * Shows reusable AI hacks: prompts, skills, and apps
  */
 
 import { useState, useEffect } from 'react';
@@ -89,7 +89,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
       onSubmitSuccess(newAssetId);
     } catch (err) {
       console.error('Failed to submit asset:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to submit asset');
+      toast.error(err instanceof Error ? err.message : 'Failed to submit hack');
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +109,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
       >
         <div className="flex items-center justify-between mb-4">
           <h2 id="submit-asset-title" className="text-xl font-semibold">
-            Submit Asset
+            Submit Hack
           </h2>
           <button
             type="button"
@@ -144,7 +144,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="input w-full min-h-[80px]"
-              placeholder="Brief description of the asset"
+              placeholder="Brief description of the hack"
               rows={3}
             />
           </div>
@@ -245,7 +245,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
                     className="input w-full"
-                    placeholder="When to use this asset"
+                    placeholder="When to use this hack"
                   />
                 </div>
                 <div>
@@ -356,15 +356,15 @@ export default function Library() {
             {selectedAsset === undefined ? (
               <div className="py-8 text-center">
                 <h2 id="asset-detail-title" className="text-xl font-semibold mb-2">Loading...</h2>
-                <p className="text-muted-foreground">Loading asset details</p>
+                <p className="text-muted-foreground">Loading hack details</p>
               </div>
             ) : selectedAsset === null ? (
               <div className="space-y-4">
                 <h2 id="asset-detail-title" className="text-xl font-semibold">
-                  Asset not found
+                  Hack not found
                 </h2>
                 <p className="text-muted-foreground">
-                  This asset may be private or no longer available.
+                  This hack may be private or no longer available.
                 </p>
                 <button
                   type="button"
@@ -388,9 +388,9 @@ export default function Library() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Library</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Completed Hacks</h1>
           <p className="text-muted-foreground mt-2">
-            Reusable AI assets: prompts, skills, and apps. The <strong>AI Arsenal</strong> is curated; <strong>All Assets</strong> shows everything in the library.
+            Reusable AI hacks: prompts, skills, and apps. The <strong>Featured Hacks</strong> is curated; <strong>All Hacks</strong> shows everything in Completed Hacks.
           </p>
         </div>
         <button
@@ -399,7 +399,7 @@ export default function Library() {
           onClick={() => setSubmitModalOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Submit Asset
+          Submit Hack
         </button>
       </div>
 
@@ -410,7 +410,7 @@ export default function Library() {
           onSubmitSuccess={(newAssetId) => {
             setSubmitModalOpen(false);
             setSelectedAssetId(newAssetId);
-            toast.success('Asset submitted! It will appear as Draft.');
+            toast.success('Hack submitted! It will appear as Draft.');
           }}
           createAsset={createAsset}
         />
@@ -422,7 +422,7 @@ export default function Library() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search library..."
+            placeholder="Search Completed Hacks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input pl-10"
@@ -450,21 +450,21 @@ export default function Library() {
         </select>
       </div>
 
-      {/* AI Arsenal Section */}
+      {/* Featured Hacks Section */}
       <div className="card p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">AI Arsenal</h2>
+          <h2 className="text-xl font-semibold">Featured Hacks</h2>
           <span className="badge badge-secondary text-xs">Curated</span>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          High-trust, curated collection of proven AI assets
+          High-trust, curated collection of proven AI hacks
         </p>
         {arsenalAssets === undefined ? (
-          <div className="text-center py-8">Loading arsenal...</div>
+          <div className="text-center py-8">Loading featured hacks...</div>
         ) : arsenalAssets.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No arsenal assets yet. Run seedAIArsenal to populate.</p>
+            <p className="text-muted-foreground">No featured hacks yet. Run seedAIArsenal to populate.</p>
           </div>
         ) : (
           <>
@@ -494,12 +494,12 @@ export default function Library() {
         )}
       </div>
 
-      {/* Graduated assets (reuse threshold >= 10) */}
+      {/* Graduated hacks (reuse threshold >= 10) */}
       {graduatedAssets !== undefined && graduatedAssets.length > 0 && (
         <div className="card p-6 border-primary/20">
-          <h2 className="text-xl font-semibold mb-2">Graduated assets</h2>
+          <h2 className="text-xl font-semibold mb-2">Graduated hacks</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Assets with 10+ reuses — ready for template packs and playbooks.
+            Hacks with 10+ reuses — ready for template packs and playbooks.
           </p>
           <ul className="space-y-2">
             {graduatedAssets.slice(0, 8).map(({ assetId, title, reuseCount }) => (
@@ -518,10 +518,10 @@ export default function Library() {
         </div>
       )}
 
-      {/* All Assets */}
+      {/* All Hacks */}
       <div>
         <h2 className="text-xl font-semibold mb-4">
-          All Assets {allAssets && `(${allAssets.length})`}
+          All Hacks {allAssets && `(${allAssets.length})`}
         </h2>
         
         {allAssets === undefined ? (
@@ -553,11 +553,11 @@ export default function Library() {
           return sortedAssets.length === 0 ? (
             <EmptyState
               icon={<Search />}
-              title="No assets found"
+              title="No hacks found"
               description={
                 debouncedSearch || selectedType || selectedStatus
-                  ? 'No assets match your filters. Try adjusting your search or filters.'
-                  : "Be the first to contribute an AI asset!"
+                  ? 'No hacks match your filters. Try adjusting your search or filters.'
+                  : "Be the first to contribute an AI hack!"
               }
             />
           ) : (
@@ -600,7 +600,7 @@ function ArsenalCategory({ icon, title, count }: ArsenalCategoryProps) {
       </div>
       <div>
         <div className="font-medium">{title}</div>
-        <div className="text-sm text-muted-foreground">{count} assets</div>
+        <div className="text-sm text-muted-foreground">{count} hacks</div>
       </div>
     </div>
   )
@@ -694,7 +694,7 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
         assetId,
         attachmentType,
       });
-      toast.success('Asset attached to project!');
+      toast.success('Hack attached to project!');
       setAttachOpen(false);
       setSelectedProjectId('');
       setAttachmentType('attached');
@@ -711,7 +711,7 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
     setIsUpdatingStatus(true);
     try {
       await updateAsset({ assetId, status: newStatus });
-      toast.success(newStatus === 'verified' ? 'Asset marked as verified.' : newStatus === 'deprecated' ? 'Asset marked as deprecated.' : 'Asset reverted to draft.');
+      toast.success(newStatus === 'verified' ? 'Hack marked as verified.' : newStatus === 'deprecated' ? 'Hack marked as deprecated.' : 'Hack reverted to draft.');
     } catch (err) {
       console.error('Failed to update asset status:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update status.');
@@ -750,7 +750,7 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
             {asset.isArsenal && (
               <span className="badge badge-secondary text-xs flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                Arsenal
+                Featured Hacks
               </span>
             )}
           </div>
@@ -794,7 +794,7 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
         <div className="border-t pt-4">
           <h3 className="font-semibold text-sm mb-2">More like this</h3>
           {similarAssets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No other {asset.assetType.replace('_', ' ')}s in the library yet.</p>
+            <p className="text-sm text-muted-foreground">No other {asset.assetType.replace('_', ' ')}s in Completed Hacks yet.</p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {similarAssets.map((a) => (
@@ -861,7 +861,7 @@ function AssetDetailContent({ asset, assetId, onClose, onSelectAsset }: AssetDet
               value={quickReuseType}
               onChange={(e) => setQuickReuseType(e.target.value as AttachmentType)}
               className="input w-32 text-sm"
-              aria-label="How you used this asset"
+              aria-label="How you used this hack"
             >
               <option value="copied">Copied</option>
               <option value="referenced">Referenced</option>
@@ -1064,7 +1064,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
           {asset.isArsenal && (
             <span className="badge badge-secondary text-xs flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
-              Arsenal
+              Featured Hacks
             </span>
           )}
         </div>

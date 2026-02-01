@@ -217,7 +217,7 @@ export const experienceLevelLabels: Record<string, string> = {
   expert: 'AI Expert',
 }
 
-// Asset type display labels
+// Hack type display labels (library item types: prompt, skill, app)
 export const assetTypeLabels: Record<string, string> = {
   prompt: 'Prompt',
   skill: 'Skill',

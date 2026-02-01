@@ -57,11 +57,11 @@ export function Header() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="search"
-              placeholder="Search library and people..."
+              placeholder="Search Completed Hacks and people..."
               className="input pl-10 h-9 w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search library and people"
+              aria-label="Search Completed Hacks and people"
             />
           </div>
         </form>
@@ -251,10 +251,10 @@ function MobileNav({ onClose, onOpenFeedback }: MobileNavProps) {
             People
           </MobileNavLink>
           <MobileNavLink to="/library" onClick={onClose}>
-            Library
+            Completed Hacks
           </MobileNavLink>
           <MobileNavLink to="/projects" onClick={onClose}>
-            Projects
+            Hacks In Progress
           </MobileNavLink>
           <MobileNavLink to="/profile" onClick={onClose}>
             Profile

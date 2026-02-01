@@ -89,7 +89,7 @@ export default defineSchema({
       v.literal("org"),
       v.literal("public")
     ),
-    isArsenal: v.boolean(), // Curated AI Arsenal flag
+    isArsenal: v.boolean(), // Curated Featured Hacks flag
     isAnonymous: v.optional(v.boolean()), // Hide author in UI when true
   })
     .index("by_author", ["authorId"])

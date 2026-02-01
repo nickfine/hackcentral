@@ -62,7 +62,7 @@ export const list = query({
 });
 
 /**
- * Get AI Arsenal items (curated, verified assets)
+ * Get Featured Hacks items (curated, verified assets)
  */
 export const getArsenal = query({
   args: {},
@@ -149,7 +149,7 @@ export const listWithReuseCounts = query({
 });
 
 /**
- * Get AI Arsenal items with reuse counts. Same visibility as getArsenal.
+ * Get Featured Hacks items with reuse counts. Same visibility as getArsenal.
  */
 export const getArsenalWithReuseCounts = query({
   args: {},

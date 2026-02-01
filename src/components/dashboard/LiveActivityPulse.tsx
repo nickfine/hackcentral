@@ -16,7 +16,7 @@ export function LiveActivityPulse({ compact = false, className = '' }: LiveActiv
   const copy = (() => {
     if (pulse === undefined) return null;
     if (pulse.newAssetsThisWeek > 0)
-      return `${pulse.newAssetsThisWeek} new asset${pulse.newAssetsThisWeek !== 1 ? 's' : ''} this week`;
+      return `${pulse.newAssetsThisWeek} new hack${pulse.newAssetsThisWeek !== 1 ? 's' : ''} this week`;
     if (pulse.reusesLast24h > 0)
       return `${pulse.reusesLast24h} new reuse${pulse.reusesLast24h !== 1 ? 's' : ''} in last 24h`;
     if (pulse.weeklyActiveCount > 0)

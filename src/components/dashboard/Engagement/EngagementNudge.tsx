@@ -1,5 +1,5 @@
 /**
- * EngagementNudge - Personalized hook: "Hey [Name], X new team assets — copy one?"
+ * EngagementNudge - Personalized hook: "Hey [Name], X new team hacks — copy one?"
  * Uses profile fullName (first name) and activity pulse newAssetsThisWeek.
  */
 
@@ -34,10 +34,10 @@ export function EngagementNudge({
 
   const copy = showName
     ? count > 0
-      ? `Hey ${firstName}, ${count} new team asset${count !== 1 ? 's' : ''} — copy one?`
+      ? `Hey ${firstName}, ${count} new team hack${count !== 1 ? 's' : ''} — copy one?`
       : `Hey ${firstName}, copy a hack from your peers below.`
     : count > 0
-      ? `${count} new team asset${count !== 1 ? 's' : ''} this week — copy one?`
+      ? `${count} new team hack${count !== 1 ? 's' : ''} this week — copy one?`
       : null;
 
   if (!copy) return null;

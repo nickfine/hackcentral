@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Plus, Library, GraduationCap, PenLine, Upload, X } from 'lucide-react';
+import { Plus, Library, GraduationCap, Upload, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Action {
@@ -15,7 +15,7 @@ interface Action {
 const actions: Action[] = [
   {
     id: 'submit-asset',
-    label: 'Submit your first asset',
+    label: 'Submit your first hack',
     sublabel: 'AI-assisted form',
     icon: <Upload className="h-5 w-5" />,
     href: '/library?action=new',
@@ -31,27 +31,15 @@ const actions: Action[] = [
   },
   {
     id: 'browse-arsenal',
-    label: 'Browse Arsenal',
-    sublabel: 'Copy top asset',
+    label: 'Browse Featured Hacks',
+    sublabel: 'Copy top hack',
     icon: <Library className="h-5 w-5" />,
     href: '/library?filter=arsenal',
     color: 'from-emerald-500 to-teal-500',
   },
-  {
-    id: 'share-story',
-    label: 'Share your impact story',
-    sublabel: 'Inspire others',
-    icon: <PenLine className="h-5 w-5" />,
-    href: '#',
-    color: 'from-orange-500 to-red-500',
-  },
 ];
 
-interface QuickActionsPanelProps {
-  onShareStory: () => void;
-}
-
-export function QuickActionsPanel({ onShareStory }: QuickActionsPanelProps) {
+export function QuickActionsPanel() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -104,50 +92,26 @@ export function QuickActionsPanel({ onShareStory }: QuickActionsPanelProps) {
             </h3>
 
             <div className="space-y-2">
-              {actions.map((action) =>
-                action.id === 'share-story' ? (
-                  <button
-                    key={action.id}
-                    type="button"
-                    onClick={() => {
-                      onShareStory();
-                      setIsOpen(false);
-                    }}
-                    className="group flex w-full items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted"
+              {actions.map((action) => (
+                <Link
+                  key={action.id}
+                  to={action.href}
+                  onClick={() => setIsOpen(false)}
+                  className="group flex w-full items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted"
+                >
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-md transition-transform group-hover:scale-110`}
                   >
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-md transition-transform group-hover:scale-110`}
-                    >
-                      {action.icon}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium">{action.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {action.sublabel}
-                      </p>
-                    </div>
-                  </button>
-                ) : (
-                  <Link
-                    key={action.id}
-                    to={action.href}
-                    onClick={() => setIsOpen(false)}
-                    className="group flex w-full items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted"
-                  >
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-md transition-transform group-hover:scale-110`}
-                    >
-                      {action.icon}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium">{action.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {action.sublabel}
-                      </p>
-                    </div>
-                  </Link>
-                )
-              )}
+                    {action.icon}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">{action.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {action.sublabel}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </motion.div>
         )}

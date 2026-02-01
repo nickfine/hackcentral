@@ -7,8 +7,7 @@
  * 1. WelcomeHero — narrative "Copy a hack, use it, share yours", CTAs, maturity pill (~25–35vh)
  * 2. Optional combined nudge (Get started / Next step: add library, create project, share story)
  * 3. PersonalizedNudge (badges, next steps)
- * 4. EngagementNudge — "Hey [Name], X new team assets — copy one?"
- * 5. Community Hacks — FeaturedHacksShowcase (Starter badges, Live badge, carousel, WallOfThanksStrip)
+ * 4. Community Hacks — FeaturedHacksShowcase (Starter badges, carousel, WallOfThanksStrip)
  * 6. Your recognition (if authenticated) → Quick Actions
  *
  * Team pulse tab: Collective Progress card, Export, stat cards, Knowledge Distribution,
@@ -47,7 +46,7 @@ import {
   QuickActionsPanel,
   PersonalizedNudge,
   TabbedRecognition,
-  EngagementNudge,
+  WallOfThanksStrip,
 } from '../components/dashboard';
 
 export default function Dashboard() {
@@ -66,7 +65,6 @@ export default function Dashboard() {
   const frontlineLeaderGap = useQuery(api.metrics.getFrontlineLeaderGap);
   const profile = useQuery(api.profiles.getCurrentProfile);
   const userCounts = useQuery(api.profiles.getCurrentUserCounts);
-  const pulse = useQuery(api.metrics.getActivityPulse);
 
   const [dashboardTab, setDashboardTab] = useState<'hacks' | 'pulse'>('hacks');
   const [storyModalOpen, setStoryModalOpen] = useState(false);
@@ -145,8 +143,8 @@ export default function Dashboard() {
     metrics !== undefined ? String(metrics.projectsWithAiCount) : '--';
   const projectsWithAiDesc =
     metrics !== undefined && metrics.projectsWithAiPercentage !== undefined
-      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI assets`
-      : 'Projects using AI assets';
+      ? `${metrics.projectsWithAiPercentage.toFixed(1)}% of projects using AI hacks`
+      : 'Projects using AI hacks';
 
   const libraryAssetValue =
     metrics !== undefined ? String(metrics.libraryAssetCount) : '--';
@@ -333,7 +331,7 @@ export default function Dashboard() {
                   htmlFor="story-asset"
                   className="mb-1 block text-sm font-medium"
                 >
-                  Link to library asset (optional)
+                  Link to Completed Hacks hack (optional)
                 </label>
                 <select
                   id="story-asset"
@@ -400,7 +398,6 @@ export default function Dashboard() {
         <>
           <WelcomeHero
             onScrollToHacks={scrollToCommunityHacks}
-            onShareStory={() => setStoryModalOpen(true)}
             currentProgress={maturityWidth}
             currentStageName={currentStage?.name}
             nextMilestoneCopy={nextMilestoneCopy}
@@ -417,16 +414,16 @@ export default function Dashboard() {
                     <>
                       <h2 className="mb-1 text-base font-semibold">Get started</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        New to HackDay Central? Copy a hack from the Library or create your first project.
+                        New to HackDay Central? Copy a hack from Completed Hacks or create your first hack in progress.
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <Link to="/library" className="btn btn-primary btn-sm">
                           <Library className="mr-2 h-4 w-4" />
-                          Explore Library
+                          Explore Completed Hacks
                         </Link>
                         <Link to="/projects" className="btn btn-outline btn-sm">
                           <Activity className="mr-2 h-4 w-4" />
-                          View Projects
+                          View Hacks In Progress
                         </Link>
                         <Link to="/profile" className="btn btn-ghost btn-sm">
                           <User className="mr-2 h-4 w-4" />
@@ -444,18 +441,18 @@ export default function Dashboard() {
                     <>
                       <h2 className="mb-1 text-base font-semibold">Next step</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        You have projects but no library assets yet. Add a hack from the Library to your project.
+                        You have hacks in progress but no completed hacks yet. Add a hack from Completed Hacks to your project.
                       </p>
                       <Link to="/library" className="btn btn-primary btn-sm">
                         <Library className="mr-2 h-4 w-4" />
-                        Explore Library
+                        Explore Completed Hacks
                       </Link>
                     </>
                   ) : nudgeCreateProject ? (
                     <>
                       <h2 className="mb-1 text-base font-semibold">Next step</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        You&apos;ve added library assets. Create a project to track your work and attach assets.
+                        You&apos;ve added completed hacks. Create a hack in progress to track your work and attach hacks.
                       </p>
                       <Link to="/projects" className="btn btn-primary btn-sm">
                         <Activity className="mr-2 h-4 w-4" />
@@ -466,16 +463,22 @@ export default function Dashboard() {
                     <>
                       <h2 className="mb-1 text-base font-semibold">Next step</h2>
                       <p className="mb-3 text-sm text-muted-foreground">
-                        Share how AI helped your work — it inspires others and surfaces on the Dashboard.
+                        You&apos;re all set. Explore Completed Hacks or check Team pulse for metrics.
                       </p>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => setStoryModalOpen(true)}
-                      >
-                        <PenLine className="mr-2 h-4 w-4" />
-                        Share your story
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <Link to="/library" className="btn btn-primary btn-sm">
+                          <Library className="mr-2 h-4 w-4" />
+                          Explore Completed Hacks
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setDashboardTab('pulse')}
+                        >
+                          <Activity className="mr-2 h-4 w-4" />
+                          Team pulse
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -491,32 +494,33 @@ export default function Dashboard() {
             />
           )}
 
-          <EngagementNudge
-            displayName={profile?.fullName}
-            newAssetsCount={pulse?.newAssetsThisWeek ?? 0}
-            onScrollToHacks={scrollToCommunityHacks}
-          />
-
           <div id="community-hacks" className="scroll-mt-6">
             <FeaturedHacksShowcase
-              onShareStory={() => setStoryModalOpen(true)}
               onCopySuccess={handleFirstCopySuccess}
               starterCount={4}
             />
           </div>
 
-          {isAuthenticated && (
-            <div className="card p-6">
+          {/* Two pods: Wall of Thanks (quotes) + Your recognition — uniform height */}
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:items-stretch">
+            <div className="min-w-0 h-full">
+              <WallOfThanksStrip />
+            </div>
+            <div className="card min-w-0 p-6">
               <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
                 <Award className="h-5 w-5 text-muted-foreground" />
                 Your recognition
               </h2>
-              {derivedBadges === undefined ? (
+              {!isAuthenticated ? (
+                <p className="text-sm text-muted-foreground">
+                  Sign in to see your recognition and badges.
+                </p>
+              ) : derivedBadges === undefined ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
               ) : derivedBadges.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Complete mentor sessions, verify library assets, or get reuses on
-                  your assets to earn badges.
+                  Complete mentor sessions, verify completed hacks, or get reuses on
+                  your hacks to earn badges.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -538,9 +542,9 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          )}
+          </div>
 
-          <QuickActionsPanel onShareStory={() => setStoryModalOpen(true)} />
+          <QuickActionsPanel />
         </>
       )}
 
@@ -603,9 +607,9 @@ export default function Dashboard() {
               microStory={projectsWithAiMicroStory}
             />
             <EnhancedMetricCard
-              title="Library Assets"
+              title="Completed Hacks"
               value={libraryAssetValue}
-              description="Reusable AI assets"
+              description="Reusable AI hacks"
               icon={<Library className="h-5 w-5 text-muted-foreground" />}
               microStory={topAssetMicroStory}
             />

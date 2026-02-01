@@ -160,7 +160,7 @@ Vercel will automatically:
 ### AI Maturity Dashboard
 Visualizes org-wide AI maturity progress using a staged behavioral model (Experimenting → Repeating → Scaling → Transforming).
 
-### Library & AI Arsenal
+### Completed Hacks & Featured Hacks
 Repository of reusable AI assets (prompts, skills, and apps) with quality gates (Draft → Verified → Deprecated).
 
 ### People Module

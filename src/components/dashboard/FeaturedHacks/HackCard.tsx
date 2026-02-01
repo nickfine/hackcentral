@@ -15,6 +15,7 @@ export interface FeaturedHackItem {
   _creationTime: number;
   assetId?: string;
   storyId?: string;
+  assetType?: 'prompt' | 'skill' | 'app';
 }
 
 interface HackCardProps {
@@ -55,6 +56,10 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
     ? `/library?asset=${hack.assetId}`
     : '/library';
 
+  // Show Copy for stories, and for assets that are prompt/skill (or when assetType missing for backwards compatibility)
+  const showCopy =
+    hack.type === 'story' ||
+    (hack.type === 'asset' && (hack.assetType === undefined || hack.assetType === 'prompt' || hack.assetType === 'skill'));
   const copyLabel =
     hack.type === 'asset'
       ? `Copy ${hack.title} to clipboard`
@@ -67,7 +72,7 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={shouldReduceMotion ? undefined : { y: -4, scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className={`group relative flex min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg md:min-w-[280px] md:max-w-[320px] ${
+      className={`group relative flex h-full min-w-0 shrink-0 snap-start flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg md:min-w-[280px] md:max-w-[320px] ${
         hack.isRisingStar
           ? 'hover:shadow-secondary/30 hover:ring-2 hover:ring-secondary/20'
           : 'hover:shadow-primary/20'
@@ -105,9 +110,11 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
       <h3 className="mb-2 min-w-0 line-clamp-2 break-words text-base font-semibold text-foreground">
         {hack.title}
       </h3>
-      <p className="mb-4 min-w-0 line-clamp-3 break-words text-sm text-muted-foreground">{hack.blurb}</p>
+      <div className="min-h-0 flex-1">
+        <p className="line-clamp-3 break-words text-sm text-muted-foreground">{hack.blurb}</p>
+      </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div className="mb-4 mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <User className="h-3.5 w-3" aria-hidden />
           {hack.authorName}
@@ -120,18 +127,20 @@ export function HackCard({ hack, onCopySuccess, isStarter }: HackCardProps) {
       </div>
 
       <div className="mt-auto flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="btn btn-primary btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
-          aria-label={copyLabel}
-        >
-          <Copy className="h-4 w-4 shrink-0" aria-hidden />
-          Copy {hack.type === 'asset' ? 'Asset' : 'Story'}
-        </button>
+        {showCopy && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="btn btn-primary btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
+            aria-label={copyLabel}
+          >
+            <Copy className="h-4 w-4 shrink-0" aria-hidden />
+            Copy {hack.type === 'asset' ? 'Hack' : 'Story'}
+          </button>
+        )}
         <Link
           to={viewDetailsTo}
-          className="btn btn-outline btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0"
+          className={`btn btn-sm inline-flex min-h-[44px] min-w-[44px] items-center gap-2 md:min-h-0 md:min-w-0 ${showCopy ? 'btn-outline' : 'btn-primary'}`}
           aria-label={viewLabel}
         >
           <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />

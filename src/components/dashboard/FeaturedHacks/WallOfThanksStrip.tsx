@@ -24,14 +24,14 @@ export function WallOfThanksStrip() {
 
   return (
     <div
-      className="rounded-lg border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/80 px-4 py-3 dark:border-amber-800/40 dark:from-amber-950/20 dark:to-orange-950/20"
+      className="flex h-full min-h-[140px] flex-col rounded-lg border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/80 px-4 py-3 dark:border-amber-800/40 dark:from-amber-950/20 dark:to-orange-950/20"
       role="region"
       aria-live="polite"
       aria-label="Wall of thanks"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-1 flex-col justify-center gap-3">
         <Quote
-          className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+          className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
           aria-hidden
         />
         <div className="min-h-[2.5rem] min-w-0 flex-1">
