@@ -209,10 +209,18 @@ export default function Projects() {
 
       {/* Status Tabs */}
       <div className="flex gap-2 border-b">
-        <TabButton active>All</TabButton>
-        <TabButton>Ideas</TabButton>
-        <TabButton>Building</TabButton>
-        <TabButton>Completed</TabButton>
+        <TabButton active={statusFilter === ''} onClick={() => setStatusFilter('')}>
+          All
+        </TabButton>
+        <TabButton active={statusFilter === 'idea'} onClick={() => setStatusFilter('idea')}>
+          Ideas
+        </TabButton>
+        <TabButton active={statusFilter === 'building'} onClick={() => setStatusFilter('building')}>
+          Building
+        </TabButton>
+        <TabButton active={statusFilter === 'completed'} onClick={() => setStatusFilter('completed')}>
+          Completed
+        </TabButton>
       </div>
 
       {/* Projects Grid */}
