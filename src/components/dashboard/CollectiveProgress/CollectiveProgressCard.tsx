@@ -7,7 +7,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Rocket, Zap, TrendingUp, Sparkles } from 'lucide-react';
-import { SectionHeader } from '@/components/shared/SectionHeader';
+import { SectionHeader } from '@/components/shared';
 
 interface Stage {
   name: string;
@@ -59,6 +59,7 @@ export function CollectiveProgressCard({
     >
       <div className="mb-4 space-y-4">
         <SectionHeader
+          variant="section"
           title="Our Collective Progress"
           titleId="collective-progress-heading"
           description={description}

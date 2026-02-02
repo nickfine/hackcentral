@@ -29,19 +29,13 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '@/hooks/useAuth';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
-import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import { HACK_TYPE_BADGE_COLORS, HACK_TYPE_LABELS_SINGULAR } from '@/constants/project';
 import type { SourceRepo } from '@/components/shared/RepoLink';
 import { CopyFeedbackToast } from '@/components/shared/CopyFeedbackToast';
 import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
 import { PromptWithVariables } from './PromptWithVariables';
 
 type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
-
-const ASSET_TYPE_LABELS: Record<string, string> = {
-  prompt: 'Prompt',
-  skill: 'Skill',
-  app: 'App',
-};
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   prompt: <FileText className="h-4 w-4" />,
@@ -257,7 +251,7 @@ export function AssetDetailContent({
     verified: 'badge-verified',
     deprecated: 'badge-deprecated',
   };
-  const typeLabel = ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType.replace('_', ' ');
+  const typeLabel = HACK_TYPE_LABELS_SINGULAR[asset.assetType] ?? asset.assetType.replace('_', ' ');
 
   return (
     <div className="space-y-6">
@@ -760,7 +754,7 @@ function SimilarHackCard({
   };
   onSelect: () => void;
 }) {
-  const typeLabel = ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType.replace('_', ' ');
+  const typeLabel = HACK_TYPE_LABELS_SINGULAR[asset.assetType] ?? asset.assetType.replace('_', ' ');
   const typeIcon = TYPE_ICONS[asset.assetType] ?? <FileText className="h-4 w-4" />;
 
   return (

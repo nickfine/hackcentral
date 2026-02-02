@@ -24,6 +24,7 @@ export default function Notifications() {
         </Link>
       </div>
       <SectionHeader
+        variant="page"
         title="Notifications"
         description="Mentor request updates and other activity."
       />

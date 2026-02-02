@@ -48,6 +48,7 @@ export default function Hacks() {
     <div className="min-w-0 space-y-6">
       <div className="space-y-4">
         <SectionHeader
+          variant="page"
           title="Our Hacks"
           action={{
             label: activeTab === 'completed' ? 'Submit Hack' : 'New Project',

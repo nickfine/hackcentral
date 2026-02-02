@@ -111,6 +111,7 @@ export default function TeamPulse() {
   return (
     <div className="min-w-0 space-y-6">
       <SectionHeader
+        variant="page"
         title="Team Pulse"
         action={{
           label: 'Export metrics',

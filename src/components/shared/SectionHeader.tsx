@@ -20,7 +20,15 @@ export interface SectionHeaderProps {
   titleSuffix?: React.ReactNode;
   action?: SectionHeaderAction;
   className?: string;
+  /** 'page' = larger page title; 'section' = smaller section title; omit = default size */
+  variant?: 'page' | 'section';
 }
+
+const TITLE_CLASSES: Record<string, string> = {
+  page: 'text-3xl md:text-4xl font-bold tracking-tight',
+  section: 'text-xl font-semibold tracking-tight',
+  default: 'text-2xl md:text-3xl font-bold tracking-tight',
+};
 
 export function SectionHeader({
   title,
@@ -29,6 +37,7 @@ export function SectionHeader({
   titleSuffix,
   action,
   className = '',
+  variant,
 }: SectionHeaderProps) {
   const sizeClass = action?.size === 'sm' ? 'btn-sm' : 'btn-md';
   const btnClass =
@@ -38,11 +47,13 @@ export function SectionHeader({
         ? `btn btn-ghost ${sizeClass}`
         : `btn btn-primary ${sizeClass}`;
 
+  const titleClass = TITLE_CLASSES[variant ?? 'default'];
+
   return (
     <div className={`flex items-start justify-between gap-4 mb-6 ${className}`}>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 id={titleId} className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h1>
+          <h1 id={titleId} className={titleClass}>{title}</h1>
           {titleSuffix != null && titleSuffix}
         </div>
         {description != null && description !== '' && (

@@ -149,6 +149,7 @@ export default function Profile() {
   return (
     <div className="space-y-6 md:space-y-8">
       <SectionHeader
+        variant="page"
         title="My Profile"
         description="View and manage your contributions, account, and settings"
       />

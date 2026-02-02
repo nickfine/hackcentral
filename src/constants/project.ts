@@ -19,11 +19,18 @@ export const PROJECT_STATUS_BADGE_COLORS: Record<string, string> = {
   archived: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
-/** Hack type (project category) labels for display. */
+/** Hack type (project category) labels for display (plural). */
 export const HACK_TYPE_LABELS: Record<string, string> = {
   prompt: 'Prompts',
   skill: 'Skills',
   app: 'Apps',
+};
+
+/** Hack type labels singular (e.g. for asset cards, search results). */
+export const HACK_TYPE_LABELS_SINGULAR: Record<string, string> = {
+  prompt: 'Prompt',
+  skill: 'Skill',
+  app: 'App',
 };
 
 /** Hack types for dropdowns (value + label). */

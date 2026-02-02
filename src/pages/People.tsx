@@ -1,6 +1,6 @@
 /**
- * People Page - People Directory
- * Shows profiles, HackCentral Helpers, and enables mentor matching
+ * Team Up Page - Team Directory & Bulletin Board
+ * Shows HackCentral Helpers, Hackers, bulletin board for help requests, and enables mentor matching
  */
 
 import { useState, useEffect } from 'react';
@@ -15,6 +15,7 @@ import { getInitials } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid, PersonCard } from '@/components/shared';
 import type { PersonCardProfile } from '@/components/shared';
+import { BulletinBoard } from '@/components/team/BulletinBoard';
 
 type MentorFilter = 'all' | 'available' | 'seeking';
 
@@ -86,8 +87,9 @@ export default function People() {
         />
       )}
       <SectionHeader
-        title="People"
-        description="Find HackCentral Helpers and mentors in your organization"
+        variant="page"
+        title="Team Up"
+        description="Connect with HackCentral Helpers, find teammates, and get help"
         action={{
           label: 'Get Paired with Mentor',
           icon: <UserPlus className="h-4 w-4" />,
@@ -107,6 +109,16 @@ export default function People() {
           onCreate={createMentorRequest}
         />
       )}
+
+      {/* Bulletin Board Section */}
+      <div>
+        <SectionHeader
+          variant="section"
+          title="Bulletin Board"
+          description="Ask for help or offer to help others"
+        />
+        <BulletinBoard />
+      </div>
 
       {/* Search and Filters */}
       <div className="flex gap-4 flex-wrap">
@@ -163,6 +175,7 @@ export default function People() {
             return aiHelpers.length > 0 ? (
               <div>
                 <SectionHeader
+                  variant="section"
                   title="HackCentral Helpers"
                   titleSuffix={<span className="badge badge-outline text-sm">({aiHelpers.length})</span>}
                 />
@@ -212,6 +225,7 @@ export default function People() {
               return (
                 <>
                   <SectionHeader
+                    variant="section"
                     title={sectionTitle}
                     titleSuffix={<span className="badge badge-outline text-sm">({filteredProfiles.length})</span>}
                   />

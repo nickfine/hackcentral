@@ -224,6 +224,7 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
       {!embedded && (
         <>
           <SectionHeader
+            variant="page"
             title="Hacks In Progress"
             description="Explore hacks in progress using AI to transform workflows"
             action={{

@@ -22,6 +22,7 @@ export default function ProfileAccount() {
         </Link>
       </div>
       <SectionHeader
+        variant="page"
         title="Account"
         description="Manage your account, security, and preferences."
       />

@@ -426,6 +426,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
       {!embedded && (
         <>
           <SectionHeader
+            variant="page"
             title="Completed Hacks"
             description="Reusable AI hacks: prompts, skills, and apps. The Featured Hacks is curated; All Hacks shows everything in Completed Hacks."
             action={{

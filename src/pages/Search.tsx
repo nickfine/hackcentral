@@ -9,12 +9,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { getInitials, stripSeedDescriptionSuffix } from '@/lib/utils';
 import { SectionHeader, EmptyState, SkeletonCard } from '@/components/shared';
-
-const ASSET_TYPE_LABELS: Record<string, string> = {
-  prompt: 'Prompt',
-  skill: 'Skill',
-  app: 'App',
-};
+import { HACK_TYPE_LABELS_SINGULAR } from '@/constants/project';
 
 function matchAsset(query: string, asset: { title: string; description?: string; assetType: string; metadata?: unknown }): boolean {
   if (!query.trim()) return true;
@@ -54,6 +49,7 @@ export default function Search() {
   return (
     <div className="min-w-0 space-y-6">
       <SectionHeader
+        variant="page"
         title="Search"
         description={q ? `Results for "${q}"` : 'Enter a search term above to find completed hacks and people.'}
       />
@@ -89,7 +85,7 @@ export default function Search() {
                     >
                       <span className="font-medium">{asset.title}</span>
                       <span className="text-muted-foreground text-sm ml-2">
-                        {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
+                        {HACK_TYPE_LABELS_SINGULAR[asset.assetType] ?? asset.assetType}
                       </span>
                       {asset.description && (
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{stripSeedDescriptionSuffix(asset.description)}</p>

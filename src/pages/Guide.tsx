@@ -20,6 +20,7 @@ export default function Guide() {
       </div>
 
       <SectionHeader
+        variant="page"
         title="AI 101 micro-guide"
         description="A short intro to AI hacks and how to use HackDay Central."
       />

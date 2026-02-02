@@ -11,6 +11,7 @@ export default function Onboarding() {
   return (
     <div className="min-w-0 space-y-6">
       <SectionHeader
+        variant="page"
         title="Get started"
         description="Choose a path to start using AI hacks in your work."
       />

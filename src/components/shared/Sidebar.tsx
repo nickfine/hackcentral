@@ -26,7 +26,7 @@ const navItems = [
   },
   {
     to: '/people',
-    label: 'People',
+    label: 'Team Up',
     icon: Users,
   },
   {

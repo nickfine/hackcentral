@@ -354,4 +354,31 @@ export default defineSchema({
     .index("by_asset", ["assetId"])
     .index("by_project", ["projectId"])
     .index("by_featured", ["featured"]),
+
+  // ============================================================================
+  // HELP REQUESTS (Bulletin Board)
+  // ============================================================================
+  helpRequests: defineTable({
+    authorId: v.id("profiles"),
+    title: v.string(),
+    description: v.string(),
+    // Category: 'technical' | 'guidance' | 'collaboration' | 'other'
+    category: v.optional(
+      v.union(
+        v.literal("technical"),
+        v.literal("guidance"),
+        v.literal("collaboration"),
+        v.literal("other")
+      )
+    ),
+    // Status: 'open' | 'resolved'
+    status: v.union(
+      v.literal("open"),
+      v.literal("resolved")
+    ),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_author", ["authorId"])
+    .index("by_status", ["status"])
+    .index("by_category", ["category"]),
 });
