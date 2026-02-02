@@ -421,86 +421,86 @@ Bug report:
         isArsenal: true,
       },
 
-      // === AGENT BLUEPRINTS ===
+      // === APPS ===
       {
-        title: "Customer Support Triage Agent",
-        description: "Agent blueprint for automatically triaging and categorizing customer support requests.",
+        title: "Customer Support Triage",
+        description: "AI-powered triage for customer support tickets.",
         assetType: "app" as const,
         content: {
-          agentType: "Classifier",
-          systemPrompt: `You are a customer support triage agent. Analyze support requests and output:
-
-{
-  "category": "technical|billing|feature_request|bug_report|other",
-  "priority": "critical|high|medium|low",
-  "sentiment": "angry|frustrated|neutral|satisfied",
-  "suggestedTeam": "engineering|billing|product|support",
-  "confidenceScore": 0.0-1.0,
-  "reasoning": "Brief explanation"
-}`,
-          inputFormat: "Raw support ticket text",
-          outputFormat: "JSON object with classification",
-          safeguards: [
-            "Always include confidence score",
-            "Escalate to human if confidence < 0.7",
-            "Flag sensitive information (passwords, credit cards)",
+          overview: {
+            paragraphs: [
+              "Customer Support Triage helps support teams automatically route and prioritize incoming tickets. The app uses AI to classify each ticket by type, urgency, and sentiment, so the right team can respond quickly.",
+              "Built for high-volume support environments, it integrates with Jira, Zendesk, and other ticketing systems. Human reviewers always have final say—the app suggests, not auto-closes.",
+            ],
+            bullets: [
+              "Classifies tickets as technical, billing, feature request, or bug report",
+              "Suggests priority and routing to the right team",
+              "Flags low-confidence items for human review",
+              "Integrates with Jira, Zendesk, and similar tools",
+            ],
+          },
+          screenshots: [
+            "https://placehold.co/600x400?text=Support+Dashboard",
+            "https://placehold.co/600x400?text=Ticket+Classification",
           ],
+          description:
+            "Automatically triages and routes customer support tickets by category, priority, and sentiment. Classifies tickets as technical, billing, feature requests, or bug reports and suggests the right team. Integrates with Jira, Zendesk, and other ticketing systems.",
         },
         metadata: {
           intendedUser: "Support Team Leads, Operations",
           context: "Use for automatic ticket routing and prioritization",
           limitations: "Requires training on your specific categories; may misclassify edge cases",
           riskNotes: "Don't auto-close tickets - always human-in-loop for final decisions",
-          exampleInput: "User email: 'The app keeps crashing when I try to export my data!'",
-          exampleOutput: "{ category: 'bug_report', priority: 'high', suggestedTeam: 'engineering' }",
         },
         status: "verified" as const,
         authorId: systemProfile._id,
         visibility: "org" as const,
         isArsenal: true,
+        sourceRepo: {
+          url: "https://github.com/example/support-triage-app",
+          platform: "github" as const,
+        },
+        demoUrl: "https://support-triage-demo.vercel.app",
       },
       {
-        title: "Content Moderation Agent",
-        description: "Agent for flagging inappropriate content with severity levels and reasoning.",
+        title: "Content Moderation App",
+        description: "Flags inappropriate user-generated content with severity levels.",
         assetType: "app" as const,
         content: {
-          agentType: "Content Moderator",
-          systemPrompt: `Analyze content for:
-- Hate speech or harassment
-- Spam or promotional content
-- Profanity (context-appropriate assessment)
-- Personal information exposure (PII)
-- Off-topic content
-
-Output:
-{
-  "flagged": true/false,
-  "severity": "none|low|medium|high|critical",
-  "violations": ["violation_type"],
-  "reasoning": "Why flagged",
-  "suggestedAction": "none|warn_user|hide_content|ban_user"
-}`,
-          inputFormat: "User-generated content (text, comment, post)",
-          outputFormat: "JSON with moderation decision",
-          safeguards: [
-            "Always provide reasoning",
-            "Distinguish between profanity and hate speech",
-            "Consider cultural context",
-            "Human review for ban decisions",
+          overview: {
+            paragraphs: [
+              "Content Moderation App helps community and operations teams keep user-generated content safe. It flags inappropriate material with severity levels and reasoning, so moderators can act quickly on the most critical issues.",
+              "Designed for comments, forums, and social features, the app distinguishes between profanity and hate speech, considers context, and always recommends human review before banning users.",
+            ],
+            bullets: [
+              "Detects hate speech, harassment, spam, and PII exposure",
+              "Outputs severity levels and suggested actions (warn, hide, escalate)",
+              "Provides reasoning for each flag to support moderator decisions",
+              "Human review required before bans—never auto-moderation for high stakes",
+            ],
+          },
+          screenshots: [
+            "https://placehold.co/600x400?text=Moderation+Dashboard",
+            "https://placehold.co/600x400?text=Flagged+Content+Review",
           ],
+          description:
+            "AI-powered content moderation for user-generated content. Detects hate speech, harassment, spam, profanity, PII exposure, and off-topic content. Outputs severity levels, violation types, and suggested actions (warn, hide, escalate). Built for comments, forums, and UGC platforms.",
         },
         metadata: {
           intendedUser: "Community Managers, Operations, Content Teams",
           context: "Use for UGC platforms, comments, forums",
           limitations: "Context-dependent; may flag false positives (sarcasm, quotes)",
           riskNotes: "CRITICAL: Human review required before banning users",
-          exampleInput: "User comment on internal forum",
-          exampleOutput: "Flagged status with severity and suggested action",
         },
         status: "verified" as const,
         authorId: systemProfile._id,
         visibility: "org" as const,
         isArsenal: true,
+        sourceRepo: {
+          url: "https://github.com/example/content-moderation-app",
+          platform: "github" as const,
+        },
+        demoUrl: "https://content-moderation-demo.vercel.app",
       },
 
       // === GUARDRAILS ===
@@ -1166,6 +1166,201 @@ export const seedDemoHacks = internalMutation({
       "Forge macro: Confluence status dashboard",
       "Status Report App",
     ];
+
+    // Type-appropriate content per asset (indices 0–11)
+    const getDemoContent = (
+      index: number,
+      _title: string,
+      assetType: string
+    ): {
+      content: Record<string, unknown>;
+      sourceRepo?: { url: string; platform: "github" | "gitlab" | "bitbucket" };
+      demoUrl?: string;
+    } => {
+      if (assetType === "prompt") {
+        const prompts: Record<number, { prompt: string; usage?: string }> = {
+          0: {
+            prompt: `Generate a clear, structured Jira issue description for the following: [DESCRIBE FEATURE/BUG]
+
+Include:
+- Summary (one sentence)
+- Context and background
+- Acceptance criteria (bullet list)
+- Definition of done
+- Any relevant links or references`,
+            usage: "Replace [DESCRIBE FEATURE/BUG] with your feature or bug description.",
+          },
+          3: {
+            prompt: `Write a PR (Pull Request) description for this change: [PASTE DIFF OR SUMMARIZE CHANGES]
+
+Include:
+- What changed and why
+- Screenshots or before/after if UI changed
+- Testing steps
+- Breaking changes (if any)`,
+            usage: "Paste the diff or summarize the changes in the placeholder.",
+          },
+          6: {
+            prompt: `Help refine this Jira backlog item for sprint planning: [BACKLOG ITEM TEXT]
+
+Refine into:
+- Clear user story format
+- Acceptance criteria
+- Story points estimate rationale
+- Dependencies and blockers`,
+            usage: "Replace with the raw backlog item text.",
+          },
+          9: {
+            prompt: `Generate an onboarding checklist for: [ROLE/DEPARTMENT]
+
+Include:
+- First-day setup tasks
+- Access and permissions to request
+- Key systems and docs to review
+- 30/60/90 day milestones
+- Key contacts and escalation paths`,
+            usage: "Replace with the role or department name.",
+          },
+        };
+        return { content: prompts[index] ?? { prompt: "Demo prompt content.", usage: "" } };
+      }
+      if (assetType === "skill") {
+        const skills: Record<number, Record<string, unknown>> = {
+          1: {
+            template: {
+              sections: ["What went well", "What to improve", "Action items", "Kudos"],
+              format: "bullets",
+              maxItemsPerSection: 5,
+            },
+            usage: "Use in sprint retrospectives to structure feedback.",
+          },
+          4: {
+            configSchema: {
+              fieldName: "string",
+              validatorType: "regex|enum|range",
+              rules: "object",
+            },
+            description: "Forge app that validates Jira custom field values against configurable rules.",
+          },
+          7: {
+            guardrailConfig: {
+              categories: ["safety", "pii", "pii_redaction", "hallucination"],
+              thresholds: { safety: 0.9, hallucination: 0.85 },
+            },
+            description: "Guardrail configuration for AI responses.",
+          },
+          10: {
+            macroConfig: {
+              type: "status_dashboard",
+              sources: ["jira", "confluence"],
+              refreshInterval: 300,
+            },
+            description: "Confluence macro for status dashboard from Jira and Confluence data.",
+          },
+        };
+        return { content: skills[index] ?? { template: {}, description: "Demo skill." } };
+      }
+      if (assetType === "app") {
+        const appContent: Record<
+          number,
+          {
+            overview?: { paragraphs: string[]; bullets: string[] };
+            screenshots: string[];
+            description: string;
+          }
+        > = {
+          2: {
+            overview: {
+              paragraphs: [
+                "Confluence release notes template helps teams produce consistent, well-formatted release documentation. It pulls data from Jira versions and Confluence pages so you spend less time copy-pasting and more time on delivery.",
+                "Use it for sprint releases, product launches, or any milestone that needs clear communication.",
+              ],
+              bullets: [
+                "Syncs with Jira versions and Confluence pages",
+                "Consistent formatting across releases",
+                "Reduces manual copy-paste and errors",
+              ],
+            },
+            screenshots: [
+              "https://placehold.co/600x400?text=Release+Notes+View",
+              "https://placehold.co/600x400?text=Template+Editor",
+            ],
+            description:
+              "Confluence-based template for generating consistent release notes. Syncs with Jira versions and Confluence pages to produce formatted release documentation.",
+          },
+          5: {
+            overview: {
+              paragraphs: [
+                "Meeting Notes App turns raw transcripts and notes into actionable outcomes. It extracts decisions, action items, and owners so nothing falls through the cracks after a meeting.",
+                "Export directly to Jira or Confluence to keep your backlog and docs in sync.",
+              ],
+              bullets: [
+                "Extracts action items, decisions, and key discussion points",
+                "Assigns owners and due dates",
+                "Exports to Jira and Confluence",
+              ],
+            },
+            screenshots: [
+              "https://placehold.co/600x400?text=Meeting+Notes+Dashboard",
+              "https://placehold.co/600x400?text=Export+to+Jira",
+            ],
+            description:
+              "App that turns meeting notes into structured action items and Jira tickets. Integrates with Confluence meeting pages and Jira project creation.",
+          },
+          8: {
+            overview: {
+              paragraphs: [
+                "Confluence AI content reviewer helps writers improve documentation before it ships. It suggests edits for clarity, tone, and accessibility so your docs are easier to read and use.",
+                "Designed for technical writers and product teams who want consistent, high-quality Confluence pages.",
+              ],
+              bullets: [
+                "Suggests clarity and tone improvements",
+                "Flags accessibility issues",
+                "Works inline in Confluence pages",
+              ],
+            },
+            screenshots: [
+              "https://placehold.co/600x400?text=Content+Reviewer+Dashboard",
+              "https://placehold.co/600x400?text=Suggested+Edits",
+            ],
+            description:
+              "AI-powered content reviewer for Confluence. Suggests improvements for clarity, tone, and accessibility in documentation.",
+          },
+          11: {
+            overview: {
+              paragraphs: [
+                "Status Report App aggregates Jira issues, Confluence updates, and sprint progress into shareable status reports. No more manual copying from multiple tools—one place for what's done, in progress, and blocked.",
+                "Ideal for weekly stand-ups, stakeholder updates, or handoffs between teams.",
+              ],
+              bullets: [
+                "Pulls from Jira, Confluence, and sprint data",
+                "Generates formatted status reports",
+                "Shareable links and export options",
+              ],
+            },
+            screenshots: [
+              "https://placehold.co/600x400?text=Status+Report+Builder",
+              "https://placehold.co/600x400?text=Team+Overview",
+            ],
+            description:
+              "Status report generator that aggregates Jira issues, Confluence updates, and sprint progress into shareable status reports.",
+          },
+        };
+        const ac = appContent[index] ?? {
+          screenshots: [],
+          description: "Demo app for variety.",
+        };
+        return {
+          content: ac,
+          sourceRepo: {
+            url: "https://github.com/example/demo-app",
+            platform: "github",
+          },
+          demoUrl: "https://demo-app-example.vercel.app",
+        };
+      }
+      return { content: { prompt: "Demo content." } };
+    };
     const demoProjectTitles = [
       "Jira release notes from Confluence",
       "Meeting summarizer",
@@ -1206,15 +1401,22 @@ export const seedDemoHacks = internalMutation({
       const author = demoProfiles[i % demoProfiles.length];
       const status = LIBRARY_STATUSES[i % LIBRARY_STATUSES.length];
       const assetType = ASSET_TYPES[i % ASSET_TYPES.length];
+      const { content, sourceRepo, demoUrl } = getDemoContent(
+        i,
+        demoAssetTitles[i],
+        assetType
+      );
       await ctx.db.insert("libraryAssets", {
         title: demoAssetTitles[i],
         description: "Demo asset for variety.",
         assetType,
-        content: { prompt: "Demo content." },
+        content,
         status,
         authorId: author._id,
         visibility: "org",
         isArsenal: false,
+        sourceRepo,
+        demoUrl,
       });
       assetsInserted++;
     }
@@ -1342,5 +1544,117 @@ export const clearDemoData = internalMutation({
         libraryAssets: demoAssetIds.length,
       },
     };
+  },
+});
+
+/**
+ * Migrate Featured Hack apps from agent-blueprint format to app format (screenshots + description).
+ * Also adds overview (paragraphs + bullets) to arsenal apps that don't have it.
+ * Run once to update Customer Support Triage Agent and Content Moderation Agent.
+ */
+export const migrateArsenalAppsToAppFormat = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const arsenalApps = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_arsenal", (q) => q.eq("isArsenal", true))
+      .collect();
+    const toMigrate = arsenalApps.filter(
+      (a) =>
+        a.assetType === "app" &&
+        a.content &&
+        typeof a.content === "object" &&
+        ("systemPrompt" in (a.content as Record<string, unknown>) ||
+          (Array.isArray((a.content as Record<string, unknown>).screenshots) &&
+            !(a.content as Record<string, unknown>).overview))
+    );
+    const updates: Record<
+      string,
+      {
+        content: {
+          overview?: { paragraphs: string[]; bullets: string[] };
+          screenshots: string[];
+          description: string;
+        };
+        title?: string;
+        description?: string;
+        sourceRepo?: { url: string; platform: "github" | "gitlab" | "bitbucket" };
+        demoUrl?: string;
+      }
+    > = {
+      "Customer Support Triage Agent": {
+        title: "Customer Support Triage",
+        description: "AI-powered triage for customer support tickets.",
+        content: {
+          overview: {
+            paragraphs: [
+              "Customer Support Triage helps support teams automatically route and prioritize incoming tickets. The app uses AI to classify each ticket by type, urgency, and sentiment, so the right team can respond quickly.",
+              "Built for high-volume support environments, it integrates with Jira, Zendesk, and other ticketing systems. Human reviewers always have final say—the app suggests, not auto-closes.",
+            ],
+            bullets: [
+              "Classifies tickets as technical, billing, feature request, or bug report",
+              "Suggests priority and routing to the right team",
+              "Flags low-confidence items for human review",
+              "Integrates with Jira, Zendesk, and similar tools",
+            ],
+          },
+          screenshots: [
+            "https://placehold.co/600x400?text=Support+Dashboard",
+            "https://placehold.co/600x400?text=Ticket+Classification",
+          ],
+          description:
+            "Automatically triages and routes customer support tickets by category, priority, and sentiment. Classifies tickets as technical, billing, feature requests, or bug reports and suggests the right team. Integrates with Jira, Zendesk, and other ticketing systems.",
+        },
+        sourceRepo: { url: "https://github.com/example/support-triage-app", platform: "github" },
+        demoUrl: "https://support-triage-demo.vercel.app",
+      },
+      "Content Moderation Agent": {
+        title: "Content Moderation App",
+        description: "Flags inappropriate user-generated content with severity levels.",
+        content: {
+          overview: {
+            paragraphs: [
+              "Content Moderation App helps community and operations teams keep user-generated content safe. It flags inappropriate material with severity levels and reasoning, so moderators can act quickly on the most critical issues.",
+              "Designed for comments, forums, and social features, the app distinguishes between profanity and hate speech, considers context, and always recommends human review before banning users.",
+            ],
+            bullets: [
+              "Detects hate speech, harassment, spam, and PII exposure",
+              "Outputs severity levels and suggested actions (warn, hide, escalate)",
+              "Provides reasoning for each flag to support moderator decisions",
+              "Human review required before bans—never auto-moderation for high stakes",
+            ],
+          },
+          screenshots: [
+            "https://placehold.co/600x400?text=Moderation+Dashboard",
+            "https://placehold.co/600x400?text=Flagged+Content+Review",
+          ],
+          description:
+            "AI-powered content moderation for user-generated content. Detects hate speech, harassment, spam, profanity, PII exposure, and off-topic content. Outputs severity levels, violation types, and suggested actions (warn, hide, escalate). Built for comments, forums, and UGC platforms.",
+        },
+        sourceRepo: { url: "https://github.com/example/content-moderation-app", platform: "github" },
+        demoUrl: "https://content-moderation-demo.vercel.app",
+      },
+    };
+    const alsoByNewTitle: Record<string, string> = {
+      "Customer Support Triage": "Customer Support Triage Agent",
+      "Content Moderation App": "Content Moderation Agent",
+    };
+    let count = 0;
+    for (const asset of toMigrate) {
+      const lookupTitle = alsoByNewTitle[asset.title] ?? asset.title;
+      const title = lookupTitle as keyof typeof updates;
+      if (updates[title]) {
+        const u = updates[title];
+        await ctx.db.patch(asset._id, {
+          title: u.title,
+          description: u.description,
+          content: u.content,
+          sourceRepo: u.sourceRepo,
+          demoUrl: u.demoUrl,
+        });
+        count++;
+      }
+    }
+    return { message: "Migrated arsenal apps to app format", updated: count };
   },
 });

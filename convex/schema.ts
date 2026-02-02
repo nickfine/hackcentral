@@ -92,6 +92,24 @@ export default defineSchema({
     ),
     isArsenal: v.boolean(), // Curated Featured Hacks flag
     isAnonymous: v.optional(v.boolean()), // Hide author in UI when true
+    // Optional repo/source link (GitHub, GitLab, Bitbucket)
+    sourceRepo: v.optional(
+      v.object({
+        url: v.string(),
+        platform: v.union(
+          v.literal("github"),
+          v.literal("gitlab"),
+          v.literal("bitbucket")
+        ),
+        version: v.optional(v.string()),
+        updatedAt: v.optional(v.number()),
+        repoName: v.optional(v.string()),
+        description: v.optional(v.string()),
+        commitMessage: v.optional(v.string()),
+      })
+    ),
+    // Live demo URL for apps (e.g. Vercel, Netlify hosted)
+    demoUrl: v.optional(v.string()),
   })
     .index("by_author", ["authorId"])
     .index("by_status", ["status"])
@@ -304,6 +322,15 @@ export default defineSchema({
     message: v.string(),
     category: v.optional(v.string()),
   }),
+
+  // ============================================================================
+  // ASSET COPY FEEDBACK (thumbs up/down after copying prompt)
+  // ============================================================================
+  assetCopyFeedback: defineTable({
+    assetId: v.id("libraryAssets"),
+    userId: v.optional(v.id("profiles")), // optional for anon
+    helpful: v.boolean(),
+  }).index("by_asset", ["assetId"]),
 
   // ============================================================================
   // IMPACT STORIES

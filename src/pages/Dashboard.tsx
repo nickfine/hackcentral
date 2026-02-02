@@ -26,15 +26,15 @@ import confetti from 'canvas-confetti';
 import { useReducedMotion } from 'framer-motion';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import {
   WelcomeHero,
   FeaturedHacksShowcase,
   QuickActionsPanel,
   PersonalizedNudge,
   WallOfThanksStrip,
-} from '../components/dashboard';
-import { ModalWrapper } from '../components/shared';
+} from '@/components/dashboard';
+import { ModalWrapper } from '@/components/shared';
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuth();
@@ -204,7 +204,7 @@ export default function Dashboard() {
                   id="story-text"
                   value={storyText}
                   onChange={(e) => setStoryText(e.target.value)}
-                  className="input min-h-[100px] w-full"
+                  className="textarea min-h-[100px] w-full"
                   placeholder="Share what worked, what you learned..."
                   rows={4}
                 />

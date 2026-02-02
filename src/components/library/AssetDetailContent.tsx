@@ -5,14 +5,35 @@
  */
 
 import { useState } from 'react';
-import { Sparkles, X, Link2, Copy, FileText, Code, Bot, Check, Quote } from 'lucide-react';
+import {
+  Sparkles,
+  ArrowLeft,
+  Link2,
+  Copy,
+  FileText,
+  Code,
+  Bot,
+  Check,
+  Quote,
+  User,
+  BookOpen,
+  AlertTriangle,
+  ShieldAlert,
+  Star,
+  GitBranch,
+  ExternalLink,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import type { SourceRepo } from '@/components/shared/RepoLink';
+import { CopyFeedbackToast } from '@/components/shared/CopyFeedbackToast';
+import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
+import { PromptWithVariables } from './PromptWithVariables';
 
 type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
 
@@ -31,6 +52,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 const SAMPLE_TESTIMONIAL = {
   text: 'Saved my team 5 hours with this hack!',
   author: 'Alex M.',
+  rating: 5,
 };
 
 function getDisplayablePrompt(content: unknown): string {
@@ -61,6 +83,37 @@ function getCopyableContent(content: unknown): string {
   return String(content ?? '');
 }
 
+function getAppContent(content: unknown): {
+  screenshots: string[];
+  description?: string;
+  overview?: { paragraphs?: string[]; bullets?: string[] };
+} | null {
+  if (!content || typeof content !== 'object') return null;
+  const c = content as Record<string, unknown>;
+  const screenshots = Array.isArray(c.screenshots)
+    ? (c.screenshots as string[]).filter((s): s is string => typeof s === 'string')
+    : [];
+  if (Array.isArray(c.screenshots) || typeof c.description === 'string') {
+    let overview: { paragraphs?: string[]; bullets?: string[] } | undefined;
+    if (c.overview && typeof c.overview === 'object') {
+      const o = c.overview as Record<string, unknown>;
+      overview = {};
+      if (Array.isArray(o.paragraphs)) {
+        overview.paragraphs = (o.paragraphs as unknown[]).filter((p): p is string => typeof p === 'string');
+      }
+      if (Array.isArray(o.bullets)) {
+        overview.bullets = (o.bullets as unknown[]).filter((b): b is string => typeof b === 'string');
+      }
+    }
+    return {
+      screenshots,
+      description: typeof c.description === 'string' ? c.description : undefined,
+      overview: overview?.paragraphs?.length || overview?.bullets?.length ? overview : undefined,
+    };
+  }
+  return null;
+}
+
 export interface AssetDetailContentProps {
   asset: {
     title: string;
@@ -81,6 +134,8 @@ export interface AssetDetailContentProps {
     };
     isArsenal: boolean;
     isAnonymous?: boolean;
+    sourceRepo?: SourceRepo | null;
+    demoUrl?: string | null;
   };
   assetId: Id<'libraryAssets'>;
   onClose: () => void;
@@ -101,20 +156,16 @@ export function AssetDetailContent({
   const [attachmentType, setAttachmentType] = useState<AttachmentType>('attached');
   const [isSubmittingAttach, setIsSubmittingAttach] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [exampleTab, setExampleTab] = useState<'input' | 'output'>(() =>
-    asset.metadata?.exampleInput ? 'input' : 'output'
-  );
   const [copied, setCopied] = useState(false);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const profile = useQuery(api.profiles.getCurrentProfile);
   const reuseCount = useQuery(api.libraryReuse.getReuseCountForAsset, { assetId });
   const similarAssets = useQuery(api.libraryAssets.getSimilar, { assetId, limit: 6 });
   const projects = useQuery(api.projects.list);
   const attachToProject = useMutation(api.libraryReuse.attachToProject);
-  const recordReuse = useMutation(api.libraryReuse.recordReuse);
+  const recordCopyFeedback = useMutation(api.assetCopyFeedback.record);
   const updateAsset = useMutation(api.libraryAssets.update);
-  const [quickReuseType, setQuickReuseType] = useState<AttachmentType>('copied');
-  const [isRecordingReuse, setIsRecordingReuse] = useState(false);
   const isAuthor = Boolean(profile?._id && asset.authorId === profile._id);
 
   const displayablePrompt = getDisplayablePrompt(asset.content);
@@ -122,30 +173,45 @@ export function AssetDetailContent({
   const hasExampleInput = Boolean(asset.metadata?.exampleInput);
   const hasExampleOutput = Boolean(asset.metadata?.exampleOutput);
   const hasExamples = hasExampleInput || hasExampleOutput;
+  const appContent = getAppContent(asset.content);
+  const isAppWithScreenshots = asset.assetType === 'app' && appContent;
 
   const handleCopyPrompt = async () => {
     const text = getCopyableContent(asset.content);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success('Prompt copied to clipboard');
+      toast.success('Prompt copied!');
       setTimeout(() => setCopied(false), 2000);
+
+      // Show feedback toast
+      toast.custom(
+        (t) => (
+          <CopyFeedbackToast
+            onThumbsUp={() => handleFeedbackSubmit(true, t.id)}
+            onThumbsDown={() => handleFeedbackSubmit(false, t.id)}
+            isSubmitting={isSubmittingFeedback}
+          />
+        ),
+        { duration: 10000 }
+      );
     } catch {
       toast.error('Failed to copy');
     }
   };
 
-  const handleRecordReuse = async () => {
-    if (isRecordingReuse) return;
-    setIsRecordingReuse(true);
+  const handleFeedbackSubmit = async (helpful: boolean, toastId: string) => {
+    if (isSubmittingFeedback) return;
+    setIsSubmittingFeedback(true);
     try {
-      await recordReuse({ assetId, reuseType: quickReuseType });
-      toast.success('Use recorded. Thanks for contributing!');
+      await recordCopyFeedback({ assetId, helpful });
+      toast.dismiss(toastId);
+      toast.success('Thanks for your feedback!');
     } catch (err) {
-      console.error('Record reuse failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to record use. Please try again.');
+      console.error('Feedback failed:', err);
+      toast.error('Failed to record feedback. Please try again.');
     } finally {
-      setIsRecordingReuse(false);
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -159,13 +225,13 @@ export function AssetDetailContent({
         assetId,
         attachmentType,
       });
-      toast.success('Hack attached to project!');
+      toast.success('Hack linked to project!');
       setAttachOpen(false);
       setSelectedProjectId('');
       setAttachmentType('attached');
     } catch (err) {
       console.error('Attach failed:', err);
-      toast.error('Failed to attach to project. Please try again.');
+      toast.error('Failed to link to project. Please try again.');
     } finally {
       setIsSubmittingAttach(false);
     }
@@ -195,278 +261,380 @@ export function AssetDetailContent({
 
   return (
     <div className="space-y-6">
-      {/* 1. Hero / Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <h1 id="asset-detail-title" className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
-            {asset.title}
-          </h1>
-          {asset.description && (
-            <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-4">
-              {stripSeedDescriptionSuffix(asset.description)}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className={`badge ${statusColors[asset.status] ?? 'badge-outline'} text-xs`}>
-              {asset.status === 'verified' ? 'Verified' : asset.status === 'deprecated' ? 'Deprecated' : 'In progress'}
-            </span>
-            <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
-              {typeLabel}
-            </span>
-            {asset.isArsenal && (
-              <span className="badge badge-secondary text-xs flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Featured Hacks
-              </span>
-            )}
-            {reuseCount !== undefined && (
-              <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
-                {reuseCount.totalReuseEvents === 0
-                  ? 'No reuses yet'
-                  : `${reuseCount.totalReuseEvents} reuse${reuseCount.totalReuseEvents !== 1 ? 's' : ''} (${reuseCount.distinctProjectReuses} project${reuseCount.distinctProjectReuses !== 1 ? 's' : ''})`}
-              </span>
-            )}
-          </div>
-        </div>
+      {/* 0. Back link — very top */}
+      <div>
         <button
           type="button"
-          className="btn btn-ghost btn-icon shrink-0"
           onClick={onClose}
+          className="btn btn-ghost btn-sm inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background min-h-11"
           aria-label={closeLabel}
         >
-          <X className="h-5 w-5" />
+          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+          {closeLabel}
         </button>
       </div>
 
-      {/* 2. Quick Actions Bar (sticky) */}
-      {isAuthenticated && (
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur py-3 border-b border-border -mb-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-muted-foreground">I used this:</span>
-            <select
-              value={quickReuseType}
-              onChange={(e) => setQuickReuseType(e.target.value as AttachmentType)}
-              className="input w-32 text-sm"
-              aria-label="How you used this hack"
-            >
-              <option value="copied">Copied</option>
-              <option value="referenced">Referenced</option>
-              <option value="linked">Linked</option>
-            </select>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleRecordReuse}
-              disabled={isRecordingReuse}
-            >
-              {isRecordingReuse ? 'Recording…' : 'Record use'}
-            </button>
-            {!attachOpen ? (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setAttachOpen(true)}
-              >
-                <Link2 className="h-4 w-4 mr-2" />
-                Attach to project
-              </button>
-            ) : (
-              <form onSubmit={handleAttachSubmit} className="flex flex-wrap items-end gap-3">
-                <div>
-                  <label htmlFor="attach-project" className="sr-only">
-                    Project
-                  </label>
-                  <select
-                    id="attach-project"
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId((e.target.value || '') as Id<'projects'> | '')}
-                    className="input w-40 text-sm"
-                    required
-                  >
-                    <option value="">Select a project</option>
-                    {projects?.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="attach-type" className="sr-only">
-                    Attachment type
-                  </label>
-                  <select
-                    id="attach-type"
-                    value={attachmentType}
-                    onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
-                    className="input w-32 text-sm"
-                  >
-                    <option value="attached">Attached</option>
-                    <option value="referenced">Referenced</option>
-                    <option value="copied">Copied</option>
-                    <option value="linked">Linked</option>
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    onClick={() => {
-                      setAttachOpen(false);
-                      setSelectedProjectId('');
-                      setAttachmentType('attached');
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-sm"
-                    disabled={!selectedProjectId || isSubmittingAttach}
-                  >
-                    {isSubmittingAttach ? 'Attaching…' : 'Attach'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+      {/* 1. Hero / Header */}
+      <div className="min-w-0">
+        <h1 id="asset-detail-title" className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
+          {asset.title}
+        </h1>
+        {asset.description && (
+          <p className="text-muted-foreground text-base leading-relaxed mb-4" id="asset-detail-description">
+            {stripSeedDescriptionSuffix(asset.description)}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className={`badge ${statusColors[asset.status] ?? 'badge-outline'} text-xs`}>
+            {asset.status === 'verified' ? 'Verified' : asset.status === 'deprecated' ? 'Deprecated' : 'In progress'}
+          </span>
+          <span className={`badge text-xs border ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}>
+            {typeLabel}
+          </span>
+          {asset.isArsenal && (
+            <span className="badge badge-secondary text-xs flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Featured Hacks
+            </span>
+          )}
+          {reuseCount !== undefined && (
+            <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+              {reuseCount.totalReuseEvents === 0
+                ? 'No reuses yet'
+                : `${reuseCount.totalReuseEvents} reuse${reuseCount.totalReuseEvents !== 1 ? 's' : ''} (${reuseCount.distinctProjectReuses} project${reuseCount.distinctProjectReuses !== 1 ? 's' : ''})`}
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* 3. Main Content — Two-Column Layout */}
+      {/* 2. Main Content — Two-Column Layout */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* Left column ~60% */}
         <div className="flex-1 min-w-0 lg:flex-[6] space-y-6">
-          {/* Core Prompt Card */}
-          {displayablePrompt && (
-            <div className="rounded-xl border border-border bg-card shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-xl">Core prompt</h2>
+          {/* App layout: screenshots + description + Try live demo */}
+          {isAppWithScreenshots && (
+            <div className="space-y-6">
+              <div className="rounded-xl border-2 border-primary/20 bg-card shadow-sm p-6 transition-all duration-200 ease-out hover:shadow-md">
+                <h2 className="text-xl font-semibold mb-4">About</h2>
+                {(appContent!.overview?.paragraphs?.length || appContent!.overview?.bullets?.length) ? (
+                  <div className="mb-6 space-y-4">
+                    {appContent!.overview.paragraphs?.map((p, i) => (
+                      <p key={i} className="text-muted-foreground leading-relaxed">
+                        {p}
+                      </p>
+                    ))}
+                    {appContent!.overview.bullets?.length ? (
+                      <ul className="list-disc list-inside text-muted-foreground space-y-1.5">
+                        {appContent!.overview.bullets.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+                {appContent!.screenshots.length > 0 && (
+                  <div className="flex gap-4 overflow-x-auto pb-2 mb-4 scrollbar-hide snap-x snap-mandatory">
+                    {appContent!.screenshots.map((url, idx) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Screenshot ${idx + 1}`}
+                        className="rounded-lg border border-border shrink-0 w-64 h-40 object-cover snap-start"
+                      />
+                    ))}
+                  </div>
+                )}
+                <p className="text-muted-foreground leading-relaxed">
+                  {appContent!.description ?? stripSeedDescriptionSuffix(asset.description) ?? 'No description.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Core Prompt / Configuration Card (prompts and skills) */}
+          {!isAppWithScreenshots && displayablePrompt && (
+            <div className="rounded-xl border-2 border-primary/20 bg-card shadow-sm p-6 transition-all duration-200 ease-out hover:shadow-md hover:scale-[1.01] hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-primary/30">
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <h2 id="core-prompt-heading" className="text-xl font-semibold">
+                  {asset.assetType === 'skill'
+                    ? 'Configuration'
+                    : asset.assetType === 'app'
+                      ? 'Agent Blueprint'
+                      : 'Core prompt'}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {asset.sourceRepo && (
+                    <a
+                      href={asset.sourceRepo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-sm"
+                    >
+                      {asset.sourceRepo.url.replace(/^https?:\/\//, '')}
+                    </a>
+                  )}
+                  {asset.assetType === 'prompt' && (
+                    <a
+                      href="https://chat.openai.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      Open in ChatGPT
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm gap-1.5 min-h-11 shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    onClick={handleCopyPrompt}
+                    aria-label={
+                      asset.assetType === 'skill' || asset.assetType === 'app'
+                        ? 'Copy configuration'
+                        : 'Copy prompt to clipboard'
+                    }
+                    aria-describedby="core-prompt-heading"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-[var(--color-success)]" aria-hidden />
+                    ) : (
+                      <Copy className="h-4 w-4" aria-hidden />
+                    )}
+                    {copied
+                      ? 'Copied'
+                      : asset.assetType === 'skill' || asset.assetType === 'app'
+                        ? 'Copy config'
+                        : 'Copy prompt'}
+                  </button>
+                </div>
+              </div>
+              <div className="bg-muted/50 p-5 rounded-xl overflow-x-auto max-h-96 overflow-y-auto">
+                {(asset.assetType === 'skill' || asset.assetType === 'app') &&
+                typeof displayablePrompt === 'string' ? (
+                  <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                    {displayablePrompt}
+                  </pre>
+                ) : (
+                  <PromptWithVariables text={displayablePrompt} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Link to Another Hack — underneath About/Core prompt */}
+          {isAuthenticated && (isAppWithScreenshots || displayablePrompt) && (
+            <div>
+              {!attachOpen ? (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm gap-1.5"
-                  onClick={handleCopyPrompt}
-                  aria-label="Copy prompt"
+                  className="btn btn-outline btn-sm min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={() => setAttachOpen(true)}
                 >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  {copied ? 'Copied' : 'Copy prompt'}
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Link to Another Hack
                 </button>
-              </div>
-              <pre className="bg-muted/50 p-5 rounded-xl text-sm font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-96 overflow-y-auto">
-                {displayablePrompt}
-              </pre>
+              ) : (
+                <form onSubmit={handleAttachSubmit} className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label htmlFor="attach-project" className="sr-only">
+                      Project
+                    </label>
+                    <select
+                      id="attach-project"
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId((e.target.value || '') as Id<'projects'> | '')}
+                      className="input w-40 text-sm"
+                      required
+                    >
+                      <option value="">Select a project</option>
+                      {projects?.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="attach-type" className="sr-only">
+                      Attachment type
+                    </label>
+                    <select
+                      id="attach-type"
+                      value={attachmentType}
+                      onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
+                      className="input w-32 text-sm"
+                    >
+                      <option value="attached">Attached</option>
+                      <option value="referenced">Referenced</option>
+                      <option value="copied">Copied</option>
+                      <option value="linked">Linked</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setAttachOpen(false);
+                        setSelectedProjectId('');
+                        setAttachmentType('attached');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={!selectedProjectId || isSubmittingAttach}
+                    >
+                      {isSubmittingAttach ? 'Linking…' : 'Link'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 
           {/* How to Use / Example Card */}
           {(usageText || hasExamples) && (
-            <div className="rounded-xl border border-border bg-card shadow-sm p-6">
-              <h2 className="font-semibold text-xl mb-4">How to use</h2>
+            <div className="rounded-xl border border-border bg-card shadow-sm p-6 transition-all duration-200 ease-out hover:shadow-md hover:scale-[1.01] hover:-translate-y-0.5">
+              <h2 className="text-xl font-semibold mb-4">How to use</h2>
               {usageText && (
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                   {usageText}
                 </p>
               )}
-              {hasExamples && (
-                <>
-                  <div className="flex gap-2 border-b border-border mb-4">
-                    {hasExampleInput && (
-                      <button
-                        type="button"
-                        className={`px-3 py-2 text-sm font-medium rounded-t-md transition-colors ${
-                          exampleTab === 'input'
-                            ? 'bg-muted text-foreground border-b-2 border-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        onClick={() => setExampleTab('input')}
-                      >
-                        Example Input
-                      </button>
-                    )}
-                    {hasExampleOutput && (
-                      <button
-                        type="button"
-                        className={`px-3 py-2 text-sm font-medium rounded-t-md transition-colors ${
-                          exampleTab === 'output'
-                            ? 'bg-muted text-foreground border-b-2 border-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        onClick={() => setExampleTab('output')}
-                      >
-                        Example Output
-                      </button>
-                    )}
-                  </div>
-                  <div className="bg-muted/30 p-4 rounded-lg">
+              {hasExamples &&
+                (hasExampleInput && hasExampleOutput ? (
+                  <BeforeAfterSlider
+                    beforeLabel="Raw Input"
+                    afterLabel="Output"
+                    beforeContent={asset.metadata?.exampleInput ?? ''}
+                    afterContent={asset.metadata?.exampleOutput ?? ''}
+                  />
+                ) : (
+                  <div className="bg-muted/30 p-5 rounded-xl">
                     <p className="text-sm font-mono whitespace-pre-wrap leading-relaxed">
-                      {(exampleTab === 'input' ? asset.metadata?.exampleInput : asset.metadata?.exampleOutput) ?? ''}
+                      {asset.metadata?.exampleInput ?? asset.metadata?.exampleOutput ?? ''}
                     </p>
                   </div>
-                </>
-              )}
+                ))}
             </div>
           )}
         </div>
 
         {/* Right column ~40% */}
         <div className="lg:min-w-0 lg:flex-[4] lg:max-w-[380px] space-y-6">
-          {/* Stats & Metadata Card — only show when there's content */}
-          {(asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt || asset.isAnonymous)) ||
-          asset.metadata?.intendedUser ||
-          asset.metadata?.context ||
-          asset.metadata?.limitations ||
-          asset.metadata?.riskNotes ||
-          isAuthor ? (
-          <div className="rounded-xl border border-border bg-card shadow-sm p-6">
-            <h2 className="font-semibold text-xl mb-4">Details</h2>
+          {/* Stats & Metadata Card — always show (Repository at top); includes other details when present */}
+          {(
+          <div className="rounded-xl border border-border bg-card shadow-sm p-6 transition-all duration-200 ease-out hover:shadow-md hover:scale-[1.01] hover:-translate-y-0.5">
+            <h2 className="text-xl font-semibold mb-4">Details</h2>
             <dl className="space-y-0">
-              {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt || asset.isAnonymous) && (
-                <div className="border-b border-border py-3">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Verified
+              {/* Repository — always shown; repo URL as link when present */}
+              <div className="flex items-start gap-3 py-3 border-b border-border">
+                <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                    Repository
                   </dt>
                   <dd className="text-sm">
-                    {asset.isAnonymous ? 'Anonymous' : asset.verifiedByFullName ?? '—'}
-                    {asset.verifiedAt && (
-                      <span className="text-muted-foreground"> · {new Date(asset.verifiedAt).toLocaleDateString()}</span>
+                    {asset.sourceRepo ? (
+                      <a
+                        href={asset.sourceRepo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline break-all"
+                      >
+                        {asset.sourceRepo.url.replace(/^https?:\/\//, '')}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </dd>
                 </div>
+              </div>
+              {/* Live demo — for apps; Try live demo button */}
+              {asset.assetType === 'app' && (
+                <div className="flex items-start gap-3 py-3 border-b border-border">
+                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Live demo
+                    </dt>
+                    <dd className="text-sm">
+                      {asset.demoUrl ? (
+                        <a
+                          href={asset.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline break-all"
+                        >
+                          {asset.demoUrl.replace(/^https?:\/\//, '')}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </dd>
+                  </div>
+                </div>
+              )}
+              {asset.status === 'verified' && (asset.verifiedByFullName || asset.verifiedAt || asset.isAnonymous) && (
+                <div className="flex items-start gap-3 py-3 border-b border-border">
+                  <Check className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div>
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Verified
+                    </dt>
+                    <dd className="text-sm text-foreground">
+                      {asset.isAnonymous ? 'Anonymous' : asset.verifiedByFullName ?? '—'}
+                      {asset.verifiedAt && (
+                        <span className="text-muted-foreground"> · {new Date(asset.verifiedAt).toLocaleDateString()}</span>
+                      )}
+                    </dd>
+                  </div>
+                </div>
               )}
               {asset.metadata?.intendedUser && (
-                <div className="border-b border-border py-3">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Intended user
-                  </dt>
-                  <dd className="text-sm">{asset.metadata.intendedUser}</dd>
+                <div className="flex items-start gap-3 py-3 border-b border-border">
+                  <User className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div>
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Intended user
+                    </dt>
+                    <dd className="text-sm text-foreground">{asset.metadata.intendedUser}</dd>
+                  </div>
                 </div>
               )}
               {asset.metadata?.context && (
-                <div className="border-b border-border py-3">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Context
-                  </dt>
-                  <dd className="text-sm">{asset.metadata.context}</dd>
+                <div className="flex items-start gap-3 py-3 border-b border-border">
+                  <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div>
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Context
+                    </dt>
+                    <dd className="text-sm text-foreground">{asset.metadata.context}</dd>
+                  </div>
                 </div>
               )}
               {asset.metadata?.limitations && (
-                <div className="border-b border-border py-3">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Limitations
-                  </dt>
-                  <dd className="text-sm">{asset.metadata.limitations}</dd>
+                <div className="flex items-start gap-3 py-3 border-b border-border">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div>
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Limitations
+                    </dt>
+                    <dd className="text-sm text-foreground">{asset.metadata.limitations}</dd>
+                  </div>
                 </div>
               )}
               {asset.metadata?.riskNotes && (
-                <div className="border-b border-border last:border-0 py-3">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                    Risk notes
-                  </dt>
-                  <dd className="text-sm">{asset.metadata.riskNotes}</dd>
+                <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
+                  <ShieldAlert className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" aria-hidden />
+                  <div>
+                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                      Risk notes
+                    </dt>
+                    <dd className="text-sm text-foreground">{asset.metadata.riskNotes}</dd>
+                  </div>
                 </div>
               )}
             </dl>
@@ -510,37 +678,60 @@ export function AssetDetailContent({
               </div>
             )}
           </div>
-          ) : null}
+          )}
 
           {/* Recognition / Testimonial Card */}
           <div
-            className="flex flex-col rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-6 dark:border-amber-800/40 dark:from-amber-950/20 dark:to-orange-950/20"
+            className="flex flex-col rounded-xl border border-border bg-card shadow-md p-6 transition-all duration-200 ease-out hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5"
             role="region"
             aria-label="Testimonial"
           >
-            <Quote
-              className="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400 mb-2"
-              aria-hidden
-              strokeWidth={2.5}
-            />
-            <p className="text-lg font-semibold leading-snug text-foreground mb-2">
+            <div className="flex items-start gap-3 mb-3">
+              <div
+                className="avatar shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-medium"
+                aria-hidden
+              >
+                {SAMPLE_TESTIMONIAL.author.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex gap-0.5 mb-1" aria-label={`${SAMPLE_TESTIMONIAL.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i <= SAMPLE_TESTIMONIAL.rating
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-muted-foreground/30'
+                      }`}
+                      aria-hidden
+                    />
+                  ))}
+                </div>
+                <Quote
+                  className="h-4 w-4 text-muted-foreground mb-1"
+                  aria-hidden
+                  strokeWidth={2.5}
+                />
+              </div>
+            </div>
+            <p className="text-base leading-relaxed text-foreground mb-2">
               &quot;{SAMPLE_TESTIMONIAL.text}&quot;
             </p>
-            <p className="text-sm font-medium text-muted-foreground">— {SAMPLE_TESTIMONIAL.author}</p>
+            <p className="text-sm italic text-muted-foreground">— {SAMPLE_TESTIMONIAL.author}</p>
           </div>
         </div>
       </div>
 
-      {/* 4. More like this — horizontal carousel */}
+      {/* 4. More like this — horizontal carousel with snap */}
       {similarAssets !== undefined && (
-        <div>
-          <h2 className="text-lg font-semibold mb-4">More like this</h2>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">More like this</h2>
           {similarAssets.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No other {asset.assetType.replace('_', ' ')}s in Completed Hacks yet.
             </p>
           ) : (
-            <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide -mx-1 px-1">
+            <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide -mx-1 px-1 snap-x snap-mandatory scroll-smooth">
               {similarAssets.map((a) => (
                 <SimilarHackCard
                   key={a._id}
@@ -552,13 +743,6 @@ export function AssetDetailContent({
           )}
         </div>
       )}
-
-      {/* 5. Bottom — Back link */}
-      <div className="pt-2">
-        <button type="button" className="btn btn-ghost" onClick={onClose}>
-          {closeLabel}
-        </button>
-      </div>
     </div>
   );
 }
@@ -583,35 +767,35 @@ function SimilarHackCard({
     <button
       type="button"
       aria-label={`View ${asset.title}`}
-      className={`flex flex-col min-w-[260px] max-w-[280px] shrink-0 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer relative overflow-hidden ${
-        asset.status === 'verified' ? 'pr-8' : ''
-      } ${asset.status === 'deprecated' ? 'opacity-75' : ''}`}
+      className={`flex flex-col min-w-[280px] max-w-[280px] shrink-0 snap-start rounded-xl border border-border bg-card p-5 md:p-6 text-left shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5 cursor-pointer relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${asset.status === 'deprecated' ? 'opacity-75' : ''}`}
       onClick={onSelect}
     >
       {asset.status === 'verified' && (
         <div
-          className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded-bl-md"
+          className="absolute top-3 right-3 size-5 flex items-center justify-center bg-[var(--color-success)] text-white rounded-full p-0.5"
           aria-label="Verified"
         >
-          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <Check className="h-3 w-3" strokeWidth={2.5} />
         </div>
       )}
-      <div className="flex items-start gap-2 mb-2">
-        <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
-          {typeIcon}
+      <div className="space-y-4">
+        <div className="flex items-start gap-2">
+          <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+            {typeIcon}
+          </div>
+          <h3 className="font-semibold text-sm leading-tight line-clamp-2 break-words min-w-0">
+            {asset.title}
+          </h3>
         </div>
-        <h3 className="font-semibold text-sm leading-tight line-clamp-2 break-words min-w-0">
-          {asset.title}
-        </h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
+          {stripSeedDescriptionSuffix(asset.description) || 'No description'}
+        </p>
+        <span
+          className={`badge text-xs border w-fit ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}
+        >
+          {typeLabel}
+        </span>
       </div>
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
-        {stripSeedDescriptionSuffix(asset.description) || 'No description'}
-      </p>
-      <span
-        className={`badge text-xs border w-fit ${HACK_TYPE_BADGE_COLORS[asset.assetType] ?? 'bg-muted text-muted-foreground border-border'}`}
-      >
-        {typeLabel}
-      </span>
     </button>
   );
 }

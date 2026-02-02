@@ -10,11 +10,11 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useAuth } from '../hooks/useAuth';
-import { TabButton, EmptyState, ModalWrapper, SectionHeader } from '../components/shared';
-import { useDebounce } from '../hooks/useDebounce';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '../constants/project';
+import { useAuth } from '@/hooks/useAuth';
+import { TabButton, EmptyState, ModalWrapper, SectionHeader } from '@/components/shared';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 type Visibility = 'private' | 'org' | 'public';
@@ -149,7 +149,7 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
                   id="project-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="input w-full min-h-[80px]"
+                  className="textarea w-full min-h-[80px]"
                   placeholder="What is this project about?"
                   rows={3}
                 />

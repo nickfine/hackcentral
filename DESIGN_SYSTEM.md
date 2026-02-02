@@ -52,6 +52,16 @@ Use semantic tokens (`text-primary`, `bg-card`, `border-border`, `text-muted-for
 | **BadgeGroup** | Groups of badges (e.g. capability tags) with consistent spacing and variants. |
 | **SkeletonCard** | Loading placeholders. Variants: `default`, `compact`, `wide`, `stat`. |
 | **SkeletonGrid** | Grid of skeleton cards; use for list/grid loading (e.g. People, Library, Projects). |
+| **RepoLink / RepoLinkOrSuggest** | Source repository links (GitHub, GitLab, Bitbucket). Use `label="View Source Code"` for hero placement. |
+| **BeforeAfterSlider** | Split-view comparing Raw Input vs Output; used in hack detail "How to use" examples. |
+| **CopyFeedbackToast** | Thumbs up/down prompt after copying a hack; use with `toast.custom()`. |
+
+## Library components
+
+| Component | Use when |
+|-----------|----------|
+| **RepositoryInput** | Submit Hack form: optional repository URL with validation for GitHub/GitLab/Bitbucket. |
+| **PromptWithVariables** | Hack detail: renders prompt text with `[Variable]` placeholders highlighted. |
 
 ## Buttons and cards
 

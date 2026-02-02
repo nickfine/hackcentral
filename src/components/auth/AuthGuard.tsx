@@ -1,6 +1,6 @@
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { SignInButton, SignUpButton } from './';
-import { ProfileSetup } from '../profile/ProfileSetup';
+import { ProfileSetup } from '@/components/profile/ProfileSetup';
 
 interface AuthGuardProps {
   children: React.ReactNode;

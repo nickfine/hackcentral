@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { Settings, Award, BookOpen, Briefcase, UserPlus, Clock, Check, XCircle, LogOut, UserCog, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useUser } from '@clerk/clerk-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -18,7 +18,7 @@ import {
   VISIBILITY_OPTIONS,
   type ExperienceLevel,
   type Visibility,
-} from '../constants/profile';
+} from '@/constants/profile';
 import {
   TabButton,
   SectionHeader,
@@ -27,8 +27,8 @@ import {
   ModalWrapper,
   SkeletonCard,
   EmptyState,
-} from '../components/shared';
-import { getInitials } from '../lib/utils';
+} from '@/components/shared';
+import { getInitials } from '@/lib/utils';
 
 type ActiveTab = 'contributions' | 'projects' | 'mentoring' | 'settings';
 

@@ -8,7 +8,7 @@ import {
   VISIBILITY_OPTIONS,
   type ExperienceLevel,
   type Visibility,
-} from '../../constants/profile';
+} from '@/constants/profile';
 import toast from 'react-hot-toast';
 
 export function ProfileSetup() {

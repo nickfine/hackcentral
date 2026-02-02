@@ -7,7 +7,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Rocket, Zap, TrendingUp, Sparkles } from 'lucide-react';
-import { SectionHeader } from '../../shared/SectionHeader';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 
 interface Stage {
   name: string;

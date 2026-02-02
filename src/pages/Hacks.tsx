@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { TabButton, SectionHeader } from '@/components/shared';
 import Library from './Library';
 import Projects from './Projects';
@@ -17,12 +17,6 @@ type HacksTab = 'completed' | 'in_progress';
 function isValidTab(value: string | null): value is HacksTab {
   return value === 'completed' || value === 'in_progress';
 }
-
-const LIBRARY_TYPES = [
-  { value: 'prompt', label: 'Prompts' },
-  { value: 'skill', label: 'Skills' },
-  { value: 'app', label: 'Apps' },
-] as const;
 
 export default function Hacks() {
   const [searchParams] = useSearchParams();
@@ -52,7 +46,7 @@ export default function Hacks() {
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2">
+      <div className="space-y-4">
         <SectionHeader
           title="Our Hacks"
           action={{
@@ -63,10 +57,9 @@ export default function Hacks() {
               : () => setProjectsCreateOpen(true),
           }}
         />
-      </div>
 
-      {/* Search and filters (tab-specific) */}
-      <div className="flex gap-4 flex-wrap">
+        {/* Search and filters (tab-specific) */}
+        <div className="flex gap-4 flex-wrap">
         {activeTab === 'completed' ? (
           <>
             <div className="flex-1 min-w-64 relative">
@@ -85,7 +78,7 @@ export default function Hacks() {
               onChange={(e) => setLibrarySelectedType(e.target.value)}
             >
               <option value="">All Types</option>
-              {LIBRARY_TYPES.map((t) => (
+              {HACK_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
@@ -140,35 +133,32 @@ export default function Hacks() {
               value={projectsHackTypeFilter}
               onChange={(e) => setProjectsHackTypeFilter(e.target.value)}
             >
-              <option value="">All types</option>
+              <option value="">All Types</option>
               {HACK_TYPES.map(({ value, label }) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
-            <button type="button" className="btn btn-outline btn-md">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </button>
           </>
         )}
-      </div>
+        </div>
 
-      {/* Completed | In progress tabs */}
-      <div className="flex border-b">
-        <TabButton
-          active={activeTab === 'completed'}
-          onClick={() => handleTabChange('completed')}
-        >
-          Completed
-        </TabButton>
-        <TabButton
-          active={activeTab === 'in_progress'}
-          onClick={() => handleTabChange('in_progress')}
-        >
-          In progress
-        </TabButton>
+        {/* Completed | In progress tabs */}
+        <div className="flex border-b">
+          <TabButton
+            active={activeTab === 'completed'}
+            onClick={() => handleTabChange('completed')}
+          >
+            Completed
+          </TabButton>
+          <TabButton
+            active={activeTab === 'in_progress'}
+            onClick={() => handleTabChange('in_progress')}
+          >
+            In progress
+          </TabButton>
+        </div>
       </div>
 
       {/* Tab content (embedded: no header, no search bar) */}

@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { Bell, ArrowLeft } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { formatRelativeTime } from '../lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
 import { SectionHeader, EmptyState, SkeletonCard } from '@/components/shared';
 
 export default function Notifications() {

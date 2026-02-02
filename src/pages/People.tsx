@@ -10,11 +10,11 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { EXPERIENCE_LEVEL_LABELS } from '../constants/profile';
-import { getInitials } from '../lib/utils';
-import { useDebounce } from '../hooks/useDebounce';
-import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid, PersonCard } from '../components/shared';
-import type { PersonCardProfile } from '../components/shared';
+import { EXPERIENCE_LEVEL_LABELS } from '@/constants/profile';
+import { getInitials } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid, PersonCard } from '@/components/shared';
+import type { PersonCardProfile } from '@/components/shared';
 
 type MentorFilter = 'all' | 'available' | 'seeking';
 
@@ -568,7 +568,7 @@ function MentorRequestModal({
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="What would you like help with?"
-              className="input w-full h-24 resize-none"
+              className="textarea w-full h-24 resize-none"
               maxLength={500}
             />
             <p className="text-xs text-muted-foreground mt-1">

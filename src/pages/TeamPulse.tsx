@@ -10,8 +10,8 @@ import {
   EnhancedMetricCard,
   GiniRadialProgress,
   TabbedRecognition,
-} from '../components/dashboard';
-import { SectionHeader } from '../components/shared';
+} from '@/components/dashboard';
+import { SectionHeader } from '@/components/shared';
 
 export default function TeamPulse() {
   const metrics = useQuery(api.metrics.getDashboardMetrics);
@@ -163,11 +163,9 @@ export default function TeamPulse() {
             <h2 className="text-xl font-semibold">
               Knowledge Distribution
             </h2>
-            <Info
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-              aria-hidden
-              title="Gini coefficient: 0 = equal distribution, 1 = concentrated in few"
-            />
+            <span title="Gini coefficient: 0 = equal distribution, 1 = concentrated in few">
+              <Info className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            </span>
           </div>
           {gini === undefined ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

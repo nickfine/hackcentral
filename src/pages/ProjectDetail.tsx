@@ -11,8 +11,8 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useAuth } from '../hooks/useAuth';
-import { PROJECT_STATUS_LABELS, HACK_TYPE_LABELS, HACK_TYPE_BADGE_COLORS, HACK_TYPES } from '../constants/project';
+import { useAuth } from '@/hooks/useAuth';
+import { PROJECT_STATUS_LABELS, HACK_TYPE_LABELS, HACK_TYPE_BADGE_COLORS, HACK_TYPES } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 export default function ProjectDetail() {
@@ -376,7 +376,7 @@ export default function ProjectDetail() {
                       id="nudge-lessons"
                       value={failuresAndLessons}
                       onChange={(e) => setFailuresAndLessons(e.target.value)}
-                      className="input w-full min-h-[80px]"
+                      className="textarea w-full min-h-[80px]"
                       placeholder="What worked, what didn't, what you'd do differently"
                       required
                       rows={3}
@@ -478,7 +478,7 @@ export default function ProjectDetail() {
                     id="readiness-impact"
                     value={impactHypothesis}
                     onChange={(e) => setImpactHypothesis(e.target.value)}
-                    className="input w-full min-h-[80px]"
+                    className="textarea w-full min-h-[80px]"
                     placeholder="Time saved, error reduction, throughput gain..."
                     required
                     rows={3}
@@ -492,7 +492,7 @@ export default function ProjectDetail() {
                     id="readiness-risk"
                     value={riskCheckNotes}
                     onChange={(e) => setRiskCheckNotes(e.target.value)}
-                    className="input w-full min-h-[60px]"
+                    className="textarea w-full min-h-[60px]"
                     placeholder="Optional: note any checks done."
                     rows={2}
                   />
@@ -603,7 +603,7 @@ export default function ProjectDetail() {
                     id="close-lessons"
                     value={failuresAndLessons}
                     onChange={(e) => setFailuresAndLessons(e.target.value)}
-                    className="input w-full min-h-[80px]"
+                    className="textarea w-full min-h-[80px]"
                     placeholder="What worked, what didn't, what you'd do differently"
                     required
                     rows={3}
@@ -713,7 +713,7 @@ export default function ProjectDetail() {
                   id="comment-content"
                   value={commentContent}
                   onChange={(e) => setCommentContent(e.target.value)}
-                  className="input w-full min-h-[80px]"
+                  className="textarea w-full min-h-[80px]"
                   placeholder="Write a comment…"
                   rows={3}
                 />

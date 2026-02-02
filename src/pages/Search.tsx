@@ -7,7 +7,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search as SearchIcon, BookOpen, Users } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { getInitials, stripSeedDescriptionSuffix } from '../lib/utils';
+import { getInitials, stripSeedDescriptionSuffix } from '@/lib/utils';
 import { SectionHeader, EmptyState, SkeletonCard } from '@/components/shared';
 
 const ASSET_TYPE_LABELS: Record<string, string> = {

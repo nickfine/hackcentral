@@ -42,7 +42,7 @@ export function Header() {
   const closeMobileSearch = () => setMobileSearchOpen(false)
 
   return (
-    <header className="sticky top-0 z-50 shrink-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 shrink-0 w-full bg-background">
       <div className="flex h-14 items-center px-4 lg:px-6 gap-3">
         {/* Mobile menu button - hidden when search expanded */}
         <button
@@ -219,7 +219,7 @@ function FeedbackModal({ onClose, onSubmit }: FeedbackModalProps) {
               id="feedback-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="input w-full min-h-[100px]"
+              className="textarea w-full min-h-[100px]"
               placeholder="Share your feedback, report a bug, or suggest an idea..."
               required
               rows={4}

@@ -312,6 +312,22 @@ export const create = mutation({
       })
     ),
     isAnonymous: v.optional(v.boolean()),
+    sourceRepo: v.optional(
+      v.object({
+        url: v.string(),
+        platform: v.union(
+          v.literal("github"),
+          v.literal("gitlab"),
+          v.literal("bitbucket")
+        ),
+        version: v.optional(v.string()),
+        updatedAt: v.optional(v.number()),
+        repoName: v.optional(v.string()),
+        description: v.optional(v.string()),
+        commitMessage: v.optional(v.string()),
+      })
+    ),
+    demoUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -339,6 +355,8 @@ export const create = mutation({
       isArsenal: false,
       metadata: args.metadata,
       isAnonymous: args.isAnonymous ?? false,
+      sourceRepo: args.sourceRepo,
+      demoUrl: args.demoUrl,
     });
 
     // Track contribution
@@ -377,6 +395,22 @@ export const update = mutation({
       )
     ),
     metadata: v.optional(v.any()),
+    sourceRepo: v.optional(
+      v.object({
+        url: v.string(),
+        platform: v.union(
+          v.literal("github"),
+          v.literal("gitlab"),
+          v.literal("bitbucket")
+        ),
+        version: v.optional(v.string()),
+        updatedAt: v.optional(v.number()),
+        repoName: v.optional(v.string()),
+        description: v.optional(v.string()),
+        commitMessage: v.optional(v.string()),
+      })
+    ),
+    demoUrl: v.optional(v.string()),
   },
   handler: async (ctx, { assetId, ...updates }) => {
     const identity = await ctx.auth.getUserIdentity();

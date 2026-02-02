@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, PenLine, Clock, User, Sparkles } from 'lucide-react';
-import { formatRelativeTime } from '../../../lib/utils';
+import { formatRelativeTime } from '@/lib/utils';
 
 export interface ImpactStory {
   _id: string;

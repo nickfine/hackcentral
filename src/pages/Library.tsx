@@ -10,17 +10,12 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import { useDebounce } from '../hooks/useDebounce';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { EmptyState, ModalWrapper, SkeletonGrid, SectionHeader } from '../components/shared';
-import { HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { EmptyState, ModalWrapper, SkeletonGrid, SectionHeader } from '@/components/shared';
+import { RepositoryInput, parseRepoUrl } from '@/components/library/RepositoryInput';
+import { HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
-
-const ASSET_TYPES = [
-  { value: 'prompt', label: 'Prompt' },
-  { value: 'skill', label: 'Skill' },
-  { value: 'app', label: 'App' },
-] as const;
 
 const VISIBILITY_OPTIONS = [
   { value: 'org', label: 'Organization (colleagues)' },
@@ -46,13 +41,15 @@ interface SubmitAssetModalProps {
       exampleInput?: string;
       exampleOutput?: string;
     };
+    sourceRepo?: { url: string; platform: 'github' | 'gitlab' | 'bitbucket' };
+    demoUrl?: string;
   }) => Promise<Id<'libraryAssets'>>;
 }
 
 function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAssetModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assetType, setAssetType] = useState<typeof ASSET_TYPES[number]['value']>('prompt');
+  const [assetType, setAssetType] = useState<typeof HACK_TYPES[number]['value']>('prompt');
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<'private' | 'org' | 'public'>('org');
   const [intendedUser, setIntendedUser] = useState('');
@@ -62,6 +59,8 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [repositoryUrl, setRepositoryUrl] = useState('');
+  const [demoUrl, setDemoUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +68,23 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
       toast.error('Title is required');
       return;
     }
-    if (!content.trim()) {
+    if (assetType === 'app') {
+      if (!description.trim()) {
+        toast.error('Description is required for apps');
+        return;
+      }
+    } else if (!content.trim()) {
       toast.error('Content is required');
+      return;
+    }
+    const parsedRepo = repositoryUrl.trim() ? parseRepoUrl(repositoryUrl) : null;
+    if (repositoryUrl.trim() && !parsedRepo) {
+      toast.error('Enter a valid GitHub, GitLab, or Bitbucket repository URL');
+      return;
+    }
+    const demoUrlTrimmed = demoUrl.trim();
+    if (demoUrlTrimmed && !/^https?:\/\//i.test(demoUrlTrimmed)) {
+      toast.error('Live demo URL must start with http:// or https://');
       return;
     }
     setIsSubmitting(true);
@@ -79,14 +93,20 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
         intendedUser || context || limitations || riskNotes
           ? { intendedUser: intendedUser || undefined, context: context || undefined, limitations: limitations || undefined, riskNotes: riskNotes || undefined }
           : undefined;
+      const finalContent =
+        assetType === 'app'
+          ? { description: description.trim(), screenshots: [] as string[] }
+          : content.trim();
       const newAssetId = await createAsset({
         title: title.trim(),
         description: description.trim() || undefined,
         assetType,
-        content: content.trim(),
+        content: finalContent,
         visibility,
         isAnonymous,
         metadata,
+        sourceRepo: parsedRepo ?? undefined,
+        demoUrl: assetType === 'app' ? (demoUrlTrimmed || undefined) : undefined,
       });
       onSubmitSuccess(newAssetId);
     } catch (err) {
@@ -128,7 +148,7 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
               id="submit-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="input w-full min-h-[80px]"
+              className="textarea w-full min-h-[80px]"
               placeholder="Brief description of the hack"
               rows={3}
             />
@@ -144,27 +164,52 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
               className="input w-full"
               required
             >
-              {ASSET_TYPES.map((t) => (
+              {HACK_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label htmlFor="submit-content" className="block text-sm font-medium mb-1">
-              Content <span className="text-destructive">*</span>
-            </label>
-            <textarea
-              id="submit-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="input w-full min-h-[120px] font-mono text-sm"
-              placeholder="Prompt text, template body, or JSON for structured types"
-              required
-              rows={5}
-            />
-          </div>
+          {assetType !== 'app' && (
+            <div>
+              <label htmlFor="submit-content" className="block text-sm font-medium mb-1">
+                Content <span className="text-destructive">*</span>
+              </label>
+              <textarea
+                id="submit-content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="textarea w-full min-h-[120px] font-mono text-sm"
+                placeholder="Prompt text, template body, or JSON for structured types"
+                required
+                rows={5}
+              />
+            </div>
+          )}
+          <RepositoryInput
+            value={repositoryUrl}
+            onChange={setRepositoryUrl}
+            id="submit-repository"
+          />
+          {assetType === 'app' && (
+            <div>
+              <label htmlFor="submit-demo-url" className="block text-sm font-medium mb-1">
+                Live demo URL (optional)
+              </label>
+              <input
+                id="submit-demo-url"
+                type="url"
+                value={demoUrl}
+                onChange={(e) => setDemoUrl(e.target.value)}
+                className="input w-full"
+                placeholder="https://my-app.vercel.app"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Where your app is hosted for demoing (e.g. Vercel, Netlify).
+              </p>
+            </div>
+          )}
           <div>
             <label htmlFor="submit-visibility" className="block text-sm font-medium mb-1">
               Visibility
@@ -563,7 +608,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
   };
 
   const reuseCount = asset.totalReuseEvents ?? 0;
-  const typeLabel = ASSET_TYPES.find((t) => t.value === asset.assetType)?.label ?? asset.assetType;
+  const typeLabel = HACK_TYPES.find((t) => t.value === asset.assetType)?.label ?? asset.assetType;
 
   return (
     <div

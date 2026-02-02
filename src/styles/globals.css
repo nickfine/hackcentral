@@ -104,16 +104,20 @@
   }
 
   html {
+    height: 100%;
+    overflow: hidden;
     overflow-x: hidden;
   }
 
   body {
+    height: 100%;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
     overflow-x: hidden;
     min-width: 0;
   }
@@ -121,6 +125,7 @@
   #root {
     min-width: 0;
     width: 100%;
+    height: 100%;
   }
 
   /* Headings */
