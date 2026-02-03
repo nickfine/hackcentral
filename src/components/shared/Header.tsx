@@ -5,7 +5,7 @@
  */
 
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Bell, Menu, Sparkles, MessageSquare, X } from 'lucide-react'
+import { Search, Bell, Menu, MessageSquare, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useMutation } from 'convex/react'
@@ -57,10 +57,8 @@ export function Header() {
 
         {/* Logo - hidden when mobile search expanded */}
         {!mobileSearchOpen && (
-          <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="h-5 w-5" />
-            </div>
+          <Link to="/dashboard" className="flex items-center gap-2 shrink-0" aria-label="HackDay Central home">
+            <img src="/adaptalogo.jpg" alt="" className="h-8 w-8 rounded-lg object-cover" />
             <span className="font-semibold text-lg hidden sm:inline-block">
               HackDay Central
             </span>

@@ -19,7 +19,6 @@ export { SkeletonGrid } from './SkeletonGrid'
 export { RepoLink, RepoLinkOrSuggest } from './RepoLink'
 export { BeforeAfterSlider } from './BeforeAfterSlider'
 export { CopyFeedbackToast } from './CopyFeedbackToast'
-
 export type { EmptyStateAction, EmptyStateProps } from './EmptyState'
 export type { StatCardProps } from './StatCard'
 export type { PersonCardProfile, PersonCardProps } from './PersonCard'
