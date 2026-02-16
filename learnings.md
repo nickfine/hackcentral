@@ -1,5 +1,38 @@
 # Learnings
 
+**Live-data recovery via Convex fallback (Feb 16, 2026):**
+- **Problem:** Forge global page (`getBootstrapData`) was failing on Supabase schema permission (`403/42501`), leaving the app in degraded preview mode.
+- **Fix shipped:** backend read/write path now auto-falls back to Convex bridge when Supabase permission errors occur.
+  - Applies to:
+    - `getBootstrapData`
+    - `createHack`
+    - `createProject`
+    - `updateMentorProfile`
+  - Fallback uses existing Forge env vars:
+    - `CONVEX_URL`
+    - `CONVEX_FORGE_QUERY` (default `forgeBridge:getGlobalPageData`)
+    - `CONVEX_FORGE_CREATE_HACK` (default `forgeBridge:createHackFromForge`)
+    - `CONVEX_FORGE_CREATE_PROJECT` (default `forgeBridge:createProjectFromForge`)
+    - `CONVEX_FORGE_UPDATE_MENTOR` (default `forgeBridge:updateMentorProfileFromForge`)
+- **Manifest update:** added Convex env var declarations so runtime can read them.
+- **Source metadata:** `DataSourceInfo.provider` widened to `'supabase' | 'convex'`; Convex fallback reports source as `convex`.
+- **Files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- **Verification run:**
+  - `npm run frontend:build` ✅
+  - `npm run macro:build` ✅
+  - `npm run typecheck` ✅
+  - `npm run test:run` ✅ (19 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.8.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+- **Current behavior expectation:**
+  - Global page should load with live Convex-backed data even while Supabase grants remain broken.
+  - HDC macro (instance management flow) is still Supabase-backed and still requires Supabase permission fix for those actions.
+
 **Production incident mitigation: Supabase 403 fallback (Feb 16, 2026):**
 - **Observed runtime failure in Forge logs (`app-resolver`):**
   - `Supabase GET User failed (403): {"code":"42501","message":"permission denied for schema public"}`

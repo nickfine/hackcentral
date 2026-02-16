@@ -5,7 +5,7 @@ export interface ViewerContext {
 }
 
 export interface DataSourceInfo {
-  provider: "supabase";
+  provider: "supabase" | "convex";
   deploymentUrl: string;
   schema: string;
 }
