@@ -213,6 +213,8 @@ export class HdcService {
             confluencePageId: event.confluence_page_id,
             primaryAdminEmail,
             coAdminEmails: normalizedCoAdminEmails,
+            rules: input.rules ?? null,
+            branding: input.branding ?? null,
           },
         }),
       ]);

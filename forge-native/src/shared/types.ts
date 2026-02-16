@@ -148,6 +148,17 @@ export interface CreationWizardInput {
     hackingStartsAt?: string;
     submissionDeadlineAt?: string;
   };
+  rules?: {
+    allowCrossTeamMentoring?: boolean;
+    maxTeamSize?: number;
+    requireDemoLink?: boolean;
+    judgingModel?: "panel" | "popular_vote" | "hybrid";
+  };
+  branding?: {
+    bannerMessage?: string;
+    accentColor?: string;
+    bannerImageUrl?: string;
+  };
 }
 
 export interface EventSyncState {

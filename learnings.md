@@ -1,5 +1,29 @@
 # Learnings
 
+**Phase 2 wizard slice started (Feb 16, 2026):**
+- **Parent-page create flow upgraded to a 5-step wizard shell** in Forge macro UI:
+  - Step 1: Basic info
+  - Step 2: Schedule
+  - Step 3: Rules/settings
+  - Step 4: Branding
+  - Step 5: Review + create
+- **Continuity implemented:** wizard state now persists locally per parent page key (`hdc-create-wizard:<pageId>`) and restores on reload; reset clears saved draft.
+- **Validation added in-step:** event name required, `@adaptavist.com` admin email checks, schedule guard (`submissionDeadlineAt >= hackingStartsAt`).
+- **Create flow kept idempotent/compatible:** existing `creationRequestId` timeout/retry logic still applies; new rules/branding fields are optional in `CreateInstanceDraftInput` and currently logged to audit metadata.
+- **Files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/styles.css`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- **Verification run:**
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (13 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.4.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+
 **Phase 1 hardening shipped + validated (Feb 16, 2026):**
 - **Hardening implemented in Forge macro + backend:**
   - Draft creation now has 15s timeout UX with retry guidance and idempotent request reuse (`creationRequestId` held across retries).
