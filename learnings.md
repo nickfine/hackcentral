@@ -1626,3 +1626,41 @@ const debouncedSearch = useDebounce(searchQuery);
 2. Reusing an existing Supabase schema is practical when the Forge app is read-only and table names are configurable via environment variables.
 3. `forge install list -e development` is the fastest post-deploy check to verify target-site install state.
 4. Forge CLI currently supports Node.js `20.x`, `22.x`, and `24.x`; running outside those versions can produce warnings and potential instability.
+
+## Supabase 403 Repair + Backend Re-enable (Forge Native) – Feb 16, 2026
+
+### Incident
+- Confluence global page showed degraded/fallback mode with this backend failure:
+  - `Supabase GET User failed (403)`
+  - Postgres error `42501: permission denied for schema public`
+- Additional CSP console messages were mostly browser-side `report-only` noise and not the write-path root cause.
+
+### Root cause
+- Supabase role permissions on schema `public` were insufficient for the role path used by API calls.
+- Local migration history was also incomplete vs remote history, which initially blocked `supabase db push`.
+
+### Remediation performed
+1. Synced remote migration history into repo:
+   - `supabase migration fetch --linked`
+2. Normalized new local migration versions to full timestamp format:
+   - `20260216090000_phase1_multi_tenant.sql`
+   - `20260216091000_phase2_event_config.sql`
+   - `20260216092000_phase2_supabase_grants_fix.sql`
+3. Applied migrations remotely:
+   - `supabase db push --linked`
+4. Confirmed grants fix migration applied:
+   - `20260216092000_phase2_supabase_grants_fix.sql`
+   - Includes schema/table/sequence/function grants for `service_role` in `public`.
+5. Switched Forge backend mode back to Supabase:
+   - `forge variables set FORGE_DATA_BACKEND supabase -e development`
+6. Deployed new Forge version:
+   - `forge deploy -e development` (deployed `5.2.0`)
+
+### Current status
+- Supabase permission fix is applied to the linked remote project.
+- Forge development env is now configured for Supabase mode.
+- Installation on `hackdaytemp.atlassian.net` is reported `Up-to-date`.
+
+### Notes
+- Existing Convex support remains in code as an optional mode/failover path (`FORGE_DATA_BACKEND=auto|convex|supabase`), but runtime is currently pinned to `supabase`.
+- If desired later, set `FORGE_DATA_BACKEND=auto` for permission-error fallback behavior.

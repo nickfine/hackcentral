@@ -80,6 +80,7 @@ interface DbProject {
   event_id: string | null;
   created_at: string | null;
 }
+type DbProjectRow = Record<string, unknown>;
 
 interface DbEvent {
   id: string;
@@ -152,6 +153,137 @@ function hasMissingEventConfigColumns(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
   return message.includes('column') && (message.includes('event_rules') || message.includes('event_branding'));
+}
+
+function hasMissingProjectTitleColumn(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('does not exist') &&
+    (message.includes('project.title') || message.includes('"project"."title"'))
+  );
+}
+
+function hasMissingProjectNameColumn(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('does not exist') &&
+    (message.includes('project.name') || message.includes('"project"."name"'))
+  );
+}
+
+function hasMissingProjectColumn(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('does not exist') &&
+    (message.includes('project.') || message.includes('"project"."'))
+  );
+}
+
+function extractMissingProjectColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const quoted = error.message.match(/column\s+"Project"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (quoted) return quoted[1];
+  const plain = error.message.match(/column\s+Project\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  if (plain) return plain[1];
+  return null;
+}
+
+function getStringField(row: DbProjectRow, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'string') return value;
+  }
+  return null;
+}
+
+function getNumberField(row: DbProjectRow, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function getBooleanField(row: DbProjectRow, keys: string[]): boolean | null {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'boolean') return value;
+  }
+  return null;
+}
+
+function getStringArrayField(row: DbProjectRow, keys: string[]): string[] | null {
+  for (const key of keys) {
+    const value = row[key];
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string');
+    }
+  }
+  return null;
+}
+
+function normalizeProjectRow(row: DbProjectRow): DbProject {
+  const submittedAt = getStringField(row, ['submitted_at']);
+  const title = getStringField(row, ['title', 'name']) ?? 'Untitled';
+  const status = getStringField(row, ['status']) ?? (submittedAt ? 'completed' : 'idea');
+  const sourceTypeRaw = getStringField(row, ['source_type']) as DbProject['source_type'];
+  const sourceType =
+    sourceTypeRaw === 'hack_submission'
+      ? 'hack_submission'
+      : submittedAt
+        ? 'hack_submission'
+        : 'project';
+
+  return {
+    id: getStringField(row, ['id']) ?? '',
+    title,
+    description: getStringField(row, ['description']),
+    status,
+    hack_type: (getStringField(row, ['hack_type']) as DbProject['hack_type']) ?? null,
+    visibility: (getStringField(row, ['visibility']) as Visibility | null) ?? 'org',
+    owner_id: getStringField(row, ['owner_id']),
+    workflow_transformed: getBooleanField(row, ['workflow_transformed']) ?? false,
+    ai_impact_hypothesis: getStringField(row, ['ai_impact_hypothesis']),
+    ai_tools_used: getStringArrayField(row, ['ai_tools_used']) ?? [],
+    time_saved_estimate: getNumberField(row, ['time_saved_estimate']),
+    failures_and_lessons: getStringField(row, ['failures_and_lessons']),
+    source_type: sourceType ?? 'project',
+    synced_to_library_at: getStringField(row, ['synced_to_library_at']),
+    event_id: getStringField(row, ['event_id']),
+    created_at: getStringField(row, ['created_at']),
+  };
+}
+
+function matchesProjectFilter(project: DbProject, filter: QueryFilter): boolean {
+  let value: string | number | boolean | null | undefined;
+
+  switch (filter.field) {
+    case 'id':
+      value = project.id;
+      break;
+    case 'event_id':
+      value = project.event_id;
+      break;
+    case 'source_type':
+      value = project.source_type;
+      break;
+    case 'owner_id':
+      value = project.owner_id;
+      break;
+    default:
+      return true;
+  }
+
+  if (filter.op === 'eq') return String(value ?? '') === String(filter.value ?? '');
+  if (filter.op === 'neq') return String(value ?? '') !== String(filter.value ?? '');
+  if (filter.op === 'is') {
+    if (filter.value === null) return value === null;
+    return String(value ?? '') === String(filter.value);
+  }
+  return true;
 }
 
 function withNullEventConfig(row: Omit<DbEvent, 'event_rules' | 'event_branding'>): DbEvent {
@@ -298,22 +430,92 @@ export class SupabaseRepository {
     });
   }
 
-  async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
+  private async listProjects(filters: QueryFilter[] = []): Promise<DbProject[]> {
+    try {
+      const rows = await this.client.selectMany<DbProjectRow>(PROJECT_TABLE, '*', filters);
+      return rows.map(normalizeProjectRow);
+    } catch (error) {
+      if (!hasMissingProjectColumn(error)) {
+        throw error;
+      }
+      const rows = await this.client.selectMany<DbProjectRow>(PROJECT_TABLE, '*');
+      const projects = rows.map(normalizeProjectRow);
+      return projects.filter((project) => filters.every((filter) => matchesProjectFilter(project, filter)));
+    }
+  }
+
+  private async insertProject(payload: Record<string, unknown> & { title: string }): Promise<{
+    id: string;
+    title?: string | null;
+    name?: string | null;
+  }> {
+    const queue: Array<Record<string, unknown>> = [{ ...payload, name: payload.title }, { ...payload }];
+    const seen = new Set<string>();
+    let lastError: unknown = null;
+
+    while (queue.length > 0) {
+      const candidate = queue.shift()!;
+      const signature = Object.keys(candidate).sort().join(',');
+      if (seen.has(signature)) continue;
+      seen.add(signature);
+
+      try {
+        return await this.client.insert<{ id: string; title?: string | null; name?: string | null }>(
+          PROJECT_TABLE,
+          candidate
+        );
+      } catch (error) {
+        lastError = error;
+        if (!hasMissingProjectColumn(error)) {
+          throw error;
+        }
+
+        const missingColumn = extractMissingProjectColumn(error);
+        if (missingColumn && missingColumn in candidate) {
+          const withoutMissing = { ...candidate };
+          delete withoutMissing[missingColumn];
+          queue.push(withoutMissing);
+        }
+
+        if (hasMissingProjectNameColumn(error) && 'name' in candidate) {
+          const withoutName = { ...candidate };
+          delete withoutName.name;
+          queue.push(withoutName);
+        }
+
+        if (hasMissingProjectTitleColumn(error) && 'title' in candidate) {
+          const withoutTitle = { ...candidate };
+          delete withoutTitle.title;
+          queue.push(withoutTitle);
+        }
+      }
+    }
+
+    if (lastError instanceof Error) {
+      throw lastError;
+    }
+    throw new Error('Supabase insert Project failed: no compatible payload variant succeeded.');
+  }
+
+async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     const [users, projects] = await Promise.all([
       this.client.selectMany<DbUser>(
         USER_TABLE,
         'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags'
       ),
-      this.client.selectMany<DbProject>(
-        PROJECT_TABLE,
-        'id,title,description,status,hack_type,visibility,owner_id,workflow_transformed,ai_impact_hypothesis,ai_tools_used,time_saved_estimate,failures_and_lessons,source_type,synced_to_library_at,event_id,created_at'
-      ),
+      this.listProjects(),
     ]);
 
     const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
 
-    const hackRows = projects.filter((project) => project.source_type === 'hack_submission');
-    const projectRows = projects.filter((project) => project.source_type !== 'hack_submission');
+    let hackRows = projects.filter((project) => project.source_type === 'hack_submission');
+    let projectRows = projects.filter((project) => project.source_type !== 'hack_submission');
+
+    if (hackRows.length === 0 && projects.length > 0) {
+      // Legacy schema/data can classify everything as generic projects; surface those as hacks instead of an empty UI.
+      hackRows = projects;
+      projectRows = projects;
+    }
 
     const featuredHacks = hackRows
       .slice()
@@ -400,7 +602,7 @@ export class SupabaseRepository {
 
   async createHack(viewer: ViewerContext, input: CreateHackInput): Promise<CreateHackResult> {
     const user = await this.ensureUser(viewer);
-    const inserted = await this.client.insert<DbProject>(PROJECT_TABLE, {
+    const inserted = await this.insertProject({
       title: input.title,
       description: input.description ?? null,
       status: 'completed',
@@ -414,13 +616,13 @@ export class SupabaseRepository {
 
     return {
       assetId: inserted.id,
-      title: inserted.title,
+      title: inserted.title ?? inserted.name ?? input.title,
     };
   }
 
   async createProject(viewer: ViewerContext, input: CreateProjectInput): Promise<CreateProjectResult> {
     const user = await this.ensureUser(viewer);
-    const inserted = await this.client.insert<DbProject>(PROJECT_TABLE, {
+    const inserted = await this.insertProject({
       title: input.title,
       description: input.description ?? null,
       status: 'idea',
@@ -434,7 +636,7 @@ export class SupabaseRepository {
 
     return {
       projectId: inserted.id,
-      title: inserted.title,
+      title: inserted.title ?? inserted.name ?? input.title,
     };
   }
 
@@ -657,7 +859,7 @@ export class SupabaseRepository {
 
   async submitHack(viewer: ViewerContext, payload: SubmitHackInput): Promise<SubmitHackResult> {
     const user = await this.ensureUser(viewer);
-    const inserted = await this.client.insert<DbProject>(PROJECT_TABLE, {
+    const inserted = await this.insertProject({
       title: payload.title,
       description: payload.description ?? null,
       status: 'completed',
@@ -679,19 +881,11 @@ export class SupabaseRepository {
       { field: 'source_type', op: 'eq', value: 'hack_submission' },
     ];
 
-    return this.client.selectMany<DbProject>(
-      PROJECT_TABLE,
-      'id,title,description,status,hack_type,visibility,owner_id,workflow_transformed,ai_impact_hypothesis,ai_tools_used,time_saved_estimate,failures_and_lessons,source_type,synced_to_library_at,event_id,created_at',
-      filters
-    );
+    return this.listProjects(filters);
   }
 
   async listProjectsByEventId(eventId: string): Promise<DbProject[]> {
-    return this.client.selectMany<DbProject>(
-      PROJECT_TABLE,
-      'id,title,description,status,hack_type,visibility,owner_id,workflow_transformed,ai_impact_hypothesis,ai_tools_used,time_saved_estimate,failures_and_lessons,source_type,synced_to_library_at,event_id,created_at',
-      [{ field: 'event_id', op: 'eq', value: eventId }]
-    );
+    return this.listProjects([{ field: 'event_id', op: 'eq', value: eventId }]);
   }
 
   async markHackSynced(projectId: string): Promise<void> {
