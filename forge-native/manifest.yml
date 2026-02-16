@@ -11,6 +11,12 @@ modules:
       resource: custom-ui-frontend
       resolver:
         function: app-resolver
+  macro:
+    - key: hackday-central-macro
+      title: HackDay Central
+      resource: custom-ui-macro
+      resolver:
+        function: app-resolver
 
   function:
     - key: app-resolver
@@ -19,18 +25,27 @@ modules:
 resources:
   - key: custom-ui-frontend
     path: static/frontend/dist
+  - key: custom-ui-macro
+    path: static/macro-frontend/dist
 
 permissions:
-  scopes: []
+  scopes:
+    - read:page:confluence
+    - write:page:confluence
+    - delete:page:confluence
+    - read:content.property:confluence
+    - write:content.property:confluence
+    - read:email-address:confluence
   external:
     fetch:
       backend:
-        - '*.convex.cloud'
+        - '*.supabase.co'
+        - '*.atlassian.net'
 
 environment:
   variables:
-    - CONVEX_URL
-    - CONVEX_FORGE_QUERY
-    - CONVEX_FORGE_CREATE_HACK
-    - CONVEX_FORGE_CREATE_PROJECT
-    - CONVEX_FORGE_UPDATE_MENTOR
+    - SUPABASE_URL
+    - SUPABASE_SERVICE_ROLE_KEY
+    - SUPABASE_SCHEMA
+    - FORGE_APP_ID
+    - FORGE_MACRO_KEY

@@ -1,13 +1,18 @@
 {
   "name": "hackday-central-forge-native",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "forge lint",
     "frontend:install": "npm install --prefix static/frontend",
     "frontend:dev": "npm run dev --prefix static/frontend",
-    "frontend:build": "npm run build --prefix static/frontend"
+    "frontend:build": "npm run build --prefix static/frontend",
+    "macro:install": "npm install --prefix static/macro-frontend",
+    "macro:dev": "npm run dev --prefix static/macro-frontend",
+    "macro:build": "npm run build --prefix static/macro-frontend",
+    "custom-ui:install": "npm run frontend:install && npm run macro:install",
+    "custom-ui:build": "npm run frontend:build && npm run macro:build"
   },
   "dependencies": {
     "@forge/api": "^7.0.1",

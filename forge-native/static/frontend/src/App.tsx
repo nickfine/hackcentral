@@ -86,9 +86,9 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
     timezone: 'America/Los_Angeles',
   },
   source: {
-    provider: 'convex',
+    provider: 'supabase',
     deploymentUrl: 'local-preview',
-    queryName: 'local-preview:getGlobalPageData',
+    schema: 'public',
   },
   summary: {
     totalPeople: 12,

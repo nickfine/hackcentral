@@ -5,9 +5,9 @@ export interface ViewerContext {
 }
 
 export interface DataSourceInfo {
-  provider: "convex";
+  provider: "supabase";
   deploymentUrl: string;
-  queryName: string;
+  schema: string;
 }
 
 export interface SummaryStats {
@@ -111,9 +111,107 @@ export interface UpdateMentorProfileResult {
   mentorCapacity: number;
 }
 
+export type LifecycleStatus =
+  | "draft"
+  | "registration"
+  | "team_formation"
+  | "hacking"
+  | "voting"
+  | "results"
+  | "completed"
+  | "archived";
+
+export type SyncStatus = "not_started" | "in_progress" | "partial" | "failed" | "complete";
+
+export interface EventRegistryItem {
+  id: string;
+  eventName: string;
+  icon: string;
+  tagline: string | null;
+  lifecycleStatus: LifecycleStatus;
+  confluencePageId: string;
+  confluenceParentPageId: string | null;
+  hackingStartsAt: string | null;
+  submissionDeadlineAt: string | null;
+}
+
+export interface CreationWizardInput {
+  basicInfo: {
+    eventName: string;
+    eventIcon: string;
+    eventTagline?: string;
+    primaryAdminEmail?: string;
+    coAdminEmails?: string[];
+  };
+  schedule: {
+    timezone?: string;
+    hackingStartsAt?: string;
+    submissionDeadlineAt?: string;
+  };
+}
+
+export interface EventSyncState {
+  eventId: string;
+  syncStatus: SyncStatus;
+  lastError: string | null;
+  lastAttemptAt: string | null;
+  pushedCount: number;
+  skippedCount: number;
+}
+
+export interface HdcContextResponse {
+  pageType: "parent" | "instance";
+  pageId: string;
+  event: EventRegistryItem | null;
+  registry: EventRegistryItem[];
+  syncState: EventSyncState | null;
+  permissions: {
+    canCreateInstances: boolean;
+    isPrimaryAdmin: boolean;
+    isCoAdmin: boolean;
+  };
+}
+
+export interface CreateInstanceDraftInput extends CreationWizardInput {
+  parentPageId: string;
+  creationRequestId: string;
+}
+
+export interface CreateInstanceDraftResult {
+  eventId: string;
+  childPageId: string;
+  childPageUrl: string;
+}
+
+export interface EventLifecycleResult {
+  lifecycleStatus: LifecycleStatus;
+}
+
+export interface SubmitHackInput {
+  eventId: string;
+  title: string;
+  description?: string;
+}
+
+export interface SubmitHackResult {
+  projectId: string;
+}
+
+export interface SyncResult {
+  syncStatus: SyncStatus;
+  pushedCount: number;
+  skippedCount: number;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   createHack: (payload: CreateHackInput) => CreateHackResult;
   createProject: (payload: CreateProjectInput) => CreateProjectResult;
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
+  hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
+  hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
+  hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
+  hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
+  hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
+  hdcRetrySync: (payload: { eventId: string }) => SyncResult;
 };

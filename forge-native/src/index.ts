@@ -1,6 +1,7 @@
 import Resolver from '@forge/resolver';
 import { createHack, createProject, getBootstrapData, updateMentorProfile } from './backend/hackcentral';
-import type { ViewerContext } from './shared/types';
+import { HdcService } from './backend/hdcService';
+import type { CreateInstanceDraftInput, SubmitHackInput, ViewerContext } from './shared/types';
 
 interface RawResolverContext {
   accountId?: string;
@@ -17,6 +18,7 @@ function getViewer(context: RawResolverContext | undefined): ViewerContext {
 }
 
 const resolver = new Resolver();
+const hdcService = new HdcService();
 
 resolver.define('getBootstrapData', async (request: { context?: RawResolverContext }) => {
   const viewer = getViewer(request.context as RawResolverContext | undefined);
@@ -68,6 +70,80 @@ resolver.define(
   }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return updateMentorProfile(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcGetContext',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      pageId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.getContext(viewer, request.payload.pageId);
+  }
+);
+
+resolver.define(
+  'hdcCreateInstanceDraft',
+  async (request: {
+    context?: RawResolverContext;
+    payload: CreateInstanceDraftInput;
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.createInstanceDraft(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcLaunchInstance',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      eventId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.launchInstance(viewer, request.payload.eventId);
+  }
+);
+
+resolver.define(
+  'hdcSubmitHack',
+  async (request: {
+    context?: RawResolverContext;
+    payload: SubmitHackInput;
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.submitHack(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcCompleteAndSync',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      eventId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.completeAndSync(viewer, request.payload.eventId);
+  }
+);
+
+resolver.define(
+  'hdcRetrySync',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      eventId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.retrySync(viewer, request.payload.eventId);
   }
 );
 
