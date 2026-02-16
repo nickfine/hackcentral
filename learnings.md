@@ -1,5 +1,29 @@
 # Learnings
 
+**Backend mode control added (Feb 16, 2026):**
+- Added explicit Forge backend switch: `FORGE_DATA_BACKEND` with values:
+  - `supabase` = force Supabase only
+  - `convex` = force Convex only
+  - `auto` = Supabase first, auto-fallback to Convex on Supabase permission errors
+- Implemented in backend routing for global-page read/write calls:
+  - `getBootstrapData`
+  - `createHack`
+  - `createProject`
+  - `updateMentorProfile`
+- Manifest now declares `FORGE_DATA_BACKEND` as an environment variable.
+- Development env is set to `FORGE_DATA_BACKEND=auto`.
+- **Files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+- **Verification run:**
+  - `npm run frontend:build` ✅
+  - `npm run macro:build` ✅
+  - `npm run typecheck` ✅
+  - `npm run test:run` ✅ (19 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.9.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+
 **Live-data recovery via Convex fallback (Feb 16, 2026):**
 - **Problem:** Forge global page (`getBootstrapData`) was failing on Supabase schema permission (`403/42501`), leaving the app in degraded preview mode.
 - **Fix shipped:** backend read/write path now auto-falls back to Convex bridge when Supabase permission errors occur.

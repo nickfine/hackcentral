@@ -20,6 +20,8 @@ interface ConvexBootstrapPayload {
   people: BootstrapData['people'];
 }
 
+type ForgeDataBackendMode = 'supabase' | 'convex' | 'auto';
+
 function isSupabasePermissionError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
@@ -28,6 +30,14 @@ function isSupabasePermissionError(error: unknown): boolean {
     (message.includes('supabase') && message.includes('(403)')) ||
     message.includes('permission denied for schema public')
   );
+}
+
+function getDataBackendMode(): ForgeDataBackendMode {
+  const raw = (process.env.FORGE_DATA_BACKEND || 'auto').trim().toLowerCase();
+  if (raw === 'supabase' || raw === 'convex' || raw === 'auto') {
+    return raw;
+  }
+  return 'auto';
 }
 
 function getConvexConfig(): {
@@ -75,6 +85,20 @@ async function withPermissionFallback<T>(
       throw new Error(`${primaryMessage} Convex fallback failed: ${fallbackMessage}`);
     }
   }
+}
+
+async function withConfiguredBackend<T>(
+  supabase: () => Promise<T>,
+  convex: () => Promise<T>
+): Promise<T> {
+  const mode = getDataBackendMode();
+  if (mode === 'supabase') {
+    return supabase();
+  }
+  if (mode === 'convex') {
+    return convex();
+  }
+  return withPermissionFallback(supabase, convex);
 }
 
 async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<BootstrapData> {
@@ -142,7 +166,7 @@ async function updateMentorInConvex(
 }
 
 export async function getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-  return withPermissionFallback(
+  return withConfiguredBackend(
     () => repository.getBootstrapData(viewer),
     () => getBootstrapDataFromConvex(viewer)
   );
@@ -152,7 +176,7 @@ export async function createHack(
   viewer: ViewerContext,
   input: CreateHackInput
 ): Promise<CreateHackResult> {
-  return withPermissionFallback(
+  return withConfiguredBackend(
     () => repository.createHack(viewer, input),
     () => createHackInConvex(viewer, input)
   );
@@ -162,7 +186,7 @@ export async function createProject(
   viewer: ViewerContext,
   input: CreateProjectInput
 ): Promise<CreateProjectResult> {
-  return withPermissionFallback(
+  return withConfiguredBackend(
     () => repository.createProject(viewer, input),
     () => createProjectInConvex(viewer, input)
   );
@@ -172,7 +196,7 @@ export async function updateMentorProfile(
   viewer: ViewerContext,
   input: UpdateMentorProfileInput
 ): Promise<UpdateMentorProfileResult> {
-  return withPermissionFallback(
+  return withConfiguredBackend(
     () => repository.updateMentorProfile(viewer, input),
     () => updateMentorInConvex(viewer, input)
   );
