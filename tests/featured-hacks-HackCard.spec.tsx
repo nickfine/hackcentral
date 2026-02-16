@@ -1,12 +1,6 @@
-/**
- * Featured Hacks: type-appropriate CTAs on HackCard
- * - Prompt/skill assets: "Copy Hack" + "View Details"
- * - App assets: only "View Details" (primary)
- * - Stories: "Copy Story" + "View Details"
- * - Fallback (asset, no assetType): "Copy Hack" + "View Details"
- */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { HackCard, type FeaturedHackItem } from '../src/components/dashboard/FeaturedHacks/HackCard'
 
@@ -37,26 +31,39 @@ function renderCard(hack: FeaturedHackItem) {
   )
 }
 
-describe('HackCard type-appropriate CTAs', () => {
-  it('shows Copy Hack + View Details for prompt asset', () => {
+describe('HackCard', () => {
+  it('renders prompt asset as a clickable details card', async () => {
     renderCard({ ...baseHack, assetType: 'prompt' })
-    expect(screen.getByRole('button', { name: /copy.*clipboard/i })).toHaveTextContent('Copy Hack')
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveTextContent('View Details')
-  })
+    const user = userEvent.setup()
 
-  it('shows Copy Hack + View Details for skill asset', () => {
-    renderCard({ ...baseHack, assetType: 'skill' })
-    expect(screen.getByRole('button', { name: /copy.*clipboard/i })).toHaveTextContent('Copy Hack')
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveTextContent('View Details')
-  })
-
-  it('shows only View Details for app asset (no Copy button)', () => {
-    renderCard({ ...baseHack, assetType: 'app' })
+    expect(screen.getByRole('button', { name: /view details for test hack/i })).toBeInTheDocument()
+    expect(screen.getByText('Prompt')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveTextContent('View Details')
+    await user.click(screen.getByRole('button', { name: /view details for test hack/i }))
   })
 
-  it('shows Copy Story + View Details for story', () => {
+  it('renders skill asset as a clickable details card', async () => {
+    renderCard({ ...baseHack, assetType: 'skill' })
+    const user = userEvent.setup()
+
+    expect(screen.getByRole('button', { name: /view details for test hack/i })).toBeInTheDocument()
+    expect(screen.getByText('Skill')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /view details for test hack/i }))
+  })
+
+  it('renders app asset as a clickable details card with no copy CTA', async () => {
+    renderCard({ ...baseHack, assetType: 'app' })
+    const user = userEvent.setup()
+
+    expect(screen.getByRole('button', { name: /view details for test hack/i })).toBeInTheDocument()
+    expect(screen.getByText('App')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /view details/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /view details for test hack/i }))
+  })
+
+  it('renders story as a clickable details card', async () => {
     renderCard({
       ...baseHack,
       type: 'story',
@@ -64,13 +71,21 @@ describe('HackCard type-appropriate CTAs', () => {
       storyId: 'story-1',
       assetId: undefined,
     })
-    expect(screen.getByRole('button', { name: /copy.*clipboard/i })).toHaveTextContent('Copy Story')
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveTextContent('View Details')
+    const user = userEvent.setup()
+
+    expect(screen.getByRole('button', { name: /view details for test hack/i })).toBeInTheDocument()
+    expect(screen.getByText('Story')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /view details for test hack/i }))
   })
 
-  it('fallback: asset with no assetType shows Copy Hack + View Details', () => {
+  it('fallback: asset with no assetType uses story label and clickable details card', async () => {
     renderCard({ ...baseHack, assetType: undefined })
-    expect(screen.getByRole('button', { name: /copy.*clipboard/i })).toHaveTextContent('Copy Hack')
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveTextContent('View Details')
+    const user = userEvent.setup()
+
+    expect(screen.getByRole('button', { name: /view details for test hack/i })).toBeInTheDocument()
+    expect(screen.getByText('Story')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copy/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /view details for test hack/i }))
   })
 })
