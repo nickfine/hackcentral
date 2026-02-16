@@ -18,6 +18,7 @@ type RepoMock = {
   getUserByAccountId: ReturnType<typeof vi.fn>;
   getEventNameConflicts: ReturnType<typeof vi.fn>;
   getEventByConfluencePageId: ReturnType<typeof vi.fn>;
+  getEventById: ReturnType<typeof vi.fn>;
   listEventsByParentPageId: ReturnType<typeof vi.fn>;
   ensureUserByEmail: ReturnType<typeof vi.fn>;
   createEvent: ReturnType<typeof vi.fn>;
@@ -26,6 +27,8 @@ type RepoMock = {
   logAudit: ReturnType<typeof vi.fn>;
   listEventAdmins: ReturnType<typeof vi.fn>;
   listEventHackProjects: ReturnType<typeof vi.fn>;
+  listProjectsByEventId: ReturnType<typeof vi.fn>;
+  deleteEventCascade: ReturnType<typeof vi.fn>;
   getSyncState: ReturnType<typeof vi.fn>;
   completeAndSync: ReturnType<typeof vi.fn>;
 };
@@ -37,6 +40,7 @@ function createRepoMock(): RepoMock {
     getUserByAccountId: vi.fn(),
     getEventNameConflicts: vi.fn(),
     getEventByConfluencePageId: vi.fn(),
+    getEventById: vi.fn(),
     listEventsByParentPageId: vi.fn(),
     ensureUserByEmail: vi.fn(),
     createEvent: vi.fn(),
@@ -45,6 +49,8 @@ function createRepoMock(): RepoMock {
     logAudit: vi.fn(),
     listEventAdmins: vi.fn(),
     listEventHackProjects: vi.fn(),
+    listProjectsByEventId: vi.fn(),
+    deleteEventCascade: vi.fn(),
     getSyncState: vi.fn(),
     completeAndSync: vi.fn(),
   };
@@ -313,5 +319,46 @@ describe('HdcService hardening behavior', () => {
 
     expect(repo.completeAndSync).not.toHaveBeenCalled();
     expect(repo.upsertSyncState).not.toHaveBeenCalled();
+  });
+
+  it('deletes draft instance only for primary admin with no projects', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-primary' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-draft',
+      name: 'Draft Event',
+      lifecycle_status: 'draft',
+      confluence_page_id: 'child-draft',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-primary', role: 'primary' }]);
+    repo.listProjectsByEventId.mockResolvedValue([]);
+    repo.logAudit.mockResolvedValue(undefined);
+    repo.deleteEventCascade.mockResolvedValue(undefined);
+    deletePageMock.mockResolvedValue(undefined);
+
+    const service = new ServiceClass(repo as never);
+    const result = await service.deleteDraftInstance(viewer, 'event-draft');
+
+    expect(result).toEqual({ deleted: true });
+    expect(deletePageMock).toHaveBeenCalledWith('child-draft');
+    expect(repo.deleteEventCascade).toHaveBeenCalledWith('event-draft');
+  });
+
+  it('blocks draft deletion when caller is not primary admin', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-coadmin' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-draft',
+      lifecycle_status: 'draft',
+      confluence_page_id: 'child-draft',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-coadmin', role: 'co_admin' }]);
+
+    const service = new ServiceClass(repo as never);
+    await expect(service.deleteDraftInstance(viewer, 'event-draft')).rejects.toThrow(
+      'Only the primary admin can delete a draft instance.'
+    );
+
+    expect(repo.deleteEventCascade).not.toHaveBeenCalled();
   });
 });

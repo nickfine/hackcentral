@@ -97,6 +97,10 @@ export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
 
+export interface DeleteDraftResult {
+  deleted: true;
+}
+
 export interface SubmitHackResult {
   projectId: string;
 }
@@ -110,6 +114,7 @@ export interface SyncResult {
 export type Defs = {
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
+  hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: { eventId: string; title: string; description?: string }) => SubmitHackResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;

@@ -183,6 +183,10 @@ button:disabled {
   background: #475569;
 }
 
+.button-danger {
+  background: #b91c1c;
+}
+
 .registry {
   margin: 0;
   padding: 0;

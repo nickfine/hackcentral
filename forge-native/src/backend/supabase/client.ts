@@ -152,4 +152,12 @@ export class SupabaseRestClient {
       prefer: 'return=representation',
     });
   }
+
+  async deleteMany<T>(table: string, filters: QueryFilter[]): Promise<T[]> {
+    const params = buildSearchParams('*', filters);
+    return this.request<T[]>('DELETE', table, {
+      searchParams: params,
+      prefer: 'return=representation',
+    });
+  }
 }

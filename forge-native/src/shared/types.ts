@@ -213,6 +213,10 @@ export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
 
+export interface DeleteDraftResult {
+  deleted: true;
+}
+
 export interface SubmitHackInput {
   eventId: string;
   title: string;
@@ -236,6 +240,7 @@ export type Defs = {
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
+  hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;

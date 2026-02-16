@@ -168,6 +168,7 @@ export function App(): JSX.Element {
   }, [loadContext]);
 
   const canAdminInstance = Boolean(context?.permissions.isPrimaryAdmin || context?.permissions.isCoAdmin);
+  const isPrimaryAdmin = Boolean(context?.permissions.isPrimaryAdmin);
 
   const sortedRegistry = useMemo(
     () => [...(context?.registry ?? [])].sort((a, b) => a.eventName.localeCompare(b.eventName)),
@@ -526,6 +527,42 @@ export function App(): JSX.Element {
     }
   }, [context?.event, loadContext]);
 
+  const handleDeleteDraft = useCallback(async () => {
+    if (!context?.event) {
+      setError('No instance selected to delete.');
+      return;
+    }
+    if (!isPrimaryAdmin) {
+      setError('Only the primary admin can delete this draft.');
+      return;
+    }
+    if (context.event.lifecycleStatus !== 'draft') {
+      setError('Only draft instances can be deleted.');
+      return;
+    }
+    if (LOCAL_PREVIEW) {
+      setMessage('Local preview mode: draft deletion is disabled.');
+      return;
+    }
+    if (!window.confirm('Delete this draft instance? This cannot be undone.')) {
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await invokeTyped('hdcDeleteDraftInstance', { eventId: context.event.id });
+      setMessage('Draft deleted.');
+      await loadContext();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete draft instance.');
+    } finally {
+      setSaving(false);
+    }
+  }, [context?.event, isPrimaryAdmin, loadContext]);
+
   if (loading) {
     return <main className="shell">Loading HackDay Central macro…</main>;
   }
@@ -809,6 +846,13 @@ export function App(): JSX.Element {
             </button>
             <button disabled={saving || !canAdminInstance} onClick={() => void runSync('retry')}>
               {saving ? 'Retrying…' : 'Retry Sync'}
+            </button>
+            <button
+              disabled={saving || !isPrimaryAdmin || context.event.lifecycleStatus !== 'draft'}
+              className="button-danger"
+              onClick={() => void handleDeleteDraft()}
+            >
+              {saving ? 'Deleting…' : 'Delete Draft'}
             </button>
           </article>
         </section>

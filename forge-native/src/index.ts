@@ -111,6 +111,19 @@ resolver.define(
 );
 
 resolver.define(
+  'hdcDeleteDraftInstance',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      eventId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.deleteDraftInstance(viewer, request.payload.eventId);
+  }
+);
+
+resolver.define(
   'hdcSubmitHack',
   async (request: {
     context?: RawResolverContext;

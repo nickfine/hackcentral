@@ -1,5 +1,40 @@
 # Learnings
 
+**Phase 2 draft-deletion workflow shipped (Feb 16, 2026):**
+- **Primary-admin-only draft deletion implemented end-to-end:**
+  - New resolver action: `hdcDeleteDraftInstance`.
+  - Service enforces guardrails:
+    - event must exist
+    - caller must be primary admin
+    - lifecycle must be `draft`
+    - no event-linked hacks/projects may exist
+  - On success: audits `draft_deleted`, deletes Confluence child page, then removes Supabase event records.
+- **Repository delete plumbing added:**
+  - Added `deleteMany` support in Supabase REST client.
+  - Added event cleanup method `deleteEventCascade` plus `listProjectsByEventId` guard query.
+- **Macro UI update:**
+  - Added `Delete Draft` button in instance admin panel (visible/active only when valid: primary admin + draft status).
+  - Uses confirmation prompt and displays failure/success state messages.
+- **Key files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/client.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/index.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/styles.css`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- **Tests updated:**
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts` now covers successful/blocked draft deletion flows.
+- **Verification run:**
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (19 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.6.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+
 **Phase 2 persistence slice shipped (Feb 16, 2026):**
 - **Wizard Step 3/4 now persists to event runtime data** (Supabase-first path):
   - Added `event_rules` and `event_branding` persistence wiring in backend create flow.

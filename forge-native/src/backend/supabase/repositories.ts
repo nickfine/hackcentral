@@ -686,6 +686,14 @@ export class SupabaseRepository {
     );
   }
 
+  async listProjectsByEventId(eventId: string): Promise<DbProject[]> {
+    return this.client.selectMany<DbProject>(
+      PROJECT_TABLE,
+      'id,title,description,status,hack_type,visibility,owner_id,workflow_transformed,ai_impact_hypothesis,ai_tools_used,time_saved_estimate,failures_and_lessons,source_type,synced_to_library_at,event_id,created_at',
+      [{ field: 'event_id', op: 'eq', value: eventId }]
+    );
+  }
+
   async markHackSynced(projectId: string): Promise<void> {
     await this.client.patchMany<DbProject>(
       PROJECT_TABLE,
@@ -709,6 +717,17 @@ export class SupabaseRepository {
       new_value: input.newValue ?? null,
       created_at: nowIso(),
     });
+  }
+
+  async deleteEventCascade(eventId: string): Promise<void> {
+    await this.client.deleteMany(EVENT_ADMIN_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
+    await this.client.deleteMany(EVENT_SYNC_STATE_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
+    await this.client.deleteMany(EVENT_AUDIT_LOG_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
+
+    const deleted = await this.client.deleteMany<DbEvent>(EVENT_TABLE, [{ field: 'id', op: 'eq', value: eventId }]);
+    if (deleted.length === 0) {
+      throw new Error(`Event ${eventId} not found while deleting draft.`);
+    }
   }
 
   async getEventNameConflicts(eventName: string, parentPageId: string): Promise<EventRegistryItem[]> {

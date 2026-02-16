@@ -1,6 +1,7 @@
 import type {
   CreateInstanceDraftInput,
   CreateInstanceDraftResult,
+  DeleteDraftResult,
   EventBranding,
   EventLifecycleResult,
   EventRules,
@@ -289,6 +290,45 @@ export class HdcService {
     });
 
     return { lifecycleStatus: 'hacking' };
+  }
+
+  async deleteDraftInstance(viewer: ViewerContext, eventId: string): Promise<DeleteDraftResult> {
+    const user = await this.repository.ensureUser(viewer);
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error('Event not found for draft deletion.');
+    }
+
+    const admins = await this.repository.listEventAdmins(eventId);
+    const isPrimaryAdmin = admins.some((admin) => admin.user_id === user.id && admin.role === 'primary');
+    if (!isPrimaryAdmin) {
+      throw new Error('Only the primary admin can delete a draft instance.');
+    }
+    if (event.lifecycle_status !== 'draft') {
+      throw new Error('Only draft instances can be deleted.');
+    }
+
+    const eventProjects = await this.repository.listProjectsByEventId(eventId);
+    if (eventProjects.length > 0) {
+      throw new Error('Draft cannot be deleted after hacks or projects have been created.');
+    }
+
+    await this.repository.logAudit({
+      eventId,
+      actorUserId: user.id,
+      action: 'draft_deleted',
+      previousValue: {
+        eventName: event.name,
+        confluencePageId: event.confluence_page_id,
+      },
+    });
+
+    if (event.confluence_page_id) {
+      await deletePage(event.confluence_page_id);
+    }
+    await this.repository.deleteEventCascade(eventId);
+
+    return { deleted: true };
   }
 
   async submitHack(viewer: ViewerContext, payload: SubmitHackInput): Promise<SubmitHackResult> {
