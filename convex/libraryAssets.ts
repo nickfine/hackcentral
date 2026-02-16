@@ -1,5 +1,118 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+
+type ProfileDoc = Doc<"profiles"> | null;
+type Identity = Awaited<ReturnType<QueryCtx["auth"]["getUserIdentity"]>>;
+type AssetFilterArgs = {
+  assetType?: "prompt" | "skill" | "app";
+  status?: "draft" | "in_progress" | "verified" | "deprecated";
+  arsenalOnly?: boolean;
+  excludeDeprecated?: boolean;
+  limit?: number;
+};
+
+async function getCurrentProfile(
+  ctx: QueryCtx,
+  identity: Identity
+): Promise<ProfileDoc> {
+  if (!identity) return null;
+  return await ctx.db
+    .query("profiles")
+    .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+    .first();
+}
+
+async function listFilteredVisibleAssets(
+  ctx: QueryCtx,
+  identity: Identity,
+  currentProfile: ProfileDoc,
+  {
+    assetType,
+    status,
+    arsenalOnly,
+    excludeDeprecated,
+    limit,
+  }: AssetFilterArgs
+) {
+  const isVisibleToUser = (asset: Doc<"libraryAssets">) => {
+    if (asset.visibility === "public") return true;
+    if (asset.visibility === "org") return Boolean(identity);
+    return Boolean(currentProfile && asset.authorId === currentProfile._id);
+  };
+
+  const matchesFilters = (asset: Doc<"libraryAssets">) => {
+    if (!isVisibleToUser(asset)) return false;
+    if (assetType && asset.assetType !== assetType) return false;
+    if (status && asset.status !== status) return false;
+    if (arsenalOnly && !asset.isArsenal) return false;
+    if (excludeDeprecated && asset.status === "deprecated" && status !== "deprecated") return false;
+    return true;
+  };
+
+  const addAsset = (
+    assets: Doc<"libraryAssets">[],
+    seen: Set<Id<"libraryAssets">>,
+    results: Doc<"libraryAssets">[]
+  ) => {
+    for (const asset of assets) {
+      if (seen.has(asset._id) || !matchesFilters(asset)) continue;
+      seen.add(asset._id);
+      results.push(asset);
+    }
+  };
+
+  let candidates: Doc<"libraryAssets">[] = [];
+  if (status) {
+    candidates = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_status", (q) => q.eq("status", status))
+      .collect();
+  } else if (assetType) {
+    candidates = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_type", (q) => q.eq("assetType", assetType))
+      .collect();
+  } else if (arsenalOnly) {
+    candidates = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_arsenal", (q) => q.eq("isArsenal", true))
+      .collect();
+  } else {
+    const seen = new Set<Id<"libraryAssets">>();
+    const merged: Doc<"libraryAssets">[] = [];
+
+    const publicAssets = await ctx.db
+      .query("libraryAssets")
+      .withIndex("by_visibility", (q) => q.eq("visibility", "public"))
+      .collect();
+    addAsset(publicAssets, seen, merged);
+
+    if (identity) {
+      const orgAssets = await ctx.db
+        .query("libraryAssets")
+        .withIndex("by_visibility", (q) => q.eq("visibility", "org"))
+        .collect();
+      addAsset(orgAssets, seen, merged);
+    }
+
+    if (currentProfile) {
+      const myAssets = await ctx.db
+        .query("libraryAssets")
+        .withIndex("by_author", (q) => q.eq("authorId", currentProfile._id))
+        .collect();
+      addAsset(myAssets, seen, merged);
+    }
+
+    merged.sort((a, b) => a._creationTime - b._creationTime);
+    return limit != null ? merged.slice(0, limit) : merged;
+  }
+
+  const filtered = candidates.filter(matchesFilters);
+  filtered.sort((a, b) => a._creationTime - b._creationTime);
+  return limit != null ? filtered.slice(0, limit) : filtered;
+}
 
 /**
  * List library assets (filtered by visibility)
@@ -25,39 +138,11 @@ export const list = query({
   },
   handler: async (ctx, { assetType, status, arsenalOnly }) => {
     const identity = await ctx.auth.getUserIdentity();
-    const assets = await ctx.db.query("libraryAssets").collect();
-
-    // Get current user's profile
-    let currentProfile = null;
-    if (identity) {
-      currentProfile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
-        .first();
-    }
-
-    // Filter by visibility and other criteria
-    return assets.filter((asset) => {
-      const isAuthor = currentProfile && asset.authorId === currentProfile._id;
-
-      // Visibility check
-      const visibilityOk =
-        asset.visibility === "public" ||
-        (asset.visibility === "org" && identity) ||
-        (asset.visibility === "private" && isAuthor);
-
-      if (!visibilityOk) return false;
-
-      // Filter by asset type
-      if (assetType && asset.assetType !== assetType) return false;
-
-      // Filter by status
-      if (status && asset.status !== status) return false;
-
-      // Filter by arsenal flag
-      if (arsenalOnly && !asset.isArsenal) return false;
-
-      return true;
+    const currentProfile = await getCurrentProfile(ctx, identity);
+    return await listFilteredVisibleAssets(ctx, identity, currentProfile, {
+      assetType,
+      status,
+      arsenalOnly,
     });
   },
 });
@@ -111,45 +196,31 @@ export const listWithReuseCounts = query({
   },
   handler: async (ctx, { assetType, status, arsenalOnly, limit, excludeDeprecated }) => {
     const identity = await ctx.auth.getUserIdentity();
-    const assets = await ctx.db.query("libraryAssets").collect();
+    const currentProfile = await getCurrentProfile(ctx, identity);
+    const assets = await listFilteredVisibleAssets(ctx, identity, currentProfile, {
+      assetType,
+      status,
+      arsenalOnly,
+      excludeDeprecated,
+      limit,
+    });
+    if (assets.length === 0) return [];
 
-    let currentProfile = null;
-    if (identity) {
-      currentProfile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
-        .first();
+    const assetIds = new Set(assets.map((asset) => asset._id));
+    const reuseCountByAsset = new Map<Id<"libraryAssets">, number>();
+    const events = await ctx.db.query("libraryReuseEvents").collect();
+    for (const event of events) {
+      if (!assetIds.has(event.assetId)) continue;
+      reuseCountByAsset.set(
+        event.assetId,
+        (reuseCountByAsset.get(event.assetId) ?? 0) + 1
+      );
     }
 
-    const visibleAssets = assets.filter((asset) => {
-      const isAuthor = currentProfile && asset.authorId === currentProfile._id;
-      const visibilityOk =
-        asset.visibility === "public" ||
-        (asset.visibility === "org" && identity) ||
-        (asset.visibility === "private" && isAuthor);
-      if (!visibilityOk) return false;
-      if (assetType && asset.assetType !== assetType) return false;
-      if (status && asset.status !== status) return false;
-      if (arsenalOnly && !asset.isArsenal) return false;
-      if (excludeDeprecated && asset.status === "deprecated" && status !== "deprecated") return false;
-      return true;
-    });
-
-    const toProcess = limit != null ? visibleAssets.slice(0, limit) : visibleAssets;
-    const result = await Promise.all(
-      toProcess.map(async (asset) => {
-        const events = await ctx.db
-          .query("libraryReuseEvents")
-          .withIndex("by_asset", (q) => q.eq("assetId", asset._id))
-          .collect();
-        return {
-          ...asset,
-          totalReuseEvents: events.length,
-        };
-      })
-    );
-
-    return result;
+    return assets.map((asset) => ({
+      ...asset,
+      totalReuseEvents: reuseCountByAsset.get(asset._id) ?? 0,
+    }));
   },
 });
 

@@ -28,6 +28,7 @@ export function useAuth() {
 
     // Helpers
     isAuthenticated: isLoaded && isSignedIn,
-    needsProfile: isSignedIn && !profile,
+    isProfileLoading: isSignedIn && profile === undefined,
+    needsProfile: isSignedIn && profile === null,
   };
 }

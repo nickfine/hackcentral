@@ -1,0 +1,119 @@
+export interface ViewerContext {
+  accountId: string;
+  siteUrl: string;
+  timezone: string;
+}
+
+export interface DataSourceInfo {
+  provider: 'convex';
+  deploymentUrl: string;
+  queryName: string;
+}
+
+export interface SummaryStats {
+  totalPeople: number;
+  totalHacks: number;
+  featuredHacks: number;
+  inProgressProjects: number;
+  completedProjects: number;
+  activeMentors: number;
+}
+
+export interface FeaturedHack {
+  id: string;
+  title: string;
+  description: string;
+  assetType: 'prompt' | 'skill' | 'app';
+  status: string;
+  reuseCount: number;
+  authorName: string;
+  visibility: 'private' | 'org' | 'public';
+  intendedUser: string | null;
+  context: string | null;
+  limitations: string | null;
+  riskNotes: string | null;
+  sourceRepoUrl: string | null;
+  demoUrl: string | null;
+}
+
+export interface ProjectSnapshot {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  statusLabel: string;
+  hackType: 'prompt' | 'skill' | 'app' | null;
+  ownerName: string;
+  attachedHacksCount: number;
+  commentCount: number;
+  visibility: 'private' | 'org' | 'public';
+  workflowTransformed: boolean;
+  aiImpactHypothesis: string | null;
+  aiToolsUsed: string[];
+  timeSavedEstimate: number | null;
+  failuresAndLessons: string | null;
+}
+
+export interface PersonSnapshot {
+  id: string;
+  fullName: string;
+  email: string;
+  experienceLevel: string | null;
+  experienceLabel: string | null;
+  mentorCapacity: number;
+  mentorSessionsUsed: number;
+  mentorSlotsRemaining: number;
+  capabilities: string[];
+}
+
+export interface BootstrapData {
+  viewer: ViewerContext;
+  source: DataSourceInfo;
+  summary: SummaryStats;
+  featuredHacks: FeaturedHack[];
+  recentProjects: ProjectSnapshot[];
+  people: PersonSnapshot[];
+}
+
+export interface CreateHackInput {
+  title: string;
+  description?: string;
+  assetType: 'prompt' | 'skill' | 'app';
+  visibility?: 'private' | 'org' | 'public';
+  content?: string;
+}
+
+export interface CreateHackResult {
+  assetId: string;
+  title: string;
+}
+
+export interface CreateProjectInput {
+  title: string;
+  description?: string;
+  visibility?: 'private' | 'org' | 'public';
+  hackType?: 'prompt' | 'skill' | 'app';
+}
+
+export interface CreateProjectResult {
+  projectId: string;
+  title: string;
+}
+
+export interface UpdateMentorProfileInput {
+  mentorCapacity: number;
+  happyToMentor: boolean;
+  seekingMentor: boolean;
+}
+
+export interface UpdateMentorProfileResult {
+  profileId: string;
+  mentorCapacity: number;
+}
+
+export type Defs = {
+  getBootstrapData: () => BootstrapData;
+  createHack: (payload: CreateHackInput) => CreateHackResult;
+  createProject: (payload: CreateProjectInput) => CreateProjectResult;
+  updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
+};

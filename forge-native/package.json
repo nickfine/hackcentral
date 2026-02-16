@@ -1,0 +1,21 @@
+{
+  "name": "hackday-central-forge-native",
+  "version": "0.1.1",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "forge lint",
+    "frontend:install": "npm install --prefix static/frontend",
+    "frontend:dev": "npm run dev --prefix static/frontend",
+    "frontend:build": "npm run build --prefix static/frontend"
+  },
+  "dependencies": {
+    "@forge/api": "^7.0.1",
+    "@forge/resolver": "^1.7.1",
+    "convex": "^1.31.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

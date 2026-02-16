@@ -1,5 +1,84 @@
 # Learnings
 
+**Continuation handoff (Feb 15, 2026 — latest session):**
+- **Custom UI visual redesign completed** for Forge frontend:
+  - Updated `forge-native/static/frontend/src/App.tsx` to a design-system-style layout (hero, stats row, filterable data panels, right-side action panels, responsive two-column workspace).
+  - Updated `forge-native/static/frontend/src/styles.css` with a tokenized visual system (cards, chips, badges, CTA styles, responsive breakpoints, motion).
+- **Localhost preview blank-screen fix completed:**
+  - Root cause: direct `@forge/bridge` usage throws outside Atlassian iframe context.
+  - Fix: `App.tsx` now supports **local preview mode** when host is `localhost`/`127.0.0.1`:
+    - Loads mock `BootstrapData`.
+    - Shows a banner that preview data is mocked.
+    - Simulates write actions (`Submit Hack`, `Create Project`, `Update Mentor Profile`) instead of bridge calls.
+  - Bridge calls now use dynamic import inside `invokeTyped`, so localhost can render safely.
+- **Build verification:** `npm run build` passes in `forge-native/static/frontend` after redesign + preview-mode changes.
+- **Forge deployment status:**
+  - Deployed and upgraded to development successfully **before** the localhost preview-mode patch (`forge deploy -e development`, `forge install --upgrade`).
+  - `forge version list --environment development` shows major `3` last deploy timestamp `2026-02-15T15:48:23.403Z` (app version line shown as `3.3.0` during deploy output).
+  - **Important:** localhost preview-mode patch was applied after that deploy, so deploy again if this new behavior should be available in Confluence.
+- **Atlassian browser-test note:** automated browser check hit Atlassian login wall (expected when not authenticated in MCP browser session).
+
+**Quick continue commands (next chat):**
+- Local preview: `cd /Users/nickster/Downloads/HackCentral/forge-native && npm run frontend:dev` then open `http://localhost:5173/`
+- Build check: `cd /Users/nickster/Downloads/HackCentral/forge-native/static/frontend && npm run build`
+- Deploy latest to development:
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native`
+  - `npm run frontend:build`
+  - `forge deploy --non-interactive -e development`
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development`
+
+**Active baseline for this repo (HackCentral Forge Native, Feb 15, 2026):**
+- Scope: use the `forge-native` app as the Confluence surface; this repo is no longer on a UI Kit architecture for that surface.
+- Architecture: Forge **Custom UI** only.
+  - Manifest module uses `resource: custom-ui-frontend` and no `render: native`.
+  - Frontend source: `forge-native/static/frontend/src`.
+  - Frontend bundle served by Forge: `forge-native/static/frontend/dist`.
+  - Resolver entry: `forge-native/src/index.ts`.
+- Data path: Custom UI (`@forge/bridge`) -> Forge resolver -> Convex (`convex/forgeBridge.ts`).
+- Workflow guardrail: always run `npm run frontend:build` in `forge-native` before `forge deploy`; deploy does not build Custom UI assets.
+- Debug guardrail: `forge tunnel` helps resolver debugging, but visual frontend updates still require build + deploy (and possible CDN propagation wait).
+- Runtime guardrail: keep Forge runtime/local Node aligned on Node 22.x.
+
+**Note:** Historical entries below include older implementation phases (including prior UI Kit references). Treat the baseline above as authoritative for new work.
+
+**Forge Native: switched from UI Kit to Custom UI architecture (Feb 15, 2026):** Reworked the Confluence Forge app in `forge-native` to match the HD26Forge Custom UI model so page design is fully flexible. Manifest now uses a static resource (`custom-ui-frontend`) at `static/frontend/dist` and removes `render: native`. Added a dedicated Vite frontend at `forge-native/static/frontend` using `@forge/bridge` for resolver calls, while keeping backend contracts (`getBootstrapData`, `createHack`, `createProject`, `updateMentorProfile`) unchanged. Added explicit workflow: build Custom UI before deploy (`npm run frontend:build`), then `forge deploy`/`forge install --upgrade`.
+
+**Forge Native: migrated from HackDay scaffold to true HackCentral (Feb 15, 2026):** The initial Confluence app showed a generic "HackDay Snapshot" (Event/Team/Project from Supabase-style tables) instead of HackCentral domain UX. Replaced the Forge app data source and UI to use the real HackCentral model from Convex (`profiles`, `libraryAssets`, `projects`). Added a dedicated Convex bridge query `convex/forgeBridge.ts:getGlobalPageData` and rewired Forge backend from `supabase.ts` to `src/backend/hackcentral.ts` with `CONVEX_URL`. Updated the Custom UI page to HackCentral sections: summary metrics, Featured Hacks, Hacks In Progress, People. Deployed to Forge development major version 3 (latest install on `hackdaytemp.atlassian.net`).
+
+**Forge Native: implemented filters + detail panels (Feb 15, 2026):** Added interactive filters and expandable details in the Confluence global page. Filters: hack type/status, project status, mentor availability. Details: hack metadata (context, limitations, risk notes, repo/demo URLs) and project metadata (impact hypothesis, AI tools used, time saved, lessons). Extended `getGlobalPageData` payload to include all fields required by the detail cards.
+
+**Forge Native: implemented write actions (Step 3) (Feb 15, 2026):** Added write flows in Forge UI and backend:
+- Submit Hack
+- Create Project
+- Update mentor profile (capacity + mentorship tags)
+Implemented Convex mutations in `convex/forgeBridge.ts`:
+- `createHackFromForge`
+- `createProjectFromForge`
+- `updateMentorProfileFromForge`
+Wired Forge resolver endpoints in `forge-native/src/index.ts` and backend methods in `forge-native/src/backend/hackcentral.ts`.
+
+**Forge identity mapping for writes (Feb 15, 2026):** Forge runtime does not carry Clerk identity, so writes use deterministic synthetic profile mapping:
+- `userId = forge:<site>:<atlassianAccountId>`
+- If missing, a profile is auto-created (`@forge.local` placeholder email, org visibility).
+This enables write operations from Confluence now, but ownership differs from Clerk-based web identities until identity unification is implemented.
+
+**Deployment/env progress (Feb 15, 2026):**
+- Convex functions pushed with `npx convex dev --once` on deployment `dev:tangible-ocelot-341`.
+- Forge env variables set:
+  - `CONVEX_URL`
+  - `CONVEX_FORGE_QUERY=forgeBridge:getGlobalPageData`
+  - `CONVEX_FORGE_CREATE_HACK=forgeBridge:createHackFromForge`
+  - `CONVEX_FORGE_CREATE_PROJECT=forgeBridge:createProjectFromForge`
+  - `CONVEX_FORGE_UPDATE_MENTOR=forgeBridge:updateMentorProfileFromForge`
+- Forge deploys completed to development, latest observed app version `3.2.0` with installation major `3 (Latest)`.
+
+**Non-blocking warnings observed (Feb 15, 2026):**
+- Forge CLI warns when not on Node 20/22 (works but unsupported warning shown).
+- `forge lint` warns manifest egress entry style is deprecated (`fetch.backend`) but deploy succeeds.
+- Bundling warns `Can't resolve 'utf-8-validate'` from Convex package path; deploy still succeeds and app runs.
+
+**Current state handoff (Feb 15, 2026):** Confluence app now behaves as a HackCentral surface (read + basic write actions) backed by Convex, no longer the old HackDay snapshot scaffold.
+
 **Sticky header fix E2E (Feb 2, 2026):** Tested via Playwright MCP (user-playwright). **Problem:** CSS `position: sticky` on the "Our Hacks" sub-header caused content (hack cards) to visually appear ABOVE the sticky section when scrolling, due to complex stacking context interactions with cards using `transform` (hover:scale, hover:-translate-y) and `transition-all`. **Root cause:** (1) CSS stacking contexts created by transform-enabled elements don't respect sibling z-index as expected; (2) The AssetCard component has `hover:scale-[1.02] hover:-translate-y-0.5 transition-all` which creates stacking context issues; (3) Attempts to fix with z-index (z-10, z-30), `isolation: isolate`, and negative z-index all failed or had side effects. **Final fix:** Removed `sticky` behavior from the "Our Hacks" section header in `Hacks.tsx`. The main nav header remains fixed at top (z-50), sidebar fixed below it (z-40), and the page content scrolls normally within `main`. This eliminates all visual z-index glitches while maintaining the core fixed-header + scrolling-content layout. **Key learning:** CSS `position: sticky` combined with sibling elements that have transforms can create unpredictable stacking behavior that's difficult to fix with z-index alone. In such cases, removing sticky or restructuring the DOM may be the cleanest solution.
 
 **Agent Blueprint for legacy app hacks E2E (Feb 1, 2026):** Tested via Playwright MCP (user-playwright). **Customer Support Triage Agent** (Featured Hack, legacy app): Shows "Agent Blueprint" heading (not "Core prompt"), "Copy config" button (not "Copy prompt"); no "Open in ChatGPT"; agent blueprint content in pre-formatted block; How to use with BeforeAfterSlider; Details with Repository, Live demo (—), Intended user, Context, Limitations, Risk notes. **Content Moderation Agent**: Same layout. **Confluence release notes template** (demo app, new format): Shows "About" section, "Try live demo" link, "View Source Code", screenshots, description; no Core prompt / Copy prompt. **Copy config**: Click on Customer Support Triage Agent copies blueprint to clipboard. **Console:** No errors (Clerk dev warning only). Implementation: AssetDetailContent shows "Agent Blueprint" + "Copy config" for assetType === 'app' when getAppContent returns null (legacy systemPrompt format).
@@ -1248,3 +1327,36 @@ const debouncedSearch = useDebounce(searchQuery);
 
 ### Conclusion
 **Phase 3 clean-up browser testing:** ✅ **PASS** – Frontline vs leader card, graduated nudges, sandbox labelling (Library and Projects), and People/Projects pagination behavior verified. Export metrics includes `frontlineLeaderGap` (verified in code; download not exercised in this run).
+
+---
+
+## Forge Native Rebuild (Confluence + Existing Supabase) – Feb 15, 2026
+
+### Context
+- Moved active work from the external drive to local disk at `/Users/nickster/Downloads/HackCentral` because Forge workflows are more reliable on local storage.
+- Decided to rebuild HackDay Central as a native Forge app from scratch.
+- Kept the existing Supabase project (same base setup used by the HackDay project) instead of creating a new database.
+
+### What was implemented
+- Created a new Forge app workspace at `/Users/nickster/Downloads/HackCentral/forge-native`.
+- Added a `confluence:globalPage` module (`HackDay Central`) with a native UI Kit frontend and resolver backend.
+- Configured backend external fetch permissions for `*.supabase.co`.
+- Implemented read-only Supabase data bootstrap for the existing schema tables:
+  - `Event`
+  - `User`
+  - `Team`
+  - `TeamMember`
+  - `Project`
+  - `EventRegistration`
+- Added env-driven table mapping so schema/table names can be overridden without code changes.
+
+### Deployment and environment verification
+- `forge install list -e development` confirms installation on `hackdaytemp.atlassian.net` for Confluence in the `development` environment.
+- Installation status is `Up-to-date` at app version `2`.
+- `forge variables list -e development` confirms required Supabase variables are set (`SUPABASE_URL`, `SUPABASE_SCHEMA`, encrypted key).
+
+### Key learnings
+1. Forge app development should stay on local disk under `/Users/...`; external drives can introduce avoidable tool/runtime friction.
+2. Reusing an existing Supabase schema is practical when the Forge app is read-only and table names are configurable via environment variables.
+3. `forge install list -e development` is the fastest post-deploy check to verify target-site install state.
+4. Forge CLI currently supports Node.js `20.x`, `22.x`, and `24.x`; running outside those versions can produce warnings and potential instability.

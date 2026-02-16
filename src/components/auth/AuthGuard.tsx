@@ -13,7 +13,7 @@ interface AuthGuardProps {
  * Shows children if authenticated and has profile
  */
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isLoaded, isAuthenticated, needsProfile } = useAuth();
+  const { isLoaded, isAuthenticated, isProfileLoading, needsProfile } = useAuth();
 
   // Loading state
   if (!isLoaded) {
@@ -40,6 +40,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
             <SignInButton />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Authenticated, but profile query still loading
+  if (isProfileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
       </div>
     );
   }

@@ -75,6 +75,7 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
   const sentinelRef = useInfiniteScroll({
     onLoadMore: loadMoreProjects,
     hasMore: projectsList != null && projectsList.length === projectLimit,
+    itemCount: projectsList?.length ?? 0,
   });
   const createProject = useMutation(api.projects.create);
   const toggleLike = useMutation(api.projectSupportEvents.toggleLike);

@@ -1,0 +1,36 @@
+app:
+  id: ari:cloud:ecosystem::app/f828e0d4-e9d0-451d-b818-533bc3e95680
+  runtime:
+    name: nodejs22.x
+
+modules:
+  confluence:globalPage:
+    - key: hackday-central-global-page
+      title: HackCentral
+      route: hackday-central
+      resource: custom-ui-frontend
+      resolver:
+        function: app-resolver
+
+  function:
+    - key: app-resolver
+      handler: index.handler
+
+resources:
+  - key: custom-ui-frontend
+    path: static/frontend/dist
+
+permissions:
+  scopes: []
+  external:
+    fetch:
+      backend:
+        - '*.convex.cloud'
+
+environment:
+  variables:
+    - CONVEX_URL
+    - CONVEX_FORGE_QUERY
+    - CONVEX_FORGE_CREATE_HACK
+    - CONVEX_FORGE_CREATE_PROJECT
+    - CONVEX_FORGE_UPDATE_MENTOR

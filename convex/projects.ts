@@ -1,5 +1,82 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+
+type ProfileDoc = Doc<"profiles"> | null;
+type Identity = Awaited<ReturnType<QueryCtx["auth"]["getUserIdentity"]>>;
+
+async function getCurrentProfile(
+  ctx: QueryCtx,
+  identity: Identity
+): Promise<ProfileDoc> {
+  if (!identity) return null;
+  return await ctx.db
+    .query("profiles")
+    .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+    .first();
+}
+
+async function listVisibleProjects(
+  ctx: QueryCtx,
+  identity: Identity,
+  currentProfile: ProfileDoc,
+  limit?: number
+) {
+  const seen = new Set<Id<"projects">>();
+  const visible: Doc<"projects">[] = [];
+  const memberProjectIds = new Set<Id<"projects">>();
+
+  const addProject = (project: Doc<"projects"> | null) => {
+    if (!project || seen.has(project._id)) return;
+    seen.add(project._id);
+    visible.push(project);
+  };
+
+  const publicProjects = await ctx.db
+    .query("projects")
+    .withIndex("by_visibility", (q) => q.eq("visibility", "public"))
+    .collect();
+  publicProjects.forEach(addProject);
+
+  if (identity) {
+    const orgProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_visibility", (q) => q.eq("visibility", "org"))
+      .collect();
+    orgProjects.forEach(addProject);
+  }
+
+  if (currentProfile) {
+    const myProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", currentProfile._id))
+      .collect();
+    myProjects.forEach(addProject);
+
+    const memberships = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_user", (q) => q.eq("userId", currentProfile._id))
+      .collect();
+    memberships.forEach((m) => memberProjectIds.add(m.projectId));
+    const memberProjects = await Promise.all(
+      [...memberProjectIds].map((projectId) => ctx.db.get(projectId))
+    );
+    memberProjects
+      .filter((project): project is Doc<"projects"> => project != null)
+      .forEach(addProject);
+  }
+
+  const filtered = visible.filter((project) => {
+    if (project.visibility === "public") return true;
+    if (project.visibility === "org") return Boolean(identity);
+    if (!currentProfile) return false;
+    return project.ownerId === currentProfile._id || memberProjectIds.has(project._id);
+  });
+
+  filtered.sort((a, b) => a._creationTime - b._creationTime);
+  return limit != null ? filtered.slice(0, limit) : filtered;
+}
 
 /**
  * List projects (filtered by visibility)
@@ -8,42 +85,8 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    const projects = await ctx.db.query("projects").collect();
-
-    // Get current user's profile
-    let currentProfile = null;
-    if (identity) {
-      currentProfile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
-        .first();
-    }
-
-    // Filter by visibility (async-safe)
-    const projectsWithAccess = await Promise.all(
-      projects.map(async (project) => {
-        const isOwner = currentProfile && project.ownerId === currentProfile._id;
-
-        // Check if user is a member
-        const isMember = currentProfile
-          ? await ctx.db
-              .query("projectMembers")
-              .withIndex("by_project_and_user", (q) =>
-                q.eq("projectId", project._id).eq("userId", currentProfile._id)
-              )
-              .first()
-          : null;
-
-        const hasAccess =
-          project.visibility === "public" ||
-          (project.visibility === "org" && identity) ||
-          (project.visibility === "private" && (isOwner || isMember));
-
-        return hasAccess ? project : null;
-      })
-    );
-
-    return projectsWithAccess.filter((p) => p !== null);
+    const currentProfile = await getCurrentProfile(ctx, identity);
+    return await listVisibleProjects(ctx, identity, currentProfile);
   },
 });
 
@@ -55,80 +98,65 @@ export const listWithCounts = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }) => {
     const identity = await ctx.auth.getUserIdentity();
-    const projects = await ctx.db.query("projects").collect();
+    const currentProfile = await getCurrentProfile(ctx, identity);
+    const projects = await listVisibleProjects(ctx, identity, currentProfile, limit);
+    if (projects.length === 0) return [];
 
-    let currentProfile = null;
-    if (identity) {
-      currentProfile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
-        .first();
+    const projectIds = new Set(projects.map((p) => p._id));
+
+    const commentCountByProject = new Map<Id<"projects">, number>();
+    const comments = await ctx.db.query("projectComments").collect();
+    for (const comment of comments) {
+      if (!projectIds.has(comment.projectId)) continue;
+      commentCountByProject.set(
+        comment.projectId,
+        (commentCountByProject.get(comment.projectId) ?? 0) + 1
+      );
     }
 
-    const projectsWithAccess = await Promise.all(
-      projects.map(async (project) => {
-        const isOwner = currentProfile && project.ownerId === currentProfile._id;
-        const isMember = currentProfile
-          ? await ctx.db
-              .query("projectMembers")
-              .withIndex("by_project_and_user", (q) =>
-                q.eq("projectId", project._id).eq("userId", currentProfile._id)
-              )
-              .first()
-          : null;
+    const likeCountByProject = new Map<Id<"projects">, number>();
+    const helpCountByProject = new Map<Id<"projects">, number>();
+    const userLikedProjects = new Set<Id<"projects">>();
+    const userHelpProjects = new Set<Id<"projects">>();
+    const supportEvents = await ctx.db.query("projectSupportEvents").collect();
+    for (const event of supportEvents) {
+      if (!projectIds.has(event.projectId)) continue;
+      if (event.supportType === "like") {
+        likeCountByProject.set(
+          event.projectId,
+          (likeCountByProject.get(event.projectId) ?? 0) + 1
+        );
+      } else if (event.supportType === "offer_help") {
+        helpCountByProject.set(
+          event.projectId,
+          (helpCountByProject.get(event.projectId) ?? 0) + 1
+        );
+      }
 
-        const hasAccess =
-          project.visibility === "public" ||
-          (project.visibility === "org" && identity) ||
-          (project.visibility === "private" && (isOwner || isMember));
+      if (!currentProfile || event.supporterId !== currentProfile._id) continue;
+      if (event.supportType === "like") userLikedProjects.add(event.projectId);
+      if (event.supportType === "offer_help") userHelpProjects.add(event.projectId);
+    }
 
-        if (!hasAccess) return null;
+    const attachedAssetCountByProject = new Map<Id<"projects">, number>();
+    const projectAssets = await ctx.db.query("projectLibraryAssets").collect();
+    for (const assetLink of projectAssets) {
+      if (!projectIds.has(assetLink.projectId)) continue;
+      attachedAssetCountByProject.set(
+        assetLink.projectId,
+        (attachedAssetCountByProject.get(assetLink.projectId) ?? 0) + 1
+      );
+    }
 
-        const comments = await ctx.db
-          .query("projectComments")
-          .withIndex("by_project", (q) => q.eq("projectId", project._id))
-          .collect();
-        const supportEvents = await ctx.db
-          .query("projectSupportEvents")
-          .withIndex("by_project", (q) => q.eq("projectId", project._id))
-          .collect();
-
-        let likeCount = 0;
-        let helpOfferCount = 0;
-        for (const e of supportEvents) {
-          if (e.supportType === "like") likeCount++;
-          else if (e.supportType === "offer_help") helpOfferCount++;
-        }
-
-        let userLiked = false;
-        let userOfferedHelp = false;
-        if (currentProfile) {
-          const myEvents = supportEvents.filter(
-            (e) => e.supporterId === currentProfile._id
-          );
-          userLiked = myEvents.some((e) => e.supportType === "like");
-          userOfferedHelp = myEvents.some((e) => e.supportType === "offer_help");
-        }
-
-        const projectAssets = await ctx.db
-          .query("projectLibraryAssets")
-          .withIndex("by_project", (q) => q.eq("projectId", project._id))
-          .collect();
-
-        return {
-          ...project,
-          commentCount: comments.length,
-          likeCount,
-          helpOfferCount,
-          userLiked,
-          userOfferedHelp,
-          attachedAssetsCount: projectAssets.length,
-        };
-      })
-    );
-
-    const list = projectsWithAccess.filter((p) => p !== null);
-    return limit != null ? list.slice(0, limit) : list;
+    return projects.map((project) => ({
+      ...project,
+      commentCount: commentCountByProject.get(project._id) ?? 0,
+      likeCount: likeCountByProject.get(project._id) ?? 0,
+      helpOfferCount: helpCountByProject.get(project._id) ?? 0,
+      userLiked: userLikedProjects.has(project._id),
+      userOfferedHelp: userHelpProjects.has(project._id),
+      attachedAssetsCount: attachedAssetCountByProject.get(project._id) ?? 0,
+    }));
   },
 });
 

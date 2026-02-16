@@ -419,6 +419,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
   const sentinelRef = useInfiniteScroll({
     onLoadMore: loadMoreAssets,
     hasMore: allAssets != null && allAssets.length === assetLimit,
+    itemCount: allAssets?.length ?? 0,
   });
 
   return (
