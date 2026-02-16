@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type {
   BootstrapData,
   CreateHackInput,
@@ -22,6 +23,7 @@ import { SupabaseRestClient, type QueryFilter } from './client';
 
 const EVENT_TABLE = 'Event';
 const USER_TABLE = 'User';
+const TEAM_TABLE = 'Team';
 const PROJECT_TABLE = 'Project';
 const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
@@ -159,8 +161,9 @@ function hasMissingProjectTitleColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
   return (
-    message.includes('does not exist') &&
-    (message.includes('project.title') || message.includes('"project"."title"'))
+    (message.includes('does not exist') &&
+      (message.includes('project.title') || message.includes('"project"."title"'))) ||
+    message.includes("could not find the 'title' column of 'project' in the schema cache")
   );
 }
 
@@ -168,8 +171,9 @@ function hasMissingProjectNameColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
   return (
-    message.includes('does not exist') &&
-    (message.includes('project.name') || message.includes('"project"."name"'))
+    (message.includes('does not exist') &&
+      (message.includes('project.name') || message.includes('"project"."name"'))) ||
+    message.includes("could not find the 'name' column of 'project' in the schema cache")
   );
 }
 
@@ -177,8 +181,10 @@ function hasMissingProjectColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
   return (
-    message.includes('does not exist') &&
-    (message.includes('project.') || message.includes('"project"."'))
+    ((message.includes('does not exist') &&
+      (message.includes('project.') || message.includes('"project"."'))) ||
+      (message.includes("could not find the '") &&
+        message.includes("' column of 'project' in the schema cache")))
   );
 }
 
@@ -188,7 +194,17 @@ function extractMissingProjectColumn(error: unknown): string | null {
   if (quoted) return quoted[1];
   const plain = error.message.match(/column\s+Project\.([a-zA-Z0-9_]+)\s+does not exist/i);
   if (plain) return plain[1];
+  const pgrst = error.message.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Project' in the schema cache/i);
+  if (pgrst) return pgrst[1];
   return null;
+}
+
+function extractProjectNotNullColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const match = error.message.match(
+    /null value in column "([a-zA-Z0-9_]+)" of relation "Project" violates not-null constraint/i
+  );
+  return match ? match[1] : null;
 }
 
 function getStringField(row: DbProjectRow, keys: string[]): string | null {
@@ -430,6 +446,15 @@ export class SupabaseRepository {
     });
   }
 
+  private async getAnyTeamId(): Promise<string | null> {
+    try {
+      const row = await this.client.selectOne<{ id: string }>(TEAM_TABLE, 'id');
+      return row?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private async listProjects(filters: QueryFilter[] = []): Promise<DbProject[]> {
     try {
       const rows = await this.client.selectMany<DbProjectRow>(PROJECT_TABLE, '*', filters);
@@ -449,7 +474,19 @@ export class SupabaseRepository {
     title?: string | null;
     name?: string | null;
   }> {
-    const queue: Array<Record<string, unknown>> = [{ ...payload, name: payload.title }, { ...payload }];
+    const projectId = typeof payload.id === 'string' && payload.id.trim() ? payload.id : randomUUID();
+    const fallbackTeamId = await this.getAnyTeamId();
+    const legacyTimestamp = nowIso();
+    const withLegacyTeam = fallbackTeamId ? { teamId: fallbackTeamId } : {};
+    const withLegacyTimestamps = { createdAt: legacyTimestamp, updatedAt: legacyTimestamp };
+    const queue: Array<Record<string, unknown>> = [
+      { ...payload, id: projectId, name: payload.title, ...withLegacyTeam, ...withLegacyTimestamps },
+      { ...payload, id: projectId, ...withLegacyTeam, ...withLegacyTimestamps },
+      { ...payload, id: projectId, name: payload.title, ...withLegacyTimestamps },
+      { ...payload, id: projectId, ...withLegacyTimestamps },
+      { ...payload, id: projectId, name: payload.title },
+      { ...payload, id: projectId },
+    ];
     const seen = new Set<string>();
     let lastError: unknown = null;
 
@@ -487,6 +524,17 @@ export class SupabaseRepository {
           const withoutTitle = { ...candidate };
           delete withoutTitle.title;
           queue.push(withoutTitle);
+        }
+
+        const notNullColumn = extractProjectNotNullColumn(error);
+        if (notNullColumn === 'teamId' && !candidate.teamId && fallbackTeamId) {
+          queue.push({ ...candidate, teamId: fallbackTeamId });
+        }
+        if (notNullColumn === 'updatedAt' && !candidate.updatedAt) {
+          queue.push({ ...candidate, updatedAt: nowIso() });
+        }
+        if (notNullColumn === 'createdAt' && !candidate.createdAt) {
+          queue.push({ ...candidate, createdAt: nowIso() });
         }
       }
     }
