@@ -12,6 +12,9 @@ import type {
 
 const BOOTSTRAP_TIMEOUT_MS = 15000;
 const LOCAL_PREVIEW_HOSTS = new Set(['localhost', '127.0.0.1']);
+const HACKS_SCOPE_NOTE = 'Forge currently shows Featured Hacks in this tab (full Completed Hacks parity is pending).';
+const TEAM_PULSE_PLACEHOLDER_NOTE =
+  'Team Pulse is placeholder mode for now: values are estimated for layout/testing, not official analytics.';
 
 type View = 'dashboard' | 'hacks' | 'team_up' | 'team_pulse';
 type HackTab = 'completed' | 'in_progress';
@@ -552,12 +555,12 @@ export function App(): JSX.Element {
     void loadBootstrap();
   }, [loadBootstrap]);
 
-  const allHacks = bootstrap?.featuredHacks ?? [];
+  const featuredHacks = bootstrap?.featuredHacks ?? [];
   const allProjects = bootstrap?.recentProjects ?? [];
   const allPeople = bootstrap?.people ?? [];
 
   const filteredHacks = useMemo(() => {
-    return allHacks.filter((hack) => {
+    return featuredHacks.filter((hack) => {
       const search = hackSearch.trim().toLowerCase();
       if (search && !`${hack.title} ${hack.description}`.toLowerCase().includes(search)) return false;
       if (hackTypeFilter !== 'all' && hack.assetType !== hackTypeFilter) return false;
@@ -565,7 +568,7 @@ export function App(): JSX.Element {
       if (!showDeprecated && isDeprecated(hack.status)) return false;
       return true;
     });
-  }, [allHacks, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated]);
+  }, [featuredHacks, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated]);
 
   const featuredTop = filteredHacks.slice(0, 4);
 
@@ -610,19 +613,21 @@ export function App(): JSX.Element {
   const maturityValue = Math.min(100, (aiContributorPct + projectsWithAiPct) / 2 + 35);
   const nextMilestone = Math.max(0, Math.round(50 - maturityValue));
 
-  const gini = computeGini(allHacks.map((hack) => hack.reuseCount));
+  const gini = computeGini(featuredHacks.map((hack) => hack.reuseCount));
 
   const frontline = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'frontline').length;
   const leaders = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'leader').length;
   const others = Math.max(0, allPeople.length - frontline - leaders);
 
-  const recentRecognitionRows = allHacks.slice(0, 2).map((hack) => `${bootstrap?.viewer.accountId} — Library Asset (${hack.title})`);
+  const recentRecognitionRows = featuredHacks
+    .slice(0, 2)
+    .map((hack) => `${bootstrap?.viewer.accountId} — Library Asset (${hack.title})`);
   const contributorRows = helpers.slice(0, 3).map((person) => `${person.fullName} — ${person.capabilities[0] ?? 'Contributor'}`);
   const mentorRows = helpers
     .filter((person) => person.mentorSlotsRemaining > 0)
     .slice(0, 3)
     .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
-  const reusedRows = [...allHacks]
+  const reusedRows = [...featuredHacks]
     .sort((a, b) => b.reuseCount - a.reuseCount)
     .slice(0, 3)
     .map((hack) => `${hack.title} — ${hack.reuseCount} reuses`);
@@ -642,6 +647,11 @@ export function App(): JSX.Element {
   };
 
   const closeModal = (): void => setModalView('none');
+
+  const handlePostHelpRequest = useCallback(() => {
+    setActionError('');
+    setActionMessage('Bulletin Board posting is placeholder-only right now; no project was created.');
+  }, []);
 
   const handleCreateHack = useCallback(async () => {
     if (!hackTitle.trim()) {
@@ -765,6 +775,8 @@ export function App(): JSX.Element {
   const exportTeamPulse = (): void => {
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
       exportedAt: new Date().toISOString(),
+      placeholderMetrics: true,
+      placeholderNote: TEAM_PULSE_PLACEHOLDER_NOTE,
       summary: bootstrap?.summary ?? null,
       aiContributorPct,
       projectsWithAiPct,
@@ -896,12 +908,12 @@ export function App(): JSX.Element {
                     setHackTab('completed');
                   }}
                 >
-                  Browse All Hacks
+                  Browse Featured Hacks
                 </button>
               </section>
 
               <section className="grid hacks-grid">
-                {allHacks.slice(0, 8).map((hack) => (
+                {featuredHacks.slice(0, 8).map((hack) => (
                   <HackCard key={hack.id} item={hack} />
                 ))}
               </section>
@@ -964,16 +976,18 @@ export function App(): JSX.Element {
           {view === 'hacks' ? (
             <section className="page-stack">
               <section className="title-row">
-                <h1>Our Hacks</h1>
+                <h1>Featured Hacks & Projects</h1>
                 <button type="button" className="btn btn-primary" onClick={() => setModalView('submit_hack')}>
                   + Submit Hack
                 </button>
               </section>
 
+              {hackTab === 'completed' ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
+
               <section className="filter-row">
                 <input
                   type="search"
-                  placeholder={hackTab === 'completed' ? 'Search Completed Hacks...' : 'Search hacks in progress...'}
+                  placeholder={hackTab === 'completed' ? 'Search featured hacks...' : 'Search hacks in progress...'}
                   value={hackTab === 'completed' ? hackSearch : projectSearch}
                   onChange={(event) => {
                     if (hackTab === 'completed') {
@@ -1049,7 +1063,7 @@ export function App(): JSX.Element {
                     {filteredHacks.map((hack) => (
                       <HackCard key={hack.id} item={hack} />
                     ))}
-                    {filteredHacks.length === 0 ? <p className="empty-copy">No hacks match your filters.</p> : null}
+                    {filteredHacks.length === 0 ? <p className="empty-copy">No featured hacks match your filters.</p> : null}
                   </section>
                 </>
               ) : (
@@ -1080,7 +1094,7 @@ export function App(): JSX.Element {
                   <h2>Bulletin Board</h2>
                   <p>Ask for help or offer to help others</p>
                 </div>
-                <button type="button" className="btn btn-outline" onClick={() => setModalView('create_project')}>
+                <button type="button" className="btn btn-outline" onClick={handlePostHelpRequest}>
                   + Post Help Request
                 </button>
               </article>
@@ -1166,13 +1180,14 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <h1>Team Pulse</h1>
                 <button type="button" className="btn btn-outline" onClick={exportTeamPulse}>
-                  Export metrics
+                  Export metrics (placeholder)
                 </button>
               </section>
+              <section className="message message-preview">{TEAM_PULSE_PLACEHOLDER_NOTE}</section>
 
               <article className="card collective-card">
                 <h2>Our Collective Progress</h2>
-                <p>Knowledge spreading like wildfire — we're in Spark, {nextMilestone}% to Momentum.</p>
+                <p>Estimated progress for layout testing — Spark, {nextMilestone}% to Momentum.</p>
 
                 <div className="stage-row" aria-label="Maturity stages">
                   <span className="stage active">Spark</span>
@@ -1201,22 +1216,22 @@ export function App(): JSX.Element {
                 <article className="card metric-tile">
                   <h3>AI CONTRIBUTORS</h3>
                   <p>{aiContributors}</p>
-                  <small>{aiContributorPct.toFixed(1)}% of employees with AI contributions</small>
+                  <small>Estimated: {aiContributorPct.toFixed(1)}% of employees with AI contributions</small>
                 </article>
                 <article className="card metric-tile">
                   <h3>PROJECTS WITH AI</h3>
                   <p>{projectsWithAiCount}</p>
-                  <small>{projectsWithAiPct.toFixed(1)}% of projects using AI hacks</small>
+                  <small>Estimated: {projectsWithAiPct.toFixed(1)}% of projects using AI hacks</small>
                 </article>
                 <article className="card metric-tile">
                   <h3>COMPLETED HACKS</h3>
                   <p>{completedHacks}</p>
-                  <small>Reusable AI hacks</small>
+                  <small>Estimated total reusable AI hacks</small>
                 </article>
                 <article className="card metric-tile">
                   <h3>WEEKLY ACTIVE</h3>
                   <p>{weeklyActive}</p>
-                  <small>Active AI contributors this week</small>
+                  <small>Estimated active AI contributors this week</small>
                 </article>
               </section>
 
@@ -1242,7 +1257,7 @@ export function App(): JSX.Element {
                 <article className="card pulse-card">
                   <h2>Frontline vs leader contributions</h2>
                   <p className="caption">
-                    Contributions in the last 30 days by experience level (frontline = newbie/curious/comfortable; leader = power user/expert).
+                    Estimated split by experience level (frontline = newbie/curious/comfortable; leader = power user/expert).
                   </p>
                   <div className="split-grid">
                     <div>
