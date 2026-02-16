@@ -351,6 +351,14 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
   ],
 };
 
+function shouldFallbackToPreviewOnBootstrapError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  if (message.includes('permission denied for schema public')) return true;
+  if (message.includes('supabase permission error')) return true;
+  return message.includes('supabase') && message.includes('(403)');
+}
+
 function formatLabel(value: string): string {
   return value
     .split('_')
@@ -545,7 +553,15 @@ export function App(): JSX.Element {
       setBootstrap(data);
       setPreviewMode(false);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load bootstrap data.');
+      if (shouldFallbackToPreviewOnBootstrapError(error)) {
+        setBootstrap(LOCAL_PREVIEW_DATA);
+        setPreviewMode(true);
+        setErrorMessage(
+          'Live data is temporarily unavailable due to a Supabase permission issue (403). Showing fallback preview data.'
+        );
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load bootstrap data.');
+      }
     } finally {
       setLoading(false);
     }

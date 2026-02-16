@@ -1,5 +1,30 @@
 # Learnings
 
+**Production incident mitigation: Supabase 403 fallback (Feb 16, 2026):**
+- **Observed runtime failure in Forge logs (`app-resolver`):**
+  - `Supabase GET User failed (403): {"code":"42501","message":"permission denied for schema public"}`
+  - Same class of failure also seen for `Project` reads in `getBootstrapData`.
+- **Immediate mitigation shipped:**
+  - Global page bootstrap now degrades gracefully into preview-mode data when bootstrap fails with Supabase permission-style 403 errors.
+  - This prevents a hard app crash on Confluence and keeps UI accessible while backend credentials/grants are corrected.
+  - Preview mode banner/error explains degraded state.
+- **Backend error clarity improved:**
+  - Supabase client now raises a targeted error for 403 + `42501` schema-permission cases:
+    - `Supabase permission error for schema "public". Check SUPABASE_SERVICE_ROLE_KEY and schema grants for service_role.`
+- **Files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/client.ts`
+- **Verification run:**
+  - `npm run frontend:build` ✅
+  - `npm run macro:build` ✅
+  - `npm run typecheck` ✅
+  - `npm run test:run` ✅ (19 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.7.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+- **Remaining root-cause action still required:**
+  - Correct Supabase `service_role` key/grants for schema `public`; mitigation does not restore live Supabase writes/reads.
+
 **Phase 2 draft-deletion workflow shipped (Feb 16, 2026):**
 - **Primary-admin-only draft deletion implemented end-to-end:**
   - New resolver action: `hdcDeleteDraftInstance`.

@@ -4,6 +4,13 @@ interface SupabaseConfig {
   schema: string;
 }
 
+interface SupabaseErrorPayload {
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+  message?: string;
+}
+
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 export interface QueryFilter {
@@ -95,6 +102,17 @@ export class SupabaseRestClient {
     const parsed = raw ? (JSON.parse(raw) as unknown) : null;
 
     if (!response.ok) {
+      const supabaseError =
+        parsed && typeof parsed === 'object' ? (parsed as SupabaseErrorPayload) : null;
+      if (
+        response.status === 403 &&
+        supabaseError?.code === '42501' &&
+        (supabaseError.message || '').toLowerCase().includes('permission denied for schema public')
+      ) {
+        throw new Error(
+          `Supabase permission error for schema "${this.config.schema}". Check SUPABASE_SERVICE_ROLE_KEY and schema grants for service_role.`
+        );
+      }
       const reason = parsed && typeof parsed === 'object' ? JSON.stringify(parsed) : raw;
       throw new Error(`Supabase ${method} ${path} failed (${response.status}): ${reason}`);
     }
