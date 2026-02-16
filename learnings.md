@@ -1,5 +1,39 @@
 # Learnings
 
+**HDC v2 execution roadmap established (Feb 16, 2026):**
+- Added canonical implementation roadmap: `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md`
+- Roadmap structure now in place:
+  - Phase 0 alignment gate (resolve architecture choice: Supabase-first parity vs strict Confluence page-property implementation)
+  - Phase 1 hardening
+  - Phase 2 full wizard + permissions completion
+  - Phase 3 app switcher + cross-instance navigation
+  - Phase 4 sync/library/audit integrity
+  - Phase 5 migration + performance + launch readiness
+- **Future-chat rule:** use `PLAN_HDC_V2_EXECUTION.md` as execution source of truth and `HackDayCentral_spec_v2.md` as intent/source spec.
+
+**HackDayCentral spec v2 progress checkpoint (Feb 16, 2026):**
+- **Assessment baseline:** `/Users/nickster/Downloads/HackCentral/HackDayCentral_spec_v2.md`
+- **Code baseline:** `main` at commit `4e93957`.
+- **Implemented foundations (working):**
+  - Parent/child Confluence page creation with macro insertion on child page.
+  - Draft instance creation with core basic fields + partial schedule fields.
+  - `@adaptavist.com` gating for instance creation and admin emails.
+  - Primary/co-admin persistence and permission checks for launch/sync actions.
+  - Event sync state + retry endpoint + audit log persistence.
+  - Supabase migration for `Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`, lifecycle enums.
+- **Partial implementation:**
+  - Creation flow is currently a single-screen draft form (Step 1 + partial Step 2), not full 5-step wizard.
+  - Lifecycle handling is simplified (`draft -> hacking -> completed`) rather than full transition model.
+  - Sync is idempotent for already-synced hacks, but explicit `partial` sync outcome handling is not fully implemented.
+- **Major gaps vs v2 MVP spec:**
+  - App switcher (home/live/upcoming/recent sections, notifications, responsive overlay) not implemented.
+  - Full lifecycle workflows missing: registration/team-formation/voting/results, draft deletion, auto-archive.
+  - Admin transfer/orphan handling not implemented.
+  - Spec-defined Confluence page-property storage/sharding/size monitoring not implemented; current implementation uses Supabase tables.
+  - Derived cross-instance participant profile scan + 24-hour cache behavior not implemented.
+  - Full spec error UX flows (15s timeout recovery modal, persisted client-side configuration recovery, post-create redirect behavior) are not fully implemented.
+- **Bottom line:** This is at **Phase 1 vertical slice complete + early Phase 2 started**. Full v2 MVP feature list is not yet complete.
+
 **Pre-foundation handoff (Feb 16, 2026 — start here in next chat):**
 - **Latest git state:**
   - Commit pushed to `origin/main`: `dad0936` (`feat: migrate forge app to custom ui and bump versions`).
