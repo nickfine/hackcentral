@@ -17,6 +17,8 @@ type RepoMock = {
   getEventByCreationRequestId: ReturnType<typeof vi.fn>;
   getUserByAccountId: ReturnType<typeof vi.fn>;
   getEventNameConflicts: ReturnType<typeof vi.fn>;
+  getEventByConfluencePageId: ReturnType<typeof vi.fn>;
+  listEventsByParentPageId: ReturnType<typeof vi.fn>;
   ensureUserByEmail: ReturnType<typeof vi.fn>;
   createEvent: ReturnType<typeof vi.fn>;
   addEventAdmin: ReturnType<typeof vi.fn>;
@@ -34,6 +36,8 @@ function createRepoMock(): RepoMock {
     getEventByCreationRequestId: vi.fn(),
     getUserByAccountId: vi.fn(),
     getEventNameConflicts: vi.fn(),
+    getEventByConfluencePageId: vi.fn(),
+    listEventsByParentPageId: vi.fn(),
     ensureUserByEmail: vi.fn(),
     createEvent: vi.fn(),
     addEventAdmin: vi.fn(),
@@ -92,6 +96,113 @@ describe('HdcService hardening behavior', () => {
     });
     expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
     expect(repo.getEventNameConflicts).not.toHaveBeenCalled();
+  });
+
+  it('persists normalized rules and branding from wizard payload', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-created',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-901',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-901',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+    });
+
+    const service = new ServiceClass(repo as never);
+    const result = await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      rules: {
+        allowCrossTeamMentoring: false,
+        maxTeamSize: 99,
+        requireDemoLink: true,
+        judgingModel: 'panel',
+      },
+      branding: {
+        bannerMessage: '  Build boldly  ',
+        accentColor: '  #123abc  ',
+        bannerImageUrl: '  https://cdn.example.com/banner.png  ',
+      },
+    });
+
+    expect(result).toEqual({
+      eventId: 'event-created',
+      childPageId: 'child-901',
+      childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+    });
+    expect(repo.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventRules: {
+          allowCrossTeamMentoring: false,
+          maxTeamSize: 20,
+          requireDemoLink: true,
+          judgingModel: 'panel',
+        },
+        eventBranding: {
+          bannerMessage: 'Build boldly',
+          accentColor: '#123abc',
+          bannerImageUrl: 'https://cdn.example.com/banner.png',
+        },
+      })
+    );
+    expect(repo.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'event_created',
+        newValue: expect.objectContaining({
+          rules: expect.objectContaining({
+            maxTeamSize: 20,
+            judgingModel: 'panel',
+          }),
+          branding: expect.objectContaining({
+            accentColor: '#123abc',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('returns default rules and branding in context for legacy events without config fields', async () => {
+    const repo = createRepoMock();
+    repo.getEventByConfluencePageId.mockResolvedValue({
+      id: 'event-legacy',
+      name: 'Legacy HackDay',
+      icon: null,
+      tagline: null,
+      lifecycle_status: 'draft',
+      confluence_page_id: 'child-legacy',
+      confluence_parent_page_id: 'parent-legacy',
+      hacking_starts_at: null,
+      submission_deadline_at: null,
+      event_rules: null,
+      event_branding: null,
+    });
+    repo.ensureUser.mockResolvedValue({ id: 'user-ctx' });
+    repo.listEventsByParentPageId.mockResolvedValue([]);
+    repo.getSyncState.mockResolvedValue(null);
+    repo.listEventAdmins.mockResolvedValue([]);
+
+    const service = new ServiceClass(repo as never);
+    const context = await service.getContext(viewer, 'child-legacy');
+
+    expect(context.pageType).toBe('instance');
+    expect(context.event?.rules).toEqual({
+      allowCrossTeamMentoring: true,
+      maxTeamSize: 6,
+      requireDemoLink: false,
+      judgingModel: 'hybrid',
+    });
+    expect(context.event?.branding).toEqual({
+      accentColor: '#0f766e',
+    });
   });
 
   it('preserves previous pushed/skipped counts when sync fails after moving to in_progress', async () => {

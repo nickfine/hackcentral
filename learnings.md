@@ -1,5 +1,33 @@
 # Learnings
 
+**Phase 2 persistence slice shipped (Feb 16, 2026):**
+- **Wizard Step 3/4 now persists to event runtime data** (Supabase-first path):
+  - Added `event_rules` and `event_branding` persistence wiring in backend create flow.
+  - `HdcContextResponse.event` now includes normalized `rules` and `branding` (defaults applied for legacy events with missing values).
+  - Instance admin panel now displays persisted rules/branding summary from context.
+- **Schema migration added:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260216_phase2_event_config.sql`
+  - Adds nullable JSONB columns on `Event`: `event_rules`, `event_branding`.
+- **Compatibility guardrail (important):**
+  - Repository now gracefully falls back to legacy selects/inserts when those columns are not yet present (detects missing-column errors), preventing runtime breakage before migration rollout.
+- **Key files updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- **Tests added/expanded:**
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts` (config-column write path + legacy fallback path)
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts` (rules/branding normalization persistence + legacy default context behavior)
+- **Verification run:**
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (17 tests passing)
+- **Forge deployment status (development):**
+  - Deployed successfully; current development version `4.5.0`.
+  - `forge install --upgrade ... --site hackdaytemp.atlassian.net` confirms site at latest.
+
 **Phase 2 wizard slice started (Feb 16, 2026):**
 - **Parent-page create flow upgraded to a 5-step wizard shell** in Forge macro UI:
   - Step 1: Basic info

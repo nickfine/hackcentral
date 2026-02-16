@@ -789,6 +789,13 @@ export function App(): JSX.Element {
 
           <article className="card">
             <h2>Instance Admin</h2>
+            <p>
+              Rules: max team size {context.event.rules.maxTeamSize}, judging {context.event.rules.judgingModel},{' '}
+              {context.event.rules.allowCrossTeamMentoring ? 'cross-team mentoring on' : 'cross-team mentoring off'}
+            </p>
+            <p>
+              Branding: {context.event.branding.bannerMessage || 'no banner message'} · accent {context.event.branding.accentColor}
+            </p>
             <p>Sync status: {context.syncState?.syncStatus || 'not_started'}</p>
             <p>
               Last run: {context.syncState?.lastAttemptAt || 'never'} | Pushed: {context.syncState?.pushedCount || 0} |

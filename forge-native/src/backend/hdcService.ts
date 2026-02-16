@@ -1,7 +1,9 @@
 import type {
   CreateInstanceDraftInput,
   CreateInstanceDraftResult,
+  EventBranding,
   EventLifecycleResult,
+  EventRules,
   HdcContextResponse,
   SubmitHackInput,
   SubmitHackResult,
@@ -37,6 +39,38 @@ function normalizeEmailList(emails: string[] | undefined): string[] {
     }
   }
   return [...deduped];
+}
+
+function normalizeEventRules(
+  input: CreateInstanceDraftInput['rules'] | EventRules | null | undefined
+): EventRules {
+  const maxTeamSizeRaw = Number(input?.maxTeamSize);
+  const judgingModel =
+    input?.judgingModel === 'panel' || input?.judgingModel === 'popular_vote' || input?.judgingModel === 'hybrid'
+      ? input.judgingModel
+      : 'hybrid';
+
+  return {
+    allowCrossTeamMentoring: input?.allowCrossTeamMentoring ?? true,
+    maxTeamSize: Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6,
+    requireDemoLink: input?.requireDemoLink ?? false,
+    judgingModel,
+  };
+}
+
+function normalizeEventBranding(
+  input: CreateInstanceDraftInput['branding'] | EventBranding | null | undefined
+): EventBranding {
+  const branding: EventBranding = {
+    accentColor: input?.accentColor?.trim() || '#0f766e',
+  };
+  if (input?.bannerMessage?.trim()) {
+    branding.bannerMessage = input.bannerMessage.trim();
+  }
+  if (input?.bannerImageUrl?.trim()) {
+    branding.bannerImageUrl = input.bannerImageUrl.trim();
+  }
+  return branding;
 }
 
 export class HdcService {
@@ -90,6 +124,8 @@ export class HdcService {
         confluenceParentPageId: event.confluence_parent_page_id,
         hackingStartsAt: event.hacking_starts_at,
         submissionDeadlineAt: event.submission_deadline_at,
+        rules: normalizeEventRules(event.event_rules),
+        branding: normalizeEventBranding(event.event_branding),
       },
       registry,
       syncState,
@@ -174,6 +210,9 @@ export class HdcService {
         coAdminUserIds.add(creator.id);
       }
 
+      const eventRules = normalizeEventRules(input.rules);
+      const eventBranding = normalizeEventBranding(input.branding);
+
       const event = await this.repository.createEvent({
         eventName: input.basicInfo.eventName,
         icon: input.basicInfo.eventIcon || '🚀',
@@ -187,6 +226,8 @@ export class HdcService {
         submissionDeadlineAt: input.schedule.submissionDeadlineAt,
         creationRequestId: input.creationRequestId,
         createdByUserId: creator.id,
+        eventRules,
+        eventBranding,
       });
 
       const coAdminIds = [...coAdminUserIds].filter((id) => id !== primaryAdmin.id);
@@ -213,8 +254,8 @@ export class HdcService {
             confluencePageId: event.confluence_page_id,
             primaryAdminEmail,
             coAdminEmails: normalizedCoAdminEmails,
-            rules: input.rules ?? null,
-            branding: input.branding ?? null,
+            rules: eventRules,
+            branding: eventBranding,
           },
         }),
       ]);

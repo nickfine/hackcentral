@@ -123,6 +123,19 @@ export type LifecycleStatus =
 
 export type SyncStatus = "not_started" | "in_progress" | "partial" | "failed" | "complete";
 
+export interface EventRules {
+  allowCrossTeamMentoring: boolean;
+  maxTeamSize: number;
+  requireDemoLink: boolean;
+  judgingModel: "panel" | "popular_vote" | "hybrid";
+}
+
+export interface EventBranding {
+  bannerMessage?: string;
+  accentColor: string;
+  bannerImageUrl?: string;
+}
+
 export interface EventRegistryItem {
   id: string;
   eventName: string;
@@ -133,6 +146,8 @@ export interface EventRegistryItem {
   confluenceParentPageId: string | null;
   hackingStartsAt: string | null;
   submissionDeadlineAt: string | null;
+  rules: EventRules;
+  branding: EventBranding;
 }
 
 export interface CreationWizardInput {

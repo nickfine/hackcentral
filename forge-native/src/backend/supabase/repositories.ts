@@ -4,7 +4,9 @@ import type {
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
+  EventBranding,
   EventRegistryItem,
+  EventRules,
   EventSyncState,
   LifecycleStatus,
   PersonSnapshot,
@@ -24,6 +26,10 @@ const PROJECT_TABLE = 'Project';
 const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
+
+const EVENT_SELECT_CORE =
+  'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
+const EVENT_SELECT_WITH_CONFIG = `${EVENT_SELECT_CORE},event_rules,event_branding`;
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   newbie: 'Newbie',
@@ -89,6 +95,8 @@ interface DbEvent {
   submission_deadline_at: string | null;
   creation_request_id: string | null;
   created_by_user_id: string | null;
+  event_rules: EventRules | null;
+  event_branding: EventBranding | null;
 }
 
 interface DbEventAdmin {
@@ -138,6 +146,70 @@ function asSyncState(row: DbSyncState): EventSyncState {
     pushedCount: row.pushed_count ?? 0,
     skippedCount: row.skipped_count ?? 0,
   };
+}
+
+function hasMissingEventConfigColumns(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return message.includes('column') && (message.includes('event_rules') || message.includes('event_branding'));
+}
+
+function withNullEventConfig(row: Omit<DbEvent, 'event_rules' | 'event_branding'>): DbEvent {
+  return {
+    ...row,
+    event_rules: null,
+    event_branding: null,
+  };
+}
+
+function defaultEventRules(): EventRules {
+  return {
+    allowCrossTeamMentoring: true,
+    maxTeamSize: 6,
+    requireDemoLink: false,
+    judgingModel: 'hybrid',
+  };
+}
+
+function defaultEventBranding(): EventBranding {
+  return {
+    accentColor: '#0f766e',
+  };
+}
+
+function asEventRules(value: unknown): EventRules {
+  if (!value || typeof value !== 'object') return defaultEventRules();
+  const candidate = value as Partial<EventRules>;
+  const maxTeamSizeRaw = Number(candidate.maxTeamSize);
+  const judgingModel =
+    candidate.judgingModel === 'panel' || candidate.judgingModel === 'popular_vote' || candidate.judgingModel === 'hybrid'
+      ? candidate.judgingModel
+      : 'hybrid';
+
+  return {
+    allowCrossTeamMentoring: candidate.allowCrossTeamMentoring ?? true,
+    maxTeamSize: Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6,
+    requireDemoLink: candidate.requireDemoLink ?? false,
+    judgingModel,
+  };
+}
+
+function asEventBranding(value: unknown): EventBranding {
+  const defaults = defaultEventBranding();
+  if (!value || typeof value !== 'object') return defaults;
+  const candidate = value as Partial<EventBranding>;
+  const branding: EventBranding = {
+    accentColor: typeof candidate.accentColor === 'string' && candidate.accentColor.trim()
+      ? candidate.accentColor.trim()
+      : defaults.accentColor,
+  };
+  if (typeof candidate.bannerMessage === 'string' && candidate.bannerMessage.trim()) {
+    branding.bannerMessage = candidate.bannerMessage.trim();
+  }
+  if (typeof candidate.bannerImageUrl === 'string' && candidate.bannerImageUrl.trim()) {
+    branding.bannerImageUrl = candidate.bannerImageUrl.trim();
+  }
+  return branding;
 }
 
 function buildAccountFallbackEmail(accountId: string): string {
@@ -389,35 +461,76 @@ export class SupabaseRepository {
   }
 
   async getEventByConfluencePageId(pageId: string): Promise<DbEvent | null> {
-    return this.client.selectOne<DbEvent>(
-      EVENT_TABLE,
-      'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id',
-      [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
-    );
+    try {
+      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+        { field: 'confluence_page_id', op: 'eq', value: pageId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
+      );
+      return legacy ? withNullEventConfig(legacy) : null;
+    }
   }
 
   async getEventByCreationRequestId(creationRequestId: string): Promise<DbEvent | null> {
-    return this.client.selectOne<DbEvent>(
-      EVENT_TABLE,
-      'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id',
-      [{ field: 'creation_request_id', op: 'eq', value: creationRequestId }]
-    );
+    try {
+      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+        { field: 'creation_request_id', op: 'eq', value: creationRequestId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'creation_request_id', op: 'eq', value: creationRequestId }]
+      );
+      return legacy ? withNullEventConfig(legacy) : null;
+    }
   }
 
   async getEventById(eventId: string): Promise<DbEvent | null> {
-    return this.client.selectOne<DbEvent>(
-      EVENT_TABLE,
-      'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id',
-      [{ field: 'id', op: 'eq', value: eventId }]
-    );
+    try {
+      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+        { field: 'id', op: 'eq', value: eventId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'id', op: 'eq', value: eventId }]
+      );
+      return legacy ? withNullEventConfig(legacy) : null;
+    }
   }
 
   async listEventsByParentPageId(parentPageId: string): Promise<EventRegistryItem[]> {
-    const events = await this.client.selectMany<DbEvent>(
-      EVENT_TABLE,
-      'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at',
-      [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
-    );
+    let events: DbEvent[] = [];
+    try {
+      events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`, [
+        { field: 'confluence_parent_page_id', op: 'eq', value: parentPageId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
+      );
+      events = legacy.map((row) => withNullEventConfig(row));
+    }
 
     return events
       .slice()
@@ -432,6 +545,8 @@ export class SupabaseRepository {
         confluenceParentPageId: event.confluence_parent_page_id,
         hackingStartsAt: event.hacking_starts_at,
         submissionDeadlineAt: event.submission_deadline_at,
+        rules: asEventRules(event.event_rules),
+        branding: asEventBranding(event.event_branding),
       }));
   }
 
@@ -448,8 +563,10 @@ export class SupabaseRepository {
     submissionDeadlineAt?: string;
     creationRequestId: string;
     createdByUserId: string;
+    eventRules: EventRules;
+    eventBranding: EventBranding;
   }): Promise<DbEvent> {
-    return this.client.insert<DbEvent>(EVENT_TABLE, {
+    const basePayload = {
       name: input.eventName,
       icon: input.icon,
       tagline: input.tagline ?? null,
@@ -462,7 +579,24 @@ export class SupabaseRepository {
       submission_deadline_at: input.submissionDeadlineAt ?? null,
       creation_request_id: input.creationRequestId,
       created_by_user_id: input.createdByUserId,
-    });
+    };
+
+    try {
+      return await this.client.insert<DbEvent>(EVENT_TABLE, {
+        ...basePayload,
+        event_rules: input.eventRules,
+        event_branding: input.eventBranding,
+      });
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+        EVENT_TABLE,
+        basePayload
+      );
+      return withNullEventConfig(legacy);
+    }
   }
 
   async addEventAdmin(eventId: string, userId: string, role: 'primary' | 'co_admin'): Promise<DbEventAdmin> {
