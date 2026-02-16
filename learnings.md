@@ -1,5 +1,15 @@
 # Learnings
 
+**Convex fallback egress fix (Feb 16, 2026):**
+- **Root cause found in Forge logs:** Convex fallback failed despite `FORGE_DATA_BACKEND=auto` because Forge egress permissions did not allow `https://*.convex.cloud`.
+- **Fix applied:** added `*.convex.cloud` to `permissions.external.fetch.backend` in manifest.
+- **Deployment/update:**
+  - Deployed to development version `5.0.0`.
+  - Ran `forge install --upgrade` and accepted new egress URL (`convex.cloud`) on `hackdaytemp.atlassian.net`.
+- **Observed logs after deploy:** only pre-fix historical error remains; no new post-fix fallback-egress error recorded yet.
+- **File updated:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+
 **Backend mode control added (Feb 16, 2026):**
 - Added explicit Forge backend switch: `FORGE_DATA_BACKEND` with values:
   - `supabase` = force Supabase only
