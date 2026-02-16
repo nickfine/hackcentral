@@ -1,5 +1,13 @@
 # Learnings
 
+**Operational mode adjustment (Feb 16, 2026):**
+- Development environment switched from `FORGE_DATA_BACKEND=auto` to `FORGE_DATA_BACKEND=convex` temporarily.
+- **Reason:** Supabase permission issue is still unresolved; forcing Convex avoids per-request Supabase 403 attempts, reducing latency and log noise.
+- **Deployment status:**
+  - Deployed after env change; current development app version `5.1.0`.
+  - Site `hackdaytemp.atlassian.net` is at latest.
+- **Important:** This is a temporary operational setting; switch back to `supabase` (or `auto`) once Supabase service-role key/grants are corrected.
+
 **Convex fallback egress fix (Feb 16, 2026):**
 - **Root cause found in Forge logs:** Convex fallback failed despite `FORGE_DATA_BACKEND=auto` because Forge egress permissions did not allow `https://*.convex.cloud`.
 - **Fix applied:** added `*.convex.cloud` to `permissions.external.fetch.backend` in manifest.
