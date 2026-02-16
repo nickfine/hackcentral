@@ -1,5 +1,28 @@
 # Learnings
 
+**Phase 1 hardening shipped + validated (Feb 16, 2026):**
+- **Hardening implemented in Forge macro + backend:**
+  - Draft creation now has 15s timeout UX with retry guidance and idempotent request reuse (`creationRequestId` held across retries).
+  - Duplicate event-name handling now surfaces as inline field validation in the macro create form.
+  - Post-create behavior now redirects to `childPageUrl` (router navigate with window fallback).
+  - Sync semantics now differentiate `complete` vs `partial` vs `failed` and preserve prior pushed/skipped counters on failure paths.
+  - Audit action for sync now reflects outcome (`sync_complete`, `sync_partial`, `sync_failed`).
+- **Key changed files:**
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/styles.css`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- **Tests added:**
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+- **Verification run:**
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (13 tests passing)
+- **Forge deployment status (development):**
+  - Built and deployed Custom UI successfully; environment now on app version `4.3.0`.
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development` confirms: site already at latest version.
+
 **HDC v2 execution roadmap established (Feb 16, 2026):**
 - Added canonical implementation roadmap: `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md`
 - Roadmap structure now in place:

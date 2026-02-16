@@ -286,20 +286,30 @@ export class HdcService {
       throw new Error('Cannot complete sync: at least one submitted hack is required.');
     }
 
+    const existingSyncState = await this.repository.getSyncState(eventId);
+    const fallbackPushedCount = existingSyncState?.pushedCount ?? 0;
+    const fallbackSkippedCount = existingSyncState?.skippedCount ?? 0;
+
     await this.repository.upsertSyncState(eventId, {
       syncStatus: 'in_progress',
-      pushedCount: 0,
-      skippedCount: 0,
+      pushedCount: fallbackPushedCount,
+      skippedCount: fallbackSkippedCount,
       lastAttemptAt: new Date().toISOString(),
       lastError: null,
     });
 
     try {
       const result = await this.repository.completeAndSync(eventId);
+      const action =
+        result.syncStatus === 'complete'
+          ? 'sync_complete'
+          : result.syncStatus === 'partial'
+            ? 'sync_partial'
+            : 'sync_failed';
       await this.repository.logAudit({
         eventId,
         actorUserId: user.id,
-        action: 'sync_complete',
+        action,
         newValue: result,
       });
       return result;
@@ -307,8 +317,8 @@ export class HdcService {
       const message = error instanceof Error ? error.message : 'Unknown sync failure';
       await this.repository.upsertSyncState(eventId, {
         syncStatus: 'failed',
-        pushedCount: 0,
-        skippedCount: 0,
+        pushedCount: fallbackPushedCount,
+        skippedCount: fallbackSkippedCount,
         lastAttemptAt: new Date().toISOString(),
         lastError: message,
       });

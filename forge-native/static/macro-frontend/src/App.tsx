@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { invoke, view } from '@forge/bridge';
+import { invoke, router, view } from '@forge/bridge';
 import type {
   CreateInstanceDraftInput,
   Defs,
@@ -9,6 +9,8 @@ import type {
 } from './types';
 
 const LOCAL_PREVIEW = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const CREATE_DRAFT_TIMEOUT_MS = 15_000;
+const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay Central parent page.';
 
 const LOCAL_CONTEXT: HdcContextResponse = {
   pageType: 'parent',
@@ -22,6 +24,39 @@ const LOCAL_CONTEXT: HdcContextResponse = {
     isCoAdmin: false,
   },
 };
+
+class RequestTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RequestTimeoutError';
+  }
+}
+
+function isRequestTimeoutError(error: unknown): error is RequestTimeoutError {
+  return error instanceof RequestTimeoutError;
+}
+
+function isDuplicateEventNameError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes(DUPLICATE_EVENT_NAME_ERROR);
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new RequestTimeoutError(message));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
 
 async function invokeTyped<K extends keyof Defs>(
   name: K,
@@ -47,8 +82,11 @@ export function App(): JSX.Element {
   const [eventName, setEventName] = useState('');
   const [eventIcon, setEventIcon] = useState('🚀');
   const [eventTagline, setEventTagline] = useState('');
+  const [eventNameError, setEventNameError] = useState('');
   const [primaryAdminEmail, setPrimaryAdminEmail] = useState('');
   const [coAdminsInput, setCoAdminsInput] = useState('');
+  const [pendingCreateRequestId, setPendingCreateRequestId] = useState<string | null>(null);
+  const [createDraftTimedOut, setCreateDraftTimedOut] = useState(false);
   const [timezone, setTimezone] = useState('Europe/London');
   const [hackingStartsAt, setHackingStartsAt] = useState('');
   const [submissionDeadlineAt, setSubmissionDeadlineAt] = useState('');
@@ -100,13 +138,24 @@ export function App(): JSX.Element {
 
   const handleCreateDraft = useCallback(async () => {
     if (!context || !eventName.trim()) {
+      setEventNameError('Event name is required.');
       setError('Event name is required.');
+      return;
+    }
+    if (LOCAL_PREVIEW) {
+      setMessage('Local preview mode: create draft is disabled.');
       return;
     }
 
     setSaving(true);
     setError('');
     setMessage('');
+    setEventNameError('');
+
+    const requestId = pendingCreateRequestId || crypto.randomUUID();
+    if (!pendingCreateRequestId) {
+      setPendingCreateRequestId(requestId);
+    }
 
     try {
       const normalizedPrimaryAdminEmail = primaryAdminEmail.trim().toLowerCase();
@@ -117,7 +166,7 @@ export function App(): JSX.Element {
 
       const payload: CreateInstanceDraftInput = {
         parentPageId: context.pageId,
-        creationRequestId: crypto.randomUUID(),
+        creationRequestId: requestId,
         basicInfo: {
           eventName: eventName.trim(),
           eventIcon: eventIcon || '🚀',
@@ -132,14 +181,46 @@ export function App(): JSX.Element {
         },
       };
 
-      const result = await invokeTyped('hdcCreateInstanceDraft', payload);
+      const result = await withTimeout(
+        invokeTyped('hdcCreateInstanceDraft', payload),
+        CREATE_DRAFT_TIMEOUT_MS,
+        `Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds.`
+      );
       setMessage(`Draft created. Child page id: ${result.childPageId}`);
+      setCreateDraftTimedOut(false);
+      setPendingCreateRequestId(null);
       setEventName('');
       setEventTagline('');
       setPrimaryAdminEmail('');
       setCoAdminsInput('');
+
+      if (result.childPageUrl) {
+        setMessage('Draft created. Redirecting to the child page…');
+        try {
+          await router.navigate(result.childPageUrl);
+          return;
+        } catch {
+          window.location.assign(result.childPageUrl);
+          return;
+        }
+      }
+
       await loadContext();
     } catch (err) {
+      if (isRequestTimeoutError(err)) {
+        setCreateDraftTimedOut(true);
+        setMessage(
+          `Creation is taking longer than ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds. Retry to continue with the same request id.`
+        );
+        return;
+      }
+      if (isDuplicateEventNameError(err)) {
+        setEventNameError('An instance with this name already exists under this parent page.');
+        setPendingCreateRequestId(null);
+        setCreateDraftTimedOut(false);
+        return;
+      }
+
       setError(err instanceof Error ? err.message : 'Failed to create draft instance.');
     } finally {
       setSaving(false);
@@ -152,6 +233,7 @@ export function App(): JSX.Element {
     eventTagline,
     hackingStartsAt,
     loadContext,
+    pendingCreateRequestId,
     primaryAdminEmail,
     submissionDeadlineAt,
     timezone,
@@ -262,8 +344,19 @@ export function App(): JSX.Element {
             <h2>Create HackDay instance</h2>
             <label>
               Event Name
-              <input value={eventName} onChange={(event) => setEventName(event.target.value)} placeholder="Winter 2026 Innovation Sprint" />
+              <input
+                className={eventNameError ? 'input-error' : ''}
+                value={eventName}
+                onChange={(event) => {
+                  setEventName(event.target.value);
+                  if (eventNameError) {
+                    setEventNameError('');
+                  }
+                }}
+                placeholder="Winter 2026 Innovation Sprint"
+              />
             </label>
+            {eventNameError ? <p className="field-error">{eventNameError}</p> : null}
             <label>
               Event Icon
               <input value={eventIcon} onChange={(event) => setEventIcon(event.target.value)} placeholder="🚀" />
@@ -310,8 +403,9 @@ export function App(): JSX.Element {
               />
             </label>
             <button disabled={saving || !context.permissions.canCreateInstances} onClick={() => void handleCreateDraft()}>
-              {saving ? 'Creating…' : 'Create Draft'}
+              {saving ? 'Creating…' : createDraftTimedOut ? 'Retry Create Draft' : 'Create Draft'}
             </button>
+            {pendingCreateRequestId ? <p className="meta">Request ID: {pendingCreateRequestId}</p> : null}
           </article>
 
           <article className="card">

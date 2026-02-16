@@ -587,27 +587,52 @@ export class SupabaseRepository {
     const projects = await this.listEventHackProjects(eventId);
     let pushedCount = 0;
     let skippedCount = 0;
+    const failedProjectIds: string[] = [];
 
     for (const project of projects) {
       if (project.synced_to_library_at) {
         skippedCount += 1;
         continue;
       }
-      await this.markHackSynced(project.id);
-      pushedCount += 1;
+      try {
+        await this.markHackSynced(project.id);
+        pushedCount += 1;
+      } catch {
+        failedProjectIds.push(project.id);
+      }
     }
 
-    await this.updateEventLifecycle(eventId, 'completed');
+    const syncStatus: SyncStatus =
+      failedProjectIds.length === 0
+        ? 'complete'
+        : pushedCount > 0 || skippedCount > 0
+          ? 'partial'
+          : 'failed';
+    const syncFinishedAt = nowIso();
+
+    if (syncStatus !== 'failed') {
+      await this.updateEventLifecycle(eventId, 'completed');
+    }
+
+    const failedSample = failedProjectIds.slice(0, 3).join(', ');
+    const failedSuffix = failedProjectIds.length > 3 ? ', ...' : '';
+    const lastError =
+      failedProjectIds.length > 0
+        ? `Failed to sync ${failedProjectIds.length} hack(s)${
+            failedSample ? ` (${failedSample}${failedSuffix})` : ''
+          }.`
+        : null;
+
     await this.upsertSyncState(eventId, {
-      syncStatus: 'complete',
+      syncStatus,
       pushedCount,
       skippedCount,
-      lastError: null,
-      lastAttemptAt: nowIso(),
+      lastError,
+      lastAttemptAt: syncFinishedAt,
     });
 
     return {
-      syncStatus: 'complete',
+      syncStatus,
       pushedCount,
       skippedCount,
     };
