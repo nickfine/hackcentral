@@ -1,5 +1,27 @@
 # Learnings
 
+**Pre-foundation handoff (Feb 16, 2026 — start here in next chat):**
+- **Latest git state:**
+  - Commit pushed to `origin/main`: `dad0936` (`feat: migrate forge app to custom ui and bump versions`).
+  - Root app version bumped: `0.6.18` (`/Users/nickster/Downloads/HackCentral/package.json`).
+  - Forge app version bumped: `0.1.1` (`/Users/nickster/Downloads/HackCentral/forge-native/package.json`).
+- **Forge deploy/install status (development):**
+  - Built Custom UI successfully with `npm run frontend:build` in `forge-native`.
+  - Deployed to Forge development; deploy output reported app version `3.4.0`.
+  - Upgraded install on `hackdaytemp.atlassian.net` (Confluence, development); site is at latest.
+- **Current UX restoration status:**
+  - Old pre-Forge layouts are recoverable from code (not screenshots only).
+  - Key source files for restoration in Forge: `forge-native/static/frontend/src/App.tsx` and `forge-native/static/frontend/src/styles.css`.
+  - Legacy web references still present: `src/pages/Dashboard.tsx`, `src/pages/Hacks.tsx`, `src/pages/People.tsx`, `src/pages/TeamPulse.tsx`, plus shared header/sidebar components.
+- **Environment notes to keep in mind:**
+  - Forge CLI warns because local Node is `25.x`; supported is `20.x`/`22.x`.
+  - `forge lint` warns about egress style deprecation; deploy still succeeds.
+  - Convex bundling warning for `utf-8-validate` appears during deploy but is non-blocking in current setup.
+- **Suggested first steps for foundational-work chat:**
+  - 1) Define foundation scope (tokens/theme/layout primitives, component contracts, data contracts).
+  - 2) Freeze a canonical layout spec for Dashboard/Hacks/Team Up/Team Pulse in Forge.
+  - 3) Implement foundation in `forge-native/static/frontend` first, then map remaining parity gaps.
+
 **Continuation handoff (Feb 15, 2026 — latest session):**
 - **Custom UI visual redesign completed** for Forge frontend:
   - Updated `forge-native/static/frontend/src/App.tsx` to a design-system-style layout (hero, stats row, filterable data panels, right-side action panels, responsive two-column workspace).
