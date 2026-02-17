@@ -145,10 +145,11 @@ Decision date: **Feb 16, 2026**
     - `npm run macro:build` (forge-native) ✅
     - `npm run typecheck` (forge-native) ✅
     - `npm run test:run` (repo root) ✅ (23 tests passing)
-- Day 5 status (Feb 17, 2026): **in progress**
+- Day 5 status (Feb 17, 2026): **completed**
   - Transition endpoint now enforces sequential state advancement and blocks invalid terminal transitions.
   - `results -> completed` now requires sync status `complete`.
   - Added transition permission/guardrail tests in `tests/forge-native-hdcService.spec.ts`.
+  - Macro frontend admin action wording aligned to transition behavior ("Advance Lifecycle").
   - Verification rerun:
     - `npm run frontend:build` (forge-native) ✅
     - `npm run macro:build` (forge-native) ✅
@@ -191,6 +192,7 @@ Decision date: **Feb 16, 2026**
 - Implement lifecycle transition enforcement server-side for expanded state machine.
 - Add primary/co-admin/participant restriction tests for transition endpoints.
 - Implement draft deletion guardrails (primary admin only).
+- Status: completed on Feb 17, 2026.
 
 ### Day 6: Phase 2 integration testing
 - End-to-end test: create draft through full wizard, launch, submit hack, complete/sync.

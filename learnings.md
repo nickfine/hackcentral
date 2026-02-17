@@ -13,6 +13,8 @@
   - non-admin rejection,
   - sync-precondition rejection for `results -> completed`,
   - successful `results -> completed` when sync is complete.
+- Macro admin UI wording updated to match transition semantics:
+  - `Launch Instance` -> `Advance Lifecycle`.
 - Verification rerun:
   - `npm run typecheck` (forge-native) ✅
   - `npm run frontend:build` (forge-native) ✅

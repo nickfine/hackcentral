@@ -684,7 +684,7 @@ export function App(): JSX.Element {
 
   const handleLaunch = useCallback(async () => {
     if (!context?.event) {
-      setError('No instance selected to launch.');
+      setError('No instance selected for lifecycle update.');
       return;
     }
 
@@ -697,7 +697,7 @@ export function App(): JSX.Element {
       setMessage(`Instance lifecycle updated to ${result.lifecycleStatus}.`);
       await loadContext();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to launch instance.');
+      setError(err instanceof Error ? err.message : 'Failed to advance lifecycle.');
     } finally {
       setSaving(false);
     }
@@ -1153,7 +1153,7 @@ export function App(): JSX.Element {
               Skipped: {context.syncState?.skippedCount || 0}
             </p>
             <button disabled={saving || !canAdminInstance} onClick={() => void handleLaunch()}>
-              {saving ? 'Updating…' : 'Launch Instance'}
+              {saving ? 'Updating…' : 'Advance Lifecycle'}
             </button>
             <button disabled={saving || !canAdminInstance} onClick={() => void runSync('complete')}>
               {saving ? 'Syncing…' : 'Complete + Sync'}
