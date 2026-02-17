@@ -129,6 +129,10 @@ Decision date: **Feb 16, 2026**
     - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` shows production status `Up-to-date`.
   - Automated P1 defect scan result: no new P1 defects identified.
   - Remaining to close Day 2 fully: manual production smoke test (`load app`, `list hacks`, `submit hack`, `create project`).
+  - Feb 17 smoke update:
+    - `load app` ✅, `list hacks` ✅
+    - project creation path failed with Supabase `23505` duplicate `Project.teamId`; compatibility retry patch implemented and deployed candidate prepared.
+    - Retest pending for project creation and submit/create flow confirmation.
 - Day 3 status (Feb 16, 2026): **completed (scope freeze)**
   - Locked Phase 2 field/payload/permissions contract in:
     - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE2-SCOPE-FREEZE.md`

@@ -1,5 +1,24 @@
 # Learnings
 
+**Production smoke regression + fix (Feb 17, 2026):**
+- Manual production smoke reported:
+  - Test 1 (load app): pass
+  - Test 2 (list hacks): pass
+  - Test 3 (create project path): fail with Supabase `23505` unique key on `Project.teamId` (`confluence-team-1` already exists).
+- Root cause:
+  - legacy compatibility insert logic reused a single fallback `teamId` across project inserts.
+  - production schema enforces uniqueness for `teamId`, causing 409 conflict.
+- Fix implemented in `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`:
+  - detect duplicate `teamId` violation and retry with a fresh generated legacy team id.
+  - allow retry loop to dedupe by payload keys + values (not keys only), so fresh-id retries are not dropped.
+  - keep existing missing-column/not-null fallback behavior.
+- Added regression test:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-project-insert.spec.ts`
+  - verifies retry path for `23505` duplicate `teamId`.
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (28 tests passing)
+
 **Day 5 lifecycle transition enforcement checkpoint (Feb 17, 2026):**
 - Implemented server-side sequential lifecycle transition rules in `hdcLaunchInstance`:
   - `draft -> registration -> team_formation -> hacking -> voting -> results -> completed`

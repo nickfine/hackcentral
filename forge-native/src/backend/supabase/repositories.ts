@@ -214,6 +214,19 @@ function extractProjectNotNullColumn(error: unknown): string | null {
   return match ? match[1] : null;
 }
 
+function hasDuplicateProjectTeamId(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    (message.includes('23505') || message.includes('duplicate key value violates unique constraint')) &&
+    (message.includes('"teamid"') || message.includes('(teamid)') || message.includes('teamid'))
+  );
+}
+
+function generateLegacyTeamId(): string {
+  return `confluence-team-${randomUUID()}`;
+}
+
 function getStringField(row: DbProjectRow, keys: string[]): string | null {
   for (const key of keys) {
     const value = row[key];
@@ -567,7 +580,11 @@ export class SupabaseRepository {
 
     while (queue.length > 0) {
       const candidate = queue.shift()!;
-      const signature = Object.keys(candidate).sort().join(',');
+      const signature = JSON.stringify(
+        Object.entries(candidate)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, value]) => [key, value ?? null])
+      );
       if (seen.has(signature)) continue;
       seen.add(signature);
 
@@ -578,7 +595,35 @@ export class SupabaseRepository {
         );
       } catch (error) {
         lastError = error;
+
+        if (hasDuplicateProjectTeamId(error) && candidate.teamId) {
+          const withFreshTeamId = {
+            ...candidate,
+            teamId: generateLegacyTeamId(),
+          };
+          queue.push(withFreshTeamId);
+        }
+
+        const notNullColumn = extractProjectNotNullColumn(error);
+        if (notNullColumn === 'teamId' && !candidate.teamId) {
+          queue.push({ ...candidate, teamId: fallbackTeamId ?? generateLegacyTeamId() });
+        }
+        if (notNullColumn === 'updatedAt' && !candidate.updatedAt) {
+          queue.push({ ...candidate, updatedAt: nowIso() });
+        }
+        if (notNullColumn === 'createdAt' && !candidate.createdAt) {
+          queue.push({ ...candidate, createdAt: nowIso() });
+        }
+
         if (!hasMissingProjectColumn(error)) {
+          if (
+            hasDuplicateProjectTeamId(error) ||
+            notNullColumn === 'teamId' ||
+            notNullColumn === 'updatedAt' ||
+            notNullColumn === 'createdAt'
+          ) {
+            continue;
+          }
           throw error;
         }
 
@@ -601,16 +646,6 @@ export class SupabaseRepository {
           queue.push(withoutTitle);
         }
 
-        const notNullColumn = extractProjectNotNullColumn(error);
-        if (notNullColumn === 'teamId' && !candidate.teamId && fallbackTeamId) {
-          queue.push({ ...candidate, teamId: fallbackTeamId });
-        }
-        if (notNullColumn === 'updatedAt' && !candidate.updatedAt) {
-          queue.push({ ...candidate, updatedAt: nowIso() });
-        }
-        if (notNullColumn === 'createdAt' && !candidate.createdAt) {
-          queue.push({ ...candidate, createdAt: nowIso() });
-        }
       }
     }
 
