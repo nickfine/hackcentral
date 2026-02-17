@@ -1,5 +1,35 @@
 # Learnings
 
+**Confluence smoke completion checkpoint (Feb 17, 2026):**
+- Smoke test completed for the active Confluence macro surface using **HackCentral (Development)** on `hackdaytemp.atlassian.net`.
+- Final verified outcomes:
+  - load app: pass
+  - list hacks: pass
+  - submit hack (Test 3): pass (`Hack submitted: gSSEfg`)
+- Clarification captured:
+  - In this Forge macro surface there is no separate "Projects area" UI, so the old "Test 4 create project UI flow" is not applicable in-page.
+- Root issue chain resolved during smoke:
+  - `23505` duplicate `Project.teamId`
+  - `23502` not-null on `Project.name`
+  - `23502` not-null on `Project.teamId` (escaped error parsing path)
+  - `23503` foreign key on `Project.teamId` for generated non-existent team ids
+- Final hardening implemented in `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`:
+  - escaped Supabase error normalization before retry parsing,
+  - deterministic legacy field backfills (`name`, timestamps),
+  - retry strategy that prefers existing Team ids before creating new legacy Team rows,
+  - Team row creation fallback when required to satisfy `Project.teamId` constraints.
+- Regression coverage expanded in:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-project-insert.spec.ts`
+- Validation state at close:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (29 tests passing)
+- Relevant commits:
+  - `0b66f8d` — escaped error handling in retry parser
+  - `7e61684` — ensure legacy Team rows exist for retry paths
+  - `5009da0` — prefer existing Team ids before legacy team creation retries
+- Deployed environment used for successful smoke:
+  - development `5.14.0` on `HackCentral (Development)` app entry.
+
 **Production smoke regression + fix (Feb 17, 2026):**
 - Manual production smoke reported:
   - Test 1 (load app): pass

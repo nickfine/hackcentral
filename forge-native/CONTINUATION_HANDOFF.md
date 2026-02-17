@@ -1,60 +1,77 @@
 # Forge Native Continuation Handoff
 
-Date: 2026-02-15
+Date: 2026-02-17  
 Workspace: `/Users/nickster/Downloads/HackCentral`
 
-## Current state
+## Current state (important)
 
-- Forge app architecture is Custom UI (`manifest.yml` resource points to `static/frontend/dist`, no `render: native`).
-- Frontend redesign is applied in:
-  - `static/frontend/src/App.tsx`
-  - `static/frontend/src/styles.css`
-- Localhost blank-page issue is fixed with localhost preview mode.
+- The user-facing Confluence site (`hackdaytemp.atlassian.net`) has **two app installs**:
+  - `HackCentral` (production env)
+  - `HackCentral (Development)` (development env)
+- Latest smoke/fix cycle was executed against **HackCentral (Development)**.
+- Successful smoke outcome in that surface:
+  - load app ✅
+  - list hacks ✅
+  - submit hack ✅ (`Hack submitted: gSSEfg`)
+- In this macro surface there is no standalone "Projects area" UI; old checklist step for "create project UI flow" is not applicable.
 
-## Local preview behavior
+## Latest fixes in this cycle
 
-When opened at `localhost` / `127.0.0.1`:
-- App uses mock bootstrap data.
-- Banner indicates preview mode.
-- Write buttons simulate success messages and do not call Forge resolvers.
+Files:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-project-insert.spec.ts`
 
-This exists so UI can be designed locally without Atlassian iframe context.
+Fixes:
+- parse escaped Supabase error payloads before matching retry conditions,
+- handle `Project` insert failures across:
+  - duplicate `teamId` (`23505`),
+  - not-null `name`/`teamId` (`23502`),
+  - FK `teamId` (`23503`),
+- prefer existing `Team` ids before generating/creating fallback team rows,
+- create legacy `Team` rows when required so retry `teamId` values are FK-valid.
 
-## Deploy status
+Relevant commits:
+- `0b66f8d` — escaped error handling in project insert retries
+- `7e61684` — ensure legacy team rows exist for retry paths
+- `5009da0` — prefer existing team ids before legacy team creation retries
 
-- Development deploy/install succeeded earlier in this session (version output indicated `3.3.0`).
-- The latest localhost-preview patch was applied **after** that deploy.
-- If you want Confluence to include the newest patch, redeploy.
+## Validation status
 
-## Commands for immediate continuation
+- `npm run typecheck` (forge-native) ✅
+- `npm run test:run` (repo root) ✅ (29 tests passing)
 
-### 1) Local UI work
+## Deployment status
 
-```bash
-cd /Users/nickster/Downloads/HackCentral/forge-native
-npm run frontend:dev
-```
+- Development env deployed through `5.14.0` (fixes above).
+- Development install on `hackdaytemp.atlassian.net` reported `Up-to-date`.
+- Production env was deployed earlier in the session line, but the final smoke/fix verification was on development.
 
-Open: `http://localhost:5173/`
+## Next recommended steps
 
-### 2) Build validation
+1. Run a quick verification in **HackCentral (Development)**:
+   - submit one additional hack,
+   - confirm it appears after refresh.
+2. If stable, promote the same commit line to production:
+   - `forge deploy --non-interactive -e production`
+   - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production`
+3. Re-run minimal production smoke (`load app`, `list hacks`, `submit hack`) in `HackCentral`.
 
-```bash
-cd /Users/nickster/Downloads/HackCentral/forge-native/static/frontend
-npm run build
-```
-
-### 3) Deploy latest to development
+## Commands
 
 ```bash
 cd /Users/nickster/Downloads/HackCentral/forge-native
 npm run frontend:build
+npm run macro:build
+npm run typecheck
+```
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+npm run test:run
+```
+
+```bash
+cd /Users/nickster/Downloads/HackCentral/forge-native
 forge deploy --non-interactive -e development
 forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development
 ```
-
-## Known caveats
-
-- Forge CLI warns if local Node is not 20/22/24. Current machine shows Node 25 warning.
-- Convex bundle warning about `utf-8-validate` may appear; deploy still succeeds.
-- Automated browser checks may land on Atlassian login page if MCP browser is not authenticated.

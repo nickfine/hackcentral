@@ -118,21 +118,22 @@ Decision date: **Feb 16, 2026**
   - Production `FORGE_DATA_BACKEND` set to `supabase`.
   - Production deploy completed (`forge deploy -e production`).
   - Production installation upgraded on `hackdaytemp.atlassian.net`.
-- Day 2 status (Feb 16, 2026): **in progress (development audit complete)**
+- Day 2 status (Feb 17, 2026): **completed (Confluence macro surface)**
   - Development verification rerun:
     - `npm run frontend:build` (forge-native) ✅
     - `npm run macro:build` (forge-native) ✅
     - `npm run typecheck` (forge-native) ✅
-    - `npm run test:run` (repo root) ✅ (23 tests passing)
+    - `npm run test:run` (repo root) ✅ (29 tests passing)
   - Production Forge verification rerun:
     - `forge variables list -e production` confirms expected Supabase variables and `FORGE_DATA_BACKEND=supabase`.
     - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` shows production status `Up-to-date`.
-  - Automated P1 defect scan result: no new P1 defects identified.
-  - Remaining to close Day 2 fully: manual production smoke test (`load app`, `list hacks`, `submit hack`, `create project`).
-  - Feb 17 smoke update:
-    - `load app` ✅, `list hacks` ✅
-    - project creation path failed with Supabase `23505` duplicate `Project.teamId`; compatibility retry patch implemented and deployed candidate prepared.
-    - Retest pending for project creation and submit/create flow confirmation.
+  - Manual Confluence smoke in active app surface (`HackCentral (Development)`):
+    - `load app` ✅
+    - `list hacks` ✅
+    - `submit hack` ✅
+  - Clarification:
+    - old "create project UI" step is not applicable in the current macro UI surface (no dedicated Projects area in this app surface).
+  - Defects found during smoke were closed with retry/legacy compatibility hardening for `Project` insert constraints (`teamId`, `name`, FK paths).
 - Day 3 status (Feb 16, 2026): **completed (scope freeze)**
   - Locked Phase 2 field/payload/permissions contract in:
     - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE2-SCOPE-FREEZE.md`
@@ -169,10 +170,10 @@ Decision date: **Feb 16, 2026**
 - Re-run Phase 1 acceptance criteria against development and production.
 - Capture any remaining P1 defects as explicit backlog items with severity labels.
 - Close Phase 1 formally in this plan if no P1 blockers remain.
-- Current checkpoint (Feb 16, 2026):
+- Current checkpoint (Feb 17, 2026):
   - Development acceptance checks: complete.
   - Production CLI/config checks: complete.
-  - Manual production smoke: pending.
+  - Manual Confluence macro smoke (active app surface): complete.
 
 ### Day 3: Phase 2 wizard scope freeze
 - Freeze full 5-step wizard field contract from `HackDayCentral_spec_v2.md`.
