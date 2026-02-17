@@ -1,5 +1,16 @@
 # Learnings
 
+**Production Confluence update (hackdaytemp) checkpoint (Feb 17, 2026):**
+- Canonical learnings file confirmed: `/Users/nickster/Downloads/HackCentral/learnings.md` (single `learnings.md` in repo).
+- Production deployment flow executed from `/Users/nickster/Downloads/HackCentral/forge-native`:
+  - `npm run custom-ui:build` ✅
+  - `forge deploy --non-interactive -e production` ✅ (deployed Forge version `3.1.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`Up-to-date`, App version `3`)
+- Deployment bundling initially surfaced two TypeScript null-safety errors in `src/backend/hdcService.ts`; patched normalization to avoid optional chaining narrowing issues, then redeployed successfully.
+- Follow-up code fix committed and pushed:
+  - `c3a5042` — `fix: resolve null-safe normalization in event rules`
+
 **Code consistency + integrity remediation checkpoint (Feb 17, 2026):**
 - Closed 4 review findings from the wizard/service/repository consistency pass:
   - Step 2 schedule fields now persist to backend (`event_schedule`) with legacy fallback reads.
