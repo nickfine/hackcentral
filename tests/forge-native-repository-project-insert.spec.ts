@@ -7,15 +7,19 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
     const insert = vi.fn(async (_table: string, payload: Record<string, unknown>) => {
       if (payload.teamId === 'confluence-team-1') {
         throw new Error(
-          'Supabase POST Project failed (409): {"code":"23505","details":"Key (\\"teamId\\")=(confluence-team-1) already exists."}'
+          'Supabase POST Project failed (409): {"code":"23505","details":"Key (\\\\\\"teamId\\\\\\")=(confluence-team-1) already exists.","message":"duplicate key value violates unique constraint \\\\\\"Project_teamId_key\\\\\\""}'
         );
       }
 
       if (!payload.teamId) {
-        throw new Error('null value in column "teamId" of relation "Project" violates not-null constraint');
+        throw new Error(
+          'Supabase POST Project failed (400): {"code":"23502","message":"null value in column \\\\\\"teamId\\\\\\" of relation \\\\\\"Project\\\\\\" violates not-null constraint"}'
+        );
       }
       if (!payload.name) {
-        throw new Error('null value in column "name" of relation "Project" violates not-null constraint');
+        throw new Error(
+          'Supabase POST Project failed (400): {"code":"23502","message":"null value in column \\\\\\"name\\\\\\" of relation \\\\\\"Project\\\\\\" violates not-null constraint"}'
+        );
       }
 
       return {

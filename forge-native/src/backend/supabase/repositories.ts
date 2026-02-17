@@ -166,7 +166,7 @@ function hasMissingEventConfigColumns(error: unknown): boolean {
 
 function hasMissingProjectTitleColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
   return (
     (message.includes('does not exist') &&
       (message.includes('project.title') || message.includes('"project"."title"'))) ||
@@ -176,7 +176,7 @@ function hasMissingProjectTitleColumn(error: unknown): boolean {
 
 function hasMissingProjectNameColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
   return (
     (message.includes('does not exist') &&
       (message.includes('project.name') || message.includes('"project"."name"'))) ||
@@ -186,7 +186,7 @@ function hasMissingProjectNameColumn(error: unknown): boolean {
 
 function hasMissingProjectColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
   return (
     ((message.includes('does not exist') &&
       (message.includes('project.') || message.includes('"project"."'))) ||
@@ -197,18 +197,20 @@ function hasMissingProjectColumn(error: unknown): boolean {
 
 function extractMissingProjectColumn(error: unknown): string | null {
   if (!(error instanceof Error)) return null;
-  const quoted = error.message.match(/column\s+"Project"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const quoted = normalized.match(/column\s+"Project"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
   if (quoted) return quoted[1];
-  const plain = error.message.match(/column\s+Project\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  const plain = normalized.match(/column\s+Project\.([a-zA-Z0-9_]+)\s+does not exist/i);
   if (plain) return plain[1];
-  const pgrst = error.message.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Project' in the schema cache/i);
+  const pgrst = normalized.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Project' in the schema cache/i);
   if (pgrst) return pgrst[1];
   return null;
 }
 
 function extractProjectNotNullColumn(error: unknown): string | null {
   if (!(error instanceof Error)) return null;
-  const match = error.message.match(
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const match = normalized.match(
     /null value in column "([a-zA-Z0-9_]+)" of relation "Project" violates not-null constraint/i
   );
   return match ? match[1] : null;
@@ -216,11 +218,15 @@ function extractProjectNotNullColumn(error: unknown): string | null {
 
 function hasDuplicateProjectTeamId(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
   return (
     (message.includes('23505') || message.includes('duplicate key value violates unique constraint')) &&
     (message.includes('"teamid"') || message.includes('(teamid)') || message.includes('teamid'))
   );
+}
+
+function normalizeSupabaseErrorMessage(error: Error): string {
+  return error.message.replace(/\\+"/g, '"');
 }
 
 function generateLegacyTeamId(): string {
