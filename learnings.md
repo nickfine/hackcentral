@@ -18,6 +18,28 @@
   - submit hack: pass (`Hack submitted: prodSmoke-20260217-1628`)
   - submitted hack visibility: pass (`prodSmoke-20260217-1628` appears in Featured/All hack lists after reload)
 
+**Day 6 integration checkpoint (Feb 17, 2026):**
+- Day 6 objective executed via integration verification run (no code changes required).
+- Verification bundle:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (29 tests passing)
+- Targeted integration suite:
+  - `vitest run tests/forge-native-hdcService.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-project-insert.spec.ts` ✅ (`24` tests passing)
+- Verified Day 6 flow coverage from executed checks:
+  - create draft + wizard contract persistence/validation (`hdcService` specs),
+  - launch lifecycle transitions with role enforcement (`hdcService` specs),
+  - submit hack path (manual production smoke in `HackCentral`),
+  - complete/sync status classification + retry/idempotency (`repository-sync` + `hdcService` specs).
+- Permission/failure-path validation covered:
+  - admin/co-admin/participant restrictions for launch and complete/sync,
+  - draft deletion guardrails,
+  - invalid schedule ordering, invalid team-size bounds, missing go-live schedule fields, and no-submissions sync rejection.
+- Phase 2 release-note checkpoint:
+  - current Day 4/5 implementation line remains valid under Day 6 integration checks;
+  - production remains deployed and up to date on hackdaytemp.
+
 **Confluence smoke completion checkpoint (Feb 17, 2026):**
 - Smoke test completed for the active Confluence macro surface using **HackCentral (Development)** on `hackdaytemp.atlassian.net`.
 - Final verified outcomes:

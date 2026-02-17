@@ -28,6 +28,29 @@
 ### Plan impact
 - The requested production promote + minimal production smoke objective is closed.
 
+## Day 6 Integration Checkpoint (Feb 17, 2026)
+
+### Completed
+- Integration verification bundle executed:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (29 tests passing)
+  - targeted integration suite ✅ (`24` tests across `hdcService` + Supabase sync/event-config/project-insert specs)
+- Day 6 flow coverage confirmed through service/repository tests and production smoke:
+  - create draft + wizard contract persistence/validation,
+  - launch lifecycle transitions,
+  - submit hack (manual production smoke),
+  - complete/sync classification and retry/idempotency handling.
+- Permission matrix/failure-path coverage confirmed:
+  - admin/co-admin/participant boundary checks for launch and complete/sync paths,
+  - draft deletion guardrails (primary-admin only),
+  - failure paths for invalid schedule ordering, invalid team-size bounds, missing go-live schedule fields, and no-submissions complete/sync.
+
+### Release notes (Phase 2 checkpoint)
+- No new code changes were required for Day 6; existing Day 4/5 implementations passed integration verification.
+- Production remains aligned to the validated fix line (deployed production Forge `3.6.0`, install up to date).
+
 ## Integrity Remediation Checkpoint (Feb 17, 2026)
 
 ### Closed findings
@@ -185,6 +208,17 @@ Decision date: **Feb 16, 2026**
     - `npm run macro:build` (forge-native) ✅
     - `npm run typecheck` (forge-native) ✅
     - `npm run test:run` (repo root) ✅ (27 tests passing)
+- Day 6 status (Feb 17, 2026): **completed (integration checkpoint)**
+  - Verification rerun:
+    - `npm run typecheck` (forge-native) ✅
+    - `npm run frontend:build` (forge-native) ✅
+    - `npm run macro:build` (forge-native) ✅
+    - `npm run test:run` (repo root) ✅ (29 tests passing)
+  - Targeted integration coverage:
+    - `vitest run tests/forge-native-hdcService.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-project-insert.spec.ts` ✅ (`24` tests)
+  - Flow coverage assertion:
+    - create draft + launch + complete/sync paths validated in service/repository tests;
+    - submit hack path validated in production Confluence smoke (`HackCentral`).
 
 ### Day 1: Production parity prep
 - Verify production Forge variables for Supabase (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SCHEMA`, `FORGE_DATA_BACKEND`).
@@ -230,6 +264,7 @@ Decision date: **Feb 16, 2026**
 - End-to-end test: create draft through full wizard, launch, submit hack, complete/sync.
 - Validate permission matrix and failure UX paths.
 - Produce release notes for Phase 2 checkpoint.
+- Status: completed on Feb 17, 2026.
 
 ### Day 7: Phase 3 kickoff prep
 - Finalize app switcher UI/UX spec (desktop/tablet/mobile behavior matrix).
