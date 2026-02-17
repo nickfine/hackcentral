@@ -4,6 +4,7 @@ import { SupabaseRepository } from '../forge-native/src/backend/supabase/reposit
 describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
   it('retries with a fresh teamId when Project.teamId unique constraint is hit', async () => {
     const selectOne = vi.fn().mockResolvedValue({ id: 'confluence-team-1' });
+    const selectMany = vi.fn().mockResolvedValue([{ id: 'confluence-team-1' }, { id: 'confluence-team-2' }]);
     const insert = vi.fn(async (table: string, payload: Record<string, unknown>) => {
       if (table === 'Team') {
         return { id: String(payload.id) };
@@ -35,9 +36,11 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
     const fakeRepo = {
       client: {
         selectOne,
+        selectMany,
         insert,
       },
       getAnyTeamId: SupabaseRepository.prototype['getAnyTeamId'],
+      listTeamIds: SupabaseRepository.prototype['listTeamIds'],
     };
 
     const result = await (SupabaseRepository.prototype as any).insertProject.call(fakeRepo, {
@@ -58,6 +61,7 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
 
   it('creates a Team row when teamId is required and missing', async () => {
     const selectOne = vi.fn().mockResolvedValue(null);
+    const selectMany = vi.fn().mockResolvedValue([]);
     const insert = vi.fn(async (table: string, payload: Record<string, unknown>) => {
       if (table === 'Team') {
         return { id: String(payload.id) };
@@ -82,9 +86,11 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
     const fakeRepo = {
       client: {
         selectOne,
+        selectMany,
         insert,
       },
       getAnyTeamId: SupabaseRepository.prototype['getAnyTeamId'],
+      listTeamIds: SupabaseRepository.prototype['listTeamIds'],
     };
 
     const result = await (SupabaseRepository.prototype as any).insertProject.call(fakeRepo, {

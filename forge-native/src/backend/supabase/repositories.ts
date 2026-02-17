@@ -650,6 +650,15 @@ export class SupabaseRepository {
     }
   }
 
+  private async listTeamIds(): Promise<string[]> {
+    try {
+      const rows = await this.client.selectMany<{ id: string }>(TEAM_TABLE, 'id');
+      return rows.map((row) => row.id).filter((id) => typeof id === 'string' && id.length > 0);
+    } catch {
+      return [];
+    }
+  }
+
   private async listProjects(filters: QueryFilter[] = []): Promise<DbProject[]> {
     try {
       const rows = await this.client.selectMany<DbProjectRow>(PROJECT_TABLE, '*', filters);
@@ -680,6 +689,7 @@ export class SupabaseRepository {
     if (!fallbackTeamId) {
       fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
     }
+    const exhaustedTeamIds = new Set<string>();
     const legacyTimestamp = nowIso();
     const withLegacyTeam = fallbackTeamId ? { teamId: fallbackTeamId } : {};
     const withLegacyTimestamps = { createdAt: legacyTimestamp, updatedAt: legacyTimestamp };
@@ -713,22 +723,44 @@ export class SupabaseRepository {
         lastError = error;
 
         if (hasDuplicateProjectTeamId(error) && candidate.teamId) {
-          const freshTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
-          if (freshTeamId) {
+          const currentTeamId = String(candidate.teamId);
+          exhaustedTeamIds.add(currentTeamId);
+          const alternatives = await this.listTeamIds();
+          const alternativeTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId));
+
+          if (alternativeTeamId) {
+            exhaustedTeamIds.add(alternativeTeamId);
             queue.push({
               ...candidate,
-              teamId: freshTeamId,
+              teamId: alternativeTeamId,
             });
+          } else {
+            const freshTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+            if (freshTeamId) {
+              exhaustedTeamIds.add(freshTeamId);
+              queue.push({
+                ...candidate,
+                teamId: freshTeamId,
+              });
+            }
           }
         }
 
         const notNullColumn = extractProjectNotNullColumn(error);
         if (notNullColumn === 'teamId' && !candidate.teamId) {
+          if (!fallbackTeamId || exhaustedTeamIds.has(fallbackTeamId)) {
+            const alternatives = await this.listTeamIds();
+            fallbackTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId)) ?? null;
+          }
           if (!fallbackTeamId) {
             fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
           }
           if (fallbackTeamId) {
-            queue.push({ ...candidate, teamId: fallbackTeamId });
+            exhaustedTeamIds.add(fallbackTeamId);
+            queue.push({
+              ...candidate,
+              teamId: fallbackTeamId,
+            });
           }
         }
         if (notNullColumn === 'name' && !candidate.name) {
