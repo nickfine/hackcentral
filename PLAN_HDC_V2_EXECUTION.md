@@ -7,6 +7,27 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Production Promotion + Smoke Closure (Feb 17, 2026)
+
+### Completed
+- Continued from commit `f8cafdc` and reran local validation:
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (29 tests passing)
+- Promoted current line to production:
+  - `forge deploy --non-interactive -e production` ✅ (Forge version `3.6.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`Up-to-date`, production App version `3`)
+- Manual production smoke run in **HackCentral** (not `HackCentral (Development)`):
+  - load app ✅
+  - list hacks ✅
+  - submit hack ✅ (`Hack submitted: prodSmoke-20260217-1628`)
+  - submitted hack appears in list after reload ✅
+
+### Plan impact
+- The requested production promote + minimal production smoke objective is closed.
+
 ## Integrity Remediation Checkpoint (Feb 17, 2026)
 
 ### Closed findings
@@ -131,6 +152,10 @@ Decision date: **Feb 16, 2026**
     - `load app` ✅
     - `list hacks` ✅
     - `submit hack` ✅
+  - Manual Confluence production smoke in `HackCentral`:
+    - `load app` ✅
+    - `list hacks` ✅
+    - `submit hack` ✅ (`prodSmoke-20260217-1628`)
   - Clarification:
     - old "create project UI" step is not applicable in the current macro UI surface (no dedicated Projects area in this app surface).
   - Defects found during smoke were closed with retry/legacy compatibility hardening for `Project` insert constraints (`teamId`, `name`, FK paths).
@@ -173,7 +198,9 @@ Decision date: **Feb 16, 2026**
 - Current checkpoint (Feb 17, 2026):
   - Development acceptance checks: complete.
   - Production CLI/config checks: complete.
-  - Manual Confluence macro smoke (active app surface): complete.
+  - Manual Confluence macro smoke:
+    - `HackCentral (Development)`: complete.
+    - `HackCentral` (production app): complete (`load app`, `list hacks`, `submit hack`).
 
 ### Day 3: Phase 2 wizard scope freeze
 - Freeze full 5-step wizard field contract from `HackDayCentral_spec_v2.md`.

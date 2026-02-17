@@ -1,5 +1,23 @@
 # Learnings
 
+**Production promote + smoke closure (Feb 17, 2026):**
+- Continued from commit `f8cafdc`.
+- Local validation rerun before production promote:
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (29 tests passing)
+- Production promotion commands executed from `/Users/nickster/Downloads/HackCentral/forge-native`:
+  - `forge deploy --non-interactive -e production` ✅ (deployed Forge version `3.6.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅ (site already at latest)
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (production `App version 3`, status `Up-to-date`)
+- Production Confluence smoke executed in **HackCentral** app surface (not `HackCentral (Development)`):
+  - app URL: `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central`
+  - load app: pass
+  - list hacks: pass (`gSSEfg` present in list)
+  - submit hack: pass (`Hack submitted: prodSmoke-20260217-1628`)
+  - submitted hack visibility: pass (`prodSmoke-20260217-1628` appears in Featured/All hack lists after reload)
+
 **Confluence smoke completion checkpoint (Feb 17, 2026):**
 - Smoke test completed for the active Confluence macro surface using **HackCentral (Development)** on `hackdaytemp.atlassian.net`.
 - Final verified outcomes:
