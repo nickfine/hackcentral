@@ -77,6 +77,22 @@
 - Remaining before production rollout:
   - Confluence manual QA matrix at desktop/tablet/mobile on real parent + instance macro pages.
 
+**Phase 3 rollout checkpoint B (Feb 17, 2026):**
+- Deploy/install outcomes:
+  - development: `forge deploy --non-interactive -e development` ✅ (Forge `5.15.0`)
+  - development: `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development` ✅
+  - production: `forge deploy --non-interactive -e production` ✅ (Forge `3.7.0`)
+  - production: `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅
+  - install lists confirm both environments remain `Up-to-date` on `hackdaytemp`.
+- Production sanity smoke (global `HackCentral` app surface):
+  - load app: pass
+  - list hacks: pass
+  - submit hack: pass (`Hack submitted: prodSmoke-20260217-phase3A`)
+  - submitted hack visibility after reload: pass (`prodSmoke-20260217-phase3A`)
+- Explicit remaining gap:
+  - Phase 3 macro-context breakpoint QA (parent + instance pages, desktop/tablet/mobile) is still pending.
+  - Blocker in this run: Confluence page-create permission denied (`We’re unable to create for you`), and no discoverable existing macro host page was available via search/recent.
+
 **Confluence smoke completion checkpoint (Feb 17, 2026):**
 - Smoke test completed for the active Confluence macro surface using **HackCentral (Development)** on `hackdaytemp.atlassian.net`.
 - Final verified outcomes:

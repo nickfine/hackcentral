@@ -99,6 +99,27 @@
   - Confluence breakpoint QA matrix on real parent + instance pages,
   - production rollout for switcher changes after QA sign-off.
 
+## Phase 3 Rollout Checkpoint B (Feb 17, 2026)
+
+### Completed
+- Deployed switcher checkpoint line (`1aaccc8`) to Forge development:
+  - `forge deploy --non-interactive -e development` ✅ (deployed version `5.15.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development` ✅ (latest)
+- Promoted same line to Forge production:
+  - `forge deploy --non-interactive -e production` ✅ (deployed version `3.7.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅ (latest)
+- Production sanity smoke in `HackCentral` global surface:
+  - load app ✅
+  - list hacks ✅
+  - submit hack ✅ (`Hack submitted: prodSmoke-20260217-phase3A`)
+  - submitted item appears after reload ✅
+
+### Blocking gap
+- Manual macro QA for Phase 3 app switcher (parent + instance contexts, desktop/tablet/mobile) could not be completed in this run:
+  - Confluence page creation for this user is blocked (`We’re unable to create for you`).
+  - No discoverable existing Confluence page with installed macro context was available via search/recent.
+- Result: rollout executed with automated checks + global-surface smoke, but macro-context breakpoint verification remains pending.
+
 ## Integrity Remediation Checkpoint (Feb 17, 2026)
 
 ### Closed findings
@@ -278,6 +299,10 @@ Decision date: **Feb 16, 2026**
   - Macro app switcher UI + helper/cache layer implemented locally.
   - Automated verification green (`typecheck`, `builds`, `33` tests).
   - Confluence breakpoint QA + production rollout still pending.
+- Phase 3 status (Feb 17, 2026): **in progress (rollout checkpoint B)**
+  - Development + production deploys completed for switcher checkpoint line.
+  - Production global-surface sanity smoke passed (`prodSmoke-20260217-phase3A`).
+  - Macro-context breakpoint QA is still pending due Confluence page-create/access constraints.
 
 ### Day 1: Production parity prep
 - Verify production Forge variables for Supabase (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SCHEMA`, `FORGE_DATA_BACKEND`).
