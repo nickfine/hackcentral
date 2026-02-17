@@ -1,5 +1,24 @@
 # Learnings
 
+**Day 5 lifecycle transition enforcement checkpoint (Feb 17, 2026):**
+- Implemented server-side sequential lifecycle transition rules in `hdcLaunchInstance`:
+  - `draft -> registration -> team_formation -> hacking -> voting -> results -> completed`
+- Added transition guardrails:
+  - block advancement from terminal states without a valid next transition.
+  - block `results -> completed` unless sync status is `complete`.
+- Role enforcement retained for transitions:
+  - only event admins (primary/co-admin) can advance lifecycle.
+- Added tests in `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts` for:
+  - co-admin allowed transition,
+  - non-admin rejection,
+  - sync-precondition rejection for `results -> completed`,
+  - successful `results -> completed` when sync is complete.
+- Verification rerun:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (27 tests passing)
+
 **Production Confluence update (hackdaytemp) checkpoint (Feb 17, 2026):**
 - Canonical learnings file confirmed: `/Users/nickster/Downloads/HackCentral/learnings.md` (single `learnings.md` in repo).
 - Production deployment flow executed from `/Users/nickster/Downloads/HackCentral/forge-native`:

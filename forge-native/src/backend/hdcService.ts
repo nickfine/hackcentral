@@ -7,6 +7,7 @@ import type {
   EventRules,
   EventSchedule,
   HdcContextResponse,
+  LifecycleStatus,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -189,6 +190,15 @@ function normalizeEventBranding(
   }
   return branding;
 }
+
+const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> = {
+  draft: 'registration',
+  registration: 'team_formation',
+  team_formation: 'hacking',
+  hacking: 'voting',
+  voting: 'results',
+  results: 'completed',
+};
 
 export class HdcService {
   private readonly repository: SupabaseRepository;
@@ -410,6 +420,10 @@ export class HdcService {
 
   async launchInstance(viewer: ViewerContext, eventId: string): Promise<EventLifecycleResult> {
     const user = await this.repository.ensureUser(viewer);
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error('Event not found for lifecycle update.');
+    }
     const admins = await this.repository.listEventAdmins(eventId);
 
     const canAdmin = admins.some((admin) => admin.user_id === user.id);
@@ -417,15 +431,33 @@ export class HdcService {
       throw new Error('Only event admins can launch an instance.');
     }
 
-    await this.repository.updateEventLifecycle(eventId, 'hacking');
+    const currentStatus = event.lifecycle_status;
+    const nextStatus = LIFECYCLE_NEXT_STATUS[currentStatus];
+    if (!nextStatus) {
+      throw new Error(
+        currentStatus === 'archived'
+          ? 'Archived instances cannot be transitioned.'
+          : 'Instance lifecycle cannot be advanced further.'
+      );
+    }
+
+    if (currentStatus === 'results' && nextStatus === 'completed') {
+      const syncState = await this.repository.getSyncState(eventId);
+      if (!syncState || syncState.syncStatus !== 'complete') {
+        throw new Error('Cannot move to completed until sync status is complete.');
+      }
+    }
+
+    await this.repository.updateEventLifecycle(eventId, nextStatus);
     await this.repository.logAudit({
       eventId,
       actorUserId: user.id,
       action: 'status_changed',
-      newValue: { lifecycle_status: 'hacking' },
+      previousValue: { lifecycle_status: currentStatus },
+      newValue: { lifecycle_status: nextStatus },
     });
 
-    return { lifecycleStatus: 'hacking' };
+    return { lifecycleStatus: nextStatus };
   }
 
   async deleteDraftInstance(viewer: ViewerContext, eventId: string): Promise<DeleteDraftResult> {

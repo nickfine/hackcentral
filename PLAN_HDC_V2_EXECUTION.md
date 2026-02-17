@@ -26,6 +26,31 @@
 - Day 4 "save-as-draft continuity" and validation hardening items are considered complete.
 - Day 5 lifecycle/permission work remains open for transition endpoint coverage and enforcement breadth.
 
+## Day 5 Transition Enforcement Checkpoint (Feb 17, 2026)
+
+### Completed
+- `hdcLaunchInstance` now enforces sequential lifecycle transitions server-side:
+  - `draft -> registration -> team_formation -> hacking -> voting -> results -> completed`
+- Transition endpoint now blocks terminal/invalid advancement:
+  - `archived` cannot transition
+  - terminal status without defined next transition is rejected
+- Guardrail added for `results -> completed`:
+  - requires sync status `complete`
+- Existing role boundary preserved:
+  - only primary/co-admin may transition lifecycle.
+
+### Test coverage added
+- Co-admin lifecycle advance from `draft` to `registration`.
+- Participant/non-admin transition rejection.
+- `results -> completed` blocked when sync is not complete.
+- `results -> completed` succeeds when sync is complete.
+
+### Verification
+- `npm run typecheck` (forge-native) ✅
+- `npm run frontend:build` (forge-native) ✅
+- `npm run macro:build` (forge-native) ✅
+- `npm run test:run` (repo root) ✅ (27 tests passing)
+
 ## Execution Status Checkpoint (Feb 16, 2026)
 
 ### Completed since roadmap creation
@@ -120,6 +145,15 @@ Decision date: **Feb 16, 2026**
     - `npm run macro:build` (forge-native) ✅
     - `npm run typecheck` (forge-native) ✅
     - `npm run test:run` (repo root) ✅ (23 tests passing)
+- Day 5 status (Feb 17, 2026): **in progress**
+  - Transition endpoint now enforces sequential state advancement and blocks invalid terminal transitions.
+  - `results -> completed` now requires sync status `complete`.
+  - Added transition permission/guardrail tests in `tests/forge-native-hdcService.spec.ts`.
+  - Verification rerun:
+    - `npm run frontend:build` (forge-native) ✅
+    - `npm run macro:build` (forge-native) ✅
+    - `npm run typecheck` (forge-native) ✅
+    - `npm run test:run` (repo root) ✅ (27 tests passing)
 
 ### Day 1: Production parity prep
 - Verify production Forge variables for Supabase (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SCHEMA`, `FORGE_DATA_BACKEND`).

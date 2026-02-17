@@ -25,6 +25,7 @@ type RepoMock = {
   addEventAdmin: ReturnType<typeof vi.fn>;
   upsertSyncState: ReturnType<typeof vi.fn>;
   logAudit: ReturnType<typeof vi.fn>;
+  updateEventLifecycle: ReturnType<typeof vi.fn>;
   listEventAdmins: ReturnType<typeof vi.fn>;
   listEventHackProjects: ReturnType<typeof vi.fn>;
   listProjectsByEventId: ReturnType<typeof vi.fn>;
@@ -47,6 +48,7 @@ function createRepoMock(): RepoMock {
     addEventAdmin: vi.fn(),
     upsertSyncState: vi.fn(),
     logAudit: vi.fn(),
+    updateEventLifecycle: vi.fn(),
     listEventAdmins: vi.fn(),
     listEventHackProjects: vi.fn(),
     listProjectsByEventId: vi.fn(),
@@ -482,5 +484,90 @@ describe('HdcService hardening behavior', () => {
     );
 
     expect(repo.deleteEventCascade).not.toHaveBeenCalled();
+  });
+
+  it('advances lifecycle from draft to registration for co-admin launch action', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-coadmin' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-100',
+      lifecycle_status: 'draft',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-coadmin', role: 'co_admin' }]);
+    repo.updateEventLifecycle.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+
+    const service = new ServiceClass(repo as never);
+    const result = await service.launchInstance(viewer, 'event-100');
+
+    expect(result).toEqual({ lifecycleStatus: 'registration' });
+    expect(repo.updateEventLifecycle).toHaveBeenCalledWith('event-100', 'registration');
+  });
+
+  it('blocks lifecycle transition when viewer is not an event admin', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-participant' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-101',
+      lifecycle_status: 'registration',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'another-user', role: 'primary' }]);
+
+    const service = new ServiceClass(repo as never);
+    await expect(service.launchInstance(viewer, 'event-101')).rejects.toThrow(
+      'Only event admins can launch an instance.'
+    );
+
+    expect(repo.updateEventLifecycle).not.toHaveBeenCalled();
+  });
+
+  it('enforces complete sync before moving lifecycle from results to completed', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-admin' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-102',
+      lifecycle_status: 'results',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-admin', role: 'primary' }]);
+    repo.getSyncState.mockResolvedValue({
+      eventId: 'event-102',
+      syncStatus: 'partial',
+      lastError: null,
+      lastAttemptAt: null,
+      pushedCount: 0,
+      skippedCount: 1,
+    });
+
+    const service = new ServiceClass(repo as never);
+    await expect(service.launchInstance(viewer, 'event-102')).rejects.toThrow(
+      'Cannot move to completed until sync status is complete.'
+    );
+    expect(repo.updateEventLifecycle).not.toHaveBeenCalled();
+  });
+
+  it('moves lifecycle from results to completed when sync status is complete', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-admin' });
+    repo.getEventById.mockResolvedValue({
+      id: 'event-103',
+      lifecycle_status: 'results',
+    });
+    repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-admin', role: 'primary' }]);
+    repo.getSyncState.mockResolvedValue({
+      eventId: 'event-103',
+      syncStatus: 'complete',
+      lastError: null,
+      lastAttemptAt: null,
+      pushedCount: 1,
+      skippedCount: 0,
+    });
+    repo.updateEventLifecycle.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+
+    const service = new ServiceClass(repo as never);
+    const result = await service.launchInstance(viewer, 'event-103');
+
+    expect(result).toEqual({ lifecycleStatus: 'completed' });
+    expect(repo.updateEventLifecycle).toHaveBeenCalledWith('event-103', 'completed');
   });
 });
