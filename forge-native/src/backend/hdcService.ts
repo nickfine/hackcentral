@@ -133,17 +133,17 @@ function normalizeEventRules(
   const maxTeamSizeBase = Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6;
   const maxTeamSize = minTeamSize === null ? maxTeamSizeBase : Math.max(minTeamSize, maxTeamSizeBase);
 
-  const normalizedRequirements =
-    Array.isArray(input?.submissionRequirements)
-      ? input.submissionRequirements.filter(
-          (item): item is SubmissionRequirement =>
-            item === 'video_demo' || item === 'working_prototype' || item === 'documentation'
-        )
-      : [];
-  const normalizedCategories =
-    Array.isArray(input?.categories)
-      ? [...new Set(input.categories.map((item) => item.trim()).filter((item) => item.length > 0))]
-      : [];
+  const submissionRequirements = input?.submissionRequirements;
+  const normalizedRequirements = Array.isArray(submissionRequirements)
+    ? submissionRequirements.filter(
+        (item): item is SubmissionRequirement =>
+          item === 'video_demo' || item === 'working_prototype' || item === 'documentation'
+      )
+    : [];
+  const categories = input?.categories;
+  const normalizedCategories = Array.isArray(categories)
+    ? [...new Set(categories.map((item) => item.trim()).filter((item) => item.length > 0))]
+    : [];
   const prizesText = typeof input?.prizesText === 'string' && input.prizesText.trim() ? input.prizesText.trim() : null;
 
   const rules: EventRules = {
