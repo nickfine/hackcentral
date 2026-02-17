@@ -225,8 +225,109 @@ function hasDuplicateProjectTeamId(error: unknown): boolean {
   );
 }
 
+function hasProjectTeamForeignKeyError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return (
+    (message.includes('23503') || message.includes('foreign key constraint')) &&
+    (message.includes('"teamid"') || message.includes('(teamid)') || message.includes('teamid'))
+  );
+}
+
 function normalizeSupabaseErrorMessage(error: Error): string {
   return error.message.replace(/\\+"/g, '"');
+}
+
+function extractMissingTeamColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const quoted = normalized.match(/column\s+"Team"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (quoted) return quoted[1];
+  const plain = normalized.match(/column\s+Team\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  if (plain) return plain[1];
+  const pgrst = normalized.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Team' in the schema cache/i);
+  if (pgrst) return pgrst[1];
+  return null;
+}
+
+function extractTeamNotNullColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const match = normalized.match(
+    /null value in column "([a-zA-Z0-9_]+)" of relation "Team" violates not-null constraint/i
+  );
+  return match ? match[1] : null;
+}
+
+function defaultTeamFieldValue(column: string, teamId: string, ownerId: string | null, now: string): unknown {
+  const col = column.toLowerCase();
+  if (col === 'id') return teamId;
+  if (col === 'name' || col === 'title') return `Forge Team ${teamId.slice(-8)}`;
+  if (col === 'createdat' || col === 'updatedat') return now;
+  if (col === 'created_at' || col === 'updated_at') return now;
+  if (col === 'ownerid' || col === 'owner_id') return ownerId ?? 'forge-system';
+  if (col === 'description') return '';
+  if (col === 'slug') return `forge-${teamId.slice(-8)}`;
+  return null;
+}
+
+async function ensureLegacyTeamRecord(
+  client: SupabaseRestClient,
+  ownerId: string | null,
+  preferredTeamId?: string
+): Promise<string | null> {
+  const teamId = preferredTeamId || generateLegacyTeamId();
+  const now = nowIso();
+  const baseName = `Forge Team ${teamId.slice(-8)}`;
+  const queue: Array<Record<string, unknown>> = [
+    { id: teamId, name: baseName, ownerId: ownerId ?? undefined, createdAt: now, updatedAt: now },
+    { id: teamId, name: baseName, owner_id: ownerId ?? undefined, created_at: now, updated_at: now },
+    { id: teamId, name: baseName, createdAt: now, updatedAt: now },
+    { id: teamId, name: baseName },
+    { id: teamId },
+  ];
+  const seen = new Set<string>();
+
+  while (queue.length > 0) {
+    const candidate = queue.shift()!;
+    const signature = JSON.stringify(
+      Object.entries(candidate)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => [key, value ?? null])
+    );
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+
+    try {
+      await client.insert(TEAM_TABLE, candidate);
+      return teamId;
+    } catch (error) {
+      if (error instanceof Error) {
+        const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+        if (normalized.includes('23505') || normalized.includes('duplicate key value violates unique constraint')) {
+          return teamId;
+        }
+      }
+
+      const missingColumn = extractMissingTeamColumn(error);
+      if (missingColumn && missingColumn in candidate) {
+        const withoutMissing = { ...candidate };
+        delete withoutMissing[missingColumn];
+        queue.push(withoutMissing);
+      }
+
+      const notNullColumn = extractTeamNotNullColumn(error);
+      if (notNullColumn && !(notNullColumn in candidate)) {
+        const defaultValue = defaultTeamFieldValue(notNullColumn, teamId, ownerId, now);
+        queue.push({
+          ...candidate,
+          [notNullColumn]: defaultValue,
+        });
+      }
+    }
+  }
+
+  return null;
 }
 
 function generateLegacyTeamId(): string {
@@ -569,7 +670,16 @@ export class SupabaseRepository {
     name?: string | null;
   }> {
     const projectId = typeof payload.id === 'string' && payload.id.trim() ? payload.id : randomUUID();
-    const fallbackTeamId = await this.getAnyTeamId();
+    const ownerId =
+      typeof payload.owner_id === 'string'
+        ? payload.owner_id
+        : typeof payload.ownerId === 'string'
+          ? payload.ownerId
+          : null;
+    let fallbackTeamId = await this.getAnyTeamId();
+    if (!fallbackTeamId) {
+      fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+    }
     const legacyTimestamp = nowIso();
     const withLegacyTeam = fallbackTeamId ? { teamId: fallbackTeamId } : {};
     const withLegacyTimestamps = { createdAt: legacyTimestamp, updatedAt: legacyTimestamp };
@@ -603,16 +713,23 @@ export class SupabaseRepository {
         lastError = error;
 
         if (hasDuplicateProjectTeamId(error) && candidate.teamId) {
-          const withFreshTeamId = {
-            ...candidate,
-            teamId: generateLegacyTeamId(),
-          };
-          queue.push(withFreshTeamId);
+          const freshTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+          if (freshTeamId) {
+            queue.push({
+              ...candidate,
+              teamId: freshTeamId,
+            });
+          }
         }
 
         const notNullColumn = extractProjectNotNullColumn(error);
         if (notNullColumn === 'teamId' && !candidate.teamId) {
-          queue.push({ ...candidate, teamId: fallbackTeamId ?? generateLegacyTeamId() });
+          if (!fallbackTeamId) {
+            fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+          }
+          if (fallbackTeamId) {
+            queue.push({ ...candidate, teamId: fallbackTeamId });
+          }
         }
         if (notNullColumn === 'name' && !candidate.name) {
           queue.push({ ...candidate, name: String(candidate.title ?? payload.title) });
@@ -625,8 +742,16 @@ export class SupabaseRepository {
         }
 
         if (!hasMissingProjectColumn(error)) {
+          if (hasProjectTeamForeignKeyError(error) && typeof candidate.teamId === 'string' && candidate.teamId) {
+            const ensured = await ensureLegacyTeamRecord(this.client, ownerId, candidate.teamId);
+            if (ensured) {
+              queue.push({ ...candidate, teamId: ensured });
+              continue;
+            }
+          }
           if (
             hasDuplicateProjectTeamId(error) ||
+            hasProjectTeamForeignKeyError(error) ||
             notNullColumn === 'teamId' ||
             notNullColumn === 'name' ||
             notNullColumn === 'updatedAt' ||
