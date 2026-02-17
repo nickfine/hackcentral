@@ -5,15 +5,17 @@ import type {
   Defs,
   EventRegistryItem,
   HdcContextResponse,
+  SubmissionRequirement,
   SyncResult,
+  ThemePreference,
+  WizardStep,
 } from './types';
 
 const LOCAL_PREVIEW = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay Central parent page.';
 const WIZARD_STORAGE_KEY_PREFIX = 'hdc-create-wizard:';
-
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+const SUBMISSION_REQUIREMENT_OPTIONS: SubmissionRequirement[] = ['video_demo', 'working_prototype', 'documentation'];
 
 interface WizardDraftState {
   eventName: string;
@@ -22,15 +24,27 @@ interface WizardDraftState {
   primaryAdminEmail: string;
   coAdminsInput: string;
   timezone: string;
+  registrationOpensAt: string;
+  registrationClosesAt: string;
+  teamFormationStartsAt: string;
+  teamFormationEndsAt: string;
   hackingStartsAt: string;
   submissionDeadlineAt: string;
+  votingStartsAt: string;
+  votingEndsAt: string;
+  resultsAnnounceAt: string;
   allowCrossTeamMentoring: boolean;
+  minTeamSize: string;
   maxTeamSize: string;
   requireDemoLink: boolean;
+  submissionRequirements: SubmissionRequirement[];
   judgingModel: 'panel' | 'popular_vote' | 'hybrid';
+  categoriesInput: string;
+  prizesText: string;
   bannerMessage: string;
   accentColor: string;
   bannerImageUrl: string;
+  themePreference: ThemePreference;
 }
 
 function wizardStorageKey(pageId: string): string {
@@ -101,6 +115,16 @@ function isAdaptavistEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith('@adaptavist.com');
 }
 
+function isDateRangeInvalid(start: string, end: string): boolean {
+  return Boolean(start && end && start > end);
+}
+
+function formatSubmissionRequirement(requirement: SubmissionRequirement): string {
+  if (requirement === 'video_demo') return 'Video demo';
+  if (requirement === 'working_prototype') return 'Working prototype';
+  return 'Documentation';
+}
+
 export function App(): JSX.Element {
   const [context, setContext] = useState<HdcContextResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,15 +143,27 @@ export function App(): JSX.Element {
   const [pendingCreateRequestId, setPendingCreateRequestId] = useState<string | null>(null);
   const [createDraftTimedOut, setCreateDraftTimedOut] = useState(false);
   const [timezone, setTimezone] = useState('Europe/London');
+  const [registrationOpensAt, setRegistrationOpensAt] = useState('');
+  const [registrationClosesAt, setRegistrationClosesAt] = useState('');
+  const [teamFormationStartsAt, setTeamFormationStartsAt] = useState('');
+  const [teamFormationEndsAt, setTeamFormationEndsAt] = useState('');
   const [hackingStartsAt, setHackingStartsAt] = useState('');
   const [submissionDeadlineAt, setSubmissionDeadlineAt] = useState('');
+  const [votingStartsAt, setVotingStartsAt] = useState('');
+  const [votingEndsAt, setVotingEndsAt] = useState('');
+  const [resultsAnnounceAt, setResultsAnnounceAt] = useState('');
   const [allowCrossTeamMentoring, setAllowCrossTeamMentoring] = useState(true);
+  const [minTeamSize, setMinTeamSize] = useState('1');
   const [maxTeamSize, setMaxTeamSize] = useState('6');
   const [requireDemoLink, setRequireDemoLink] = useState(false);
+  const [submissionRequirements, setSubmissionRequirements] = useState<SubmissionRequirement[]>([]);
   const [judgingModel, setJudgingModel] = useState<'panel' | 'popular_vote' | 'hybrid'>('hybrid');
+  const [categoriesInput, setCategoriesInput] = useState('');
+  const [prizesText, setPrizesText] = useState('');
   const [bannerMessage, setBannerMessage] = useState('');
   const [accentColor, setAccentColor] = useState('#0f766e');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
+  const [themePreference, setThemePreference] = useState<ThemePreference>('system');
 
   const [hackTitle, setHackTitle] = useState('');
   const [hackDescription, setHackDescription] = useState('');
@@ -183,21 +219,34 @@ export function App(): JSX.Element {
       primaryAdminEmail,
       coAdminsInput,
       timezone,
+      registrationOpensAt,
+      registrationClosesAt,
+      teamFormationStartsAt,
+      teamFormationEndsAt,
       hackingStartsAt,
       submissionDeadlineAt,
+      votingStartsAt,
+      votingEndsAt,
+      resultsAnnounceAt,
       allowCrossTeamMentoring,
+      minTeamSize,
       maxTeamSize,
       requireDemoLink,
+      submissionRequirements,
       judgingModel,
+      categoriesInput,
+      prizesText,
       bannerMessage,
       accentColor,
       bannerImageUrl,
+      themePreference,
     }),
     [
       accentColor,
       allowCrossTeamMentoring,
       bannerImageUrl,
       bannerMessage,
+      categoriesInput,
       coAdminsInput,
       eventIcon,
       eventName,
@@ -205,10 +254,21 @@ export function App(): JSX.Element {
       hackingStartsAt,
       judgingModel,
       maxTeamSize,
+      minTeamSize,
+      prizesText,
       primaryAdminEmail,
+      registrationClosesAt,
+      registrationOpensAt,
       requireDemoLink,
+      resultsAnnounceAt,
       submissionDeadlineAt,
+      submissionRequirements,
+      teamFormationEndsAt,
+      teamFormationStartsAt,
+      themePreference,
       timezone,
+      votingEndsAt,
+      votingStartsAt,
     ]
   );
 
@@ -222,15 +282,27 @@ export function App(): JSX.Element {
       setPrimaryAdminEmail('');
       setCoAdminsInput('');
       setTimezone('Europe/London');
+      setRegistrationOpensAt('');
+      setRegistrationClosesAt('');
+      setTeamFormationStartsAt('');
+      setTeamFormationEndsAt('');
       setHackingStartsAt('');
       setSubmissionDeadlineAt('');
+      setVotingStartsAt('');
+      setVotingEndsAt('');
+      setResultsAnnounceAt('');
       setAllowCrossTeamMentoring(true);
+      setMinTeamSize('1');
       setMaxTeamSize('6');
       setRequireDemoLink(false);
+      setSubmissionRequirements([]);
       setJudgingModel('hybrid');
+      setCategoriesInput('');
+      setPrizesText('');
       setBannerMessage('');
       setAccentColor('#0f766e');
       setBannerImageUrl('');
+      setThemePreference('system');
       setPendingCreateRequestId(null);
       setCreateDraftTimedOut(false);
 
@@ -264,19 +336,40 @@ export function App(): JSX.Element {
       if (typeof parsed.primaryAdminEmail === 'string') setPrimaryAdminEmail(parsed.primaryAdminEmail);
       if (typeof parsed.coAdminsInput === 'string') setCoAdminsInput(parsed.coAdminsInput);
       if (typeof parsed.timezone === 'string' && parsed.timezone.trim()) setTimezone(parsed.timezone);
+      if (typeof parsed.registrationOpensAt === 'string') setRegistrationOpensAt(parsed.registrationOpensAt);
+      if (typeof parsed.registrationClosesAt === 'string') setRegistrationClosesAt(parsed.registrationClosesAt);
+      if (typeof parsed.teamFormationStartsAt === 'string') setTeamFormationStartsAt(parsed.teamFormationStartsAt);
+      if (typeof parsed.teamFormationEndsAt === 'string') setTeamFormationEndsAt(parsed.teamFormationEndsAt);
       if (typeof parsed.hackingStartsAt === 'string') setHackingStartsAt(parsed.hackingStartsAt);
       if (typeof parsed.submissionDeadlineAt === 'string') setSubmissionDeadlineAt(parsed.submissionDeadlineAt);
+      if (typeof parsed.votingStartsAt === 'string') setVotingStartsAt(parsed.votingStartsAt);
+      if (typeof parsed.votingEndsAt === 'string') setVotingEndsAt(parsed.votingEndsAt);
+      if (typeof parsed.resultsAnnounceAt === 'string') setResultsAnnounceAt(parsed.resultsAnnounceAt);
       if (typeof parsed.allowCrossTeamMentoring === 'boolean') {
         setAllowCrossTeamMentoring(parsed.allowCrossTeamMentoring);
       }
+      if (typeof parsed.minTeamSize === 'string') setMinTeamSize(parsed.minTeamSize);
       if (typeof parsed.maxTeamSize === 'string') setMaxTeamSize(parsed.maxTeamSize);
       if (typeof parsed.requireDemoLink === 'boolean') setRequireDemoLink(parsed.requireDemoLink);
+      if (Array.isArray(parsed.submissionRequirements)) {
+        setSubmissionRequirements(
+          parsed.submissionRequirements.filter(
+            (value): value is SubmissionRequirement =>
+              value === 'video_demo' || value === 'working_prototype' || value === 'documentation'
+          )
+        );
+      }
       if (parsed.judgingModel === 'panel' || parsed.judgingModel === 'popular_vote' || parsed.judgingModel === 'hybrid') {
         setJudgingModel(parsed.judgingModel);
       }
+      if (typeof parsed.categoriesInput === 'string') setCategoriesInput(parsed.categoriesInput);
+      if (typeof parsed.prizesText === 'string') setPrizesText(parsed.prizesText);
       if (typeof parsed.bannerMessage === 'string') setBannerMessage(parsed.bannerMessage);
       if (typeof parsed.accentColor === 'string' && parsed.accentColor.trim()) setAccentColor(parsed.accentColor);
       if (typeof parsed.bannerImageUrl === 'string') setBannerImageUrl(parsed.bannerImageUrl);
+      if (parsed.themePreference === 'system' || parsed.themePreference === 'light' || parsed.themePreference === 'dark') {
+        setThemePreference(parsed.themePreference);
+      }
     } catch {
       window.localStorage.removeItem(wizardStorageKey(context.pageId));
     } finally {
@@ -291,37 +384,80 @@ export function App(): JSX.Element {
     window.localStorage.setItem(wizardStorageKey(context.pageId), JSON.stringify(wizardDraft));
   }, [context, wizardDraft, wizardLoaded]);
 
+  const getValidationErrorForStep = useCallback(
+    (step: WizardStep): string | null => {
+      if (step >= 1) {
+        setEventNameError('');
+        if (!eventName.trim()) {
+          setEventNameError('Event name is required.');
+          return 'Event name is required.';
+        }
+        if (primaryAdminEmail.trim() && !isAdaptavistEmail(primaryAdminEmail)) {
+          return 'Primary admin email must be an @adaptavist.com address.';
+        }
+        const invalidCoAdmin = coAdminsInput
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
+          .some((email) => !isAdaptavistEmail(email));
+        if (invalidCoAdmin) {
+          return 'All co-admin emails must be @adaptavist.com addresses.';
+        }
+      }
+
+      if (step >= 2) {
+        if (isDateRangeInvalid(registrationOpensAt, registrationClosesAt)) {
+          return 'Registration close must be after registration open.';
+        }
+        if (isDateRangeInvalid(teamFormationStartsAt, teamFormationEndsAt)) {
+          return 'Team formation end must be after team formation start.';
+        }
+        if (isDateRangeInvalid(hackingStartsAt, submissionDeadlineAt)) {
+          return 'Submission deadline must be after the hacking start time.';
+        }
+        if (isDateRangeInvalid(votingStartsAt, votingEndsAt)) {
+          return 'Voting end must be after voting start.';
+        }
+      }
+
+      if (step >= 3) {
+        const minTeam = Math.max(1, Math.floor(Number(minTeamSize) || 1));
+        const maxTeam = Math.max(1, Math.floor(Number(maxTeamSize) || 1));
+        if (minTeam > maxTeam) {
+          return 'Minimum team size must be less than or equal to maximum team size.';
+        }
+      }
+
+      return null;
+    },
+    [
+      coAdminsInput,
+      eventName,
+      hackingStartsAt,
+      maxTeamSize,
+      minTeamSize,
+      primaryAdminEmail,
+      registrationClosesAt,
+      registrationOpensAt,
+      submissionDeadlineAt,
+      teamFormationEndsAt,
+      teamFormationStartsAt,
+      votingEndsAt,
+      votingStartsAt,
+    ]
+  );
+
   const goToNextStep = useCallback(() => {
     setError('');
     setEventNameError('');
-
-    if (wizardStep === 1) {
-      if (!eventName.trim()) {
-        setEventNameError('Event name is required.');
-        return;
-      }
-      if (primaryAdminEmail.trim() && !isAdaptavistEmail(primaryAdminEmail)) {
-        setError('Primary admin email must be an @adaptavist.com address.');
-        return;
-      }
-      const invalidCoAdmin = coAdminsInput
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .some((email) => !isAdaptavistEmail(email));
-      if (invalidCoAdmin) {
-        setError('All co-admin emails must be @adaptavist.com addresses.');
-        return;
-      }
-    }
-
-    if (wizardStep === 2 && hackingStartsAt && submissionDeadlineAt && hackingStartsAt > submissionDeadlineAt) {
-      setError('Submission deadline must be after the hacking start time.');
+    const validationError = getValidationErrorForStep(wizardStep);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setWizardStep((step) => (step < 5 ? ((step + 1) as WizardStep) : step));
-  }, [coAdminsInput, eventName, hackingStartsAt, primaryAdminEmail, submissionDeadlineAt, wizardStep]);
+  }, [getValidationErrorForStep, wizardStep]);
 
   const goToPreviousStep = useCallback(() => {
     setError('');
@@ -330,9 +466,8 @@ export function App(): JSX.Element {
   }, []);
 
   const handleCreateDraft = useCallback(async () => {
-    if (!context || !eventName.trim()) {
-      setEventNameError('Event name is required.');
-      setError('Event name is required.');
+    if (!context) {
+      setError('Event context is not loaded yet.');
       return;
     }
     if (LOCAL_PREVIEW) {
@@ -340,10 +475,16 @@ export function App(): JSX.Element {
       return;
     }
 
-    setSaving(true);
     setError('');
-    setMessage('');
     setEventNameError('');
+    const validationError = getValidationErrorForStep(wizardStep);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
+    setMessage('');
 
     const requestId = pendingCreateRequestId || crypto.randomUUID();
     if (!pendingCreateRequestId) {
@@ -356,10 +497,19 @@ export function App(): JSX.Element {
         .split(',')
         .map((value) => value.trim().toLowerCase())
         .filter((value) => value.length > 0);
+      const minTeam = Math.max(1, Math.floor(Number(minTeamSize) || 1));
+      const maxTeam = Math.max(minTeam, Math.floor(Number(maxTeamSize) || 1));
+      const categories = categoriesInput
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
 
       const payload: CreateInstanceDraftInput = {
         parentPageId: context.pageId,
         creationRequestId: requestId,
+        wizardSchemaVersion: 2,
+        completedStep: wizardStep,
+        launchMode: 'draft',
         basicInfo: {
           eventName: eventName.trim(),
           eventIcon: eventIcon || '🚀',
@@ -369,19 +519,31 @@ export function App(): JSX.Element {
         },
         schedule: {
           timezone,
+          registrationOpensAt: registrationOpensAt || undefined,
+          registrationClosesAt: registrationClosesAt || undefined,
+          teamFormationStartsAt: teamFormationStartsAt || undefined,
+          teamFormationEndsAt: teamFormationEndsAt || undefined,
           hackingStartsAt: hackingStartsAt || undefined,
           submissionDeadlineAt: submissionDeadlineAt || undefined,
+          votingStartsAt: votingStartsAt || undefined,
+          votingEndsAt: votingEndsAt || undefined,
+          resultsAnnounceAt: resultsAnnounceAt || undefined,
         },
         rules: {
           allowCrossTeamMentoring,
-          maxTeamSize: Math.max(1, Math.floor(Number(maxTeamSize) || 1)),
+          minTeamSize: minTeam,
+          maxTeamSize: maxTeam,
           requireDemoLink,
           judgingModel,
+          submissionRequirements: submissionRequirements.length > 0 ? submissionRequirements : undefined,
+          categories: categories.length > 0 ? categories : undefined,
+          prizesText: prizesText.trim() || undefined,
         },
         branding: {
           bannerMessage: bannerMessage.trim() || undefined,
           accentColor: accentColor.trim() || undefined,
           bannerImageUrl: bannerImageUrl.trim() || undefined,
+          themePreference,
         },
       };
 
@@ -432,19 +594,33 @@ export function App(): JSX.Element {
     eventName,
     eventTagline,
     allowCrossTeamMentoring,
-    maxTeamSize,
     requireDemoLink,
     judgingModel,
     bannerMessage,
     accentColor,
     bannerImageUrl,
+    categoriesInput,
     hackingStartsAt,
     loadContext,
+    maxTeamSize,
+    minTeamSize,
     pendingCreateRequestId,
+    prizesText,
     primaryAdminEmail,
+    registrationClosesAt,
+    registrationOpensAt,
     resetWizard,
     submissionDeadlineAt,
+    submissionRequirements,
+    teamFormationEndsAt,
+    teamFormationStartsAt,
+    themePreference,
     timezone,
+    votingEndsAt,
+    votingStartsAt,
+    wizardStep,
+    resultsAnnounceAt,
+    getValidationErrorForStep,
   ]);
 
   const handleSubmitHack = useCallback(async () => {
@@ -664,6 +840,38 @@ export function App(): JSX.Element {
                   <input value={timezone} onChange={(event) => setTimezone(event.target.value)} />
                 </label>
                 <label>
+                  Registration Opens
+                  <input
+                    type="datetime-local"
+                    value={registrationOpensAt}
+                    onChange={(event) => setRegistrationOpensAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Registration Closes
+                  <input
+                    type="datetime-local"
+                    value={registrationClosesAt}
+                    onChange={(event) => setRegistrationClosesAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Team Formation Start
+                  <input
+                    type="datetime-local"
+                    value={teamFormationStartsAt}
+                    onChange={(event) => setTeamFormationStartsAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Team Formation End
+                  <input
+                    type="datetime-local"
+                    value={teamFormationEndsAt}
+                    onChange={(event) => setTeamFormationEndsAt(event.target.value)}
+                  />
+                </label>
+                <label>
                   Hacking Period Start
                   <input
                     type="datetime-local"
@@ -677,6 +885,30 @@ export function App(): JSX.Element {
                     type="datetime-local"
                     value={submissionDeadlineAt}
                     onChange={(event) => setSubmissionDeadlineAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Voting Starts
+                  <input
+                    type="datetime-local"
+                    value={votingStartsAt}
+                    onChange={(event) => setVotingStartsAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Voting Ends
+                  <input
+                    type="datetime-local"
+                    value={votingEndsAt}
+                    onChange={(event) => setVotingEndsAt(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Results Announcement
+                  <input
+                    type="datetime-local"
+                    value={resultsAnnounceAt}
+                    onChange={(event) => setResultsAnnounceAt(event.target.value)}
                   />
                 </label>
               </>
@@ -693,6 +925,16 @@ export function App(): JSX.Element {
                   Allow cross-team mentoring during hack week
                 </label>
                 <label>
+                  Min Team Size
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={minTeamSize}
+                    onChange={(event) => setMinTeamSize(event.target.value)}
+                  />
+                </label>
+                <label>
                   Max Team Size
                   <input
                     type="number"
@@ -706,6 +948,30 @@ export function App(): JSX.Element {
                   <input type="checkbox" checked={requireDemoLink} onChange={(event) => setRequireDemoLink(event.target.checked)} />
                   Require demo link on final submission
                 </label>
+                <fieldset>
+                  <legend>Submission Requirements</legend>
+                  {SUBMISSION_REQUIREMENT_OPTIONS.map((requirement) => {
+                    const checked = submissionRequirements.includes(requirement);
+                    return (
+                      <label key={requirement} className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            setSubmissionRequirements((current) => {
+                              if (event.target.checked) {
+                                if (current.includes(requirement)) return current;
+                                return [...current, requirement];
+                              }
+                              return current.filter((item) => item !== requirement);
+                            });
+                          }}
+                        />
+                        {formatSubmissionRequirement(requirement)}
+                      </label>
+                    );
+                  })}
+                </fieldset>
                 <label>
                   Judging Model
                   <select value={judgingModel} onChange={(event) => setJudgingModel(event.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
@@ -713,6 +979,22 @@ export function App(): JSX.Element {
                     <option value="popular_vote">Popular vote</option>
                     <option value="hybrid">Hybrid</option>
                   </select>
+                </label>
+                <label>
+                  Categories / Tracks
+                  <input
+                    value={categoriesInput}
+                    onChange={(event) => setCategoriesInput(event.target.value)}
+                    placeholder="Innovation, Technical Excellence, Business Impact"
+                  />
+                </label>
+                <label>
+                  Prizes / Recognition
+                  <textarea
+                    value={prizesText}
+                    onChange={(event) => setPrizesText(event.target.value)}
+                    placeholder="Optional details about prizes and recognition."
+                  />
                 </label>
               </>
             ) : null}
@@ -732,6 +1014,14 @@ export function App(): JSX.Element {
                   <input value={accentColor} onChange={(event) => setAccentColor(event.target.value)} placeholder="#0f766e" />
                 </label>
                 <label>
+                  Theme Preference
+                  <select value={themePreference} onChange={(event) => setThemePreference(event.target.value as ThemePreference)}>
+                    <option value="system">System default</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label>
                   Banner Image URL
                   <input
                     value={bannerImageUrl}
@@ -748,12 +1038,33 @@ export function App(): JSX.Element {
                 <p><strong>Name:</strong> {eventName || '—'}</p>
                 <p><strong>Tagline:</strong> {eventTagline || '—'}</p>
                 <p><strong>Admins:</strong> {primaryAdminEmail || 'current user'} {coAdminsInput ? `+ ${coAdminsInput}` : ''}</p>
-                <p><strong>Schedule:</strong> {timezone} · {hackingStartsAt || 'start TBD'} → {submissionDeadlineAt || 'deadline TBD'}</p>
+                <p><strong>Schedule:</strong> timezone {timezone}</p>
                 <p>
-                  <strong>Rules:</strong> max team size {Math.max(1, Math.floor(Number(maxTeamSize) || 1))},{' '}
+                  <strong>Registration:</strong> {registrationOpensAt || 'TBD'} → {registrationClosesAt || 'TBD'}
+                </p>
+                <p>
+                  <strong>Team formation:</strong> {teamFormationStartsAt || 'TBD'} → {teamFormationEndsAt || 'TBD'}
+                </p>
+                <p><strong>Hacking:</strong> {hackingStartsAt || 'TBD'} → {submissionDeadlineAt || 'TBD'}</p>
+                <p><strong>Voting:</strong> {votingStartsAt || 'TBD'} → {votingEndsAt || 'TBD'}</p>
+                <p><strong>Results:</strong> {resultsAnnounceAt || 'TBD'}</p>
+                <p>
+                  <strong>Rules:</strong> team size {Math.max(1, Math.floor(Number(minTeamSize) || 1))}-
+                  {Math.max(Math.max(1, Math.floor(Number(minTeamSize) || 1)), Math.floor(Number(maxTeamSize) || 1))},{' '}
                   {allowCrossTeamMentoring ? 'cross-team mentoring on' : 'cross-team mentoring off'}, judging: {judgingModel}
                 </p>
-                <p><strong>Branding:</strong> {bannerMessage || '—'} · {accentColor || '—'} · {bannerImageUrl || '—'}</p>
+                <p>
+                  <strong>Requirements:</strong>{' '}
+                  {submissionRequirements.length > 0
+                    ? submissionRequirements.map((item) => formatSubmissionRequirement(item)).join(', ')
+                    : 'none'}
+                </p>
+                <p><strong>Categories:</strong> {categoriesInput || '—'}</p>
+                <p><strong>Prizes:</strong> {prizesText || '—'}</p>
+                <p>
+                  <strong>Branding:</strong> {bannerMessage || '—'} · {accentColor || '—'} · {themePreference} ·{' '}
+                  {bannerImageUrl || '—'}
+                </p>
               </section>
             ) : null}
 
@@ -764,15 +1075,18 @@ export function App(): JSX.Element {
               <button type="button" className="button-muted" disabled={saving} onClick={() => resetWizard(true)}>
                 Reset
               </button>
+              <button
+                type="button"
+                disabled={saving || !context.permissions.canCreateInstances}
+                onClick={() => void handleCreateDraft()}
+              >
+                {saving ? 'Saving…' : createDraftTimedOut ? 'Retry Save Draft' : 'Save Draft'}
+              </button>
               {wizardStep < 5 ? (
                 <button type="button" disabled={saving} onClick={goToNextStep}>
                   Next
                 </button>
-              ) : (
-                <button disabled={saving || !context.permissions.canCreateInstances} onClick={() => void handleCreateDraft()}>
-                  {saving ? 'Creating…' : createDraftTimedOut ? 'Retry Create Draft' : 'Create Draft'}
-                </button>
-              )}
+              ) : null}
             </div>
             {pendingCreateRequestId ? <p className="meta">Request ID: {pendingCreateRequestId}</p> : null}
           </article>

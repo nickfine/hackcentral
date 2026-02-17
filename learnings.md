@@ -1,5 +1,79 @@
 # Learnings
 
+**Code consistency + integrity remediation checkpoint (Feb 17, 2026):**
+- Closed 4 review findings from the wizard/service/repository consistency pass:
+  - Step 2 schedule fields now persist to backend (`event_schedule`) with legacy fallback reads.
+  - `launchMode` / wizard metadata now validated and applied server-side (`go_live` promotes lifecycle to `registration`).
+  - "Save Draft" is now available on every wizard step.
+  - Schedule and team-size validation now enforced server-side (not frontend-only).
+- Schema update added:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260216100000_phase2_event_schedule.sql`
+- Verification rerun:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run lint` (forge-native) ✅ (1 non-blocking manifest warning)
+  - `npm run test:run` (repo root) ✅ (23 tests passing)
+- Net result: no regression detected in automated checks after remediation.
+
+**Phase 1 closure audit checkpoint (Feb 16, 2026):**
+- Re-ran verification suite against current code:
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (19 tests passing)
+- Re-verified production Forge runtime configuration:
+  - `forge variables list -e production` confirms Supabase variables are present and `FORGE_DATA_BACKEND=supabase`.
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` reports production installation `Up-to-date`.
+- Result: no new automated P1 defects found in Phase 1 flow.
+- Remaining Day 2 closure item: manual production smoke path (`load app`, `list hacks`, `submit hack`, `create project`) before formal Phase 1 close.
+
+**Phase 2 scope freeze completed (Feb 16, 2026):**
+- Locked Day 3 deliverable for Phase 2 wizard/permissions contract:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE2-SCOPE-FREEZE.md`
+- Contract now defines:
+  - full 5-step wizard payload schema (`wizardSchemaVersion=2`)
+  - per-step validation + launch mode behavior (`draft` vs `go_live`)
+  - server-enforced lifecycle transition matrix
+  - role boundary matrix (primary admin / co-admin / participant)
+  - Supabase-first persistence mapping for full schedule via `event_schedule` JSONB with legacy compatibility
+- Implementation guidance:
+  - Day 4+ work should implement against this frozen contract.
+
+**Phase 2 Day 4 chunk A checkpoint (Feb 16, 2026):**
+- Expanded macro wizard scaffolding to cover full schedule contract in Step 2:
+  - registration open/close
+  - team formation start/end
+  - hacking start/submission deadline
+  - voting start/end
+  - results announcement
+- Expanded Step 3/4 payload fields and UI inputs:
+  - rules: `minTeamSize`, `submissionRequirements`, `categories`, `prizesText`
+  - branding: `themePreference`
+- Updated create payload contract wiring:
+  - `wizardSchemaVersion: 2`
+  - `completedStep`
+  - `launchMode` (currently sent as `draft`)
+- Backend normalization now preserves new optional rules/branding fields in stored config JSON.
+- Wizard step validation expanded for:
+  - schedule range ordering checks (registration/team-formation/hacking/voting)
+  - min/max team size bounds
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+- Verification run:
+  - `npm run frontend:build` ✅
+  - `npm run macro:build` ✅
+  - `npm run typecheck` ✅
+  - `npm run test:run` ✅ (19 tests passing)
+- Remaining Day 4 item:
+  - additional transition contract tests.
+
 **Operational mode adjustment (Feb 16, 2026):**
 - Development environment switched from `FORGE_DATA_BACKEND=auto` to `FORGE_DATA_BACKEND=convex` temporarily.
 - **Reason:** Supabase permission issue is still unresolved; forcing Convex avoids per-request Supabase 403 attempts, reducing latency and log noise.
@@ -1664,3 +1738,78 @@ const debouncedSearch = useDebounce(searchQuery);
 ### Notes
 - Existing Convex support remains in code as an optional mode/failover path (`FORGE_DATA_BACKEND=auto|convex|supabase`), but runtime is currently pinned to `supabase`.
 - If desired later, set `FORGE_DATA_BACKEND=auto` for permission-error fallback behavior.
+
+## Supabase Legacy Schema Compatibility Hardening (Forge Native) – Feb 16, 2026
+
+### Incident pattern after 403 fix
+After re-enabling Supabase mode, Hack submit and bootstrap flows hit a sequence of schema-drift failures against the existing `public."Project"` table:
+- `42703`: `column Project.title does not exist`
+- `42703`: `column Project.status does not exist`
+- `PGRST204`: `Could not find the 'status' column of 'Project' in the schema cache`
+- `23502`: `null value in column "id" ... violates not-null constraint`
+- `23502`: `null value in column "teamId" ... violates not-null constraint`
+- `23502`: `null value in column "updatedAt" ... violates not-null constraint`
+
+### Root cause
+- Forge-native repository expected the newer multi-tenant `Project` shape (`title`, `status`, snake_case fields).
+- Live Supabase project still contains legacy constraints/fields (`name`, `teamId`, `createdAt`, `updatedAt`) and partial column mismatch.
+- PostgREST emitted both SQL-style missing-column errors and schema-cache (`PGRST204`) variants.
+
+### Remediation implemented
+All fixes were implemented in:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+
+Key hardening changes:
+1. **Project read compatibility**
+   - Switched to `select=*` for `Project` reads.
+   - Added row normalization with tolerant field mapping (e.g., `title` fallback from `name`).
+   - Added safe defaults for missing columns (e.g., status fallback).
+
+2. **Project insert compatibility and retries**
+   - Added adaptive insert queue with payload variants.
+   - Added parsing for both missing-column formats:
+     - SQL errors (`... does not exist`)
+     - PostgREST schema cache (`PGRST204`).
+   - On missing-column detection, remove offending key and retry.
+
+3. **Legacy NOT NULL handling**
+   - Always generate and send `id` (`randomUUID`) for project inserts.
+   - Auto-populate legacy `teamId` using an existing team fallback.
+   - Populate legacy timestamps: `createdAt` and `updatedAt`.
+
+4. **Hacks list resilience**
+   - If explicit hack rows are empty, infer hack-like rows from legacy signals (e.g., `submitted_at`) and avoid empty hacks UI.
+
+### Deploy sequence and outcome
+- Multiple development deploys (`5.3.0` → `5.10.0`) were used to progressively harden compatibility.
+- Final user validation: **hack submit succeeded** (green success message), and hacks/content load in UI.
+
+### Git history (relevant commits)
+- `5917aa1` – `fix: harden supabase compatibility and sync migrations`
+- `dbef335` – `fix: support legacy project constraints on hack submit`
+
+### Current status
+- Development environment on `hackdaytemp.atlassian.net` is functioning with Supabase backend.
+- Submit flow works against legacy Supabase schema without requiring immediate destructive schema migration.
+- Remaining next step: production rollout after final smoke test.
+
+## Roadmap Realignment Checkpoint (Feb 16, 2026)
+
+- Reconfirmed canonical roadmap source: `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md`.
+- Closed Alignment Gate with explicit architecture/scope decisions and recorded ADR:
+  - `/Users/nickster/Downloads/HackCentral/docs/ADR-001-HDC-V2-ARCHITECTURE.md`
+- Locked execution direction:
+  - Supabase-first runtime source of truth.
+  - v2 behavioral parity target (not strict page-property storage parity in MVP).
+- Added concrete next-7-days execution sprint in the plan to prevent reactive drift.
+
+## Production Rollout Kickoff (Roadmap Day 1) – Feb 16, 2026
+
+- Began execution of `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md` Day 1 tasks.
+- Production Forge variables verified and updated:
+  - `FORGE_DATA_BACKEND` set to `supabase`.
+  - `SUPABASE_URL` and `SUPABASE_SCHEMA` already aligned with development.
+- Production deployment completed from current `main`.
+- Production install upgraded on `hackdaytemp.atlassian.net` (Confluence).
+- `forge install list -e production` now reports production app version `3` and `Up-to-date` status.
+- Immediate production log check showed no new backend errors in the rollout window.

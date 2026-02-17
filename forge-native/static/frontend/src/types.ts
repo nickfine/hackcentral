@@ -122,18 +122,39 @@ export type LifecycleStatus =
   | 'archived';
 
 export type SyncStatus = 'not_started' | 'in_progress' | 'partial' | 'failed' | 'complete';
+export type SubmissionRequirement = 'video_demo' | 'working_prototype' | 'documentation';
+export type ThemePreference = 'system' | 'light' | 'dark';
+export type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 export interface EventRules {
   allowCrossTeamMentoring: boolean;
   maxTeamSize: number;
   requireDemoLink: boolean;
   judgingModel: 'panel' | 'popular_vote' | 'hybrid';
+  minTeamSize?: number;
+  submissionRequirements?: SubmissionRequirement[];
+  categories?: string[];
+  prizesText?: string;
 }
 
 export interface EventBranding {
   bannerMessage?: string;
   accentColor: string;
   bannerImageUrl?: string;
+  themePreference?: ThemePreference;
+}
+
+export interface EventSchedule {
+  timezone?: string;
+  registrationOpensAt?: string;
+  registrationClosesAt?: string;
+  teamFormationStartsAt?: string;
+  teamFormationEndsAt?: string;
+  hackingStartsAt?: string;
+  submissionDeadlineAt?: string;
+  votingStartsAt?: string;
+  votingEndsAt?: string;
+  resultsAnnounceAt?: string;
 }
 
 export interface EventRegistryItem {
@@ -144,6 +165,7 @@ export interface EventRegistryItem {
   lifecycleStatus: LifecycleStatus;
   confluencePageId: string;
   confluenceParentPageId: string | null;
+  schedule: EventSchedule;
   hackingStartsAt: string | null;
   submissionDeadlineAt: string | null;
   rules: EventRules;
@@ -158,21 +180,22 @@ export interface CreationWizardInput {
     primaryAdminEmail?: string;
     coAdminEmails?: string[];
   };
-  schedule: {
-    timezone?: string;
-    hackingStartsAt?: string;
-    submissionDeadlineAt?: string;
-  };
+  schedule: EventSchedule;
   rules?: {
     allowCrossTeamMentoring?: boolean;
     maxTeamSize?: number;
     requireDemoLink?: boolean;
     judgingModel?: 'panel' | 'popular_vote' | 'hybrid';
+    minTeamSize?: number;
+    submissionRequirements?: SubmissionRequirement[];
+    categories?: string[];
+    prizesText?: string;
   };
   branding?: {
     bannerMessage?: string;
     accentColor?: string;
     bannerImageUrl?: string;
+    themePreference?: ThemePreference;
   };
 }
 
@@ -201,6 +224,9 @@ export interface HdcContextResponse {
 export interface CreateInstanceDraftInput extends CreationWizardInput {
   parentPageId: string;
   creationRequestId: string;
+  wizardSchemaVersion?: 2;
+  completedStep?: WizardStep;
+  launchMode?: 'draft' | 'go_live';
 }
 
 export interface CreateInstanceDraftResult {

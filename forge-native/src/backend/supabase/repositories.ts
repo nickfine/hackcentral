@@ -8,13 +8,16 @@ import type {
   EventBranding,
   EventRegistryItem,
   EventRules,
+  EventSchedule,
   EventSyncState,
   LifecycleStatus,
   PersonSnapshot,
+  SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
   SyncResult,
   SyncStatus,
+  ThemePreference,
   UpdateMentorProfileInput,
   UpdateMentorProfileResult,
   ViewerContext,
@@ -31,7 +34,7 @@ const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
-const EVENT_SELECT_WITH_CONFIG = `${EVENT_SELECT_CORE},event_rules,event_branding`;
+const EVENT_SELECT_WITH_CONFIG = `${EVENT_SELECT_CORE},event_rules,event_branding,event_schedule`;
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   newbie: 'Newbie',
@@ -100,6 +103,7 @@ interface DbEvent {
   created_by_user_id: string | null;
   event_rules: EventRules | null;
   event_branding: EventBranding | null;
+  event_schedule: EventSchedule | null;
 }
 
 interface DbEventAdmin {
@@ -154,7 +158,10 @@ function asSyncState(row: DbSyncState): EventSyncState {
 function hasMissingEventConfigColumns(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
-  return message.includes('column') && (message.includes('event_rules') || message.includes('event_branding'));
+  return (
+    message.includes('column') &&
+    (message.includes('event_rules') || message.includes('event_branding') || message.includes('event_schedule'))
+  );
 }
 
 function hasMissingProjectTitleColumn(error: unknown): boolean {
@@ -302,11 +309,12 @@ function matchesProjectFilter(project: DbProject, filter: QueryFilter): boolean 
   return true;
 }
 
-function withNullEventConfig(row: Omit<DbEvent, 'event_rules' | 'event_branding'>): DbEvent {
+function withNullEventConfig(row: Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>): DbEvent {
   return {
     ...row,
     event_rules: null,
     event_branding: null,
+    event_schedule: null,
   };
 }
 
@@ -328,24 +336,59 @@ function defaultEventBranding(): EventBranding {
 function asEventRules(value: unknown): EventRules {
   if (!value || typeof value !== 'object') return defaultEventRules();
   const candidate = value as Partial<EventRules>;
+  const minTeamSizeRaw = Number(candidate.minTeamSize);
   const maxTeamSizeRaw = Number(candidate.maxTeamSize);
+  const minTeamSize = Number.isFinite(minTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(minTeamSizeRaw))) : null;
+  const maxTeamSizeBase = Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6;
   const judgingModel =
     candidate.judgingModel === 'panel' || candidate.judgingModel === 'popular_vote' || candidate.judgingModel === 'hybrid'
       ? candidate.judgingModel
       : 'hybrid';
+  const maxTeamSize = minTeamSize === null ? maxTeamSizeBase : Math.max(minTeamSize, maxTeamSizeBase);
+  const submissionRequirements =
+    Array.isArray(candidate.submissionRequirements)
+      ? candidate.submissionRequirements.filter(
+          (item): item is SubmissionRequirement =>
+            item === 'video_demo' || item === 'working_prototype' || item === 'documentation'
+        )
+      : [];
+  const categories =
+    Array.isArray(candidate.categories)
+      ? [...new Set(candidate.categories.map((item) => item.trim()).filter((item) => item.length > 0))]
+      : [];
+  const prizesText = typeof candidate.prizesText === 'string' && candidate.prizesText.trim()
+    ? candidate.prizesText.trim()
+    : null;
 
-  return {
+  const rules: EventRules = {
     allowCrossTeamMentoring: candidate.allowCrossTeamMentoring ?? true,
-    maxTeamSize: Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6,
+    maxTeamSize,
     requireDemoLink: candidate.requireDemoLink ?? false,
     judgingModel,
   };
+  if (minTeamSize !== null) {
+    rules.minTeamSize = minTeamSize;
+  }
+  if (submissionRequirements.length > 0) {
+    rules.submissionRequirements = submissionRequirements;
+  }
+  if (categories.length > 0) {
+    rules.categories = categories;
+  }
+  if (prizesText) {
+    rules.prizesText = prizesText;
+  }
+  return rules;
 }
 
 function asEventBranding(value: unknown): EventBranding {
   const defaults = defaultEventBranding();
   if (!value || typeof value !== 'object') return defaults;
   const candidate = value as Partial<EventBranding>;
+  const themePreference: ThemePreference | null =
+    candidate.themePreference === 'system' || candidate.themePreference === 'light' || candidate.themePreference === 'dark'
+      ? candidate.themePreference
+      : null;
   const branding: EventBranding = {
     accentColor: typeof candidate.accentColor === 'string' && candidate.accentColor.trim()
       ? candidate.accentColor.trim()
@@ -357,7 +400,39 @@ function asEventBranding(value: unknown): EventBranding {
   if (typeof candidate.bannerImageUrl === 'string' && candidate.bannerImageUrl.trim()) {
     branding.bannerImageUrl = candidate.bannerImageUrl.trim();
   }
+  if (themePreference) {
+    branding.themePreference = themePreference;
+  }
   return branding;
+}
+
+function sanitizeScheduleDatetime(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function asEventSchedule(
+  value: unknown,
+  fallback: { timezone: string | null; hackingStartsAt: string | null; submissionDeadlineAt: string | null }
+): EventSchedule {
+  const schedule = value && typeof value === 'object' ? (value as Partial<EventSchedule>) : {};
+  return {
+    timezone:
+      (typeof schedule.timezone === 'string' && schedule.timezone.trim() ? schedule.timezone.trim() : null) ||
+      fallback.timezone ||
+      'Europe/London',
+    registrationOpensAt: sanitizeScheduleDatetime(schedule.registrationOpensAt),
+    registrationClosesAt: sanitizeScheduleDatetime(schedule.registrationClosesAt),
+    teamFormationStartsAt: sanitizeScheduleDatetime(schedule.teamFormationStartsAt),
+    teamFormationEndsAt: sanitizeScheduleDatetime(schedule.teamFormationEndsAt),
+    hackingStartsAt: sanitizeScheduleDatetime(schedule.hackingStartsAt) || fallback.hackingStartsAt || undefined,
+    submissionDeadlineAt:
+      sanitizeScheduleDatetime(schedule.submissionDeadlineAt) || fallback.submissionDeadlineAt || undefined,
+    votingStartsAt: sanitizeScheduleDatetime(schedule.votingStartsAt),
+    votingEndsAt: sanitizeScheduleDatetime(schedule.votingEndsAt),
+    resultsAnnounceAt: sanitizeScheduleDatetime(schedule.resultsAnnounceAt),
+  };
 }
 
 function buildAccountFallbackEmail(accountId: string): string {
@@ -719,7 +794,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
@@ -737,7 +812,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'creation_request_id', op: 'eq', value: creationRequestId }]
@@ -755,7 +830,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'id', op: 'eq', value: eventId }]
@@ -774,7 +849,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
@@ -785,19 +860,27 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     return events
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((event) => ({
-        id: event.id,
-        eventName: event.name,
-        icon: event.icon ?? '🚀',
-        tagline: event.tagline,
+      .map((event) => {
+        const schedule = asEventSchedule(event.event_schedule, {
+          timezone: event.timezone,
+          hackingStartsAt: event.hacking_starts_at,
+          submissionDeadlineAt: event.submission_deadline_at,
+        });
+        return {
+          id: event.id,
+          eventName: event.name,
+          icon: event.icon ?? '🚀',
+          tagline: event.tagline,
         lifecycleStatus: event.lifecycle_status,
         confluencePageId: event.confluence_page_id,
         confluenceParentPageId: event.confluence_parent_page_id,
-        hackingStartsAt: event.hacking_starts_at,
-        submissionDeadlineAt: event.submission_deadline_at,
-        rules: asEventRules(event.event_rules),
-        branding: asEventBranding(event.event_branding),
-      }));
+        schedule,
+        hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,
+          submissionDeadlineAt: schedule.submissionDeadlineAt ?? event.submission_deadline_at,
+          rules: asEventRules(event.event_rules),
+          branding: asEventBranding(event.event_branding),
+        };
+      });
   }
 
   async createEvent(input: {
@@ -811,6 +894,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     confluenceParentPageId: string;
     hackingStartsAt?: string;
     submissionDeadlineAt?: string;
+    eventSchedule: EventSchedule;
     creationRequestId: string;
     createdByUserId: string;
     eventRules: EventRules;
@@ -836,12 +920,13 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
         ...basePayload,
         event_rules: input.eventRules,
         event_branding: input.eventBranding,
+        event_schedule: input.eventSchedule,
       });
     } catch (error) {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding'>>(
+      const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         basePayload
       );

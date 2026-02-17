@@ -129,14 +129,19 @@ describe('HdcService hardening behavior', () => {
       ...baseCreateInput,
       rules: {
         allowCrossTeamMentoring: false,
+        minTeamSize: 3,
         maxTeamSize: 99,
         requireDemoLink: true,
         judgingModel: 'panel',
+        submissionRequirements: ['video_demo', 'documentation'],
+        categories: [' Innovation ', 'Business Impact', 'Innovation'],
+        prizesText: '  First place: innovation budget  ',
       },
       branding: {
         bannerMessage: '  Build boldly  ',
         accentColor: '  #123abc  ',
         bannerImageUrl: '  https://cdn.example.com/banner.png  ',
+        themePreference: 'dark',
       },
     });
 
@@ -149,14 +154,19 @@ describe('HdcService hardening behavior', () => {
       expect.objectContaining({
         eventRules: {
           allowCrossTeamMentoring: false,
+          minTeamSize: 3,
           maxTeamSize: 20,
           requireDemoLink: true,
           judgingModel: 'panel',
+          submissionRequirements: ['video_demo', 'documentation'],
+          categories: ['Innovation', 'Business Impact'],
+          prizesText: 'First place: innovation budget',
         },
         eventBranding: {
           bannerMessage: 'Build boldly',
           accentColor: '#123abc',
           bannerImageUrl: 'https://cdn.example.com/banner.png',
+          themePreference: 'dark',
         },
       })
     );
@@ -174,6 +184,118 @@ describe('HdcService hardening behavior', () => {
         }),
       })
     );
+  });
+
+  it('persists schedule payload and promotes lifecycle on go_live launch mode', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-live',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-live',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-live',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-live',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-live',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      completedStep: 5,
+      launchMode: 'go_live',
+      schedule: {
+        timezone: 'Europe/London',
+        registrationOpensAt: '2026-02-20T09:00',
+        registrationClosesAt: '2026-02-27T17:00',
+        teamFormationStartsAt: '2026-02-27T17:00',
+        teamFormationEndsAt: '2026-03-01T09:00',
+        hackingStartsAt: '2026-03-01T09:00',
+        submissionDeadlineAt: '2026-03-02T17:00',
+        votingStartsAt: '2026-03-03T09:00',
+        votingEndsAt: '2026-03-04T17:00',
+        resultsAnnounceAt: '2026-03-05T10:00',
+      },
+    });
+
+    expect(repo.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lifecycleStatus: 'registration',
+        eventSchedule: expect.objectContaining({
+          registrationOpensAt: '2026-02-20T09:00',
+          registrationClosesAt: '2026-02-27T17:00',
+          teamFormationStartsAt: '2026-02-27T17:00',
+          teamFormationEndsAt: '2026-03-01T09:00',
+          hackingStartsAt: '2026-03-01T09:00',
+          submissionDeadlineAt: '2026-03-02T17:00',
+          votingStartsAt: '2026-03-03T09:00',
+          votingEndsAt: '2026-03-04T17:00',
+          resultsAnnounceAt: '2026-03-05T10:00',
+        }),
+      })
+    );
+  });
+
+  it('rejects invalid schedule ordering before creating a child page', async () => {
+    const repo = createRepoMock();
+    const service = new ServiceClass(repo as never);
+
+    await expect(
+      service.createInstanceDraft(viewer, {
+        ...baseCreateInput,
+        schedule: {
+          timezone: 'Europe/London',
+          registrationOpensAt: '2026-02-21T10:00',
+          registrationClosesAt: '2026-02-20T10:00',
+        },
+      })
+    ).rejects.toThrow('Registration close must be after registration open.');
+
+    expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
+    expect(repo.getEventByCreationRequestId).not.toHaveBeenCalled();
+  });
+
+  it('rejects go_live launch mode when hacking/submission dates are missing', async () => {
+    const repo = createRepoMock();
+    const service = new ServiceClass(repo as never);
+
+    await expect(
+      service.createInstanceDraft(viewer, {
+        ...baseCreateInput,
+        launchMode: 'go_live',
+        schedule: {
+          timezone: 'Europe/London',
+        },
+      })
+    ).rejects.toThrow('Go live requires hacking start and submission deadline.');
+
+    expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
+    expect(repo.getEventByCreationRequestId).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid team-size bounds before creating a child page', async () => {
+    const repo = createRepoMock();
+    const service = new ServiceClass(repo as never);
+
+    await expect(
+      service.createInstanceDraft(viewer, {
+        ...baseCreateInput,
+        rules: {
+          minTeamSize: 7,
+          maxTeamSize: 3,
+        },
+      })
+    ).rejects.toThrow('Minimum team size must be less than or equal to maximum team size.');
+
+    expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
+    expect(repo.getEventByCreationRequestId).not.toHaveBeenCalled();
   });
 
   it('returns default rules and branding in context for legacy events without config fields', async () => {

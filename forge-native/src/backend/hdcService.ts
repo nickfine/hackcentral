@@ -5,10 +5,13 @@ import type {
   EventBranding,
   EventLifecycleResult,
   EventRules,
+  EventSchedule,
   HdcContextResponse,
+  SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
   SyncResult,
+  ThemePreference,
   ViewerContext,
 } from '../shared/types';
 import { createChildPageUnderParent, deletePage, getCurrentUserEmail } from './confluencePages';
@@ -42,26 +45,136 @@ function normalizeEmailList(emails: string[] | undefined): string[] {
   return [...deduped];
 }
 
+function normalizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeEventSchedule(
+  input: CreateInstanceDraftInput['schedule'] | EventSchedule | null | undefined,
+  fallback?: { timezone?: string | null; hackingStartsAt?: string | null; submissionDeadlineAt?: string | null }
+): EventSchedule {
+  return {
+    timezone: normalizeOptionalString(input?.timezone) || normalizeOptionalString(fallback?.timezone) || 'Europe/London',
+    registrationOpensAt: normalizeOptionalString(input?.registrationOpensAt),
+    registrationClosesAt: normalizeOptionalString(input?.registrationClosesAt),
+    teamFormationStartsAt: normalizeOptionalString(input?.teamFormationStartsAt),
+    teamFormationEndsAt: normalizeOptionalString(input?.teamFormationEndsAt),
+    hackingStartsAt: normalizeOptionalString(input?.hackingStartsAt) || normalizeOptionalString(fallback?.hackingStartsAt),
+    submissionDeadlineAt:
+      normalizeOptionalString(input?.submissionDeadlineAt) || normalizeOptionalString(fallback?.submissionDeadlineAt),
+    votingStartsAt: normalizeOptionalString(input?.votingStartsAt),
+    votingEndsAt: normalizeOptionalString(input?.votingEndsAt),
+    resultsAnnounceAt: normalizeOptionalString(input?.resultsAnnounceAt),
+  };
+}
+
+function ensureDateOrder(start: string | undefined, end: string | undefined, message: string): void {
+  if (start && end && start > end) {
+    throw new Error(message);
+  }
+}
+
+function validateSchedule(schedule: EventSchedule): void {
+  ensureDateOrder(
+    schedule.registrationOpensAt,
+    schedule.registrationClosesAt,
+    'Registration close must be after registration open.'
+  );
+  ensureDateOrder(
+    schedule.teamFormationStartsAt,
+    schedule.teamFormationEndsAt,
+    'Team formation end must be after team formation start.'
+  );
+  ensureDateOrder(
+    schedule.hackingStartsAt,
+    schedule.submissionDeadlineAt,
+    'Submission deadline must be after the hacking start time.'
+  );
+  ensureDateOrder(schedule.votingStartsAt, schedule.votingEndsAt, 'Voting end must be after voting start.');
+}
+
+function validateRulesInput(input: CreateInstanceDraftInput['rules'] | undefined): void {
+  if (!input) return;
+  const minTeamSizeRaw = Number(input.minTeamSize);
+  const maxTeamSizeRaw = Number(input.maxTeamSize);
+
+  if (Number.isFinite(minTeamSizeRaw) && minTeamSizeRaw < 1) {
+    throw new Error('Minimum team size must be at least 1.');
+  }
+  if (Number.isFinite(maxTeamSizeRaw) && maxTeamSizeRaw < 1) {
+    throw new Error('Maximum team size must be at least 1.');
+  }
+  if (Number.isFinite(minTeamSizeRaw) && Number.isFinite(maxTeamSizeRaw) && minTeamSizeRaw > maxTeamSizeRaw) {
+    throw new Error('Minimum team size must be less than or equal to maximum team size.');
+  }
+}
+
+function validateWizardMetadata(input: CreateInstanceDraftInput): void {
+  if (typeof input.wizardSchemaVersion !== 'undefined' && input.wizardSchemaVersion !== 2) {
+    throw new Error('Unsupported wizard schema version.');
+  }
+  if (typeof input.completedStep !== 'undefined' && (input.completedStep < 1 || input.completedStep > 5)) {
+    throw new Error('Invalid wizard step value.');
+  }
+}
+
 function normalizeEventRules(
   input: CreateInstanceDraftInput['rules'] | EventRules | null | undefined
 ): EventRules {
+  const minTeamSizeRaw = Number(input?.minTeamSize);
   const maxTeamSizeRaw = Number(input?.maxTeamSize);
+  const minTeamSize = Number.isFinite(minTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(minTeamSizeRaw))) : null;
   const judgingModel =
     input?.judgingModel === 'panel' || input?.judgingModel === 'popular_vote' || input?.judgingModel === 'hybrid'
       ? input.judgingModel
       : 'hybrid';
+  const maxTeamSizeBase = Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6;
+  const maxTeamSize = minTeamSize === null ? maxTeamSizeBase : Math.max(minTeamSize, maxTeamSizeBase);
 
-  return {
+  const normalizedRequirements =
+    Array.isArray(input?.submissionRequirements)
+      ? input.submissionRequirements.filter(
+          (item): item is SubmissionRequirement =>
+            item === 'video_demo' || item === 'working_prototype' || item === 'documentation'
+        )
+      : [];
+  const normalizedCategories =
+    Array.isArray(input?.categories)
+      ? [...new Set(input.categories.map((item) => item.trim()).filter((item) => item.length > 0))]
+      : [];
+  const prizesText = typeof input?.prizesText === 'string' && input.prizesText.trim() ? input.prizesText.trim() : null;
+
+  const rules: EventRules = {
     allowCrossTeamMentoring: input?.allowCrossTeamMentoring ?? true,
-    maxTeamSize: Number.isFinite(maxTeamSizeRaw) ? Math.min(20, Math.max(1, Math.floor(maxTeamSizeRaw))) : 6,
+    maxTeamSize,
     requireDemoLink: input?.requireDemoLink ?? false,
     judgingModel,
   };
+  if (minTeamSize !== null) {
+    rules.minTeamSize = minTeamSize;
+  }
+  if (normalizedRequirements.length > 0) {
+    rules.submissionRequirements = normalizedRequirements;
+  }
+  if (normalizedCategories.length > 0) {
+    rules.categories = normalizedCategories;
+  }
+  if (prizesText) {
+    rules.prizesText = prizesText;
+  }
+
+  return rules;
 }
 
 function normalizeEventBranding(
   input: CreateInstanceDraftInput['branding'] | EventBranding | null | undefined
 ): EventBranding {
+  const themePreference: ThemePreference | null =
+    input?.themePreference === 'system' || input?.themePreference === 'light' || input?.themePreference === 'dark'
+      ? input.themePreference
+      : null;
   const branding: EventBranding = {
     accentColor: input?.accentColor?.trim() || '#0f766e',
   };
@@ -70,6 +183,9 @@ function normalizeEventBranding(
   }
   if (input?.bannerImageUrl?.trim()) {
     branding.bannerImageUrl = input.bannerImageUrl.trim();
+  }
+  if (themePreference) {
+    branding.themePreference = themePreference;
   }
   return branding;
 }
@@ -111,6 +227,11 @@ export class HdcService {
 
     const isPrimaryAdmin = admins.some((admin) => admin.user_id === viewerUser.id && admin.role === 'primary');
     const isCoAdmin = admins.some((admin) => admin.user_id === viewerUser.id && admin.role === 'co_admin');
+    const schedule = normalizeEventSchedule(event.event_schedule, {
+      timezone: event.timezone,
+      hackingStartsAt: event.hacking_starts_at,
+      submissionDeadlineAt: event.submission_deadline_at,
+    });
 
     return {
       pageType: 'instance',
@@ -123,8 +244,9 @@ export class HdcService {
         lifecycleStatus: event.lifecycle_status,
         confluencePageId: event.confluence_page_id,
         confluenceParentPageId: event.confluence_parent_page_id,
-        hackingStartsAt: event.hacking_starts_at,
-        submissionDeadlineAt: event.submission_deadline_at,
+        schedule,
+        hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,
+        submissionDeadlineAt: schedule.submissionDeadlineAt ?? event.submission_deadline_at,
         rules: normalizeEventRules(event.event_rules),
         branding: normalizeEventBranding(event.event_branding),
       },
@@ -144,6 +266,16 @@ export class HdcService {
   ): Promise<CreateInstanceDraftResult> {
     if (!input.basicInfo.eventName.trim()) {
       throw new Error('Event name is required.');
+    }
+
+    validateWizardMetadata(input);
+    validateRulesInput(input.rules);
+    const launchMode = input.launchMode === 'go_live' ? 'go_live' : 'draft';
+    const eventSchedule = normalizeEventSchedule(input.schedule);
+    validateSchedule(eventSchedule);
+
+    if (launchMode === 'go_live' && (!eventSchedule.hackingStartsAt || !eventSchedule.submissionDeadlineAt)) {
+      throw new Error('Go live requires hacking start and submission deadline.');
     }
 
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
@@ -218,13 +350,14 @@ export class HdcService {
         eventName: input.basicInfo.eventName,
         icon: input.basicInfo.eventIcon || '🚀',
         tagline: input.basicInfo.eventTagline,
-        timezone: input.schedule.timezone || 'Europe/London',
-        lifecycleStatus: 'draft',
+        timezone: eventSchedule.timezone || 'Europe/London',
+        lifecycleStatus: launchMode === 'go_live' ? 'registration' : 'draft',
         confluencePageId: childPage.pageId,
         confluencePageUrl: childPage.pageUrl,
         confluenceParentPageId: input.parentPageId,
-        hackingStartsAt: input.schedule.hackingStartsAt,
-        submissionDeadlineAt: input.schedule.submissionDeadlineAt,
+        hackingStartsAt: eventSchedule.hackingStartsAt,
+        submissionDeadlineAt: eventSchedule.submissionDeadlineAt,
+        eventSchedule,
         creationRequestId: input.creationRequestId,
         createdByUserId: creator.id,
         eventRules,
@@ -255,6 +388,9 @@ export class HdcService {
             confluencePageId: event.confluence_page_id,
             primaryAdminEmail,
             coAdminEmails: normalizedCoAdminEmails,
+            launchMode,
+            completedStep: input.completedStep,
+            schedule: eventSchedule,
             rules: eventRules,
             branding: eventBranding,
           },
@@ -382,22 +518,22 @@ export class HdcService {
     });
 
     try {
-      const result = await this.repository.completeAndSync(eventId);
-      const action =
-        result.syncStatus === 'complete'
-          ? 'sync_complete'
-          : result.syncStatus === 'partial'
-            ? 'sync_partial'
-            : 'sync_failed';
+      const syncResult = await this.repository.completeAndSync(eventId);
+      const auditAction =
+        syncResult.syncStatus === 'partial'
+          ? 'sync_partial'
+          : syncResult.syncStatus === 'failed'
+            ? 'sync_failed'
+            : 'sync_complete';
       await this.repository.logAudit({
         eventId,
         actorUserId: user.id,
-        action,
-        newValue: result,
+        action: auditAction,
+        newValue: syncResult,
       });
-      return result;
+      return syncResult;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown sync failure';
+      const message = error instanceof Error ? error.message : 'Unknown sync failure.';
       await this.repository.upsertSyncState(eventId, {
         syncStatus: 'failed',
         pushedCount: fallbackPushedCount,
@@ -410,6 +546,20 @@ export class HdcService {
   }
 
   async retrySync(viewer: ViewerContext, eventId: string): Promise<SyncResult> {
-    return this.completeAndSync(viewer, eventId);
+    const user = await this.repository.ensureUser(viewer);
+    const admins = await this.repository.listEventAdmins(eventId);
+    if (!admins.some((admin) => admin.user_id === user.id)) {
+      throw new Error('Only event admins can retry sync.');
+    }
+
+    const syncResult = await this.repository.completeAndSync(eventId);
+    await this.repository.logAudit({
+      eventId,
+      actorUserId: user.id,
+      action: 'sync_retry',
+      newValue: syncResult,
+    });
+
+    return syncResult;
   }
 }

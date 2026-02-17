@@ -12,18 +12,30 @@ const baseCreateEventInput = {
   confluenceParentPageId: 'parent-200',
   hackingStartsAt: '2026-03-01T09:00:00.000Z',
   submissionDeadlineAt: '2026-03-02T17:00:00.000Z',
+  eventSchedule: {
+    timezone: 'Europe/London',
+    registrationOpensAt: '2026-02-20T09:00:00.000Z',
+    registrationClosesAt: '2026-02-28T17:00:00.000Z',
+    hackingStartsAt: '2026-03-01T09:00:00.000Z',
+    submissionDeadlineAt: '2026-03-02T17:00:00.000Z',
+  },
   creationRequestId: 'req-200',
   createdByUserId: 'user-200',
   eventRules: {
     allowCrossTeamMentoring: false,
+    minTeamSize: 2,
     maxTeamSize: 5,
     requireDemoLink: true,
     judgingModel: 'panel',
+    submissionRequirements: ['video_demo', 'working_prototype'],
+    categories: ['Innovation'],
+    prizesText: 'Top 3 awards',
   },
   eventBranding: {
     bannerMessage: 'Build boldly',
     accentColor: '#123abc',
     bannerImageUrl: 'https://cdn.example.com/banner.png',
+    themePreference: 'light',
   },
 } as const;
 
@@ -45,6 +57,7 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
       created_by_user_id: baseCreateEventInput.createdByUserId,
       event_rules: baseCreateEventInput.eventRules,
       event_branding: baseCreateEventInput.eventBranding,
+      event_schedule: baseCreateEventInput.eventSchedule,
     });
 
     const fakeRepo = { client: { insert } };
@@ -58,6 +71,7 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
       expect.objectContaining({
         event_rules: baseCreateEventInput.eventRules,
         event_branding: baseCreateEventInput.eventBranding,
+        event_schedule: baseCreateEventInput.eventSchedule,
       })
     );
   });
@@ -88,7 +102,9 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
     expect(insert).toHaveBeenCalledTimes(2);
     expect(insert.mock.calls[1][1]).not.toHaveProperty('event_rules');
     expect(insert.mock.calls[1][1]).not.toHaveProperty('event_branding');
+    expect(insert.mock.calls[1][1]).not.toHaveProperty('event_schedule');
     expect(result.event_rules).toBeNull();
     expect(result.event_branding).toBeNull();
+    expect(result.event_schedule).toBeNull();
   });
 });
