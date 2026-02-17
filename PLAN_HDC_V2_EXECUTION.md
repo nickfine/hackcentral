@@ -28,6 +28,35 @@
 ### Plan impact
 - The requested production promote + minimal production smoke objective is closed.
 
+## Global Surface Switcher Closure (Feb 17, 2026)
+
+### Completed
+- Confirmed active test surface is the Confluence global page URL:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
+- Ported Phase 3 app switcher from macro-only implementation into global frontend and wired bootstrap registry payloads through backend contracts.
+- Added global switcher logic coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+- Landed implementation commit:
+  - `25329c9` (`feat: add global-page app switcher with event registry bootstrap`)
+- Revalidated locally:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`36` tests passing)
+- Promoted to production:
+  - `forge deploy --non-interactive -e production` ✅ (Forge version `3.8.0`)
+  - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅ (site already latest)
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`Up-to-date`, App version `3`)
+- Manual production smoke on HackCentral global page:
+  - load app ✅
+  - list hacks ✅
+  - submit hack ✅ (`Hack submitted: prodSmoke-20260217-170434`)
+  - submitted item appears in Latest Hacks after submit/reload ✅
+
+### Plan impact
+- Phase 3 app switcher is now validated on the actual production surface in use (global page).
+- Requested promotion/smoke objective remains closed on the corrected surface.
+
 ## Day 6 Integration Checkpoint (Feb 17, 2026)
 
 ### Completed

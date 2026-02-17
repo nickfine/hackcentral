@@ -1987,3 +1987,43 @@ Key hardening changes:
 - Production install upgraded on `hackdaytemp.atlassian.net` (Confluence).
 - `forge install list -e production` now reports production app version `3` and `Up-to-date` status.
 - Immediate production log check showed no new backend errors in the rollout window.
+
+## Global Surface Switcher Rollout + Production Smoke (Feb 17, 2026)
+
+### Context
+- The active user test URL is the Confluence global page app surface:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
+- Earlier Phase 3 switcher work was macro-first, so the visible production surface needed the same switcher behavior ported to `static/frontend`.
+
+### What changed
+- Added global-page app switcher implementation and shared sectioning/cache helpers:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/styles.css`
+- Extended bootstrap data contract to include event registry for switcher population:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+- Added targeted tests:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+
+### Verification and rollout
+- Local verification passed:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`36` tests passing)
+- Deployment/install:
+  - development: `forge deploy --non-interactive -e development` ✅ (Forge `5.16.0`)
+  - production: `forge deploy --non-interactive -e production` ✅ (Forge `3.8.0`)
+  - production upgrade: `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production` ✅
+  - production install list: `Up-to-date`, App version `3` ✅
+
+### Production smoke outcome (HackCentral)
+- Load app: ✅
+- List hacks: ✅
+- Submit hack: ✅ (`Hack submitted: prodSmoke-20260217-170434`)
+- Submitted item appears in Latest Hacks: ✅
+
+### Key learning
+1. For Forge Confluence apps with both global page and macro surfaces, always confirm the exact in-use URL before validating UI changes; a feature can be shipped to the wrong surface while automated checks still pass.
