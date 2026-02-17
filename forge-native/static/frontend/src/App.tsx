@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   BootstrapData,
   CreateHackInput,
@@ -9,6 +9,12 @@ import type {
   ProjectSnapshot,
   UpdateMentorProfileInput,
 } from './types';
+import {
+  buildConfluencePagePath,
+  buildSwitcherSections,
+  readSwitcherRegistryCache,
+  writeSwitcherRegistryCache,
+} from './appSwitcher';
 
 const BOOTSTRAP_TIMEOUT_MS = 15000;
 const LOCAL_PREVIEW_HOSTS = new Set(['localhost', '127.0.0.1']);
@@ -349,6 +355,56 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       capabilities: [],
     },
   ],
+  registry: [
+    {
+      id: 'evt-1',
+      eventName: 'HackDay 2026',
+      icon: '🚀',
+      tagline: 'Annual innovation sprint',
+      lifecycleStatus: 'hacking',
+      confluencePageId: 'local-event-page-1',
+      confluenceParentPageId: null,
+      schedule: {
+        timezone: 'Europe/London',
+        hackingStartsAt: '2026-02-10T09:00:00.000Z',
+        submissionDeadlineAt: '2026-02-25T17:00:00.000Z',
+      },
+      hackingStartsAt: '2026-02-10T09:00:00.000Z',
+      submissionDeadlineAt: '2026-02-25T17:00:00.000Z',
+      rules: {
+        allowCrossTeamMentoring: true,
+        maxTeamSize: 6,
+        requireDemoLink: false,
+        judgingModel: 'hybrid',
+      },
+      branding: {
+        accentColor: '#0f766e',
+      },
+    },
+    {
+      id: 'evt-2',
+      eventName: 'Q2 Innovation Sprint',
+      icon: '⚡',
+      tagline: 'Quarterly build challenge',
+      lifecycleStatus: 'registration',
+      confluencePageId: 'local-event-page-2',
+      confluenceParentPageId: null,
+      schedule: {
+        timezone: 'Europe/London',
+      },
+      hackingStartsAt: null,
+      submissionDeadlineAt: null,
+      rules: {
+        allowCrossTeamMentoring: true,
+        maxTeamSize: 5,
+        requireDemoLink: false,
+        judgingModel: 'panel',
+      },
+      branding: {
+        accentColor: '#0f766e',
+      },
+    },
+  ],
 };
 
 function shouldFallbackToPreviewOnBootstrapError(error: unknown): boolean {
@@ -490,6 +546,10 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [previewMode, setPreviewMode] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switcherWarning, setSwitcherWarning] = useState('');
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  const switcherMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [view, setView] = useState<View>('dashboard');
   const [modalView, setModalView] = useState<ModalView>('none');
@@ -535,11 +595,13 @@ export function App(): JSX.Element {
   const loadBootstrap = useCallback(async () => {
     setLoading(true);
     setErrorMessage('');
+    let siteUrlForCache: string | null = null;
 
     try {
       if (isLocalPreview) {
         setBootstrap(LOCAL_PREVIEW_DATA);
         setPreviewMode(true);
+        setSwitcherWarning('');
         return;
       }
 
@@ -550,8 +612,11 @@ export function App(): JSX.Element {
         }),
       ]);
 
+      siteUrlForCache = data.viewer.siteUrl;
+      writeSwitcherRegistryCache(data.viewer.siteUrl, data.registry ?? []);
       setBootstrap(data);
       setPreviewMode(false);
+      setSwitcherWarning('');
     } catch (error) {
       if (shouldFallbackToPreviewOnBootstrapError(error)) {
         setBootstrap(LOCAL_PREVIEW_DATA);
@@ -560,6 +625,13 @@ export function App(): JSX.Element {
           'Live data is temporarily unavailable due to a Supabase permission issue (403). Showing fallback preview data.'
         );
       } else {
+        if (siteUrlForCache) {
+          const cachedRegistry = readSwitcherRegistryCache(siteUrlForCache);
+          if (cachedRegistry) {
+            setBootstrap((current) => (current ? { ...current, registry: cachedRegistry } : current));
+            setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
+          }
+        }
         setErrorMessage(error instanceof Error ? error.message : 'Failed to load bootstrap data.');
       }
     } finally {
@@ -574,6 +646,43 @@ export function App(): JSX.Element {
   const featuredHacks = bootstrap?.featuredHacks ?? [];
   const allProjects = bootstrap?.recentProjects ?? [];
   const allPeople = bootstrap?.people ?? [];
+  const registry = bootstrap?.registry ?? [];
+  const switcherSections = useMemo(() => buildSwitcherSections(registry), [registry]);
+  const switcherGroups = [
+    { title: 'Live Events', items: switcherSections.live },
+    { title: 'Upcoming', items: switcherSections.upcoming },
+    { title: 'Recent', items: switcherSections.recent },
+  ];
+
+  useEffect(() => {
+    if (!switcherOpen) return;
+
+    const handlePointerDown = (event: MouseEvent): void => {
+      if (switcherRef.current && event.target instanceof Node && !switcherRef.current.contains(event.target)) {
+        setSwitcherOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setSwitcherOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [switcherOpen]);
+
+  useEffect(() => {
+    if (!switcherOpen || !switcherMenuRef.current) return;
+    const firstOption = switcherMenuRef.current.querySelector<HTMLButtonElement>(
+      'button[data-switcher-option="true"]:not(:disabled)'
+    );
+    firstOption?.focus();
+  }, [switcherOpen]);
 
   const filteredHacks = useMemo(() => {
     return featuredHacks.filter((hack) => {
@@ -803,6 +912,67 @@ export function App(): JSX.Element {
     });
   };
 
+  const navigateToSwitcherPage = useCallback(async (targetPageId: string) => {
+    if (!targetPageId) return;
+    const targetPath = buildConfluencePagePath(targetPageId);
+    const absoluteTarget =
+      typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;
+    setSwitcherOpen(false);
+
+    if (previewMode) {
+      setActionMessage(`Local preview mode: would navigate to ${targetPath}`);
+      return;
+    }
+
+    try {
+      const bridge = await import('@forge/bridge');
+      await bridge.router.navigate(absoluteTarget);
+    } catch {
+      if (typeof window !== 'undefined') {
+        window.location.assign(absoluteTarget);
+      }
+    }
+  }, [previewMode]);
+
+  const onSwitcherMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!switcherMenuRef.current) return;
+    const options = Array.from(
+      switcherMenuRef.current.querySelectorAll<HTMLButtonElement>('button[data-switcher-option=\"true\"]')
+    ).filter((option) => !option.disabled);
+    if (options.length === 0) return;
+
+    const currentIndex = options.findIndex((option) => option === document.activeElement);
+    const firstIndex = 0;
+    const lastIndex = options.length - 1;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = currentIndex < 0 || currentIndex >= lastIndex ? firstIndex : currentIndex + 1;
+      options[nextIndex]?.focus();
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = currentIndex <= firstIndex ? lastIndex : currentIndex - 1;
+      options[nextIndex]?.focus();
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      options[firstIndex]?.focus();
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      options[lastIndex]?.focus();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setSwitcherOpen(false);
+    }
+  }, []);
+
   if (loading) {
     return (
       <main className="state-shell">
@@ -845,6 +1015,88 @@ export function App(): JSX.Element {
         </div>
 
         <div className="top-actions">
+          <div className="app-switcher" ref={switcherRef}>
+            <button
+              type="button"
+              className="switcher-trigger"
+              aria-expanded={switcherOpen}
+              aria-haspopup="menu"
+              aria-controls="global-app-switcher-menu"
+              onClick={() => setSwitcherOpen((open) => !open)}
+              onKeyDown={(event) => {
+                if (!switcherOpen && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
+                  event.preventDefault();
+                  setSwitcherOpen(true);
+                }
+              }}
+            >
+              <span className="switcher-trigger-icon" aria-hidden>
+                🏠
+              </span>
+              <span className="switcher-trigger-label">HackDay Central</span>
+              <span className="switcher-trigger-caret" aria-hidden>
+                ▾
+              </span>
+            </button>
+
+            {switcherOpen ? (
+              <>
+                <button
+                  type="button"
+                  className="switcher-overlay"
+                  aria-label="Close app switcher"
+                  onClick={() => setSwitcherOpen(false)}
+                />
+                <div
+                  id="global-app-switcher-menu"
+                  className="switcher-menu"
+                  role="menu"
+                  aria-label="HackDay app switcher"
+                  ref={switcherMenuRef}
+                  onKeyDown={onSwitcherMenuKeyDown}
+                >
+                  <section className="switcher-section" aria-label="Home">
+                    <p className="switcher-section-title">Home</p>
+                    <button type="button" data-switcher-option="true" className="switcher-row current" disabled>
+                      <span className="switcher-row-main">
+                        <span className="switcher-row-title">🏠 HackDay Central</span>
+                        <span className="switcher-row-meta">Current page</span>
+                      </span>
+                      <span className="switcher-row-status">Home</span>
+                    </button>
+                  </section>
+
+                  {switcherGroups.map((group) => (
+                    <section key={group.title} className="switcher-section" aria-label={group.title}>
+                      <p className="switcher-section-title">{group.title}</p>
+                      {group.items.length === 0 ? (
+                        <p className="switcher-empty">No events</p>
+                      ) : (
+                        group.items.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            data-switcher-option="true"
+                            className="switcher-row"
+                            onClick={() => void navigateToSwitcherPage(item.confluencePageId)}
+                          >
+                            <span className="switcher-row-main">
+                              <span className="switcher-row-title">
+                                {item.icon || '🚀'} {item.eventName}
+                              </span>
+                              <span className="switcher-row-meta">{item.tagline || 'No tagline set'}</span>
+                            </span>
+                            <span className="switcher-row-status">{item.lifecycleStatus.replace('_', ' ')}</span>
+                          </button>
+                        ))
+                      )}
+                    </section>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+
           <button type="button" className="icon-btn" aria-label="Notifications">
             ⌁
           </button>
@@ -895,6 +1147,7 @@ export function App(): JSX.Element {
         </aside>
 
         <main className="content">
+          {switcherWarning ? <section className="message message-preview">{switcherWarning}</section> : null}
           {errorMessage ? <section className="message message-error">{errorMessage}</section> : null}
           {previewMode ? (
             <section className="message message-preview">

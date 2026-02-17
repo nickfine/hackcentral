@@ -73,6 +73,7 @@ export interface BootstrapData {
   featuredHacks: FeaturedHack[];
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];
+  registry: EventRegistryItem[];
 }
 
 export interface CreateHackInput {

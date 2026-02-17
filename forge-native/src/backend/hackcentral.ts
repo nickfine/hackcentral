@@ -18,6 +18,7 @@ interface ConvexBootstrapPayload {
   featuredHacks: BootstrapData['featuredHacks'];
   recentProjects: BootstrapData['recentProjects'];
   people: BootstrapData['people'];
+  registry?: BootstrapData['registry'];
 }
 
 type ForgeDataBackendMode = 'supabase' | 'convex' | 'auto';
@@ -117,6 +118,7 @@ async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<Bootst
     featuredHacks: payload.featuredHacks,
     recentProjects: payload.recentProjects,
     people: payload.people,
+    registry: payload.registry ?? [],
   };
 }
 

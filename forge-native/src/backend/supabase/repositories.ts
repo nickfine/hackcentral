@@ -555,6 +555,28 @@ function asEventSchedule(
   };
 }
 
+function toEventRegistryItem(event: DbEvent): EventRegistryItem {
+  const schedule = asEventSchedule(event.event_schedule, {
+    timezone: event.timezone,
+    hackingStartsAt: event.hacking_starts_at,
+    submissionDeadlineAt: event.submission_deadline_at,
+  });
+  return {
+    id: event.id,
+    eventName: event.name,
+    icon: event.icon ?? '🚀',
+    tagline: event.tagline,
+    lifecycleStatus: event.lifecycle_status,
+    confluencePageId: event.confluence_page_id,
+    confluenceParentPageId: event.confluence_parent_page_id,
+    schedule,
+    hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,
+    submissionDeadlineAt: schedule.submissionDeadlineAt ?? event.submission_deadline_at,
+    rules: asEventRules(event.event_rules),
+    branding: asEventBranding(event.event_branding),
+  };
+}
+
 function buildAccountFallbackEmail(accountId: string): string {
   const safe = accountId.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `${safe}@adaptavist.com`;
@@ -823,12 +845,13 @@ export class SupabaseRepository {
   }
 
 async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-    const [users, projects] = await Promise.all([
+    const [users, projects, registry] = await Promise.all([
       this.client.selectMany<DbUser>(
         USER_TABLE,
         'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags'
       ),
       this.listProjects(),
+      this.listAllEvents(),
     ]);
 
     const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
@@ -922,6 +945,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       featuredHacks,
       recentProjects,
       people,
+      registry,
     };
   }
 
@@ -1064,27 +1088,28 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     return events
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((event) => {
-        const schedule = asEventSchedule(event.event_schedule, {
-          timezone: event.timezone,
-          hackingStartsAt: event.hacking_starts_at,
-          submissionDeadlineAt: event.submission_deadline_at,
-        });
-        return {
-          id: event.id,
-          eventName: event.name,
-          icon: event.icon ?? '🚀',
-          tagline: event.tagline,
-        lifecycleStatus: event.lifecycle_status,
-        confluencePageId: event.confluence_page_id,
-        confluenceParentPageId: event.confluence_parent_page_id,
-        schedule,
-        hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,
-          submissionDeadlineAt: schedule.submissionDeadlineAt ?? event.submission_deadline_at,
-          rules: asEventRules(event.event_rules),
-          branding: asEventBranding(event.event_branding),
-        };
-      });
+      .map(toEventRegistryItem);
+  }
+
+  async listAllEvents(): Promise<EventRegistryItem[]> {
+    let events: DbEvent[] = [];
+    try {
+      events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE
+      );
+      events = legacy.map((row) => withNullEventConfig(row));
+    }
+
+    return events
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(toEventRegistryItem);
   }
 
   async createEvent(input: {
