@@ -766,6 +766,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     const user = await this.ensureUser(viewer);
     const inserted = await this.insertProject({
       title: input.title,
+      name: input.title,
       description: input.description ?? null,
       status: 'completed',
       hack_type: input.assetType,
@@ -786,6 +787,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     const user = await this.ensureUser(viewer);
     const inserted = await this.insertProject({
       title: input.title,
+      name: input.title,
       description: input.description ?? null,
       status: 'idea',
       hack_type: input.hackType ?? null,
