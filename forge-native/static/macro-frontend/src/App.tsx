@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { invoke, router, view } from '@forge/bridge';
 import type {
   CreateInstanceDraftInput,
@@ -10,6 +10,14 @@ import type {
   ThemePreference,
   WizardStep,
 } from './types';
+import {
+  buildConfluencePagePath,
+  buildSwitcherSections,
+  getHomePageId,
+  invalidateSwitcherRegistryCache,
+  readSwitcherRegistryCache,
+  writeSwitcherRegistryCache,
+} from './appSwitcher';
 
 const LOCAL_PREVIEW = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
@@ -167,14 +175,20 @@ export function App(): JSX.Element {
 
   const [hackTitle, setHackTitle] = useState('');
   const [hackDescription, setHackDescription] = useState('');
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switcherWarning, setSwitcherWarning] = useState('');
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  const switcherMenuRef = useRef<HTMLDivElement | null>(null);
 
   const loadContext = useCallback(async () => {
     setLoading(true);
     setError('');
+    let pageIdForCache: string | null = null;
 
     try {
       if (LOCAL_PREVIEW) {
         setContext(LOCAL_CONTEXT);
+        setSwitcherWarning('');
         return;
       }
 
@@ -189,10 +203,20 @@ export function App(): JSX.Element {
       if (!pageId) {
         throw new Error('Could not determine Confluence page id from macro context.');
       }
+      pageIdForCache = pageId;
 
       const payload = await invokeTyped('hdcGetContext', { pageId });
       setContext(payload);
+      writeSwitcherRegistryCache(pageId, payload.registry);
+      setSwitcherWarning('');
     } catch (err) {
+      if (pageIdForCache) {
+        const cachedRegistry = readSwitcherRegistryCache(pageIdForCache);
+        if (cachedRegistry) {
+          setContext((current) => (current ? { ...current, registry: cachedRegistry } : current));
+          setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
+        }
+      }
       setError(err instanceof Error ? err.message : 'Failed to load macro context.');
     } finally {
       setLoading(false);
@@ -203,6 +227,41 @@ export function App(): JSX.Element {
     void loadContext();
   }, [loadContext]);
 
+  useEffect(() => {
+    setSwitcherOpen(false);
+  }, [context?.pageId]);
+
+  useEffect(() => {
+    if (!switcherOpen) return;
+
+    const handlePointerDown = (event: MouseEvent): void => {
+      if (switcherRef.current && event.target instanceof Node && !switcherRef.current.contains(event.target)) {
+        setSwitcherOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setSwitcherOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [switcherOpen]);
+
+  useEffect(() => {
+    if (!switcherOpen || !switcherMenuRef.current) return;
+    const firstOption = switcherMenuRef.current.querySelector<HTMLButtonElement>(
+      'button[data-switcher-option="true"]:not(:disabled)'
+    );
+    firstOption?.focus();
+  }, [switcherOpen]);
+
   const canAdminInstance = Boolean(context?.permissions.isPrimaryAdmin || context?.permissions.isCoAdmin);
   const isPrimaryAdmin = Boolean(context?.permissions.isPrimaryAdmin);
 
@@ -210,6 +269,25 @@ export function App(): JSX.Element {
     () => [...(context?.registry ?? [])].sort((a, b) => a.eventName.localeCompare(b.eventName)),
     [context?.registry]
   );
+  const switcherSections = useMemo(
+    () => buildSwitcherSections(context?.registry ?? []),
+    [context?.registry]
+  );
+
+  const invalidateSwitcherCaches = useCallback((current: HdcContextResponse | null) => {
+    if (!current) return;
+    const pageIds = new Set<string>();
+    pageIds.add(current.pageId);
+    if (current.event?.confluencePageId) {
+      pageIds.add(current.event.confluencePageId);
+    }
+    if (current.event?.confluenceParentPageId) {
+      pageIds.add(current.event.confluenceParentPageId);
+    }
+    for (const pageId of pageIds) {
+      invalidateSwitcherRegistryCache(pageId);
+    }
+  }, []);
 
   const wizardDraft = useMemo<WizardDraftState>(
     () => ({
@@ -555,6 +633,7 @@ export function App(): JSX.Element {
       setMessage(`Draft created. Child page id: ${result.childPageId}`);
       setCreateDraftTimedOut(false);
       resetWizard(true);
+      invalidateSwitcherCaches(context);
 
       if (result.childPageUrl) {
         setMessage('Draft created. Redirecting to the child page…');
@@ -610,6 +689,7 @@ export function App(): JSX.Element {
     registrationClosesAt,
     registrationOpensAt,
     resetWizard,
+    invalidateSwitcherCaches,
     submissionDeadlineAt,
     submissionRequirements,
     teamFormationEndsAt,
@@ -672,6 +752,7 @@ export function App(): JSX.Element {
         setMessage(
           `Sync status: ${result.syncStatus}. Pushed: ${result.pushedCount}, skipped: ${result.skippedCount}.`
         );
+        invalidateSwitcherCaches(context);
         await loadContext();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sync failed.');
@@ -679,7 +760,7 @@ export function App(): JSX.Element {
         setSaving(false);
       }
     },
-    [context?.event, loadContext]
+    [context, loadContext, invalidateSwitcherCaches]
   );
 
   const handleLaunch = useCallback(async () => {
@@ -695,13 +776,14 @@ export function App(): JSX.Element {
     try {
       const result = await invokeTyped('hdcLaunchInstance', { eventId: context.event.id });
       setMessage(`Instance lifecycle updated to ${result.lifecycleStatus}.`);
+      invalidateSwitcherCaches(context);
       await loadContext();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to advance lifecycle.');
     } finally {
       setSaving(false);
     }
-  }, [context?.event, loadContext]);
+  }, [context, loadContext, invalidateSwitcherCaches]);
 
   const handleDeleteDraft = useCallback(async () => {
     if (!context?.event) {
@@ -731,13 +813,94 @@ export function App(): JSX.Element {
     try {
       await invokeTyped('hdcDeleteDraftInstance', { eventId: context.event.id });
       setMessage('Draft deleted.');
+      invalidateSwitcherCaches(context);
       await loadContext();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete draft instance.');
     } finally {
       setSaving(false);
     }
-  }, [context?.event, isPrimaryAdmin, loadContext]);
+  }, [context, isPrimaryAdmin, loadContext, invalidateSwitcherCaches]);
+
+  const homePageId = context ? getHomePageId(context) : null;
+  const currentContextPageId =
+    context?.pageType === 'instance' ? context.event?.confluencePageId ?? context.pageId : context?.pageId ?? null;
+  const currentSwitcherLabel =
+    context?.pageType === 'instance' && context.event ? context.event.eventName : 'HackDay Central';
+  const currentSwitcherIcon =
+    context?.pageType === 'instance' && context.event ? context.event.icon || '🚀' : '🏠';
+  const switcherGroups = [
+    { title: 'Live Events', items: switcherSections.live },
+    { title: 'Upcoming', items: switcherSections.upcoming },
+    { title: 'Recent', items: switcherSections.recent },
+  ];
+
+  const navigateToPageId = useCallback(
+    async (targetPageId: string) => {
+      if (!targetPageId) return;
+      if (targetPageId === currentContextPageId) {
+        setSwitcherOpen(false);
+        return;
+      }
+      const targetPath = buildConfluencePagePath(targetPageId);
+      const absoluteTarget =
+        typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;
+
+      setSwitcherOpen(false);
+      if (LOCAL_PREVIEW) {
+        setMessage(`Local preview mode: would navigate to ${targetPath}`);
+        return;
+      }
+
+      try {
+        await router.navigate(absoluteTarget);
+      } catch {
+        if (typeof window !== 'undefined') {
+          window.location.assign(absoluteTarget);
+        }
+      }
+    },
+    [currentContextPageId]
+  );
+
+  const handleSwitcherMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!switcherMenuRef.current) return;
+    const options = Array.from(
+      switcherMenuRef.current.querySelectorAll<HTMLButtonElement>('button[data-switcher-option="true"]')
+    ).filter((option) => !option.disabled);
+    if (options.length === 0) return;
+
+    const currentIndex = options.findIndex((option) => option === document.activeElement);
+    const firstIndex = 0;
+    const lastIndex = options.length - 1;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIndex = currentIndex < 0 || currentIndex >= lastIndex ? firstIndex : currentIndex + 1;
+      options[nextIndex]?.focus();
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = currentIndex <= firstIndex ? lastIndex : currentIndex - 1;
+      options[nextIndex]?.focus();
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      options[firstIndex]?.focus();
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      options[lastIndex]?.focus();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setSwitcherOpen(false);
+    }
+  }, []);
 
   if (loading) {
     return <main className="shell">Loading HackDay Central macro…</main>;
@@ -750,11 +913,112 @@ export function App(): JSX.Element {
   return (
     <main className="shell">
       <header className="top">
-        <h1>HackDay Central</h1>
-        <p>{context.pageType === 'parent' ? 'Parent page mode' : 'Instance page mode'}</p>
+        <div className="top-copy">
+          <h1>HackDay Central</h1>
+          <p>{context.pageType === 'parent' ? 'Parent page mode' : 'Instance page mode'}</p>
+        </div>
+
+        <div className="app-switcher" ref={switcherRef}>
+          <button
+            type="button"
+            className="switcher-trigger"
+            aria-expanded={switcherOpen}
+            aria-haspopup="menu"
+            aria-controls="app-switcher-menu"
+            onClick={() => setSwitcherOpen((open) => !open)}
+            onKeyDown={(event) => {
+              if (!switcherOpen && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
+                event.preventDefault();
+                setSwitcherOpen(true);
+              }
+            }}
+          >
+            <span className="switcher-trigger-icon" aria-hidden>
+              {currentSwitcherIcon}
+            </span>
+            <span className="switcher-trigger-label">{currentSwitcherLabel}</span>
+            <span className="switcher-trigger-caret" aria-hidden>
+              ▾
+            </span>
+          </button>
+
+          {switcherOpen ? (
+            <>
+              <button
+                type="button"
+                className="switcher-overlay"
+                aria-label="Close app switcher"
+                onClick={() => setSwitcherOpen(false)}
+              />
+              <div
+                id="app-switcher-menu"
+                className="switcher-menu"
+                role="menu"
+                aria-label="HackDay app switcher"
+                ref={switcherMenuRef}
+                onKeyDown={handleSwitcherMenuKeyDown}
+              >
+                <section className="switcher-section" aria-label="Home">
+                  <p className="switcher-section-title">Home</p>
+                  <button
+                    type="button"
+                    data-switcher-option="true"
+                    className={`switcher-row ${
+                      currentContextPageId === homePageId || context.pageType === 'parent' ? 'current' : ''
+                    }`}
+                    disabled={!homePageId || currentContextPageId === homePageId}
+                    onClick={() => {
+                      if (homePageId) {
+                        void navigateToPageId(homePageId);
+                      }
+                    }}
+                  >
+                    <span className="switcher-row-main">
+                      <span className="switcher-row-title">🏠 HackDay Central</span>
+                      <span className="switcher-row-meta">Parent page</span>
+                    </span>
+                    <span className="switcher-row-status">Home</span>
+                  </button>
+                </section>
+
+                {switcherGroups.map((group) => (
+                  <section key={group.title} className="switcher-section" aria-label={group.title}>
+                    <p className="switcher-section-title">{group.title}</p>
+                    {group.items.length === 0 ? (
+                      <p className="switcher-empty">No events</p>
+                    ) : (
+                      group.items.map((item) => {
+                        const isCurrent = currentContextPageId === item.confluencePageId;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            data-switcher-option="true"
+                            className={`switcher-row ${isCurrent ? 'current' : ''}`}
+                            disabled={isCurrent}
+                            onClick={() => void navigateToPageId(item.confluencePageId)}
+                          >
+                            <span className="switcher-row-main">
+                              <span className="switcher-row-title">
+                                {item.icon || '🚀'} {item.eventName}
+                              </span>
+                              <span className="switcher-row-meta">{item.tagline || 'No tagline set'}</span>
+                            </span>
+                            <span className="switcher-row-status">{formatLifecycle(item.lifecycleStatus)}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </section>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
       </header>
 
       {LOCAL_PREVIEW ? <section className="note">Local preview mode: resolver calls are disabled.</section> : null}
+      {switcherWarning ? <section className="note">{switcherWarning}</section> : null}
       {message ? <section className="note success">{message}</section> : null}
       {error ? <section className="note error">{error}</section> : null}
 

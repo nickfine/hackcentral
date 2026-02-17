@@ -52,6 +52,31 @@
 - Go/no-go decision for entering Phase 3:
   - **GO** (Day 6 integration checkpoint passed, production smoke stable on current line).
 
+**Phase 3 app switcher implementation checkpoint A (Feb 17, 2026):**
+- Implemented macro app switcher in `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`:
+  - header trigger with current context icon/name,
+  - grouped sections (`Home`, `Live Events`, `Upcoming`, `Recent`),
+  - current-item highlighting, keyboard navigation (`ArrowUp/ArrowDown/Home/End/Escape`),
+  - close on selection and click-outside handling,
+  - non-blocking cached-registry warning on refresh failure.
+- Added helper/cache module:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/appSwitcher.ts`
+  - includes lifecycle section mapping, Confluence page path builder, and localStorage TTL cache (`5` minutes) with invalidation helpers.
+- Added responsive switcher styling:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/styles.css`
+  - desktop dropdown, tablet compact mode, mobile bottom-sheet overlay with touch target sizing.
+- Added tests:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts`
+  - covers section grouping + archived/stale exclusion, home-page resolution, page-path generation, and cache lifecycle.
+- Verification run:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run test:run -- tests/forge-native-app-switcher.spec.ts` ✅
+  - `npm run test:run` (repo root) ✅ (33 tests passing)
+- Remaining before production rollout:
+  - Confluence manual QA matrix at desktop/tablet/mobile on real parent + instance macro pages.
+
 **Confluence smoke completion checkpoint (Feb 17, 2026):**
 - Smoke test completed for the active Confluence macro surface using **HackCentral (Development)** on `hackdaytemp.atlassian.net`.
 - Final verified outcomes:

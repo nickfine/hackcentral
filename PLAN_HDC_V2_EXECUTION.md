@@ -67,6 +67,38 @@
 - Decision: **GO** for entering Phase 3.
 - Basis: Day 6 integration checkpoint passed and production smoke remains stable on current line.
 
+## Phase 3 App Switcher Implementation Checkpoint A (Feb 17, 2026)
+
+### Completed
+- Implemented app switcher in macro frontend for parent + instance contexts:
+  - trigger in header with current-context label/icon,
+  - grouped sections (`Home`, `Live Events`, `Upcoming`, `Recent`),
+  - current-context highlighting and non-navigable current row,
+  - close-on-selection, click-outside, and `Escape`.
+- Implemented responsive behavior in macro UI:
+  - desktop anchored dropdown,
+  - tablet compact dropdown,
+  - mobile bottom sheet + backdrop with >=44px tap targets.
+- Added cross-instance navigation helpers:
+  - Confluence page path builder for switcher routing.
+- Added lightweight client cache policy:
+  - localStorage TTL cache (5 minutes) for registry-backed switcher entries,
+  - invalidation wired into create/delete/launch/sync flows.
+- Added automated coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts` (4 tests).
+
+### Verification
+- `npm run typecheck` (forge-native) ✅
+- `npm run macro:build` (forge-native) ✅
+- `npm run frontend:build` (forge-native) ✅
+- `npm run test:run` (repo root) ✅ (33 tests passing)
+
+### Plan impact
+- Phase 3 is now **in progress** with core switcher UI/logic landed locally.
+- Remaining Phase 3 exit items:
+  - Confluence breakpoint QA matrix on real parent + instance pages,
+  - production rollout for switcher changes after QA sign-off.
+
 ## Integrity Remediation Checkpoint (Feb 17, 2026)
 
 ### Closed findings
@@ -242,6 +274,10 @@ Decision date: **Feb 16, 2026**
     - app switcher behavior matrix finalized for desktop/tablet/mobile.
     - Phase 3 task breakdown prepared with estimates/owners.
     - go/no-go decision: **GO**.
+- Phase 3 status (Feb 17, 2026): **in progress (implementation checkpoint A)**
+  - Macro app switcher UI + helper/cache layer implemented locally.
+  - Automated verification green (`typecheck`, `builds`, `33` tests).
+  - Confluence breakpoint QA + production rollout still pending.
 
 ### Day 1: Production parity prep
 - Verify production Forge variables for Supabase (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SCHEMA`, `FORGE_DATA_BACKEND`).
