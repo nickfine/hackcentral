@@ -7,6 +7,36 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Macro-Context QA Checkpoint C (Feb 17, 2026 23:28 UTC)
+
+### Completed
+- Continued from current `main` head `1d649ae`.
+- Revalidated current line before checkpoint close:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`36` tests passing)
+- Verified blocking conditions for macro-context QA scope on `hackdaytemp`:
+  - Atlassian MCP access in-session is scoped to `hd26.atlassian.net`; `hackdaytemp` cloud resource is not available via MCP search/fetch tools.
+  - Global switcher registry payload contains only draft entries with `confluencePageId: null` and `confluenceParentPageId: null`; no navigable macro-host targets are present.
+  - Confluence Create -> Page flow fails with `We’re unable to create for you` and `You don’t have the correct permissions for creation.`
+  - Confluence REST search (`macro = "hackday-central-macro"` and HackDay/HackCentral title/text queries) returned `0` matching pages.
+- Executed best unblocked next step:
+  - Ran responsive switcher QA on production global surface URL:
+    - desktop iframe viewport `1287x1303` (`>1024`) ✅ anchored dropdown + metadata/status visible + keyboard flow (`Enter`, `ArrowDown`, `Escape`) pass.
+    - tablet iframe viewport `901x1371` (`768-1024`) ✅ compact dropdown with icon/name-only rows (meta/status hidden).
+    - mobile iframe viewport `636x2150` (`<768`) ✅ fixed bottom sheet + fullscreen overlay + row tap target min `45px`.
+
+### Deploy/install/smoke outcome in this checkpoint
+- No additional deploy/install commands were executed.
+- No new submit smoke artifact created; latest remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Phase 3 responsive behavior is revalidated on the active production global surface.
+- **Open blocker remains unchanged:** P3-8 macro-context matrix (real parent + instance macro host pages) cannot be completed without either:
+  - permissions to create Confluence pages in `hackdaytemp`, or
+  - existing macro host page URLs/IDs with viewer access.
+
 ## Production Promotion + Smoke Closure (Feb 17, 2026)
 
 ### Completed

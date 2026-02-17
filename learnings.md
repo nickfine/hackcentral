@@ -1,5 +1,27 @@
 # Learnings
 
+**Phase 3 macro-context QA checkpoint C (Feb 17, 2026 23:28 UTC):**
+- Continued from `main` at commit `1d649ae`.
+- Validation rerun for this checkpoint:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`36` tests passing)
+- Macro-host discovery/blocker evidence on `hackdaytemp.atlassian.net`:
+  - Atlassian MCP tenant access in this session resolves to `hd26.atlassian.net` only (no `hackdaytemp` cloud resource available).
+  - On production global page URL (`.../6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`), switcher registry cache shows both draft events with `confluencePageId: null` and `confluenceParentPageId: null`, so switcher rows cannot navigate to macro host pages.
+  - Confluence page creation attempt via global Create menu is denied: `We’re unable to create for you` / `You don’t have the correct permissions for creation.`
+  - Confluence REST CQL discovery (`macro = "hackday-central-macro"`, title/text searches for HackDay/HackCentral) returned `0` matching pages.
+- Unblocked execution performed in this run:
+  - Completed responsive QA matrix for **global** switcher behavior on real production page (same URL above):
+    - desktop iframe viewport `1287x1303` (`>1024`): anchored menu (`position: absolute`, width `460`), section set `Home/Live Events/Upcoming/Recent`, meta/status visible, keyboard open (`Enter`) + navigation (`ArrowDown`) + close (`Escape`) pass.
+    - tablet iframe viewport `901x1371` (`768-1024`): compact menu width `360`, metadata/status text hidden (`display: none`) as expected.
+    - mobile iframe viewport `636x2150` (`<768`): bottom-sheet behavior (`position: fixed`, `left/right/bottom: 0`), overlay visible (`display: block`, fixed fullscreen), switcher row tap targets measured at `45px` minimum height.
+- Deploy/install/smoke outcome for this checkpoint:
+  - No new `forge deploy`, `forge install`, or submit smoke action executed in this run (existing production smoke artifact remains `prodSmoke-20260217-170434`).
+- Remaining open item:
+  - Phase 3 macro-context breakpoint QA (parent + instance macro host pages) is still blocked pending either page-create permissions or provision of existing macro host page URLs/IDs.
+
 **Production promote + smoke closure (Feb 17, 2026):**
 - Continued from commit `f8cafdc`.
 - Local validation rerun before production promote:
