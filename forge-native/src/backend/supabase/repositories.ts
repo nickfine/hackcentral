@@ -608,6 +608,9 @@ export class SupabaseRepository {
         if (notNullColumn === 'teamId' && !candidate.teamId) {
           queue.push({ ...candidate, teamId: fallbackTeamId ?? generateLegacyTeamId() });
         }
+        if (notNullColumn === 'name' && !candidate.name) {
+          queue.push({ ...candidate, name: String(candidate.title ?? payload.title) });
+        }
         if (notNullColumn === 'updatedAt' && !candidate.updatedAt) {
           queue.push({ ...candidate, updatedAt: nowIso() });
         }
@@ -619,6 +622,7 @@ export class SupabaseRepository {
           if (
             hasDuplicateProjectTeamId(error) ||
             notNullColumn === 'teamId' ||
+            notNullColumn === 'name' ||
             notNullColumn === 'updatedAt' ||
             notNullColumn === 'createdAt'
           ) {

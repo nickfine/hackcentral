@@ -14,6 +14,9 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
       if (!payload.teamId) {
         throw new Error('null value in column "teamId" of relation "Project" violates not-null constraint');
       }
+      if (!payload.name) {
+        throw new Error('null value in column "name" of relation "Project" violates not-null constraint');
+      }
 
       return {
         id: String(payload.id),
@@ -41,5 +44,7 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
       (payload) => typeof payload.teamId === 'string' && payload.teamId !== 'confluence-team-1'
     );
     expect(hasFreshTeamId).toBe(true);
+    const hasName = insertedPayloads.some((payload) => typeof payload.name === 'string' && payload.name.length > 0);
+    expect(hasName).toBe(true);
   });
 });
