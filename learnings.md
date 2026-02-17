@@ -1,5 +1,26 @@
 # Learnings
 
+**Phase 3 switcher null-target hardening checkpoint D (Feb 17, 2026 23:53 UTC):**
+- Implemented global switcher guardrails for non-provisioned Confluence targets:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- Behavior changes:
+  - switcher rows are now disabled when `confluencePageId` is null/blank,
+  - disabled rows show inline text: `Page not provisioned yet`,
+  - navigation callback is guarded so missing page IDs cannot trigger route attempts,
+  - app now renders an explicit preview warning when registry contains non-navigable entries.
+- Test coverage expanded:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+  - new assertions for navigability detection, unavailable warning label, and blocked navigation callback on null page IDs.
+- Validation rerun:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`38` tests passing)
+- Deploy/install/smoke outcome:
+  - no deploy/install/smoke actions executed in this checkpoint (local hardening + test pass only).
+
 **Phase 3 macro-context QA checkpoint C (Feb 17, 2026 23:28 UTC):**
 - Continued from `main` at commit `1d649ae`.
 - Validation rerun for this checkpoint:

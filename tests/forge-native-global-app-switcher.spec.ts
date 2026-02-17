@@ -1,10 +1,14 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EventRegistryItem } from '../forge-native/static/frontend/src/types';
 import {
+  SWITCHER_UNAVAILABLE_LABEL,
   SWITCHER_CACHE_TTL_MS,
   buildConfluencePagePath,
   buildSwitcherSections,
+  isNavigableConfluencePageId,
   readSwitcherRegistryCache,
+  runSwitcherNavigation,
+  switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from '../forge-native/static/frontend/src/appSwitcher';
 
@@ -84,5 +88,33 @@ describe('global app switcher helpers', () => {
       })
     );
     expect(readSwitcherRegistryCache(siteUrl, 10_000 + SWITCHER_CACHE_TTL_MS + 1)).toBeNull();
+  });
+
+  it('treats null page IDs as non-navigable and shows unavailable warning text', () => {
+    const missingPage = makeEvent('missing-page', 'draft', {
+      tagline: 'Custom tagline',
+      confluencePageId: null,
+    });
+    const navigable = makeEvent('with-page', 'draft', {
+      tagline: null,
+      confluencePageId: 'page-with-id',
+    });
+
+    expect(isNavigableConfluencePageId(missingPage.confluencePageId)).toBe(false);
+    expect(isNavigableConfluencePageId(navigable.confluencePageId)).toBe(true);
+    expect(switcherRowMetaText(missingPage)).toBe(SWITCHER_UNAVAILABLE_LABEL);
+    expect(switcherRowMetaText(navigable)).toBe('No tagline set');
+  });
+
+  it('does not invoke navigation handler when page ID is missing', () => {
+    const onNavigate = vi.fn();
+
+    expect(runSwitcherNavigation(null, onNavigate)).toBe(false);
+    expect(runSwitcherNavigation('', onNavigate)).toBe(false);
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    expect(runSwitcherNavigation('page-123', onNavigate)).toBe(true);
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledWith('page-123');
   });
 });

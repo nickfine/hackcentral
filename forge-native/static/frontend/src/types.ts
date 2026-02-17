@@ -164,7 +164,7 @@ export interface EventRegistryItem {
   icon: string;
   tagline: string | null;
   lifecycleStatus: LifecycleStatus;
-  confluencePageId: string;
+  confluencePageId: string | null;
   confluenceParentPageId: string | null;
   schedule: EventSchedule;
   hackingStartsAt: string | null;

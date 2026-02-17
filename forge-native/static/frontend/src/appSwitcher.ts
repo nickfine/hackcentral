@@ -3,6 +3,7 @@ import type { EventRegistryItem, LifecycleStatus } from './types';
 export const SWITCHER_CACHE_TTL_MS = 5 * 60 * 1000;
 const SWITCHER_CACHE_PREFIX = 'hdc-global-switcher-registry:';
 const RECENT_WINDOW_DAYS = 90;
+export const SWITCHER_UNAVAILABLE_LABEL = 'Page not provisioned yet';
 
 export interface SwitcherSections {
   live: EventRegistryItem[];
@@ -87,6 +88,28 @@ export function buildSwitcherSections(
 
 export function buildConfluencePagePath(pageId: string): string {
   return `/wiki/pages/viewpage.action?pageId=${encodeURIComponent(pageId)}`;
+}
+
+export function isNavigableConfluencePageId(pageId: string | null | undefined): pageId is string {
+  return typeof pageId === 'string' && pageId.trim().length > 0;
+}
+
+export function switcherRowMetaText(item: EventRegistryItem): string {
+  if (!isNavigableConfluencePageId(item.confluencePageId)) {
+    return SWITCHER_UNAVAILABLE_LABEL;
+  }
+  return item.tagline || 'No tagline set';
+}
+
+export function runSwitcherNavigation(
+  pageId: string | null | undefined,
+  onNavigate: (targetPageId: string) => void
+): boolean {
+  if (!isNavigableConfluencePageId(pageId)) {
+    return false;
+  }
+  onNavigate(pageId);
+  return true;
 }
 
 function switcherRegistryCacheKey(siteUrl: string): string {

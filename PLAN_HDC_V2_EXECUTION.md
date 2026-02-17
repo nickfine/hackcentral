@@ -7,6 +7,31 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Switcher Null-Target Hardening (Feb 17, 2026 23:53 UTC)
+
+### Completed
+- Added explicit non-navigable handling for switcher entries missing Confluence page IDs:
+  - disabled switcher rows for null/blank `confluencePageId`,
+  - inline unavailable label (`Page not provisioned yet`),
+  - guarded navigation callback to prevent null-target route attempts,
+  - surface warning when registry includes non-provisioned entries.
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`38` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+
+### Plan impact
+- Switcher now fails safely and transparently when backend data is incomplete (null page IDs), reducing false-negative QA outcomes and user confusion while macro host page permissions/discovery remain blocked.
+
 ## Phase 3 Macro-Context QA Checkpoint C (Feb 17, 2026 23:28 UTC)
 
 ### Completed

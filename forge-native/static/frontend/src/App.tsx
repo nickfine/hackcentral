@@ -12,7 +12,10 @@ import type {
 import {
   buildConfluencePagePath,
   buildSwitcherSections,
+  isNavigableConfluencePageId,
   readSwitcherRegistryCache,
+  runSwitcherNavigation,
+  switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
 
@@ -648,6 +651,10 @@ export function App(): JSX.Element {
   const allPeople = bootstrap?.people ?? [];
   const registry = bootstrap?.registry ?? [];
   const switcherSections = useMemo(() => buildSwitcherSections(registry), [registry]);
+  const hasNonNavigableSwitcherItems = useMemo(
+    () => registry.some((item) => !isNavigableConfluencePageId(item.confluencePageId)),
+    [registry]
+  );
   const switcherGroups = [
     { title: 'Live Events', items: switcherSections.live },
     { title: 'Upcoming', items: switcherSections.upcoming },
@@ -1078,13 +1085,18 @@ export function App(): JSX.Element {
                             type="button"
                             data-switcher-option="true"
                             className="switcher-row"
-                            onClick={() => void navigateToSwitcherPage(item.confluencePageId)}
+                            disabled={!isNavigableConfluencePageId(item.confluencePageId)}
+                            onClick={() => {
+                              runSwitcherNavigation(item.confluencePageId, (targetPageId) => {
+                                void navigateToSwitcherPage(targetPageId);
+                              });
+                            }}
                           >
                             <span className="switcher-row-main">
                               <span className="switcher-row-title">
                                 {item.icon || '🚀'} {item.eventName}
                               </span>
-                              <span className="switcher-row-meta">{item.tagline || 'No tagline set'}</span>
+                              <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
                             </span>
                             <span className="switcher-row-status">{item.lifecycleStatus.replace('_', ' ')}</span>
                           </button>
@@ -1148,6 +1160,11 @@ export function App(): JSX.Element {
 
         <main className="content">
           {switcherWarning ? <section className="message message-preview">{switcherWarning}</section> : null}
+          {hasNonNavigableSwitcherItems ? (
+            <section className="message message-preview">
+              Some switcher entries are unavailable until their Confluence pages are provisioned.
+            </section>
+          ) : null}
           {errorMessage ? <section className="message message-error">{errorMessage}</section> : null}
           {previewMode ? (
             <section className="message message-preview">
