@@ -2323,3 +2323,57 @@ Key hardening changes:
 
 ### Key learning
 1. Current blocker is macro resource delivery/rendering on Confluence host pages (asset 404s), not permissions and not create-wizard business logic.
+
+## Macro Host QA + Create Wizard Closure Attempt (Feb 18, 2026 10:43 UTC)
+
+### Scope completed
+- Fixed macro-host asset resolution for Confluence page embeds:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/vite.config.ts`
+  - Added `base: './'` so macro assets resolve relative to Forge iframe path.
+- Completed Phase 3 breakpoint QA matrix for macro-context switcher on real host pages:
+  - Parent PROD host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - Parent DEV host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+  - Viewports validated: desktop (1440x900), tablet (1024x768), mobile (390x844).
+  - Outcome: switcher trigger renders and opens across all breakpoints; parent-context option is intentionally disabled (`data-switcher-option=true`, `disabled=true`) in all tested cases.
+- Fixed create-wizard review-step UX gap:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - Step 5 now surfaces explicit `Create Instance` action (instead of ambiguous `Save Draft` label).
+
+### Deploy/install timeline
+- Validation before deploy (all passes at each checkpoint):
+  - `npm run test:run` (repo root) ✅
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+- Deploy sequence executed:
+  - 10:28:24-10:28:58 UTC: development deploy `5.19.0` ✅
+  - 10:29:02-10:29:32 UTC: production deploy `3.11.0` ✅
+  - 10:35:48-10:36:16 UTC: development deploy `5.20.0` ✅
+  - 10:36:21-10:36:51 UTC: production deploy `3.12.0` ✅
+  - 10:39:02-10:39:33 UTC: development deploy `5.21.0` ✅
+  - 10:39:37-10:40:08 UTC: production deploy `3.13.0` ✅
+  - 10:42:04-10:42:31 UTC: development deploy `5.22.0` ✅
+  - 10:42:37-10:43:06 UTC: production deploy `3.14.0` ✅
+- Install upgrades:
+  - Development/production upgraded and confirmed `Up-to-date` on `hackdaytemp.atlassian.net` (one transient production task-conflict retried successfully).
+  - Current install list still reports env app versions `development=5`, `production=3` (Forge install major-line numbering), both `Up-to-date`.
+
+### Create flow findings (live macro host)
+- Step-5 CTA verification now passes:
+  - Result snapshot at Step 5 buttons: `Back`, `Reset`, `Create Instance`.
+- Create action is still blocked by backend data-layer constraints (new blocker):
+  1. Previously observed and resolved path blockers:
+     - `Fetching parent page failed (403): {"message":"Current user not permitted to use Confluence"}`
+     - `Fetching parent page failed (401): {"code":401,"message":"Unauthorized; scope does not match"}`
+  2. Current blocker after Confluence endpoint/auth fixes:
+     - `Supabase POST Event failed (400): {"code":"23502","details":"Failing row contains (null, null, HDC Auto ..., ...)"}`
+     - Latest request evidence from macro UI: `Request ID: 0e56b0a0-febf-4b89-a775-32935377b11e`.
+- No child page URL could be captured in this checkpoint because event persistence fails before successful creation finalization.
+
+### Code changes tied to blocker isolation
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+  - Switched Confluence calls to `api.asApp().requestConfluence(...)`.
+  - Migrated parent/page operations from legacy `rest/api/content` to v2 `/wiki/api/v2/pages` for scope alignment.
+
+### Key learning
+1. Macro-host rendering and breakpoint switcher behavior are now stable on real Confluence pages; remaining create-flow failure is downstream schema compatibility in Supabase (`events` insert contract), not macro UI or Confluence embed plumbing.

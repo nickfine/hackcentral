@@ -807,3 +807,29 @@ For each phase, track:
 - Go/no-go decision for next phase
 
 Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as the product/architecture intent source.
+
+## Progress Update (Feb 18, 2026)
+
+### Phase 3 (App Switcher + Macro Host QA)
+- Macro host pages provisioned and live:
+  - Parent PROD host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - Parent DEV host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- P3 breakpoint QA matrix on real macro hosts: completed for desktop/tablet/mobile.
+  - Switcher opens and renders consistently.
+  - Parent-context entry appears as current-context disabled option (expected behavior).
+- Macro embed asset-path regression fixed (`macro-frontend` Vite `base: './'`).
+
+### Create Wizard Status
+- Review-step CTA gap fixed: Step 5 now shows explicit `Create Instance` button.
+- End-to-end create remains blocked by backend persistence failure (not UI):
+  - Supabase insert error `23502` on `events` create.
+  - No child instance page URL available yet.
+
+### Current blocker (highest priority)
+- Data schema compatibility gap in Supabase `events` insert contract.
+- Confluence permission/scope path has been corrected and no longer the terminal blocker.
+
+### Recommended immediate next execution item
+1. Patch repository `createEvent` insertion path for legacy/new schema compatibility (non-null + column drift handling for `events`), then rerun:
+   - Create wizard submit smoke (capture child page URL/pageId),
+   - P3 final evidence closure including parent->instance navigation.

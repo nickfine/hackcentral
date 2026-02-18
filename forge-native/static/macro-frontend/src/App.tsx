@@ -1390,7 +1390,17 @@ export function App(): JSX.Element {
                 disabled={saving || !context.permissions.canCreateInstances}
                 onClick={() => void handleCreateDraft()}
               >
-                {saving ? 'Saving…' : createDraftTimedOut ? 'Retry Save Draft' : 'Save Draft'}
+                {wizardStep === 5
+                  ? saving
+                    ? 'Creating…'
+                    : createDraftTimedOut
+                      ? 'Retry Create Instance'
+                      : 'Create Instance'
+                  : saving
+                    ? 'Saving…'
+                    : createDraftTimedOut
+                      ? 'Retry Save Draft'
+                      : 'Save Draft'}
               </button>
               {wizardStep < 5 ? (
                 <button type="button" disabled={saving} onClick={goToNextStep}>

@@ -1,77 +1,89 @@
 # Forge Native Continuation Handoff
 
-Date: 2026-02-17  
+Date: 2026-02-18  
 Workspace: `/Users/nickster/Downloads/HackCentral`
 
 ## Current state (important)
 
-- The user-facing Confluence site (`hackdaytemp.atlassian.net`) has **two app installs**:
-  - `HackCentral` (production env)
-  - `HackCentral (Development)` (development env)
-- Latest smoke/fix cycle was executed against **HackCentral (Development)**.
-- Successful smoke outcome in that surface:
-  - load app ✅
-  - list hacks ✅
-  - submit hack ✅ (`Hack submitted: gSSEfg`)
-- In this macro surface there is no standalone "Projects area" UI; old checklist step for "create project UI flow" is not applicable.
+- Confluence site: `hackdaytemp.atlassian.net`
+- Real macro parent host pages are provisioned and accessible:
+  - PROD host page: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - DEV host page: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- Global app surface remains valid:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
 
-## Latest fixes in this cycle
+## What was completed in this session
 
-Files:
-- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
-- `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-project-insert.spec.ts`
+1. Macro embed rendering fix
+- File: `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/vite.config.ts`
+- Change: set Vite `base: './'` for macro frontend.
+- Result: macro UI loads in Confluence host iframe (asset 404 blocker resolved).
 
-Fixes:
-- parse escaped Supabase error payloads before matching retry conditions,
-- handle `Project` insert failures across:
-  - duplicate `teamId` (`23505`),
-  - not-null `name`/`teamId` (`23502`),
-  - FK `teamId` (`23503`),
-- prefer existing `Team` ids before generating/creating fallback team rows,
-- create legacy `Team` rows when required so retry `teamId` values are FK-valid.
+2. Phase 3 breakpoint QA matrix (real host pages)
+- Tested breakpoints:
+  - desktop `1440x900`
+  - tablet `1024x768`
+  - mobile `390x844`
+- Tested pages:
+  - pageId `5668895` (prod macro host)
+  - pageId `5799944` (dev macro host)
+- Result:
+  - switcher trigger visible + operable on all breakpoints,
+  - parent-context switcher option is present as disabled current-context row (expected).
 
-Relevant commits:
-- `0b66f8d` — escaped error handling in project insert retries
-- `7e61684` — ensure legacy team rows exist for retry paths
-- `5009da0` — prefer existing team ids before legacy team creation retries
+3. Create wizard review-step UX fix
+- File: `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Change: step 5 now shows explicit `Create Instance` action label.
+- Verification: step 5 button set is now `Back`, `Reset`, `Create Instance`.
 
-## Validation status
+4. Confluence API path/auth alignment
+- File: `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- Changes:
+  - explicit `api.asApp().requestConfluence(...)`
+  - migrated parent/page APIs from legacy `rest/api/content` to v2 `/wiki/api/v2/pages`.
 
-- `npm run typecheck` (forge-native) ✅
-- `npm run test:run` (repo root) ✅ (29 tests passing)
+## Validation run in this session
 
-## Deployment status
+Repeatedly executed and passing after each change set:
+- `npm run test:run` (repo root)
+- `npm run typecheck` (forge-native)
+- `npm run frontend:build` (forge-native)
+- `npm run macro:build` (forge-native)
 
-- Development env deployed through `5.14.0` (fixes above).
-- Development install on `hackdaytemp.atlassian.net` reported `Up-to-date`.
-- Production env was deployed earlier in the session line, but the final smoke/fix verification was on development.
+## Deploy/install status and versions
+
+- Development deploy versions reached: `5.19.0` -> `5.20.0` -> `5.21.0` -> `5.22.0`
+- Production deploy versions reached: `3.11.0` -> `3.12.0` -> `3.13.0` -> `3.14.0`
+- Install upgrades executed for both envs; one transient production task conflict retried successfully.
+- `forge install list` final state:
+  - production app version `3` (`Up-to-date`)
+  - development app version `5` (`Up-to-date`)
+
+## Remaining blocker (current top priority)
+
+Create flow now fails downstream in data persistence:
+- Macro error evidence:
+  - `Supabase POST Event failed (400): {"code":"23502", ... failing row contains (null, null, HDC Auto ..., ...)}`
+- Latest captured request id:
+  - `0e56b0a0-febf-4b89-a775-32935377b11e`
+
+Interpretation:
+- Macro UI + Confluence host + Confluence page API path are now functioning.
+- Blocking fault is Supabase `events` insert schema compatibility (non-null/contract mismatch).
 
 ## Next recommended steps
 
-1. Run a quick verification in **HackCentral (Development)**:
-   - submit one additional hack,
-   - confirm it appears after refresh.
-2. If stable, promote the same commit line to production:
-   - `forge deploy --non-interactive -e production`
-   - `forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment production`
-3. Re-run minimal production smoke (`load app`, `list hacks`, `submit hack`) in `HackCentral`.
+1. Patch `createEvent` compatibility in:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
 
-## Commands
+Goal:
+- handle legacy/new `events` schema differences (required columns and non-null defaults) during insert.
 
-```bash
-cd /Users/nickster/Downloads/HackCentral/forge-native
-npm run frontend:build
-npm run macro:build
-npm run typecheck
-```
+2. Re-run validation + deploy/install.
 
-```bash
-cd /Users/nickster/Downloads/HackCentral
-npm run test:run
-```
+3. Re-run live create smoke on page `5668895` and capture:
+- child page id,
+- child page URL,
+- updated registry entry.
 
-```bash
-cd /Users/nickster/Downloads/HackCentral/forge-native
-forge deploy --non-interactive -e development
-forge install --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence --environment development
-```
+4. Close Phase 3 evidence with parent -> instance navigation and final matrix artifact.

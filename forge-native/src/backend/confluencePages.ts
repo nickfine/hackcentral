@@ -1,4 +1,4 @@
-import { requestConfluence, route } from '@forge/api';
+import api, { route } from '@forge/api';
 
 const DEFAULT_APP_ID = 'f828e0d4-e9d0-451d-b818-533bc3e95680';
 const DEFAULT_MACRO_KEY = 'hackday-central-macro';
@@ -11,6 +11,7 @@ interface ForgeResponse {
 
 interface ConfluencePage {
   id: string;
+  spaceId?: string | number;
   _links?: {
     base?: string;
     webui?: string;
@@ -19,9 +20,7 @@ interface ConfluencePage {
 
 interface ParentPagePayload {
   id: string;
-  space?: {
-    key?: string;
-  };
+  spaceId?: string | number;
 }
 
 async function parseJson<T>(response: ForgeResponse): Promise<T> {
@@ -63,9 +62,9 @@ function getMacroStorageSnippet(): string {
   ].join('');
 }
 
-async function getParentSpaceKey(parentPageId: string): Promise<string> {
-  const response = await requestConfluence(
-    route`/wiki/rest/api/content/${parentPageId}?expand=space`,
+async function getParentSpaceId(parentPageId: string): Promise<string> {
+  const response = await api.asApp().requestConfluence(
+    route`/wiki/api/v2/pages/${parentPageId}`,
     {
       method: 'GET',
       headers: {
@@ -76,11 +75,11 @@ async function getParentSpaceKey(parentPageId: string): Promise<string> {
 
   await assertOk(response, 'Fetching parent page');
   const payload = await parseJson<ParentPagePayload>(response);
-  const spaceKey = payload.space?.key;
-  if (!spaceKey) {
-    throw new Error(`Unable to determine Confluence space key for parent page ${parentPageId}.`);
+  const spaceId = payload.spaceId;
+  if (!spaceId) {
+    throw new Error(`Unable to determine Confluence space id for parent page ${parentPageId}.`);
   }
-  return spaceKey;
+  return String(spaceId);
 }
 
 function extractPageUrl(payload: ConfluencePage): string {
@@ -97,19 +96,19 @@ export async function createChildPageUnderParent(input: {
   title: string;
   tagline?: string;
 }): Promise<{ pageId: string; pageUrl: string }> {
-  const spaceKey = await getParentSpaceKey(input.parentPageId);
+  const spaceId = await getParentSpaceId(input.parentPageId);
 
-  const response = await requestConfluence(route`/wiki/rest/api/content`, {
+  const response = await api.asApp().requestConfluence(route`/wiki/api/v2/pages`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      type: 'page',
+      status: 'current',
       title: input.title,
-      ancestors: [{ id: Number(input.parentPageId) }],
-      space: { key: spaceKey },
+      spaceId,
+      parentId: input.parentPageId,
       body: {
         storage: {
           representation: 'storage',
@@ -133,7 +132,7 @@ export async function createChildPageUnderParent(input: {
 }
 
 export async function deletePage(pageId: string): Promise<void> {
-  const response = await requestConfluence(route`/wiki/rest/api/content/${pageId}`, {
+  const response = await api.asApp().requestConfluence(route`/wiki/api/v2/pages/${pageId}`, {
     method: 'DELETE',
     headers: {
       Accept: 'application/json',
@@ -149,7 +148,7 @@ export async function deletePage(pageId: string): Promise<void> {
 }
 
 export async function getCurrentUserEmail(accountId: string): Promise<string | null> {
-  const response = await requestConfluence(route`/wiki/rest/api/user/email?accountId=${accountId}`, {
+  const response = await api.asApp().requestConfluence(route`/wiki/rest/api/user/email?accountId=${accountId}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
