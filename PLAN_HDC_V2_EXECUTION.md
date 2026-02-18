@@ -1530,3 +1530,22 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 - P7-3 is closed.
 - Remaining queue:
   1. P7-4 high-signal regression test additions
+
+## Progress Update (Feb 18, 2026 - Phase 7 P7-4 High-Signal Regression Additions @ 20:27 UTC)
+
+### Execution completed
+1. Added migration ops dry-run default-query regressions:
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-phase5-ops.spec.ts`
+- verifies omitted/blank `eventNameQuery` both resolve to `HDC Auto`.
+
+2. Added macro admin-action edge-state regressions:
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-macro-admin-actions.spec.ts`
+- verifies missing-context action lockout and saving-lock precedence behavior.
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run test -- tests/forge-native-phase5-ops.spec.ts tests/forge-native-macro-admin-actions.spec.ts` ✅ (`11/11`)
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅ (forge-native typecheck + full suite `71/71`)
+
+### Plan impact
+- P7-4 is closed.
+- Phase 7 execution queue (`P7-1`..`P7-4`) is now complete.

@@ -108,3 +108,40 @@ describe('phase5 ops webtrigger seed_hack', () => {
     expect(repo.seedHackForEventAsUser).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('phase5 ops webtrigger dry_run', () => {
+  beforeEach(() => {
+    mockState.repo = createRepoMock();
+  });
+
+  it('defaults to the HDC Auto query when eventNameQuery is omitted', async () => {
+    const repo = createRepoMock();
+    mockState.repo = repo;
+    const { handler } = await import('../forge-native/src/ops');
+
+    const response = await handler({
+      method: 'POST',
+      body: JSON.stringify({ action: 'dry_run' }),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(repo.listMigrationEventCandidatesByName).toHaveBeenCalledWith('HDC Auto');
+    const body = JSON.parse(response.body) as { eventNameQuery: string; eventCount: number };
+    expect(body.eventNameQuery).toBe('HDC Auto');
+    expect(body.eventCount).toBe(0);
+  });
+
+  it('normalizes blank eventNameQuery to HDC Auto', async () => {
+    const repo = createRepoMock();
+    mockState.repo = repo;
+    const { handler } = await import('../forge-native/src/ops');
+
+    const response = await handler({
+      method: 'POST',
+      body: JSON.stringify({ action: 'dry_run', eventNameQuery: '   ' }),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(repo.listMigrationEventCandidatesByName).toHaveBeenCalledWith('HDC Auto');
+  });
+});

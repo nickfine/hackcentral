@@ -516,3 +516,19 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - full suite + typecheck pass (`67/67`).
 - Remaining Phase 7 queue:
   1. P7-4 high-signal regression additions
+
+## Continuation update (2026-02-18 20:27 UTC)
+
+- Completed P7-4 high-signal regression additions.
+- Added Phase 5 ops fallback coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-phase5-ops.spec.ts`
+  - ensures `dry_run` defaults blank/omitted `eventNameQuery` to `HDC Auto`.
+- Expanded macro admin-action edge coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-macro-admin-actions.spec.ts`
+  - verifies action lockout when instance context is unavailable and saving-lock precedence.
+- Validation:
+  - targeted specs: `11/11` pass.
+  - `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅
+  - full suite + typecheck pass (`71/71`).
+- Phase 7 queue state:
+  - `P7-1`..`P7-4` all closed.

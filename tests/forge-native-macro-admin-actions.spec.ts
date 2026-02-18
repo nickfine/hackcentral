@@ -60,4 +60,39 @@ describe('macro instance admin action state', () => {
     expect(nonDraft.deleteDraft.disabled).toBe(true);
     expect(nonDraft.deleteDraft.reason).toContain('Only draft');
   });
+
+  it('locks all actions when instance context is unavailable', () => {
+    const state = getInstanceAdminActionState({
+      lifecycleStatus: null,
+      syncStatus: 'failed',
+      canAdminInstance: true,
+      isPrimaryAdmin: true,
+      saving: false,
+    });
+
+    expect(state.advanceLifecycle.disabled).toBe(true);
+    expect(state.completeSync.disabled).toBe(true);
+    expect(state.retrySync.disabled).toBe(true);
+    expect(state.deleteDraft.disabled).toBe(true);
+    expect(state.advanceLifecycle.reason).toContain('context is unavailable');
+    expect(state.globalHint).toContain('context is unavailable');
+  });
+
+  it('prioritizes saving lock messaging while an admin action is in progress', () => {
+    const state = getInstanceAdminActionState({
+      lifecycleStatus: 'team_formation',
+      syncStatus: 'partial',
+      canAdminInstance: true,
+      isPrimaryAdmin: false,
+      saving: true,
+    });
+
+    expect(state.advanceLifecycle.disabled).toBe(true);
+    expect(state.completeSync.disabled).toBe(true);
+    expect(state.retrySync.disabled).toBe(true);
+    expect(state.deleteDraft.disabled).toBe(true);
+    expect(state.advanceLifecycle.reason).toContain('currently in progress');
+    expect(state.deleteDraft.reason).toContain('currently in progress');
+    expect(state.globalHint).toContain('currently in progress');
+  });
 });

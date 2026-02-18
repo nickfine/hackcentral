@@ -3085,3 +3085,21 @@ Key hardening changes:
 
 ### Procedural learning
 1. Codifying gate classes (`docs-only`, `ui-or-backend`, `ops-or-release`) reduces ambiguity about when heavy validation is mandatory.
+
+## Phase 7 P7-4 High-Signal Regression Additions (Feb 18, 2026 20:27 UTC)
+
+### Scope completed
+- Added dry-run fallback regressions for migration ops:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-phase5-ops.spec.ts`
+  - verifies default/blank `eventNameQuery` paths both normalize to `HDC Auto`.
+- Expanded macro admin-action edge-state coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-macro-admin-actions.spec.ts`
+  - covers missing instance-context lockout and saving-lock precedence.
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run test -- tests/forge-native-phase5-ops.spec.ts tests/forge-native-macro-admin-actions.spec.ts` ✅ (`11/11`)
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅ (`71/71`, typecheck pass)
+
+### Procedural learning
+1. Default-query regressions on operational scripts prevent silent drift between CLI defaults and handler defaults.
+2. Explicit edge-state precedence tests reduce UI guidance regressions when permission and in-flight states overlap.
