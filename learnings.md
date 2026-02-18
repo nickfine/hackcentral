@@ -2957,3 +2957,20 @@ Key hardening changes:
 ### Outcome
 - Blocked by session auth constraints (`401 Unauthorized` on Atlassian MCP).
 - Item remains pending manual site-admin archive/delete, still non-blocking for release posture.
+
+## Phase 6 Weekly Verification Run #1 (Feb 18, 2026 15:36 UTC)
+
+### Scope completed
+- Executed the first weekly verification cycle using the new Phase 6 template:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260218-1536Z.md`
+
+### Outcome
+- Migration integrity check: PASS
+- Performance budgets: PASS
+  - `registry_lookup` p95 `7.34ms` (`<120ms`)
+  - `complete_and_sync` p95 `6.74ms` (`<220ms`)
+- Runtime telemetry capture: PASS
+  - both `registry_lookup` and `sync_execution` observed in production logs.
+
+### Procedural learning
+1. The Phase 6 ops pack is executable as designed; one artifact now captures integrity, performance, and runtime telemetry in a single weekly evidence unit.
