@@ -7,6 +7,33 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Telemetry Consistency Checkpoint (Feb 18, 2026 01:14 UTC)
+
+### Completed
+- Eliminated frontend telemetry/UI drift risk by centralizing switcher navigability counts through shared helper logic:
+  - added `summarizeSwitcherNavigability` to:
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/appSwitcher.ts`
+  - updated telemetry emitters to use helper summary counts on both surfaces:
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added helper-level coverage for partial/contradictory registry rows:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`44` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Last confirmed production submit artifact remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Switcher telemetry counts now match runtime navigability guards and warning behavior, reducing false non-navigable reporting from partial cache/contract edge cases.
+- P3-8 macro-context breakpoint QA remains blocked only on Confluence page-create/discovery permissions for real parent/instance macro host pages.
+
 ## Phase 3 QA Acceleration Checkpoint (Feb 18, 2026 00:32 UTC)
 
 ### Completed

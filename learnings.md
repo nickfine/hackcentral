@@ -2161,3 +2161,33 @@ Key hardening changes:
 
 ### Key learning
 1. While Confluence provisioning permissions are blocked, exposing an explicit client-side registry refresh control plus a strict QA runbook keeps Phase 3 moving and shortens completion time once host pages become available.
+
+## Phase 3 Telemetry Consistency Checkpoint (Feb 18, 2026 01:14 UTC)
+
+### Context
+- Frontend switcher telemetry counts were computed directly from raw `item.isNavigable`, while UI guards/warnings use helper-based navigability checks.
+- This could over-count non-navigable rows for partial/legacy payload shapes and mislead QA while permissions are still blocked.
+
+### What changed
+- Added a shared navigability summary helper on both UI surfaces:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/appSwitcher.ts`
+- Updated telemetry emitters to use helper-derived summary counts:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added tests to lock helper behavior for contradictory/partial rows:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts`
+
+### Validation (local)
+- `2026-02-18` `npm run typecheck` (forge-native) ✅
+- `2026-02-18` `npm run frontend:build` (forge-native) ✅
+- `2026-02-18` `npm run macro:build` (forge-native) ✅
+- `2026-02-18` `npm run test:run` (repo root) ✅ (`44` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Latest production submit smoke artifact remains: `prodSmoke-20260217-170434`.
+
+### Key learning
+1. For switcher telemetry, derive counts from the same helper contract that gates navigation and warning states; raw field-counting can drift from actual user-visible behavior.

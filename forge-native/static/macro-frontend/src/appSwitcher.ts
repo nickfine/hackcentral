@@ -11,6 +11,12 @@ export interface SwitcherSections {
   recent: EventRegistryItem[];
 }
 
+export interface SwitcherNavigabilitySummary {
+  total: number;
+  nonNavigable: number;
+  withMissingPageId: number;
+}
+
 function parseIsoToMs(value: string | null | undefined): number | null {
   if (!value) return null;
   const ms = Date.parse(value);
@@ -118,6 +124,24 @@ export function runSwitcherNavigation(
   }
   onNavigate(item.confluencePageId);
   return true;
+}
+
+export function summarizeSwitcherNavigability(registry: EventRegistryItem[]): SwitcherNavigabilitySummary {
+  let nonNavigable = 0;
+  let withMissingPageId = 0;
+  for (const item of registry) {
+    if (!isNavigableRegistryItem(item)) {
+      nonNavigable += 1;
+    }
+    if (!isNavigableConfluencePageId(item.confluencePageId)) {
+      withMissingPageId += 1;
+    }
+  }
+  return {
+    total: registry.length,
+    nonNavigable,
+    withMissingPageId,
+  };
 }
 
 export function getHomePageId(context: HdcContextResponse): string | null {

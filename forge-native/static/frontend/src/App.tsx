@@ -15,6 +15,7 @@ import {
   isNavigableRegistryItem,
   readSwitcherRegistryCache,
   runSwitcherNavigation,
+  summarizeSwitcherNavigability,
   switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
@@ -482,9 +483,7 @@ function isDeprecated(status: string): boolean {
 }
 
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
-  const total = registry.length;
-  const nonNavigable = registry.filter((item) => !item.isNavigable).length;
-  const withMissingPageId = registry.filter((item) => !item.confluencePageId).length;
+  const { total, nonNavigable, withMissingPageId } = summarizeSwitcherNavigability(registry);
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
 }
 

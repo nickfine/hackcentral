@@ -10,6 +10,7 @@ import {
   isNavigableRegistryItem,
   readSwitcherRegistryCache,
   runSwitcherNavigation,
+  summarizeSwitcherNavigability,
   switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from '../forge-native/static/macro-frontend/src/appSwitcher';
@@ -166,5 +167,20 @@ describe('macro app switcher helpers', () => {
 
     expect(runSwitcherNavigation(validPage, onNavigate)).toBe(true);
     expect(onNavigate).toHaveBeenCalledWith('page-xyz');
+  });
+
+  it('summarizes non-navigable and missing-page telemetry counts with contract guards', () => {
+    const registry = [
+      makeEvent('valid', 'draft', { confluencePageId: 'page-1', isNavigable: true }),
+      makeEvent('explicit-false', 'draft', { confluencePageId: 'page-2', isNavigable: false }),
+      makeEvent('missing-page-id', 'draft', { confluencePageId: null, isNavigable: true }),
+      makeEvent('blank-page-id', 'draft', { confluencePageId: ' ', isNavigable: true }),
+    ];
+
+    expect(summarizeSwitcherNavigability(registry)).toEqual({
+      total: 4,
+      nonNavigable: 3,
+      withMissingPageId: 2,
+    });
   });
 });
