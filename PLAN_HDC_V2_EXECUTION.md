@@ -7,6 +7,32 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Scaffold Integrity Fix Checkpoint (Feb 18, 2026 01:48 UTC)
+
+### Completed
+- Closed consistency/integrity findings in macro QA scaffold URL validation:
+  - enforce `https` scheme,
+  - enforce strict Atlassian host match (`atlassian.net` or `*.atlassian.net`),
+  - enforce exact path `/wiki/pages/viewpage.action`.
+- Added automated CLI coverage for scaffold behavior:
+  - `/Users/nickster/Downloads/HackCentral/tests/phase3-macro-qa-scaffold.spec.ts`
+  - cases: missing flags, non-https URL rejection, invalid path rejection, lookalike host rejection, valid artifact generation.
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase3-macro-qa-scaffold.mjs`
+  - `/Users/nickster/Downloads/HackCentral/tests/phase3-macro-qa-scaffold.spec.ts`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`49` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Last confirmed production submit artifact remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Phase 3 QA scaffold now has strict input validation and regression coverage, reducing risk of false-positive QA artifacts from malformed URLs.
+
 ## Phase 3 Macro QA Playwright Scaffold Checkpoint (Feb 18, 2026 01:30 UTC)
 
 ### Completed

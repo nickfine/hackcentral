@@ -2230,3 +2230,41 @@ Key hardening changes:
 
 ### Key learning
 1. When environment permissions block live QA, ship execution scaffolding with strict input validation and prefilled evidence structure so the blocked step converts to a fast-run task once access is granted.
+
+## Phase 3 Scaffold Integrity Fix Checkpoint (Feb 18, 2026 01:48 UTC)
+
+### Context
+- Code review identified scaffold integrity gaps:
+  - URL path validation used substring matching,
+  - URL scheme was not constrained to `https`,
+  - no automated tests existed for scaffold CLI validation and output behavior.
+
+### What changed
+- Tightened URL validation in scaffold CLI:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase3-macro-qa-scaffold.mjs`
+  - now requires:
+    - `https` protocol,
+    - hostname equal to `atlassian.net` or subdomain of it,
+    - exact pathname `/wiki/pages/viewpage.action`,
+    - non-empty `pageId`.
+- Added CLI test coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/phase3-macro-qa-scaffold.spec.ts`
+  - verifies:
+    - required-flag failure path,
+    - non-https rejection,
+    - invalid-path rejection,
+    - lookalike-host rejection,
+    - valid artifact generation with expected content.
+
+### Validation (local)
+- `2026-02-18` `npm run typecheck` (forge-native) ✅
+- `2026-02-18` `npm run frontend:build` (forge-native) ✅
+- `2026-02-18` `npm run macro:build` (forge-native) ✅
+- `2026-02-18` `npm run test:run` (repo root) ✅ (`49` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Latest production submit smoke artifact remains: `prodSmoke-20260217-170434`.
+
+### Key learning
+1. For QA automation scaffolds, strict URL validation plus explicit CLI tests are required to prevent subtle false positives from malformed-but-accepted inputs.

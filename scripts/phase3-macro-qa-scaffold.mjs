@@ -34,12 +34,17 @@ function parseConfluencePageUrl(value, label) {
     throw new Error(`${label} must be a valid URL.`);
   }
 
-  if (!url.hostname.endsWith('atlassian.net')) {
+  if (url.protocol !== 'https:') {
+    throw new Error(`${label} must use https.`);
+  }
+
+  const host = url.hostname.toLowerCase();
+  if (host !== 'atlassian.net' && !host.endsWith('.atlassian.net')) {
     throw new Error(`${label} must point to an atlassian.net host.`);
   }
 
-  if (!url.pathname.includes('/wiki/pages/viewpage.action')) {
-    throw new Error(`${label} must use /wiki/pages/viewpage.action.`);
+  if (url.pathname !== '/wiki/pages/viewpage.action') {
+    throw new Error(`${label} must use exact path /wiki/pages/viewpage.action.`);
   }
 
   const pageId = url.searchParams.get('pageId')?.trim() || '';
