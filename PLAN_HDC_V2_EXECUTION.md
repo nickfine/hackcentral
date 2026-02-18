@@ -1468,3 +1468,24 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
   2. P7-2 weekly-report automation scaffold
   3. P7-3 validation gate codification
   4. P7-4 high-signal regression test additions
+
+## Progress Update (Feb 18, 2026 - Phase 7 P7-1 Admin Action UX Contract @ 15:54 UTC)
+
+### Execution completed
+1. Implemented shared admin-action state contract for macro instance controls:
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/instanceAdminActions.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+
+2. Added regression tests:
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-macro-admin-actions.spec.ts`
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test:run` ✅ (`66/66`)
+
+### Plan impact
+- P7-1 is closed.
+- Next queued items:
+  1. P7-2 weekly-report automation scaffold
+  2. P7-3 validation gate codification
+  3. P7-4 high-signal regression test additions

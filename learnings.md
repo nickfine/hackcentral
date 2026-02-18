@@ -3034,3 +3034,21 @@ Key hardening changes:
   - admin UX clarity,
   - weekly reporting ergonomics,
   - stricter validation and regression coverage expectations.
+
+## Phase 7 P7-1 Admin Action UX Contract Pass (Feb 18, 2026 15:54 UTC)
+
+### Scope completed
+- Added explicit macro admin-action state helper and wired UI controls to it:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/instanceAdminActions.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added regression coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-macro-admin-actions.spec.ts`
+
+### Behavior tightened
+- Read-only instances now surface explicit admin-card guidance for disabled lifecycle/sync actions.
+- `Retry Sync` is now available only for `failed` or `partial` sync states.
+- Delete-draft button disable rules are centralized with explicit reason strings.
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test:run` ✅ (`66/66`)

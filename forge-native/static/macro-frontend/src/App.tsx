@@ -22,6 +22,7 @@ import {
   switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
+import { getInstanceAdminActionState } from './instanceAdminActions';
 
 const LOCAL_PREVIEW = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
@@ -296,6 +297,17 @@ export function App(): JSX.Element {
   const isPrimaryAdmin = Boolean(context?.permissions.isPrimaryAdmin);
   const isReadOnlyInstance = Boolean(
     context?.event && (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived')
+  );
+  const instanceAdminActionState = useMemo(
+    () =>
+      getInstanceAdminActionState({
+        lifecycleStatus: context?.event?.lifecycleStatus,
+        syncStatus: context?.syncState?.syncStatus ?? null,
+        canAdminInstance,
+        isPrimaryAdmin,
+        saving,
+      }),
+    [canAdminInstance, context?.event?.lifecycleStatus, context?.syncState?.syncStatus, isPrimaryAdmin, saving]
   );
 
   const sortedRegistry = useMemo(
@@ -1520,17 +1532,31 @@ export function App(): JSX.Element {
             </p>
             {context.syncState ? <p>Error category: {formatSyncErrorCategory(context.syncState.syncErrorCategory)}</p> : null}
             {context.syncState?.retryGuidance ? <p>Guidance: {context.syncState.retryGuidance}</p> : null}
-            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void handleLaunch()}>
+            {instanceAdminActionState.globalHint ? <p className="meta">{instanceAdminActionState.globalHint}</p> : null}
+            <button
+              disabled={instanceAdminActionState.advanceLifecycle.disabled}
+              title={instanceAdminActionState.advanceLifecycle.reason ?? undefined}
+              onClick={() => void handleLaunch()}
+            >
               {saving ? 'Updating…' : 'Advance Lifecycle'}
             </button>
-            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void runSync('complete')}>
+            <button
+              disabled={instanceAdminActionState.completeSync.disabled}
+              title={instanceAdminActionState.completeSync.reason ?? undefined}
+              onClick={() => void runSync('complete')}
+            >
               {saving ? 'Syncing…' : 'Complete + Sync'}
             </button>
-            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void runSync('retry')}>
+            <button
+              disabled={instanceAdminActionState.retrySync.disabled}
+              title={instanceAdminActionState.retrySync.reason ?? undefined}
+              onClick={() => void runSync('retry')}
+            >
               {saving ? 'Retrying…' : 'Retry Sync'}
             </button>
             <button
-              disabled={saving || !isPrimaryAdmin || context.event.lifecycleStatus !== 'draft'}
+              disabled={instanceAdminActionState.deleteDraft.disabled}
+              title={instanceAdminActionState.deleteDraft.reason ?? undefined}
               className="button-danger"
               onClick={() => void handleDeleteDraft()}
             >
