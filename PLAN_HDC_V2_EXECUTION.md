@@ -7,6 +7,20 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Release Version Bump Checkpoint (Feb 18, 2026 01:49 UTC)
+
+### Completed
+- Bumped root app version:
+  - `/Users/nickster/Downloads/HackCentral/package.json` `0.6.21 -> 0.6.22`
+  - `/Users/nickster/Downloads/HackCentral/package-lock.json` aligned via `npm version patch --no-git-tag-version`
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Last confirmed production submit artifact remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Repository release/version metadata is incremented and ready for downstream release notes/tagging workflows.
+
 ## Phase 3 Scaffold Integrity Fix Checkpoint (Feb 18, 2026 01:48 UTC)
 
 ### Completed
