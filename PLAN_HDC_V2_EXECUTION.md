@@ -7,6 +7,28 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 QA Acceleration Checkpoint (Feb 18, 2026 00:32 UTC)
+
+### Completed
+- Added `Refresh switcher registry` control on both UI surfaces when non-provisioned switcher rows are detected:
+  - global app UI: `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - macro UI: `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added dedicated runbook/checklist for pending macro-context breakpoint matrix:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE3-MACRO-QA-RUNBOOK.md`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`42` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Last confirmed production submit artifact remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Phase 3 switcher unavailable-state UX is now recoverable in-session via explicit registry refresh.
+- P3-8 macro-context desktop/tablet/mobile matrix remains blocked only on Confluence page-create/discovery permissions for real parent/instance macro host pages.
+
 ## Phase 3 Telemetry + Contract Checks (Feb 18, 2026 00:13 UTC)
 
 ### Completed

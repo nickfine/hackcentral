@@ -560,6 +560,7 @@ export function App(): JSX.Element {
   const [previewMode, setPreviewMode] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switcherWarning, setSwitcherWarning] = useState('');
+  const [refreshingSwitcherRegistry, setRefreshingSwitcherRegistry] = useState(false);
   const switcherRef = useRef<HTMLDivElement | null>(null);
   const switcherMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -655,6 +656,17 @@ export function App(): JSX.Element {
 
   useEffect(() => {
     void loadBootstrap();
+  }, [loadBootstrap]);
+
+  const refreshSwitcherRegistry = useCallback(async () => {
+    setRefreshingSwitcherRegistry(true);
+    try {
+      await loadBootstrap();
+      setActionError('');
+      setActionMessage('Switcher registry refreshed.');
+    } finally {
+      setRefreshingSwitcherRegistry(false);
+    }
   }, [loadBootstrap]);
 
   const featuredHacks = bootstrap?.featuredHacks ?? [];
@@ -1174,6 +1186,16 @@ export function App(): JSX.Element {
           {hasNonNavigableSwitcherItems ? (
             <section className="message message-preview">
               Some switcher entries are unavailable until their Confluence pages are provisioned.
+              <div style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => void refreshSwitcherRegistry()}
+                  disabled={refreshingSwitcherRegistry}
+                >
+                  {refreshingSwitcherRegistry ? 'Refreshing registry…' : 'Refresh switcher registry'}
+                </button>
+              </div>
             </section>
           ) : null}
           {errorMessage ? <section className="message message-error">{errorMessage}</section> : null}

@@ -2133,3 +2133,31 @@ Key hardening changes:
 
 ### Key learning
 1. For Forge Confluence apps with both global page and macro surfaces, always confirm the exact in-use URL before validating UI changes; a feature can be shipped to the wrong surface while automated checks still pass.
+
+## Phase 3 Switcher Refresh UX + Macro QA Runbook (Feb 18, 2026)
+
+### Context
+- Macro-context breakpoint QA remains blocked on `hackdaytemp` due to missing page-create/discovery permissions for real macro host pages.
+- Implemented the best unblocked Phase 3 acceleration work to reduce turnaround once permissions are granted.
+
+### What changed
+- Added `Refresh switcher registry` action where non-navigable switcher items are detected:
+  - Global page surface:
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - Macro surface:
+    - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added execution runbook for pending macro-context QA matrix:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE3-MACRO-QA-RUNBOOK.md`
+
+### Validation (local)
+- `2026-02-18` `npm run typecheck` (forge-native) ✅
+- `2026-02-18` `npm run frontend:build` (forge-native) ✅
+- `2026-02-18` `npm run macro:build` (forge-native) ✅
+- `2026-02-18` `npm run test:run` (repo root) ✅ (`42` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Latest production submit smoke artifact remains: `prodSmoke-20260217-170434`.
+
+### Key learning
+1. While Confluence provisioning permissions are blocked, exposing an explicit client-side registry refresh control plus a strict QA runbook keeps Phase 3 moving and shortens completion time once host pages become available.

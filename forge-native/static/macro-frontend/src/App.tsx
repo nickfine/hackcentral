@@ -187,6 +187,7 @@ export function App(): JSX.Element {
   const [hackDescription, setHackDescription] = useState('');
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switcherWarning, setSwitcherWarning] = useState('');
+  const [refreshingSwitcherRegistry, setRefreshingSwitcherRegistry] = useState(false);
   const switcherRef = useRef<HTMLDivElement | null>(null);
   const switcherMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -237,6 +238,17 @@ export function App(): JSX.Element {
 
   useEffect(() => {
     void loadContext();
+  }, [loadContext]);
+
+  const refreshSwitcherRegistry = useCallback(async () => {
+    setRefreshingSwitcherRegistry(true);
+    try {
+      await loadContext();
+      setMessage('Switcher registry refreshed.');
+      setError('');
+    } finally {
+      setRefreshingSwitcherRegistry(false);
+    }
   }, [loadContext]);
 
   useEffect(() => {
@@ -1040,7 +1052,19 @@ export function App(): JSX.Element {
       {LOCAL_PREVIEW ? <section className="note">Local preview mode: resolver calls are disabled.</section> : null}
       {switcherWarning ? <section className="note">{switcherWarning}</section> : null}
       {hasNonNavigableSwitcherItems ? (
-        <section className="note">Some switcher entries are unavailable until their Confluence pages are provisioned.</section>
+        <section className="note">
+          Some switcher entries are unavailable until their Confluence pages are provisioned.
+          <div style={{ marginTop: '8px' }}>
+            <button
+              type="button"
+              className="button-muted"
+              onClick={() => void refreshSwitcherRegistry()}
+              disabled={refreshingSwitcherRegistry}
+            >
+              {refreshingSwitcherRegistry ? 'Refreshing registry…' : 'Refresh switcher registry'}
+            </button>
+          </div>
+        </section>
       ) : null}
       {message ? <section className="note success">{message}</section> : null}
       {error ? <section className="note error">{error}</section> : null}
