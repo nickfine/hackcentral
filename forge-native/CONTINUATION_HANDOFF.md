@@ -152,3 +152,18 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Deploy/install status:
   - development deployed `5.29.0` and verified `Up-to-date`.
   - production deployed `3.21.0` and verified `Up-to-date`.
+
+## Continuation update (2026-02-18 12:46 UTC)
+
+- Executed historical hygiene cleanup after permission-era unblocking.
+- Supabase cleanup completed (project `ssafugtobsqxmqtphwch`):
+  - removed four stale `Event` rows and dependent `EventAdmin`/`EventSyncState`/`EventAuditLog` data.
+  - verified no remaining `Event` rows with null `confluence_page_id`.
+  - retained canonical QA-linked events only (`5799956`, `5799975`).
+- Added artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-HISTORICAL-HYGIENE-20260218.md`
+- Historical blocker normalization:
+  - Confluence permission/scope `401/403` create blockers are resolved (historical as of 2026-02-18).
+- Pending manual queue:
+  - old page IDs `6029333` and `5767177` may still exist in Confluence; these are now orphaned from registry and queued for manual archive/delete.
+  - Atlassian MCP content auth returned `401` in this session, so automated page removal was not available.

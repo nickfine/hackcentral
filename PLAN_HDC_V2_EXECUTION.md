@@ -1029,3 +1029,22 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next Phase 4 item (unblocked)
 1. Implement archive behavior automation (90-day completed -> archived) and exclude archived instances from switcher “Recent”.
+
+## Progress Update (Feb 18, 2026 - Historical Hygiene @ 12:46 UTC)
+
+### Execution completed
+1. Historical stale-record cleanup from pre-permission and intermediate QA attempts.
+- Removed stale `Event` rows and dependent admin/sync/audit rows in Supabase (`project ref ssafugtobsqxmqtphwch`).
+- Cleared all null `confluence_page_id` event rows.
+- Left only canonical retained `HDC Auto` registry entries (`pageId=5799956`, `pageId=5799975`).
+
+### Artifact
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-HISTORICAL-HYGIENE-20260218.md`
+
+### Permission-era status normalization
+- Confluence `401/403` create/scope blockers are resolved historical issues (resolved on 2026-02-18).
+- Active execution track remains Phase 4 hardening items; no current access blocker gates the roadmap.
+
+### Pending manual cleanup queue
+- Two old intermediate child pages (`6029333`, `5767177`) may remain in Confluence but are no longer referenced by Supabase.
+- Deletion/archival is queued for manual site-admin action because Atlassian MCP auth for content operations returned `401` in this session.

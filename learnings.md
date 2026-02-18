@@ -2594,3 +2594,31 @@ Key hardening changes:
 
 ### Key learning
 1. Server-side lifecycle guards are required even with disabled UI controls, because resolver endpoints remain callable from stale clients or direct requests.
+
+## Historical Hygiene Checkpoint (Feb 18, 2026 12:46 UTC)
+
+### Scope executed
+- Performed post-permission-era cleanup of stale runtime artifacts in Supabase.
+- Added explicit historical resolution marker for prior Confluence permission blockers.
+- Produced cleanup artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-HISTORICAL-HYGIENE-20260218.md`
+
+### Data cleanup executed (Supabase)
+- Project ref: `ssafugtobsqxmqtphwch`.
+- Deleted four stale `Event` records (with cascaded deletes in `EventAdmin`, `EventSyncState`, `EventAuditLog`):
+  - `cmiukfw93000007bja26l91xv` (`HackDay 2026`, null page id)
+  - `demo-event-2026` (`HackDay 2026 Demo`, null page id)
+  - `f9d8c0d0-971a-42df-a42b-ae7845ab3689` (`HDC Auto 1771412203620`, intermediate)
+  - `2e0c1753-8461-432e-aa2e-f1a815209b86` (`HDC Auto 1771412232294`, intermediate)
+- Post-clean verification:
+  - remaining `HDC Auto` rows correspond only to canonical retained instances (`5799956`, `5799975`),
+  - `confluence_page_id IS NULL` rows: none.
+
+### Manual queue captured (blocked by session auth)
+- Potential orphan Confluence pages not referenced in registry:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=6029333`
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5767177`
+- `Atlassian MCP search` returned `401 Unauthorized` in this session, so page deletion/archival from tool automation remains pending manual site-admin action.
+
+### Historical blocker status
+1. Confluence permission/scope create blocker (`401`/`403`) is resolved as of 2026-02-18 and should be treated as historical context, not an active blocker.
