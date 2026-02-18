@@ -13,8 +13,10 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:perf:phase5": "vitest run tests/phase5-performance-harness.spec.ts",
     "test:coverage": "vitest run --coverage",
     "qa:phase3:macro-scaffold": "node scripts/phase3-macro-qa-scaffold.mjs",
+    "qa:phase5:migration-dry-run": "node scripts/phase5-migration-dry-run.mjs",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },

@@ -163,6 +163,7 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
   });
 
   it('normalizes listAllEvents page IDs into coherent navigability flags', async () => {
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const selectMany = vi.fn().mockResolvedValue([
       {
         id: 'event-a',
@@ -217,6 +218,49 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
       confluencePageId: 'child-2',
       isNavigable: true,
     });
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"metric":"registry_lookup"')
+    );
+    telemetrySpy.mockRestore();
+  });
+
+  it('emits parent registry lookup telemetry with parent page id', async () => {
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const selectMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-parent-1',
+        name: 'Event Parent 1',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'registration',
+        confluence_page_id: 'child-parent-1',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-telemetry',
+        hacking_starts_at: null,
+        submission_deadline_at: null,
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: null,
+      },
+    ]);
+    const patchMany = vi.fn().mockResolvedValue([]);
+
+    const repo = new SupabaseRepository({ selectMany, patchMany } as never);
+    await repo.listEventsByParentPageId('parent-telemetry');
+
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"source":"listEventsByParentPageId"')
+    );
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"parentPageId":"parent-telemetry"')
+    );
+    telemetrySpy.mockRestore();
   });
 
   it('auto-archives completed events older than 90 days while listing registry', async () => {

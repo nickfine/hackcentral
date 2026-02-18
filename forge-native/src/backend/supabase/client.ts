@@ -99,7 +99,14 @@ export class SupabaseRestClient {
     });
 
     const raw = await response.text();
-    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    let parsed: unknown = null;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as unknown;
+      } catch {
+        parsed = null;
+      }
+    }
 
     if (!response.ok) {
       const supabaseError =

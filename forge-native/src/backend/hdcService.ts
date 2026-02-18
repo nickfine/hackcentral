@@ -296,6 +296,25 @@ function logContextRegistryNavigability(pageType: 'parent' | 'instance', pageId:
   );
 }
 
+function logSyncExecutionTelemetry(input: {
+  action: 'completeAndSync' | 'retrySync';
+  eventId: string;
+  durationMs: number;
+  outcome: 'success' | 'error';
+  syncStatus?: SyncResult['syncStatus'];
+  syncErrorCategory?: SyncErrorCategory;
+  retryable?: boolean;
+  warning?: string | null;
+}): void {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'sync_execution',
+      ...input,
+    })
+  );
+}
+
 export class HdcService {
   private readonly repository: SupabaseRepository;
 
@@ -662,6 +681,7 @@ export class HdcService {
   }
 
   async completeAndSync(viewer: ViewerContext, eventId: string): Promise<SyncResult> {
+    const syncStartedAt = Date.now();
     const user = await this.repository.ensureUser(viewer);
     const event = await this.repository.getEventById(eventId);
     if (!event) {
@@ -712,6 +732,16 @@ export class HdcService {
         newValue: resultWithGuidance,
       });
       this.invalidateDerivedProfile(user.id);
+      logSyncExecutionTelemetry({
+        action: 'completeAndSync',
+        eventId,
+        durationMs: Math.max(0, Date.now() - syncStartedAt),
+        outcome: 'success',
+        syncStatus: resultWithGuidance.syncStatus,
+        syncErrorCategory: resultWithGuidance.syncErrorCategory,
+        retryable: resultWithGuidance.retryable,
+        warning: resultWithGuidance.lastError,
+      });
       return resultWithGuidance;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync failure.';
@@ -723,11 +753,22 @@ export class HdcService {
         lastAttemptAt: new Date().toISOString(),
         lastError: message,
       });
+      logSyncExecutionTelemetry({
+        action: 'completeAndSync',
+        eventId,
+        durationMs: Math.max(0, Date.now() - syncStartedAt),
+        outcome: 'error',
+        syncStatus: 'failed',
+        syncErrorCategory: guidance.syncErrorCategory,
+        retryable: guidance.retryable,
+        warning: message,
+      });
       throw new Error(`${message} ${guidance.retryGuidance ?? ''}`.trim());
     }
   }
 
   async retrySync(viewer: ViewerContext, eventId: string): Promise<SyncResult> {
+    const syncStartedAt = Date.now();
     const user = await this.repository.ensureUser(viewer);
     const event = await this.repository.getEventById(eventId);
     if (!event) {
@@ -754,6 +795,16 @@ export class HdcService {
       newValue: resultWithGuidance,
     });
     this.invalidateDerivedProfile(user.id);
+    logSyncExecutionTelemetry({
+      action: 'retrySync',
+      eventId,
+      durationMs: Math.max(0, Date.now() - syncStartedAt),
+      outcome: 'success',
+      syncStatus: resultWithGuidance.syncStatus,
+      syncErrorCategory: resultWithGuidance.syncErrorCategory,
+      retryable: resultWithGuidance.retryable,
+      warning: resultWithGuidance.lastError,
+    });
 
     return resultWithGuidance;
   }

@@ -404,6 +404,7 @@ describe('HdcService hardening behavior', () => {
 
   it('preserves previous pushed/skipped counts when sync fails after moving to in_progress', async () => {
     const repo = createRepoMock();
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     repo.ensureUser.mockResolvedValue({ id: 'user-1' });
     repo.getEventById.mockResolvedValue({ id: 'event-1', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-1', role: 'primary' }]);
@@ -451,10 +452,20 @@ describe('HdcService hardening behavior', () => {
       lastError: 'sync exploded',
     });
     expect(repo.logAudit).not.toHaveBeenCalled();
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"action":"completeAndSync"')
+    );
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"outcome":"error"')
+    );
+    telemetrySpy.mockRestore();
   });
 
   it('records sync_partial audit action when repository returns partial sync', async () => {
     const repo = createRepoMock();
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     repo.ensureUser.mockResolvedValue({ id: 'user-7' });
     repo.getEventById.mockResolvedValue({ id: 'event-9', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-7', role: 'co_admin' }]);
@@ -500,6 +511,15 @@ describe('HdcService hardening behavior', () => {
         action: 'sync_partial',
       })
     );
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"action":"completeAndSync"')
+    );
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-performance-telemetry]',
+      expect.stringContaining('"outcome":"success"')
+    );
+    telemetrySpy.mockRestore();
   });
 
   it('blocks completeAndSync when viewer is not an event admin', async () => {

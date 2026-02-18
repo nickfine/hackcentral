@@ -21,6 +21,13 @@ modules:
   function:
     - key: app-resolver
       handler: index.handler
+    - key: phase5-migration-ops
+      handler: ops.handler
+  webtrigger:
+    - key: phase5-migration-wt
+      function: phase5-migration-ops
+      response:
+        type: dynamic
 
 resources:
   - key: custom-ui-frontend

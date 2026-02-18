@@ -131,6 +131,17 @@ interface DbEventAuditLogRetentionRow {
   created_at: string | null;
 }
 
+export interface MigrationEventCandidate {
+  id: string;
+  name: string;
+  icon: string | null;
+  lifecycle_status: LifecycleStatus;
+  confluence_page_id: string;
+  confluence_page_url: string | null;
+  confluence_parent_page_id: string | null;
+  creation_request_id: string | null;
+}
+
 function asVisibility(value: string | null | undefined): Visibility {
   if (value === 'private' || value === 'public') return value;
   return 'org';
@@ -138,6 +149,28 @@ function asVisibility(value: string | null | undefined): Visibility {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function durationMsSince(startedAtMs: number): number {
+  return Math.max(0, Date.now() - startedAtMs);
+}
+
+function logRegistryLookupTelemetry(input: {
+  source: 'listAllEvents' | 'listEventsByParentPageId';
+  parentPageId?: string;
+  durationMs: number;
+  rowCount?: number;
+  usedLegacyConfigFallback: boolean;
+  outcome: 'success' | 'error';
+  warning?: string;
+}): void {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'registry_lookup',
+      ...input,
+    })
+  );
 }
 
 function isFiniteNumber(value: number | null | undefined): value is number {
@@ -455,6 +488,7 @@ function extractTeamNotNullColumn(error: unknown): string | null {
 function defaultTeamFieldValue(column: string, teamId: string, ownerId: string | null, now: string): unknown {
   const col = column.toLowerCase();
   if (col === 'id') return teamId;
+  if (col === 'teamid') return teamId;
   if (col === 'name' || col === 'title') return `Forge Team ${teamId.slice(-8)}`;
   if (col === 'createdat' || col === 'updatedat') return now;
   if (col === 'created_at' || col === 'updated_at') return now;
@@ -474,10 +508,15 @@ async function ensureLegacyTeamRecord(
   const baseName = `Forge Team ${teamId.slice(-8)}`;
   const queue: Array<Record<string, unknown>> = [
     { id: teamId, name: baseName, ownerId: ownerId ?? undefined, createdAt: now, updatedAt: now },
+    { teamId, name: baseName, ownerId: ownerId ?? undefined, createdAt: now, updatedAt: now },
     { id: teamId, name: baseName, owner_id: ownerId ?? undefined, created_at: now, updated_at: now },
+    { teamId, name: baseName, owner_id: ownerId ?? undefined, created_at: now, updated_at: now },
     { id: teamId, name: baseName, createdAt: now, updatedAt: now },
+    { teamId, name: baseName, createdAt: now, updatedAt: now },
     { id: teamId, name: baseName },
+    { teamId, name: baseName },
     { id: teamId },
+    { teamId },
   ];
   const seen = new Set<string>();
 
@@ -1239,10 +1278,110 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   }
 
   async listEventsByParentPageId(parentPageId: string): Promise<EventRegistryItem[]> {
+    const startedAtMs = Date.now();
+    let usedLegacyConfigFallback = false;
+    let events: DbEvent[] = [];
+    try {
+      try {
+        events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`, [
+          { field: 'confluence_parent_page_id', op: 'eq', value: parentPageId },
+        ]);
+      } catch (error) {
+        if (!hasMissingEventConfigColumns(error)) {
+          throw error;
+        }
+        usedLegacyConfigFallback = true;
+        const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+          EVENT_TABLE,
+          EVENT_SELECT_CORE,
+          [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
+        );
+        events = legacy.map((row) => withNullEventConfig(row));
+      }
+      events = await this.tryAutoArchiveCompletedEvents(events);
+
+      const registry = events
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(toEventRegistryItem);
+
+      logRegistryLookupTelemetry({
+        source: 'listEventsByParentPageId',
+        parentPageId,
+        durationMs: durationMsSince(startedAtMs),
+        rowCount: registry.length,
+        usedLegacyConfigFallback,
+        outcome: 'success',
+      });
+      return registry;
+    } catch (error) {
+      const warning = error instanceof Error ? error.message : String(error);
+      logRegistryLookupTelemetry({
+        source: 'listEventsByParentPageId',
+        parentPageId,
+        durationMs: durationMsSince(startedAtMs),
+        usedLegacyConfigFallback,
+        outcome: 'error',
+        warning,
+      });
+      throw error;
+    }
+  }
+
+  async listAllEvents(): Promise<EventRegistryItem[]> {
+    const startedAtMs = Date.now();
+    let usedLegacyConfigFallback = false;
+    let events: DbEvent[] = [];
+    try {
+      try {
+        events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`);
+      } catch (error) {
+        if (!hasMissingEventConfigColumns(error)) {
+          throw error;
+        }
+        usedLegacyConfigFallback = true;
+        const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+          EVENT_TABLE,
+          EVENT_SELECT_CORE
+        );
+        events = legacy.map((row) => withNullEventConfig(row));
+      }
+      events = await this.tryAutoArchiveCompletedEvents(events);
+
+      const registry = events
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(toEventRegistryItem);
+
+      logRegistryLookupTelemetry({
+        source: 'listAllEvents',
+        durationMs: durationMsSince(startedAtMs),
+        rowCount: registry.length,
+        usedLegacyConfigFallback,
+        outcome: 'success',
+      });
+      return registry;
+    } catch (error) {
+      const warning = error instanceof Error ? error.message : String(error);
+      logRegistryLookupTelemetry({
+        source: 'listAllEvents',
+        durationMs: durationMsSince(startedAtMs),
+        usedLegacyConfigFallback,
+        outcome: 'error',
+        warning,
+      });
+      throw error;
+    }
+  }
+
+  async listMigrationEventCandidatesByName(eventNameQuery: string): Promise<MigrationEventCandidate[]> {
+    const query = eventNameQuery.trim();
+    if (!query) return [];
+
     let events: DbEvent[] = [];
     try {
       events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`, [
-        { field: 'confluence_parent_page_id', op: 'eq', value: parentPageId },
+        { field: 'name', op: 'ilike', value: `%${query}%` },
       ]);
     } catch (error) {
       if (!hasMissingEventConfigColumns(error)) {
@@ -1251,38 +1390,25 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
-        [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
+        [{ field: 'name', op: 'ilike', value: `%${query}%` }]
       );
       events = legacy.map((row) => withNullEventConfig(row));
     }
-    events = await this.tryAutoArchiveCompletedEvents(events);
 
-    return events
+    const archivedSafeEvents = await this.tryAutoArchiveCompletedEvents(events);
+    return archivedSafeEvents
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(toEventRegistryItem);
-  }
-
-  async listAllEvents(): Promise<EventRegistryItem[]> {
-    let events: DbEvent[] = [];
-    try {
-      events = await this.client.selectMany<DbEvent>(EVENT_TABLE, `${EVENT_SELECT_WITH_CONFIG}`);
-    } catch (error) {
-      if (!hasMissingEventConfigColumns(error)) {
-        throw error;
-      }
-      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
-        EVENT_TABLE,
-        EVENT_SELECT_CORE
-      );
-      events = legacy.map((row) => withNullEventConfig(row));
-    }
-    events = await this.tryAutoArchiveCompletedEvents(events);
-
-    return events
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map(toEventRegistryItem);
+      .map((event) => ({
+        id: event.id,
+        name: event.name,
+        icon: event.icon,
+        lifecycle_status: event.lifecycle_status,
+        confluence_page_id: event.confluence_page_id,
+        confluence_page_url: event.confluence_page_url,
+        confluence_parent_page_id: event.confluence_parent_page_id,
+        creation_request_id: event.creation_request_id,
+      }));
   }
 
   private async autoArchiveCompletedEvent(event: DbEvent): Promise<DbEvent> {
@@ -1493,6 +1619,27 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     return { projectId: inserted.id };
   }
 
+  async seedHackForEventAsUser(input: {
+    eventId: string;
+    userId: string;
+    title: string;
+    description?: string;
+  }): Promise<SubmitHackResult> {
+    const inserted = await this.insertProject({
+      title: input.title,
+      description: input.description ?? null,
+      status: 'completed',
+      source_type: 'hack_submission',
+      hack_type: 'prompt',
+      visibility: 'org',
+      owner_id: input.userId,
+      workflow_transformed: false,
+      event_id: input.eventId,
+      synced_to_library_at: null,
+    });
+    return { projectId: inserted.id };
+  }
+
   async listEventHackProjects(eventId: string): Promise<DbProject[]> {
     const filters: QueryFilter[] = [
       { field: 'event_id', op: 'eq', value: eventId },
@@ -1620,6 +1767,13 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     });
 
     await this.enforceEventAuditRetention(input.eventId);
+  }
+
+  async countEventAuditLogs(eventId: string): Promise<number> {
+    const rows = await this.client.selectMany<{ id: string }>(EVENT_AUDIT_LOG_TABLE, 'id', [
+      { field: 'event_id', op: 'eq', value: eventId },
+    ]);
+    return rows.length;
   }
 
   private async enforceEventAuditRetention(eventId: string): Promise<void> {
