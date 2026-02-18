@@ -412,3 +412,13 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Phase 6 status:
   - procedural execution set is now complete through P6-4.
   - only queued initial item remains P6-5 (manual Confluence orphan-page closure note after admin cleanup).
+
+## Continuation update (2026-02-18 15:34 UTC)
+
+- Attempted Phase 6 P6-5 closure execution for Confluence orphan pages (`6029333`, `5767177`).
+- Published closure-status artifact with exact manual completion steps:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-P6-5-HYGIENE-CLOSURE-20260218-1534Z.md`
+- Current state:
+  - programmatic closure blocked by Atlassian auth in this session (`401 Unauthorized`),
+  - P6-5 remains pending manual site-admin archive/delete evidence,
+  - release posture unchanged (non-blocking hygiene).

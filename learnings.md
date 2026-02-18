@@ -2946,3 +2946,14 @@ Key hardening changes:
 
 ### Procedural learning
 1. Runbooks become executable only when paired with templates and ownership cadence; without these, checks degrade into one-off manual memory.
+
+## Phase 6 P6-5 Hygiene Closure Attempt (Feb 18, 2026 15:34 UTC)
+
+### Scope attempted
+- Attempted to close the final historical hygiene item (Confluence orphan pages `6029333`, `5767177`) programmatically.
+- Captured status artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-P6-5-HYGIENE-CLOSURE-20260218-1534Z.md`
+
+### Outcome
+- Blocked by session auth constraints (`401 Unauthorized` on Atlassian MCP).
+- Item remains pending manual site-admin archive/delete, still non-blocking for release posture.

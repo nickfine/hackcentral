@@ -1378,3 +1378,16 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 - Phase 6 core procedural pack is now in place (`P6-1` through `P6-4` complete).
 - Remaining queued item from initial set:
   1. P6-5 historical hygiene closure note after manual Confluence orphan-page cleanup.
+
+## Progress Update (Feb 18, 2026 - Phase 6 P6-5 Hygiene Closure Attempt @ 15:34 UTC)
+
+### Execution completed
+1. Published P6-5 closure-status artifact with manual completion checklist.
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-P6-5-HYGIENE-CLOSURE-20260218-1534Z.md`
+
+### Blocker state
+- Atlassian API/session auth unavailable for programmatic archive/delete in this run (`401 Unauthorized`), so final cleanup execution remains manual site-admin action.
+
+### Plan impact
+- P6-5 is procedurally prepared and awaiting manual admin closure evidence.
+- No change to release posture (still non-blocking historical hygiene).
