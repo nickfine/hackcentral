@@ -3052,3 +3052,21 @@ Key hardening changes:
 ### Validation
 - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
 - `npm -C /Users/nickster/Downloads/HackCentral run test:run` ✅ (`66/66`)
+
+## Phase 7 P7-2 Weekly-Report Automation Scaffold (Feb 18, 2026 15:57 UTC)
+
+### Scope completed
+- Added weekly-report scaffold generator:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase7-weekly-report-scaffold.mjs`
+- Added npm command:
+  - `qa:phase7:weekly-report-scaffold`
+- Added regression test:
+  - `/Users/nickster/Downloads/HackCentral/tests/phase7-weekly-report-scaffold.spec.ts`
+
+### Evidence
+- Generated auto-prefilled weekly verification scaffold artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260218-155710Z-AUTO.md`
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:weekly-report-scaffold -- --week-of 2026-02-23` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test:run` ✅ (`67/67`)
