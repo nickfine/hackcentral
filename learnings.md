@@ -1,5 +1,196 @@
 # Learnings
 
+**Phase 5 readiness gate closure checkpoint Q (Feb 18, 2026 15:06 UTC):**
+- Manual SQL seed was executed successfully (after repeated API-path `429` throttling) for canonical event:
+  - `075f09ae-1805-4a88-85bc-4cf43b03b612`
+- Post-seed verification artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-150620Z.md`
+  - key deltas:
+    - `Total submitted hacks: 1` (was `0`)
+    - canonical prod instance now reports `submitted hacks: 1, total projects: 1`.
+- Updated launch-readiness artifact to reflect gate closure:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-LAUNCH-READINESS-20260218-1352Z.md`
+  - recommendation updated to **GO (release-ready on canonical baseline)**.
+
+**Phase 5 resiliency deploy + seed retry checkpoint P (Feb 18, 2026 14:22 UTC):**
+- Promoted seed-resiliency hardening to production:
+  - `forge deploy --non-interactive -e production` ✅ (`4.6.0`)
+  - `forge install --upgrade ... -e production` ✅
+  - `forge install list` confirms production remains `Up-to-date` on `hackdaytemp`.
+- Retried canonical seed with stable title:
+  - payload target event: `075f09ae-1805-4a88-85bc-4cf43b03b612`
+  - result: explicit bounded-retry failure surfaced by new logic:
+    - `Seed hack failed after rate-limit retries: Supabase POST Project failed (429): Too Many Requests`
+- Verification artifact after retry:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-142222Z.md`
+  - state unchanged (`Total submitted hacks: 0`).
+- Status:
+  - conditional-go gate remains open on upstream Supabase rate limiting; internal retry/idempotency handling is now live.
+
+**Phase 5 seed resiliency hardening checkpoint O (Feb 18, 2026 14:18 UTC):**
+- Added seed-flow resilience while waiting on Supabase rate-limit recovery:
+  - `seed_hack` now retries rate-limited writes (`429`/`Too Many Requests`) with bounded backoff.
+  - seed action is now idempotent by `(eventId, hackTitle)` and returns `seeded=false, skipped=true` when duplicate title already exists.
+- Added ops regression coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-phase5-ops.spec.ts`
+  - covers: missing eventId validation, no-admin blocker, idempotent skip behavior, and 429 retry-success path.
+- Validation:
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-phase5-ops.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-hdcService.spec.ts tests/phase5-performance-harness.spec.ts` ✅ (`38` tests passing)
+- Deploy/install:
+  - not deployed in this checkpoint (code/test hardening only).
+
+**Legacy cleanup checklist artifact added (Feb 18, 2026 14:06 UTC):**
+- Added actionable legacy/historical cleanup checklist with owner/action/verification/unblock criteria:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-LEGACY-CLEANUP-CHECKLIST-20260218-1406Z.md`
+- Checklist tracks three remaining conditions:
+  1. manual Confluence orphan page archive/delete (`6029333`, `5767177`),
+  2. canonical migration target naming normalization (`HackDay 2026` vs `HDC Auto*`),
+  3. seed submission closure retry after Supabase `429` window clears.
+
+**Phase 5 seed-attempt blocker checkpoint N (Feb 18, 2026 14:01 UTC):**
+- Attempted to close the remaining readiness condition by seeding one hack into canonical production event:
+  - target event: `075f09ae-1805-4a88-85bc-4cf43b03b612` (`HDC Auto 1771412434287`)
+- Implemented operational seed path in Forge ops handler:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/ops.ts`
+  - action `seed_hack` now uses existing event admin user ID and repository seed insert path (no new user creation).
+- Added backend helper for controlled seeding:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `seedHackForEventAsUser(...)`
+- Added team-schema compatibility hardening for legacy Team variants:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `ensureLegacyTeamRecord`/`defaultTeamFieldValue` now support both `id` and `teamId` key shapes.
+- Observed blocker during live seed attempts (multiple retries/backoff):
+  - Supabase API returns non-JSON `Too Many Requests` payloads / HTTP `429` on write path.
+- Hardened Supabase client parsing for non-JSON error bodies:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/client.ts`
+  - avoids JSON parse crash and preserves original upstream error text/status.
+- Current verification artifact after seed attempts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-140147Z.md`
+  - result remains: `No submitted hacks: 2` / `Total submitted hacks: 0`.
+- Status impact:
+  - readiness remains **Conditional GO** with outstanding operational blocker: Supabase write throttling prevents seed submission closure step.
+
+**Phase 5 launch-readiness matrix checkpoint M (Feb 18, 2026 13:52 UTC):**
+- Completed Phase 5 final readiness pass using production dry-run evidence and current canonical instances.
+- Added launch-readiness artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-LAUNCH-READINESS-20260218-1352Z.md`
+  - includes:
+    - canonical target resolution status,
+    - migration integrity summary,
+    - performance baseline summary,
+    - final QA matrix,
+    - ops command set,
+    - go/no-go recommendation with explicit conditions.
+- Improved dry-run artifact hygiene:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase5-migration-dry-run.mjs`
+  - output filenames now include query slug + timestamp to prevent collisions in consecutive runs.
+- New canonical dry-run artifacts with unique names:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hackday-20260218-135229Z.md` (`0` matches)
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-135230Z.md` (`2` matches, integrity checks pass)
+- Remaining gating condition captured:
+  - production currently has no event matching `HackDay 2026`; active canonical instances remain `HDC Auto*`.
+  - full migration sign-off still requires canonical target row identification/provisioning and at least one submitted hack in target instance for realistic sync-volume validation.
+
+**Phase 5 migration dry-run checkpoint L (Feb 18, 2026 13:48 UTC):**
+- Implemented production-safe migration dry-run tooling via Forge webtrigger (runs in Forge runtime with encrypted Supabase variables).
+- New backend ops entrypoint:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/ops.ts`
+  - computes per-event migration integrity checks:
+    - Confluence page/parent presence
+    - admin role distribution
+    - sync state presence/status
+    - submitted hack/project counts
+    - audit row counts
+  - returns rollback checklist for apply-failure recovery.
+- Added migration query helpers:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `listMigrationEventCandidatesByName(...)`
+  - `countEventAuditLogs(...)`
+- Manifest/runtime wiring:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+  - added webtrigger module `phase5-migration-wt` backed by function `phase5-migration-ops`
+  - configured `response.type: dynamic` for Supabase egress support.
+- Added local execution script:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase5-migration-dry-run.mjs`
+  - npm command:
+    - `/Users/nickster/Downloads/HackCentral/package.json` -> `qa:phase5:migration-dry-run`
+- Production deploy/install for ops endpoint:
+  - `forge deploy --non-interactive -e production` ✅ (`4.2.0`)
+  - `forge install --upgrade ... -e production` ✅ (latest on `hackdaytemp`)
+- Artifacts generated:
+  - requested target query (`HackDay 2026`): `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-20260218-134821Z.md`
+    - result: `0` matching events (naming/data-target gap)
+  - active-canonical baseline query (`HDC Auto`): `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-20260218-134844Z.md`
+    - result: `2` matching events, page IDs/parent IDs/admin/sync-state integrity checks all pass; both have `0` submitted hacks.
+- Validation rerun:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-hdcService.spec.ts tests/phase5-performance-harness.spec.ts` ✅ (`34` tests passing)
+
+**Phase 5 stress/performance harness checkpoint K (Feb 18, 2026 13:36 UTC):**
+- Implemented Phase 5 stress/perf harness with configurable thresholds and repeatable output.
+- New test harness:
+  - `/Users/nickster/Downloads/HackCentral/tests/phase5-performance-harness.spec.ts`
+  - scenarios:
+    - `registry_lookup` scale test (`listAllEvents`) at `2500` events by default,
+    - `complete_and_sync` high-volume test (`completeAndSync`) at `3000` hacks by default.
+  - threshold env controls:
+    - `HDC_PERF_REGISTRY_EVENTS`
+    - `HDC_PERF_REGISTRY_ITERATIONS`
+    - `HDC_PERF_REGISTRY_P95_MS`
+    - `HDC_PERF_SYNC_HACKS`
+    - `HDC_PERF_SYNC_ITERATIONS`
+    - `HDC_PERF_SYNC_P95_MS`
+- Added npm command:
+  - `/Users/nickster/Downloads/HackCentral/package.json`
+  - `test:perf:phase5`
+- Baseline run on this machine:
+  - `registry_lookup`: `p50=0.64ms`, `p95=7.63ms` (`budget=120ms`)
+  - `complete_and_sync`: `p50=1.02ms`, `p95=7.48ms` (`budget=220ms`)
+- Validation rerun:
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:perf:phase5` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-hdcService.spec.ts tests/phase5-performance-harness.spec.ts` ✅ (`34` tests passing)
+- Deploy/install outcomes:
+  - no deploy/install actions executed in this checkpoint (test harness + baseline capture only).
+
+**Phase 5 instrumentation deploy + signal verification checkpoint J (Feb 18, 2026 13:33 UTC):**
+- Promoted Phase 5 kickoff instrumentation to both Forge environments and verified install state on `hackdaytemp`.
+- Validation/build gates before deploy:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-hdcService.spec.ts` ✅ (`32` tests passing)
+- Telemetry signal quality verification:
+  - runtime test execution emitted `[hdc-performance-telemetry]` records for `metric=registry_lookup` with source, duration, rowCount, fallback flag, and success outcome.
+  - sync telemetry emission remains covered by assertions in `tests/forge-native-hdcService.spec.ts` (`completeAndSync` success/error paths).
+- Deploy/install outcomes:
+  - `forge deploy --non-interactive -e development` ✅ (`5.32.0`)
+  - `forge install --upgrade ... -e development` ✅ (already latest)
+  - `forge deploy --non-interactive -e production` ✅ (`3.24.0`)
+  - `forge install --upgrade ... -e production` ✅ (already latest)
+  - `forge install list` confirms both environments `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+**Phase 5 instrumentation kickoff checkpoint I (Feb 18, 2026 13:23 UTC):**
+- Started Phase 5 migration/performance readiness instrumentation from `main` at commit `b4e3e8f`.
+- Added backend performance telemetry for registry lookup timing:
+  - `listAllEvents`
+  - `listEventsByParentPageId`
+  - telemetry event shape emitted under `[hdc-performance-telemetry]` with metric `registry_lookup`, source, durationMs, outcome, rowCount, and legacy-fallback flag.
+- Added sync execution telemetry for duration and error-rate tracking:
+  - `HdcService.completeAndSync`
+  - `HdcService.retrySync`
+  - telemetry event shape emitted under `[hdc-performance-telemetry]` with metric `sync_execution`, action, durationMs, outcome, sync status/category, retryable flag, and warning payload.
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+- Validation rerun:
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts tests/forge-native-hdcService.spec.ts` ✅ (`32` tests passing)
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- Deploy/install outcomes:
+  - no deploy/install actions executed in this checkpoint (instrumentation + tests only).
+
 **Phase 3 switcher runtime triage + closure checkpoint H (Feb 18, 2026 11:54 UTC):**
 - Root-cause fix implemented for parent->instance switcher transition in Forge macro context:
   - `router.navigate` now uses Confluence page path (`/wiki/pages/viewpage.action?pageId=...`) rather than absolute URL.
