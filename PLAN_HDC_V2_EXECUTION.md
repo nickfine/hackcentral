@@ -1437,3 +1437,20 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Plan impact
 - Phase 6 weekly operations are now faster and less error-prone to execute.
+
+## Progress Update (Feb 18, 2026 - Phase 6 Weekly Check Bundle Run @ 15:47 UTC)
+
+### Execution completed
+1. Ran bundled weekly check command end-to-end:
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:weekly-check`
+
+2. Published verification artifact:
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260218-1547Z.md`
+
+### Results
+- Integrity checks: PASS
+- Performance checks: PASS
+- Runtime telemetry checks: PASS
+
+### Plan impact
+- Weekly Phase 6 operations are now executable in a single command path with validated outputs.

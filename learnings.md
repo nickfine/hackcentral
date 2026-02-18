@@ -3006,3 +3006,19 @@ Key hardening changes:
 
 ### Procedural learning
 1. Turning runbook commands into scripts materially reduces operator error and speeds weekly evidence generation.
+
+## Phase 6 Weekly Check Bundle Run (Feb 18, 2026 15:47 UTC)
+
+### Scope completed
+- Executed full bundled command:
+  - `npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:weekly-check`
+- Published resulting verification artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260218-1547Z.md`
+
+### Outcome
+- Integrity: PASS
+- Performance budgets: PASS (`registry_lookup p95=6.70ms`, `complete_and_sync p95=5.39ms`)
+- Runtime telemetry presence: PASS (`registry_lookup` + `sync_execution` found)
+
+### Procedural learning
+1. The single bundled command is sufficient to drive end-to-end weekly evidence capture with minimal operator branching.
