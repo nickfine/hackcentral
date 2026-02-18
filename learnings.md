@@ -2935,3 +2935,14 @@ Key hardening changes:
 
 ### Procedural learning
 1. A closed feature phase still needs an explicit run-state phase; codifying cadence, thresholds, and responders prevents regressions from becoming ad-hoc firefighting.
+
+## Phase 6 Procedural Pack Checkpoint (Feb 18, 2026 15:33 UTC)
+
+### Scope completed
+- Added the Phase 6 weekly operations templates and triage checklist:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-WEEKLY-VERIFICATION-TEMPLATE.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-TELEMETRY-SAMPLING-SCHEDULE.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-REGRESSION-TRIAGE-CHECKLIST.md`
+
+### Procedural learning
+1. Runbooks become executable only when paired with templates and ownership cadence; without these, checks degrade into one-off manual memory.

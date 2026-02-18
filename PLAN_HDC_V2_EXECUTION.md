@@ -1361,3 +1361,20 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
   1. P6-2 weekly verification artifact template,
   2. P6-3 production telemetry sampling schedule,
   3. P6-4 regression triage checklist.
+
+## Progress Update (Feb 18, 2026 - Phase 6 Procedural Pack P6-2/P6-3/P6-4 @ 15:33 UTC)
+
+### Execution completed
+1. Completed P6-2 weekly verification artifact template.
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-WEEKLY-VERIFICATION-TEMPLATE.md`
+
+2. Completed P6-3 telemetry sampling ownership schedule.
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-TELEMETRY-SAMPLING-SCHEDULE.md`
+
+3. Completed P6-4 regression triage checklist.
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-REGRESSION-TRIAGE-CHECKLIST.md`
+
+### Plan impact
+- Phase 6 core procedural pack is now in place (`P6-1` through `P6-4` complete).
+- Remaining queued item from initial set:
+  1. P6-5 historical hygiene closure note after manual Confluence orphan-page cleanup.
