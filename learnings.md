@@ -2974,3 +2974,19 @@ Key hardening changes:
 
 ### Procedural learning
 1. The Phase 6 ops pack is executable as designed; one artifact now captures integrity, performance, and runtime telemetry in a single weekly evidence unit.
+
+## Phase 6 P6-5 Manual Hygiene Closure (Feb 18, 2026 15:40 UTC)
+
+### Scope completed
+- Closed the final manual historical hygiene task by archiving both orphan Confluence pages:
+  - `6029333`
+  - `5767177`
+- Closure artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-P6-5-HYGIENE-CLOSURE-20260218-1540Z.md`
+
+### Verification
+- Both page URLs now display archived-state messaging:
+  - `This content is archived. Restore to make changes.`
+
+### Procedural learning
+1. When API auth is constrained, authenticated browser automation is a viable fallback for deterministic manual admin operations with traceable evidence.
