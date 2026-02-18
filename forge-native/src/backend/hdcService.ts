@@ -242,6 +242,10 @@ export class HdcService {
       hackingStartsAt: event.hacking_starts_at,
       submissionDeadlineAt: event.submission_deadline_at,
     });
+    const confluencePageId =
+      typeof event.confluence_page_id === 'string' && event.confluence_page_id.trim()
+        ? event.confluence_page_id.trim()
+        : null;
 
     return {
       pageType: 'instance',
@@ -252,7 +256,8 @@ export class HdcService {
         icon: event.icon ?? '🚀',
         tagline: event.tagline,
         lifecycleStatus: event.lifecycle_status,
-        confluencePageId: event.confluence_page_id,
+        confluencePageId,
+        isNavigable: Boolean(confluencePageId),
         confluenceParentPageId: event.confluence_parent_page_id,
         schedule,
         hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,

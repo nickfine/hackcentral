@@ -1,5 +1,41 @@
 # Learnings
 
+**Phase 3 navigability contract hardening checkpoint E (Feb 18, 2026 00:07 UTC):**
+- Implemented explicit registry navigability contract across backend + both frontends.
+- Shared/backend model updates:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+- Contract behavior:
+  - `EventRegistryItem.confluencePageId` is now nullable,
+  - `EventRegistryItem.isNavigable` is now explicit in payload,
+  - backend mapping normalizes page IDs and computes `isNavigable`,
+  - Convex bootstrap fallback now normalizes registry navigability for consistency.
+- UI hardening expanded to both surfaces:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+- UI outcome:
+  - both global and macro switchers now disable non-navigable rows via explicit contract,
+  - unavailable rows show `Page not provisioned yet`,
+  - navigation handlers are guarded by registry item navigability,
+  - both surfaces show a top warning when non-provisioned entries are present.
+- Tests expanded:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts`
+  - added coverage for `isNavigable` handling, unavailable row text, and guarded callback behavior.
+- Validation rerun:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`40` tests passing)
+- Deploy/install/smoke outcome:
+  - no deploy/install/smoke actions in this checkpoint (contract + UI hardening only).
+
 **Phase 3 switcher null-target hardening checkpoint D (Feb 17, 2026 23:53 UTC):**
 - Implemented global switcher guardrails for non-provisioned Confluence targets:
   - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`

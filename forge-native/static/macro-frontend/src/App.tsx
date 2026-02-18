@@ -15,7 +15,10 @@ import {
   buildSwitcherSections,
   getHomePageId,
   invalidateSwitcherRegistryCache,
+  isNavigableRegistryItem,
   readSwitcherRegistryCache,
+  runSwitcherNavigation,
+  switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
 
@@ -271,6 +274,10 @@ export function App(): JSX.Element {
   );
   const switcherSections = useMemo(
     () => buildSwitcherSections(context?.registry ?? []),
+    [context?.registry]
+  );
+  const hasNonNavigableSwitcherItems = useMemo(
+    () => (context?.registry ?? []).some((item) => !isNavigableRegistryItem(item)),
     [context?.registry]
   );
 
@@ -995,14 +1002,18 @@ export function App(): JSX.Element {
                             type="button"
                             data-switcher-option="true"
                             className={`switcher-row ${isCurrent ? 'current' : ''}`}
-                            disabled={isCurrent}
-                            onClick={() => void navigateToPageId(item.confluencePageId)}
+                            disabled={isCurrent || !isNavigableRegistryItem(item)}
+                            onClick={() => {
+                              runSwitcherNavigation(item, (targetPageId) => {
+                                void navigateToPageId(targetPageId);
+                              });
+                            }}
                           >
                             <span className="switcher-row-main">
                               <span className="switcher-row-title">
                                 {item.icon || '🚀'} {item.eventName}
                               </span>
-                              <span className="switcher-row-meta">{item.tagline || 'No tagline set'}</span>
+                              <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
                             </span>
                             <span className="switcher-row-status">{formatLifecycle(item.lifecycleStatus)}</span>
                           </button>
@@ -1019,6 +1030,9 @@ export function App(): JSX.Element {
 
       {LOCAL_PREVIEW ? <section className="note">Local preview mode: resolver calls are disabled.</section> : null}
       {switcherWarning ? <section className="note">{switcherWarning}</section> : null}
+      {hasNonNavigableSwitcherItems ? (
+        <section className="note">Some switcher entries are unavailable until their Confluence pages are provisioned.</section>
+      ) : null}
       {message ? <section className="note success">{message}</section> : null}
       {error ? <section className="note error">{error}</section> : null}
 

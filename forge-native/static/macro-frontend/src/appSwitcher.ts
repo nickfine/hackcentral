@@ -3,6 +3,7 @@ import type { EventRegistryItem, HdcContextResponse, LifecycleStatus } from './t
 export const SWITCHER_CACHE_TTL_MS = 5 * 60 * 1000;
 const SWITCHER_CACHE_PREFIX = 'hdc-switcher-registry:';
 const RECENT_WINDOW_DAYS = 90;
+export const SWITCHER_UNAVAILABLE_LABEL = 'Page not provisioned yet';
 
 export interface SwitcherSections {
   live: EventRegistryItem[];
@@ -87,6 +88,36 @@ export function buildSwitcherSections(
 
 export function buildConfluencePagePath(pageId: string): string {
   return `/wiki/pages/viewpage.action?pageId=${encodeURIComponent(pageId)}`;
+}
+
+export function isNavigableConfluencePageId(pageId: string | null | undefined): pageId is string {
+  return typeof pageId === 'string' && pageId.trim().length > 0;
+}
+
+export function isNavigableRegistryItem(item: EventRegistryItem): boolean {
+  const explicit = (item as { isNavigable?: boolean }).isNavigable;
+  if (typeof explicit === 'boolean') {
+    return explicit && isNavigableConfluencePageId(item.confluencePageId);
+  }
+  return isNavigableConfluencePageId(item.confluencePageId);
+}
+
+export function switcherRowMetaText(item: EventRegistryItem): string {
+  if (!isNavigableRegistryItem(item)) {
+    return SWITCHER_UNAVAILABLE_LABEL;
+  }
+  return item.tagline || 'No tagline set';
+}
+
+export function runSwitcherNavigation(
+  item: EventRegistryItem,
+  onNavigate: (targetPageId: string) => void
+): boolean {
+  if (!isNavigableRegistryItem(item) || !isNavigableConfluencePageId(item.confluencePageId)) {
+    return false;
+  }
+  onNavigate(item.confluencePageId);
+  return true;
 }
 
 export function getHomePageId(context: HdcContextResponse): string | null {

@@ -556,6 +556,7 @@ function asEventSchedule(
 }
 
 function toEventRegistryItem(event: DbEvent): EventRegistryItem {
+  const pageId = typeof event.confluence_page_id === 'string' ? event.confluence_page_id.trim() : '';
   const schedule = asEventSchedule(event.event_schedule, {
     timezone: event.timezone,
     hackingStartsAt: event.hacking_starts_at,
@@ -567,7 +568,8 @@ function toEventRegistryItem(event: DbEvent): EventRegistryItem {
     icon: event.icon ?? '🚀',
     tagline: event.tagline,
     lifecycleStatus: event.lifecycle_status,
-    confluencePageId: event.confluence_page_id,
+    confluencePageId: pageId || null,
+    isNavigable: pageId.length > 0,
     confluenceParentPageId: event.confluence_parent_page_id,
     schedule,
     hackingStartsAt: schedule.hackingStartsAt ?? event.hacking_starts_at,

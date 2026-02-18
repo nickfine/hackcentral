@@ -7,6 +7,46 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Navigability Contract Hardening (Feb 18, 2026 00:07 UTC)
+
+### Completed
+- Introduced explicit switcher navigability contract in shared/backend registry model:
+  - `EventRegistryItem.confluencePageId` nullable,
+  - `EventRegistryItem.isNavigable` explicit boolean.
+- Backend normalization updates:
+  - Supabase event->registry mapper now normalizes page ID + computes `isNavigable`,
+  - `hdcGetContext` instance payload now includes explicit `isNavigable`,
+  - Convex fallback bootstrap registry is normalized to the same contract.
+- Frontend integration completed on both UI surfaces:
+  - global page switcher now keys disabled state and navigation guard off explicit `isNavigable`,
+  - macro switcher now applies the same disabled/guard behavior and unavailable row text,
+  - both surfaces show a top-level warning when non-provisioned entries are present.
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/appSwitcher.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-global-app-switcher.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-app-switcher.spec.ts`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`40` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+
+### Plan impact
+- Switcher behavior is now contract-driven and consistent between global and macro surfaces even when page provisioning is incomplete.
+- Remaining blocker is unchanged: manual macro-host breakpoint QA (P3-8) still requires real parent/instance host page IDs with accessible page-create/discovery permissions.
+
 ## Phase 3 Switcher Null-Target Hardening (Feb 17, 2026 23:53 UTC)
 
 ### Completed

@@ -21,6 +21,21 @@ interface ConvexBootstrapPayload {
   registry?: BootstrapData['registry'];
 }
 
+function normalizeRegistryItemNavigability(
+  item: BootstrapData['registry'][number]
+): BootstrapData['registry'][number] {
+  const pageId =
+    typeof item.confluencePageId === 'string' && item.confluencePageId.trim() ? item.confluencePageId.trim() : null;
+  const explicitFlag = (item as { isNavigable?: boolean }).isNavigable;
+  const isNavigable = typeof explicitFlag === 'boolean' ? explicitFlag && Boolean(pageId) : Boolean(pageId);
+
+  return {
+    ...item,
+    confluencePageId: pageId,
+    isNavigable,
+  };
+}
+
 type ForgeDataBackendMode = 'supabase' | 'convex' | 'auto';
 
 function isSupabasePermissionError(error: unknown): boolean {
@@ -118,7 +133,7 @@ async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<Bootst
     featuredHacks: payload.featuredHacks,
     recentProjects: payload.recentProjects,
     people: payload.people,
-    registry: payload.registry ?? [],
+    registry: (payload.registry ?? []).map(normalizeRegistryItemNavigability),
   };
 }
 

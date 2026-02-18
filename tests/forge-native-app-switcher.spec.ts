@@ -1,12 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EventRegistryItem, HdcContextResponse } from '../forge-native/static/macro-frontend/src/types';
 import {
+  SWITCHER_UNAVAILABLE_LABEL,
   SWITCHER_CACHE_TTL_MS,
   buildConfluencePagePath,
   buildSwitcherSections,
   getHomePageId,
   invalidateSwitcherRegistryCache,
+  isNavigableRegistryItem,
   readSwitcherRegistryCache,
+  runSwitcherNavigation,
+  switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from '../forge-native/static/macro-frontend/src/appSwitcher';
 
@@ -22,6 +26,7 @@ function makeEvent(
     tagline: null,
     lifecycleStatus,
     confluencePageId: `page-${id}`,
+    isNavigable: true,
     confluenceParentPageId: 'parent-1',
     schedule: {},
     hackingStartsAt: null,
@@ -131,5 +136,35 @@ describe('macro app switcher helpers', () => {
     writeSwitcherRegistryCache(pageId, registry);
     invalidateSwitcherRegistryCache(pageId);
     expect(readSwitcherRegistryCache(pageId)).toBeNull();
+  });
+
+  it('flags non-navigable entries and exposes unavailable row text', () => {
+    const missingPage = makeEvent('missing-page', 'draft', {
+      confluencePageId: null,
+      isNavigable: false,
+      tagline: 'ignored',
+    });
+    const navigable = makeEvent('navigable-page', 'draft', {
+      confluencePageId: 'page-live',
+      isNavigable: true,
+      tagline: null,
+    });
+
+    expect(isNavigableRegistryItem(missingPage)).toBe(false);
+    expect(isNavigableRegistryItem(navigable)).toBe(true);
+    expect(switcherRowMetaText(missingPage)).toBe(SWITCHER_UNAVAILABLE_LABEL);
+    expect(switcherRowMetaText(navigable)).toBe('No tagline set');
+  });
+
+  it('guards navigation callback when switcher target is missing', () => {
+    const onNavigate = vi.fn();
+    const missingPage = makeEvent('missing-page', 'draft', { confluencePageId: null, isNavigable: false });
+    const validPage = makeEvent('valid-page', 'draft', { confluencePageId: 'page-xyz', isNavigable: true });
+
+    expect(runSwitcherNavigation(missingPage, onNavigate)).toBe(false);
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    expect(runSwitcherNavigation(validPage, onNavigate)).toBe(true);
+    expect(onNavigate).toHaveBeenCalledWith('page-xyz');
   });
 });

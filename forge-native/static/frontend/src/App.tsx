@@ -12,7 +12,7 @@ import type {
 import {
   buildConfluencePagePath,
   buildSwitcherSections,
-  isNavigableConfluencePageId,
+  isNavigableRegistryItem,
   readSwitcherRegistryCache,
   runSwitcherNavigation,
   switcherRowMetaText,
@@ -366,6 +366,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       tagline: 'Annual innovation sprint',
       lifecycleStatus: 'hacking',
       confluencePageId: 'local-event-page-1',
+      isNavigable: true,
       confluenceParentPageId: null,
       schedule: {
         timezone: 'Europe/London',
@@ -391,6 +392,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       tagline: 'Quarterly build challenge',
       lifecycleStatus: 'registration',
       confluencePageId: 'local-event-page-2',
+      isNavigable: true,
       confluenceParentPageId: null,
       schedule: {
         timezone: 'Europe/London',
@@ -652,7 +654,7 @@ export function App(): JSX.Element {
   const registry = bootstrap?.registry ?? [];
   const switcherSections = useMemo(() => buildSwitcherSections(registry), [registry]);
   const hasNonNavigableSwitcherItems = useMemo(
-    () => registry.some((item) => !isNavigableConfluencePageId(item.confluencePageId)),
+    () => registry.some((item) => !isNavigableRegistryItem(item)),
     [registry]
   );
   const switcherGroups = [
@@ -1085,9 +1087,9 @@ export function App(): JSX.Element {
                             type="button"
                             data-switcher-option="true"
                             className="switcher-row"
-                            disabled={!isNavigableConfluencePageId(item.confluencePageId)}
+                            disabled={!isNavigableRegistryItem(item)}
                             onClick={() => {
-                              runSwitcherNavigation(item.confluencePageId, (targetPageId) => {
+                              runSwitcherNavigation(item, (targetPageId) => {
                                 void navigateToSwitcherPage(targetPageId);
                               });
                             }}

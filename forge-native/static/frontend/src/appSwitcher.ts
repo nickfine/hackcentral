@@ -94,21 +94,29 @@ export function isNavigableConfluencePageId(pageId: string | null | undefined): 
   return typeof pageId === 'string' && pageId.trim().length > 0;
 }
 
+export function isNavigableRegistryItem(item: EventRegistryItem): boolean {
+  const explicit = (item as { isNavigable?: boolean }).isNavigable;
+  if (typeof explicit === 'boolean') {
+    return explicit && isNavigableConfluencePageId(item.confluencePageId);
+  }
+  return isNavigableConfluencePageId(item.confluencePageId);
+}
+
 export function switcherRowMetaText(item: EventRegistryItem): string {
-  if (!isNavigableConfluencePageId(item.confluencePageId)) {
+  if (!isNavigableRegistryItem(item)) {
     return SWITCHER_UNAVAILABLE_LABEL;
   }
   return item.tagline || 'No tagline set';
 }
 
 export function runSwitcherNavigation(
-  pageId: string | null | undefined,
+  item: EventRegistryItem,
   onNavigate: (targetPageId: string) => void
 ): boolean {
-  if (!isNavigableConfluencePageId(pageId)) {
+  if (!isNavigableRegistryItem(item) || !isNavigableConfluencePageId(item.confluencePageId)) {
     return false;
   }
-  onNavigate(pageId);
+  onNavigate(item.confluencePageId);
   return true;
 }
 

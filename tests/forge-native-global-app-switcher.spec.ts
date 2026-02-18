@@ -6,6 +6,7 @@ import {
   buildConfluencePagePath,
   buildSwitcherSections,
   isNavigableConfluencePageId,
+  isNavigableRegistryItem,
   readSwitcherRegistryCache,
   runSwitcherNavigation,
   switcherRowMetaText,
@@ -24,6 +25,7 @@ function makeEvent(
     tagline: null,
     lifecycleStatus,
     confluencePageId: `page-${id}`,
+    isNavigable: true,
     confluenceParentPageId: null,
     schedule: {},
     hackingStartsAt: null,
@@ -94,26 +96,33 @@ describe('global app switcher helpers', () => {
     const missingPage = makeEvent('missing-page', 'draft', {
       tagline: 'Custom tagline',
       confluencePageId: null,
+      isNavigable: false,
     });
     const navigable = makeEvent('with-page', 'draft', {
       tagline: null,
       confluencePageId: 'page-with-id',
+      isNavigable: true,
     });
 
     expect(isNavigableConfluencePageId(missingPage.confluencePageId)).toBe(false);
     expect(isNavigableConfluencePageId(navigable.confluencePageId)).toBe(true);
+    expect(isNavigableRegistryItem(missingPage)).toBe(false);
+    expect(isNavigableRegistryItem(navigable)).toBe(true);
     expect(switcherRowMetaText(missingPage)).toBe(SWITCHER_UNAVAILABLE_LABEL);
     expect(switcherRowMetaText(navigable)).toBe('No tagline set');
   });
 
   it('does not invoke navigation handler when page ID is missing', () => {
     const onNavigate = vi.fn();
+    const missingPage = makeEvent('missing', 'draft', { confluencePageId: null, isNavigable: false });
+    const blankPage = makeEvent('blank', 'draft', { confluencePageId: '', isNavigable: false });
+    const validPage = makeEvent('valid', 'draft', { confluencePageId: 'page-123', isNavigable: true });
 
-    expect(runSwitcherNavigation(null, onNavigate)).toBe(false);
-    expect(runSwitcherNavigation('', onNavigate)).toBe(false);
+    expect(runSwitcherNavigation(missingPage, onNavigate)).toBe(false);
+    expect(runSwitcherNavigation(blankPage, onNavigate)).toBe(false);
     expect(onNavigate).not.toHaveBeenCalled();
 
-    expect(runSwitcherNavigation('page-123', onNavigate)).toBe(true);
+    expect(runSwitcherNavigation(validPage, onNavigate)).toBe(true);
     expect(onNavigate).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith('page-123');
   });
