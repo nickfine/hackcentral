@@ -136,3 +136,19 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Deploy/install status:
   - development deployed `5.28.0` and install verified `Up-to-date`.
   - production deployed `3.20.0` and install verified `Up-to-date`.
+
+## Continuation update (2026-02-18 12:12 UTC)
+
+- Completed Phase 4 read-only enforcement slice for completed/archived instances.
+- Backend lifecycle guardrails added in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - blocked actions: `submitHack`, `completeAndSync`, `retrySync` when lifecycle is `completed` or `archived`.
+- Macro UI control-state parity added in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - submit/sync/lifecycle controls disabled on read-only instances + inline read-only notice.
+- Test coverage update:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts` now includes read-only blockers and passes (`20/20`).
+- Validation status: typecheck/build/targeted tests all pass.
+- Deploy/install status:
+  - development deployed `5.29.0` and verified `Up-to-date`.
+  - production deployed `3.21.0` and verified `Up-to-date`.

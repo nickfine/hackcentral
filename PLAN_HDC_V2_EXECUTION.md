@@ -997,3 +997,35 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next Phase 4 item (unblocked)
 1. Implement completion read-only enforcement for instance editing surfaces and add tests for post-completion write blockers.
+
+## Progress Update (Feb 18, 2026 - Phase 4 Read-only Enforcement @ 12:12 UTC)
+
+### Phase 4 execution completed in this checkpoint
+1. Enforced completed/archived instance read-only behavior for mutating actions.
+- Backend guardrails:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - blocked for completed/archived: `submitHack`, `completeAndSync`, `retrySync`.
+- Macro UI enforcement:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - disabled submit/sync/lifecycle controls when read-only.
+- Regression tests:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+  - added explicit read-only blocker coverage; suite now `20` passing tests.
+
+### Validation (UTC)
+- Window: `2026-02-18T12:10:34Z` -> `2026-02-18T12:12:29Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` ✅
+- `npm run macro:build` ✅
+- `vitest v4.0.18` targeted suites ✅
+  - `tests/forge-native-hdcService.spec.ts` (`20/20`)
+  - `tests/forge-native-repository-sync.spec.ts` (`5/5`)
+  - `tests/forge-native-repository-event-config.spec.ts` (`4/4`)
+
+### Deploy/install verification (UTC)
+- Development deploy: `5.29.0` ✅
+- Production deploy: `3.21.0` ✅
+- Install upgrades/checks confirm both environments `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Next Phase 4 item (unblocked)
+1. Implement archive behavior automation (90-day completed -> archived) and exclude archived instances from switcher “Recent”.

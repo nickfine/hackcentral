@@ -294,6 +294,9 @@ export function App(): JSX.Element {
 
   const canAdminInstance = Boolean(context?.permissions.isPrimaryAdmin || context?.permissions.isCoAdmin);
   const isPrimaryAdmin = Boolean(context?.permissions.isPrimaryAdmin);
+  const isReadOnlyInstance = Boolean(
+    context?.event && (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived')
+  );
 
   const sortedRegistry = useMemo(
     () => [...(context?.registry ?? [])].sort((a, b) => a.eventName.localeCompare(b.eventName)),
@@ -742,6 +745,10 @@ export function App(): JSX.Element {
       setError('No instance context available for hack submission.');
       return;
     }
+    if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
+      setError('Instance is read-only after completion; hack submissions are disabled.');
+      return;
+    }
     if (!hackTitle.trim()) {
       setError('Hack title is required.');
       return;
@@ -771,6 +778,10 @@ export function App(): JSX.Element {
     async (mode: 'complete' | 'retry') => {
       if (!context?.event) {
         setError('No instance selected for sync.');
+        return;
+      }
+      if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
+        setError('Instance is read-only after completion; sync actions are disabled.');
         return;
       }
 
@@ -803,6 +814,10 @@ export function App(): JSX.Element {
   const handleLaunch = useCallback(async () => {
     if (!context?.event) {
       setError('No instance selected for lifecycle update.');
+      return;
+    }
+    if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
+      setError('Instance is read-only after completion; lifecycle updates are disabled.');
       return;
     }
 
@@ -1459,19 +1474,26 @@ export function App(): JSX.Element {
             <p>{context.event.tagline || 'No tagline provided.'}</p>
 
             <h3>Submit Hack</h3>
+            {isReadOnlyInstance ? <p>This instance is read-only. Hack submissions are disabled.</p> : null}
             <label>
               Title
-              <input value={hackTitle} onChange={(event) => setHackTitle(event.target.value)} placeholder="Meeting Notes Summarizer" />
+              <input
+                disabled={saving || isReadOnlyInstance}
+                value={hackTitle}
+                onChange={(event) => setHackTitle(event.target.value)}
+                placeholder="Meeting Notes Summarizer"
+              />
             </label>
             <label>
               Description
               <textarea
+                disabled={saving || isReadOnlyInstance}
                 value={hackDescription}
                 onChange={(event) => setHackDescription(event.target.value)}
                 placeholder="What does this hack solve?"
               />
             </label>
-            <button disabled={saving} onClick={() => void handleSubmitHack()}>
+            <button disabled={saving || isReadOnlyInstance} onClick={() => void handleSubmitHack()}>
               {saving ? 'Submitting…' : 'Submit Hack'}
             </button>
           </article>
@@ -1492,13 +1514,13 @@ export function App(): JSX.Element {
             </p>
             {context.syncState ? <p>Error category: {formatSyncErrorCategory(context.syncState.syncErrorCategory)}</p> : null}
             {context.syncState?.retryGuidance ? <p>Guidance: {context.syncState.retryGuidance}</p> : null}
-            <button disabled={saving || !canAdminInstance} onClick={() => void handleLaunch()}>
+            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void handleLaunch()}>
               {saving ? 'Updating…' : 'Advance Lifecycle'}
             </button>
-            <button disabled={saving || !canAdminInstance} onClick={() => void runSync('complete')}>
+            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void runSync('complete')}>
               {saving ? 'Syncing…' : 'Complete + Sync'}
             </button>
-            <button disabled={saving || !canAdminInstance} onClick={() => void runSync('retry')}>
+            <button disabled={saving || !canAdminInstance || isReadOnlyInstance} onClick={() => void runSync('retry')}>
               {saving ? 'Retrying…' : 'Retry Sync'}
             </button>
             <button

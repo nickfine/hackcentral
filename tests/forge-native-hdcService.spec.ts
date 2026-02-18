@@ -28,6 +28,7 @@ type RepoMock = {
   updateEventLifecycle: ReturnType<typeof vi.fn>;
   listEventAdmins: ReturnType<typeof vi.fn>;
   listEventHackProjects: ReturnType<typeof vi.fn>;
+  submitHack: ReturnType<typeof vi.fn>;
   listProjectsByEventId: ReturnType<typeof vi.fn>;
   deleteEventCascade: ReturnType<typeof vi.fn>;
   getSyncState: ReturnType<typeof vi.fn>;
@@ -51,6 +52,7 @@ function createRepoMock(): RepoMock {
     updateEventLifecycle: vi.fn(),
     listEventAdmins: vi.fn(),
     listEventHackProjects: vi.fn(),
+    submitHack: vi.fn(),
     listProjectsByEventId: vi.fn(),
     deleteEventCascade: vi.fn(),
     getSyncState: vi.fn(),
@@ -387,6 +389,7 @@ describe('HdcService hardening behavior', () => {
   it('preserves previous pushed/skipped counts when sync fails after moving to in_progress', async () => {
     const repo = createRepoMock();
     repo.ensureUser.mockResolvedValue({ id: 'user-1' });
+    repo.getEventById.mockResolvedValue({ id: 'event-1', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-1', role: 'primary' }]);
     repo.listEventHackProjects.mockResolvedValue([{ id: 'project-1' }]);
     repo.getSyncState.mockResolvedValue({
@@ -437,6 +440,7 @@ describe('HdcService hardening behavior', () => {
   it('records sync_partial audit action when repository returns partial sync', async () => {
     const repo = createRepoMock();
     repo.ensureUser.mockResolvedValue({ id: 'user-7' });
+    repo.getEventById.mockResolvedValue({ id: 'event-9', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-7', role: 'co_admin' }]);
     repo.listEventHackProjects.mockResolvedValue([{ id: 'project-9' }]);
     repo.getSyncState.mockResolvedValue(null);
@@ -485,6 +489,7 @@ describe('HdcService hardening behavior', () => {
   it('blocks completeAndSync when viewer is not an event admin', async () => {
     const repo = createRepoMock();
     repo.ensureUser.mockResolvedValue({ id: 'user-2' });
+    repo.getEventById.mockResolvedValue({ id: 'event-2', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'someone-else', role: 'primary' }]);
 
     const service = new ServiceClass(repo as never);
@@ -499,6 +504,7 @@ describe('HdcService hardening behavior', () => {
   it('blocks completeAndSync when no hacks have been submitted', async () => {
     const repo = createRepoMock();
     repo.ensureUser.mockResolvedValue({ id: 'user-3' });
+    repo.getEventById.mockResolvedValue({ id: 'event-3', lifecycle_status: 'results' });
     repo.listEventAdmins.mockResolvedValue([{ user_id: 'user-3', role: 'primary' }]);
     repo.listEventHackProjects.mockResolvedValue([]);
 
@@ -509,6 +515,38 @@ describe('HdcService hardening behavior', () => {
 
     expect(repo.completeAndSync).not.toHaveBeenCalled();
     expect(repo.upsertSyncState).not.toHaveBeenCalled();
+  });
+
+  it('blocks submitHack when instance lifecycle is completed', async () => {
+    const repo = createRepoMock();
+    repo.getEventById.mockResolvedValue({
+      id: 'event-complete',
+      lifecycle_status: 'completed',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await expect(
+      service.submitHack(viewer, {
+        eventId: 'event-complete',
+        title: 'Should fail',
+      })
+    ).rejects.toThrow('Instance is read-only after completion; hack submissions are disabled.');
+
+    expect(repo.submitHack).not.toHaveBeenCalled();
+  });
+
+  it('blocks completeAndSync when instance lifecycle is completed', async () => {
+    const repo = createRepoMock();
+    repo.ensureUser.mockResolvedValue({ id: 'user-complete' });
+    repo.getEventById.mockResolvedValue({ id: 'event-complete', lifecycle_status: 'completed' });
+
+    const service = new ServiceClass(repo as never);
+    await expect(service.completeAndSync(viewer, 'event-complete')).rejects.toThrow(
+      'Instance is read-only after completion; sync actions are disabled.'
+    );
+
+    expect(repo.listEventAdmins).not.toHaveBeenCalled();
+    expect(repo.completeAndSync).not.toHaveBeenCalled();
   });
 
   it('deletes draft instance only for primary admin with no projects', async () => {

@@ -2555,3 +2555,42 @@ Key hardening changes:
 
 ### Key learning
 1. Guidance metadata can be shipped immediately by deriving from `syncStatus + lastError`, which avoids migration risk while still giving admins actionable retry UX.
+
+## Phase 4 Checkpoint - Completed Instance Read-only Enforcement (Feb 18, 2026 12:12 UTC)
+
+### Scope completed
+- Enforced read-only behavior for completed/archived instances on server-side mutation paths.
+- Updated files:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+
+### Behavior delivered
+- Backend blocks mutating operations when lifecycle is `completed` or `archived`:
+  - `submitHack`
+  - `completeAndSync`
+  - `retrySync`
+- Macro UI now reflects read-only state:
+  - disables hack submission fields/button,
+  - disables lifecycle/sync admin actions,
+  - renders explicit read-only notice in instance surface.
+
+### Validation outcomes (UTC)
+- Validation window: `2026-02-18T12:10:34Z` -> `2026-02-18T12:12:29Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` in `/forge-native` ✅
+- `npm run macro:build` in `/forge-native` ✅
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅ (`20/20`)
+- `npm run test:run -- tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`5/5`)
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts` (`vitest v4.0.18`) ✅ (`4/4`)
+
+### Deploy/install outcomes (UTC)
+- Development deploy started `2026-02-18T12:10:50Z` -> deployed app version `5.29.0` ✅
+- Production deploy started `2026-02-18T12:11:35Z` -> deployed app version `3.21.0` ✅
+- Install verification:
+  - development `2026-02-18T12:11:27Z` -> site latest ✅
+  - production `2026-02-18T12:12:17Z` -> site latest ✅
+  - `forge install list` confirms both env installs remain `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Key learning
+1. Server-side lifecycle guards are required even with disabled UI controls, because resolver endpoints remain callable from stale clients or direct requests.

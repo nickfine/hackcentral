@@ -203,6 +203,10 @@ const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> =
   results: 'completed',
 };
 
+function isReadOnlyLifecycle(status: LifecycleStatus): boolean {
+  return status === 'completed' || status === 'archived';
+}
+
 function getSyncGuidance(syncStatus: SyncResult['syncStatus'], lastError: string | null): {
   syncErrorCategory: SyncErrorCategory;
   retryable: boolean;
@@ -599,6 +603,9 @@ export class HdcService {
     if (!event) {
       throw new Error('Event not found for hack submission.');
     }
+    if (isReadOnlyLifecycle(event.lifecycle_status)) {
+      throw new Error('Instance is read-only after completion; hack submissions are disabled.');
+    }
 
     if (!payload.title.trim()) {
       throw new Error('Hack title is required.');
@@ -622,6 +629,14 @@ export class HdcService {
 
   async completeAndSync(viewer: ViewerContext, eventId: string): Promise<SyncResult> {
     const user = await this.repository.ensureUser(viewer);
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error('Event not found for sync.');
+    }
+    if (isReadOnlyLifecycle(event.lifecycle_status)) {
+      throw new Error('Instance is read-only after completion; sync actions are disabled.');
+    }
+
     const admins = await this.repository.listEventAdmins(eventId);
     if (!admins.some((admin) => admin.user_id === user.id)) {
       throw new Error('Only event admins can complete and sync this instance.');
@@ -679,6 +694,14 @@ export class HdcService {
 
   async retrySync(viewer: ViewerContext, eventId: string): Promise<SyncResult> {
     const user = await this.repository.ensureUser(viewer);
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error('Event not found for sync.');
+    }
+    if (isReadOnlyLifecycle(event.lifecycle_status)) {
+      throw new Error('Instance is read-only after completion; sync actions are disabled.');
+    }
+
     const admins = await this.repository.listEventAdmins(eventId);
     if (!admins.some((admin) => admin.user_id === user.id)) {
       throw new Error('Only event admins can retry sync.');
