@@ -167,3 +167,16 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Pending manual queue:
   - old page IDs `6029333` and `5767177` may still exist in Confluence; these are now orphaned from registry and queued for manual archive/delete.
   - Atlassian MCP content auth returned `401` in this session, so automated page removal was not available.
+
+## Continuation update (2026-02-18 12:54 UTC)
+
+- Completed Phase 4 archive automation slice.
+- Backend now auto-archives stale completed instances (>90 days) during event read/list operations:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- Added regression test coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+- Archive exclusion in switcher "Recent" remains enforced in existing macro/global app switcher builders and tests.
+- Validation status: typecheck + frontend build + macro build + targeted suites pass.
+- Deploy/install status:
+  - development deployed `5.30.0` and verified `Up-to-date`.
+  - production deployed `3.22.0` and verified `Up-to-date`.

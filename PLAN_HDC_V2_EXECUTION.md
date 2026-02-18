@@ -1048,3 +1048,33 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 ### Pending manual cleanup queue
 - Two old intermediate child pages (`6029333`, `5767177`) may remain in Confluence but are no longer referenced by Supabase.
 - Deletion/archival is queued for manual site-admin action because Atlassian MCP auth for content operations returned `401` in this session.
+
+## Progress Update (Feb 18, 2026 - Phase 4 Archive Automation @ 12:54 UTC)
+
+### Phase 4 execution completed in this checkpoint
+1. Implemented archive behavior automation and completed recent-list exclusion requirements.
+- Backend auto-archive policy (completed > 90 days -> archived) on event read/list paths:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- Regression coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+  - Added explicit test for auto-archiving stale completed events.
+- Switcher behavior status:
+  - archived items are excluded from `Recent` sections in both macro/global switcher builders (existing coverage retained).
+
+### Validation (UTC)
+- Window: `2026-02-18T12:52:53Z` -> `2026-02-18T12:54:40Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` ✅
+- `npm run macro:build` ✅
+- `vitest v4.0.18` targeted suites ✅
+  - `tests/forge-native-repository-event-config.spec.ts` (`5/5`)
+  - `tests/forge-native-hdcService.spec.ts` (`20/20`)
+  - `tests/forge-native-repository-sync.spec.ts` (`5/5`)
+
+### Deploy/install verification (UTC)
+- Development deploy: `5.30.0` ✅
+- Production deploy: `3.22.0` ✅
+- Install upgrades/checks confirm both environments `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Next Phase 4 item
+1. Implement cross-instance derived profile/reputation computation + cache policy.

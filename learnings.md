@@ -2622,3 +2622,36 @@ Key hardening changes:
 
 ### Historical blocker status
 1. Confluence permission/scope create blocker (`401`/`403`) is resolved as of 2026-02-18 and should be treated as historical context, not an active blocker.
+
+## Phase 4 Checkpoint - Auto Archive + Recent Exclusion Completion (Feb 18, 2026 12:54 UTC)
+
+### Scope completed
+- Implemented backend auto-archive policy for completed events older than 90 days.
+- Updated files:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+
+### Behavior delivered
+- On event fetch/list operations (`getEventByConfluencePageId`, `getEventById`, `listEventsByParentPageId`, `listAllEvents`), completed events older than 90 days are transitioned to `archived`.
+- Switcher `Recent` exclusion for archived entries remains active in both global and macro app switcher logic (`buildSwitcherSections`), with existing test coverage already in repo.
+
+### Validation outcomes (UTC)
+- Validation window: `2026-02-18T12:52:53Z` -> `2026-02-18T12:54:40Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` in `/forge-native` ✅
+- `npm run macro:build` in `/forge-native` ✅
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts` (`vitest v4.0.18`) ✅ (`5/5`)
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅ (`20/20`)
+- `npm run test:run -- tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`5/5`)
+- Note: switcher suites remain affected by known local runner issue (`window.localStorage.clear is not a function`), previously observed in this workspace.
+
+### Deploy/install outcomes (UTC)
+- Development deploy started `2026-02-18T12:53:07Z` -> deployed app version `5.30.0` ✅
+- Production deploy started `2026-02-18T12:53:55Z` -> deployed app version `3.22.0` ✅
+- Install verification:
+  - development `2026-02-18T12:53:43Z` -> site latest ✅
+  - production `2026-02-18T12:54:28Z` -> site latest ✅
+  - `forge install list` confirms both env installs remain `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Key learning
+1. Running archival lazily on read paths enables immediate policy enforcement without introducing a scheduler dependency.

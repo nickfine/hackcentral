@@ -201,9 +201,10 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
         event_schedule: null,
       },
     ]);
+    const patchMany = vi.fn().mockResolvedValue([]);
 
-    const fakeRepo = { client: { selectMany } };
-    const result = await SupabaseRepository.prototype.listAllEvents.call(fakeRepo);
+    const repo = new SupabaseRepository({ selectMany, patchMany } as never);
+    const result = await repo.listAllEvents();
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({
@@ -215,6 +216,67 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
       id: 'event-b',
       confluencePageId: 'child-2',
       isNavigable: true,
+    });
+  });
+
+  it('auto-archives completed events older than 90 days while listing registry', async () => {
+    const selectMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-old-completed',
+        name: 'Old Completed',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'completed',
+        confluence_page_id: 'child-old',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-1',
+        hacking_starts_at: '2025-07-01T09:00:00.000Z',
+        submission_deadline_at: '2025-07-05T17:00:00.000Z',
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: {
+          resultsAnnounceAt: '2025-07-10T12:00:00.000Z',
+        },
+      },
+    ]);
+    const patchMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-old-completed',
+        name: 'Old Completed',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'archived',
+        confluence_page_id: 'child-old',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-1',
+        hacking_starts_at: '2025-07-01T09:00:00.000Z',
+        submission_deadline_at: '2025-07-05T17:00:00.000Z',
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: {
+          resultsAnnounceAt: '2025-07-10T12:00:00.000Z',
+        },
+      },
+    ]);
+
+    const repo = new SupabaseRepository({ selectMany, patchMany } as never);
+    const result = await repo.listAllEvents();
+
+    expect(patchMany).toHaveBeenCalledWith(
+      'Event',
+      { lifecycle_status: 'archived' },
+      [{ field: 'id', op: 'eq', value: 'event-old-completed' }]
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'event-old-completed',
+      lifecycleStatus: 'archived',
     });
   });
 });

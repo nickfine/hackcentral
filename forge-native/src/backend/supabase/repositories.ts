@@ -33,6 +33,7 @@ const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
+const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -162,6 +163,39 @@ function asSyncState(row: DbSyncState): EventSyncState {
     skippedCount: row.skipped_count ?? 0,
     ...guidance,
   };
+}
+
+function eventCompletionReferenceMs(event: DbEvent): number | null {
+  const schedule = asEventSchedule(event.event_schedule, {
+    timezone: event.timezone,
+    hackingStartsAt: event.hacking_starts_at,
+    submissionDeadlineAt: event.submission_deadline_at,
+  });
+  const candidates = [
+    schedule.resultsAnnounceAt,
+    schedule.votingEndsAt,
+    schedule.submissionDeadlineAt,
+    schedule.hackingStartsAt,
+    event.submission_deadline_at,
+    event.hacking_starts_at,
+  ];
+
+  for (const value of candidates) {
+    if (!value) continue;
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function shouldAutoArchiveCompletedEvent(event: DbEvent, nowMs: number): boolean {
+  if (event.lifecycle_status !== 'completed') return false;
+  const referenceMs = eventCompletionReferenceMs(event);
+  if (referenceMs === null || referenceMs > nowMs) return false;
+  const ageMs = nowMs - referenceMs;
+  return ageMs > EVENT_AUTO_ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
 }
 
 function getSyncGuidance(syncStatus: SyncStatus, lastError: string | null): {
@@ -1168,9 +1202,10 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
   async getEventByConfluencePageId(pageId: string): Promise<DbEvent | null> {
     try {
-      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+      const row = await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
         { field: 'confluence_page_id', op: 'eq', value: pageId },
       ]);
+      return row ? await this.autoArchiveCompletedEvent(row) : null;
     } catch (error) {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
@@ -1180,7 +1215,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
         EVENT_SELECT_CORE,
         [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
       );
-      return legacy ? withNullEventConfig(legacy) : null;
+      if (!legacy) return null;
+      return this.autoArchiveCompletedEvent(withNullEventConfig(legacy));
     }
   }
 
@@ -1204,9 +1240,10 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
   async getEventById(eventId: string): Promise<DbEvent | null> {
     try {
-      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+      const row = await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
         { field: 'id', op: 'eq', value: eventId },
       ]);
+      return row ? await this.autoArchiveCompletedEvent(row) : null;
     } catch (error) {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
@@ -1216,7 +1253,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
         EVENT_SELECT_CORE,
         [{ field: 'id', op: 'eq', value: eventId }]
       );
-      return legacy ? withNullEventConfig(legacy) : null;
+      if (!legacy) return null;
+      return this.autoArchiveCompletedEvent(withNullEventConfig(legacy));
     }
   }
 
@@ -1237,6 +1275,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       );
       events = legacy.map((row) => withNullEventConfig(row));
     }
+    events = await this.autoArchiveCompletedEvents(events);
 
     return events
       .slice()
@@ -1258,11 +1297,49 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       );
       events = legacy.map((row) => withNullEventConfig(row));
     }
+    events = await this.autoArchiveCompletedEvents(events);
 
     return events
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(toEventRegistryItem);
+  }
+
+  private async autoArchiveCompletedEvent(event: DbEvent): Promise<DbEvent> {
+    if (!shouldAutoArchiveCompletedEvent(event, Date.now())) {
+      return event;
+    }
+
+    const rows = await this.client.patchMany<DbEvent>(
+      EVENT_TABLE,
+      { lifecycle_status: 'archived' },
+      [{ field: 'id', op: 'eq', value: event.id }]
+    );
+    if (rows.length > 0) {
+      return rows[0];
+    }
+    return {
+      ...event,
+      lifecycle_status: 'archived',
+    };
+  }
+
+  private async autoArchiveCompletedEvents(events: DbEvent[]): Promise<DbEvent[]> {
+    if (events.length === 0) return events;
+    const nowMs = Date.now();
+    const staleIds = new Set(
+      events.filter((event) => shouldAutoArchiveCompletedEvent(event, nowMs)).map((event) => event.id)
+    );
+    if (staleIds.size === 0) return events;
+
+    const archivedById = new Map<string, DbEvent>();
+    for (const event of events) {
+      if (!staleIds.has(event.id)) continue;
+      const archived = await this.autoArchiveCompletedEvent(event);
+      archivedById.set(event.id, archived);
+    }
+
+    return events.map((event) => archivedById.get(event.id) ?? event);
   }
 
   async createEvent(input: {
