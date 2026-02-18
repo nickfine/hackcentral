@@ -937,3 +937,29 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next execution item
 1. Capture and store final parent->instance switcher evidence matrix for desktop/tablet/mobile on both parent hosts.
+
+## Progress Update (Feb 18, 2026 - Phase 4 Start @ 11:59 UTC)
+
+### Phase 3 closure status
+- Final parent->instance switcher matrix was completed in prior checkpoint and documented in artifacts.
+- Active execution focus has moved to Phase 4 integrity items.
+
+### Phase 4 execution completed in this checkpoint
+1. Audit retention enforcement shipped (latest `100` entries per event instance).
+- Implementation:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- Regression coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+  - Added tests for:
+    - no deletions at retention boundary (`<=100`),
+    - oldest-first trimming when over limit (`>100`).
+
+### Validation (UTC)
+- Window: `2026-02-18T11:59:28Z` -> `2026-02-18T11:59:50Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run test:run -- tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts` (`vitest v4.0.18`) ✅
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅
+
+### Next Phase 4 item (unblocked)
+1. Add explicit sync error categorization and admin-facing retry guidance payloads in backend + UI state.

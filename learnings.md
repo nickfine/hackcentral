@@ -2485,3 +2485,27 @@ Key hardening changes:
 ### Current forward focus
 1. Capture final Phase 3 parent->instance switcher evidence matrix on both parent hosts.
 2. Begin Phase 4 implementation items once evidence set is complete.
+
+## Phase 4 Checkpoint - Audit Retention Enforcement (Feb 18, 2026 11:59 UTC)
+
+### Scope completed
+- Implemented audit retention policy enforcement in repository layer (latest 100 entries retained per event instance).
+- File updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- Added regression tests for retention boundaries and oldest-row trimming behavior.
+- File updated:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+
+### Implementation detail
+- `logAudit(...)` now inserts the new audit row, then enforces retention for that `event_id`.
+- Retention policy: keep newest 100 rows for the event; delete overflow rows oldest-first (by `created_at`, then `id` tie-break).
+
+### Validation outcomes (UTC)
+- Validation window: `2026-02-18T11:59:28Z` -> `2026-02-18T11:59:50Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run test:run -- tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`5/5` tests)
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts` (`vitest v4.0.18`) ✅ (`4/4` tests)
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅ (`18/18` tests)
+
+### Key learning
+1. Retention can be enforced without schema migration by applying a post-insert prune pass keyed by `event_id`; this keeps rollout risk low while preserving deterministic cap behavior.

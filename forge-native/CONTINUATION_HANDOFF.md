@@ -96,3 +96,20 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Updated evidence artifacts:
   - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
   - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`
+
+## Continuation update (2026-02-18 11:59 UTC)
+
+- Phase 4 execution started with first integrity slice completed:
+  - audit trail retention policy now enforced to keep latest `100` entries per event instance.
+- Code changes:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+- Behavior change:
+  - `logAudit(...)` now prunes overflow rows oldest-first (`created_at`, then `id`) after insert.
+- Validation completed (UTC window `11:59:28Z` -> `11:59:50Z`):
+  - `npm run typecheck` in `forge-native` ✅
+  - `vitest v4.0.18` targeted suites ✅
+    - `tests/forge-native-repository-sync.spec.ts` (`5/5`)
+    - `tests/forge-native-repository-event-config.spec.ts` (`4/4`)
+    - `tests/forge-native-hdcService.spec.ts` (`18/18`)
+- No deploy executed in this checkpoint (repo/backend-only change staged for next deploy batch).

@@ -31,6 +31,7 @@ const PROJECT_TABLE = 'Project';
 const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
+const EVENT_AUDIT_RETENTION_LIMIT = 100;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -120,6 +121,11 @@ interface DbSyncState {
   last_attempt_at: string | null;
   pushed_count: number | null;
   skipped_count: number | null;
+}
+
+interface DbEventAuditLogRetentionRow {
+  id: string;
+  created_at: string | null;
 }
 
 function asVisibility(value: string | null | undefined): Visibility {
@@ -1398,6 +1404,33 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       new_value: input.newValue ?? null,
       created_at: nowIso(),
     });
+
+    await this.enforceEventAuditRetention(input.eventId);
+  }
+
+  private async enforceEventAuditRetention(eventId: string): Promise<void> {
+    const rows = await this.client.selectMany<DbEventAuditLogRetentionRow>(
+      EVENT_AUDIT_LOG_TABLE,
+      'id,created_at',
+      [{ field: 'event_id', op: 'eq', value: eventId }]
+    );
+    if (rows.length <= EVENT_AUDIT_RETENTION_LIMIT) {
+      return;
+    }
+
+    const rowsToDelete = rows
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.created_at ? Date.parse(a.created_at) : Number.NEGATIVE_INFINITY;
+        const bTime = b.created_at ? Date.parse(b.created_at) : Number.NEGATIVE_INFINITY;
+        if (aTime !== bTime) return aTime - bTime;
+        return a.id.localeCompare(b.id);
+      })
+      .slice(0, rows.length - EVENT_AUDIT_RETENTION_LIMIT);
+
+    for (const row of rowsToDelete) {
+      await this.client.deleteMany(EVENT_AUDIT_LOG_TABLE, [{ field: 'id', op: 'eq', value: row.id }]);
+    }
   }
 
   async deleteEventCascade(eventId: string): Promise<void> {

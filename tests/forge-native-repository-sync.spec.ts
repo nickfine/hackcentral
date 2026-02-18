@@ -98,3 +98,54 @@ describe('SupabaseRepository.completeAndSync status classification', () => {
     expect(fakeRepo.markHackSynced).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('SupabaseRepository.logAudit retention', () => {
+  it('keeps existing rows when event audit log count is at or below retention limit', async () => {
+    const insert = vi.fn().mockResolvedValue({ id: 'audit-new' });
+    const base = Date.parse('2026-02-18T00:00:00.000Z');
+    const selectMany = vi.fn().mockResolvedValue(
+      Array.from({ length: 100 }, (_, index) => ({
+        id: `audit-${index + 1}`,
+        created_at: new Date(base + index * 1000).toISOString(),
+      }))
+    );
+    const deleteMany = vi.fn().mockResolvedValue([]);
+
+    const repo = new SupabaseRepository({ insert, selectMany, deleteMany } as never);
+    await repo.logAudit({
+      eventId: 'event-100',
+      actorUserId: 'user-100',
+      action: 'sync_complete',
+    });
+
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(selectMany).toHaveBeenCalledTimes(1);
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes oldest rows when event audit log count exceeds retention limit', async () => {
+    const insert = vi.fn().mockResolvedValue({ id: 'audit-new' });
+    const base = Date.parse('2026-02-18T00:00:00.000Z');
+    const selectMany = vi.fn().mockResolvedValue(
+      Array.from({ length: 103 }, (_, index) => ({
+        id: `audit-${index + 1}`,
+        created_at: new Date(base + index * 1000).toISOString(),
+      }))
+    );
+    const deleteMany = vi.fn().mockResolvedValue([]);
+
+    const repo = new SupabaseRepository({ insert, selectMany, deleteMany } as never);
+    await repo.logAudit({
+      eventId: 'event-101',
+      actorUserId: 'user-101',
+      action: 'sync_partial',
+    });
+
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(selectMany).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledTimes(3);
+    expect(deleteMany).toHaveBeenNthCalledWith(1, 'EventAuditLog', [{ field: 'id', op: 'eq', value: 'audit-1' }]);
+    expect(deleteMany).toHaveBeenNthCalledWith(2, 'EventAuditLog', [{ field: 'id', op: 'eq', value: 'audit-2' }]);
+    expect(deleteMany).toHaveBeenNthCalledWith(3, 'EventAuditLog', [{ field: 'id', op: 'eq', value: 'audit-3' }]);
+  });
+});
