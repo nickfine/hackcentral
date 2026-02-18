@@ -1,5 +1,52 @@
 # Learnings
 
+## Phase 7 Template Macro Render Fix + Live Smoke Closure (Feb 18, 2026 23:34 UTC)
+
+### Root cause confirmed
+- `hackday_template` child pages were failing with `Error loading the extension` because the generated Forge macro storage block only partially retargeted parent metadata.
+- Specifically, older generation paths produced invalid/mismatched macro descriptors (wrong `extension-key` shape and missing/incorrect nested Forge metadata fields under `parameters`).
+
+### Fix implemented
+- Updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+- Added and enforced new Forge variable:
+  - `HACKDAY_TEMPLATE_ENVIRONMENT_ID`
+- Retarget logic now rewrites all required Forge metadata fields in the copied parent block:
+  - `extension-key`
+  - `extension-id`
+  - `app-id`
+  - `environment-id`
+  - macro `key`
+  - refreshed `local-id`
+
+### Deploy + validation
+- Production variable set:
+  - `forge variables set -e production HACKDAY_TEMPLATE_ENVIRONMENT_ID b003228b-aafa-414e-9ab8-9e1ab5aaf5ae` ✅
+- Production deploy:
+  - `forge deploy --non-interactive -e production` ✅ (`4.13.0`)
+- Test gates:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅ (`71/71`)
+
+### Live smoke evidence
+- Direct authenticated Playwright smoke from parent macro on page `7045123` created child page:
+  - title: `HDC Auto 1771457590664`
+  - pageId: `7241729`
+  - URL: `https://hackdaytemp.atlassian.net/wiki/spaces/~642558c74b23217e558e9a25/pages/7241729/HDC+Auto+1771457590664`
+- Result:
+  - child page loads HackDay iframe and full HackDay UI (no extension error banner).
+- Production HDC log evidence (`4.13.0`) confirms corrected generated snippet:
+  - `extension-key` now includes target app UUID + target env ID:
+    - `d2f1f15e-9202-43b2-99e5-83722dedc1b2/b003228b-aafa-414e-9ab8-9e1ab5aaf5ae/static/hackday-2026-customui`
+
+### Additional operational finding
+- HD26Forge production logs now show runtime warning:
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
+- This is not blocking macro render, but it is a security/ops follow-up and should be corrected in HD26Forge production env.
+
 **Phase 5 readiness gate closure checkpoint Q (Feb 18, 2026 15:06 UTC):**
 - Manual SQL seed was executed successfully (after repeated API-path `429` throttling) for canonical event:
   - `075f09ae-1805-4a88-85bc-4cf43b03b612`

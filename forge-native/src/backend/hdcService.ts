@@ -66,15 +66,20 @@ function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
   return 'hackday';
 }
 
-function getHackdayTemplateMacroConfig(): { targetAppId: string; targetMacroKey: string } {
+function getHackdayTemplateMacroConfig(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+  targetMacroKey: string;
+} {
   const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
+  const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
   const targetMacroKey = process.env.HACKDAY_TEMPLATE_MACRO_KEY?.trim();
-  if (!targetAppId || !targetMacroKey) {
+  if (!targetAppId || !targetEnvironmentId || !targetMacroKey) {
     throw new Error(
-      'Missing required Forge variables for HackDay templates: HACKDAY_TEMPLATE_APP_ID and HACKDAY_TEMPLATE_MACRO_KEY.'
+      'Missing required Forge variables for HackDay templates: HACKDAY_TEMPLATE_APP_ID, HACKDAY_TEMPLATE_ENVIRONMENT_ID, HACKDAY_TEMPLATE_MACRO_KEY.'
     );
   }
-  return { targetAppId, targetMacroKey };
+  return { targetAppId, targetEnvironmentId, targetMacroKey };
 }
 
 function normalizeEventSchedule(
@@ -514,6 +519,7 @@ export class HdcService {
       ...(templateMacroConfig
         ? {
             targetAppId: templateMacroConfig.targetAppId,
+            targetEnvironmentId: templateMacroConfig.targetEnvironmentId,
             targetMacroKey: templateMacroConfig.targetMacroKey,
             fallbackLabel: 'HackDay template macro',
           }

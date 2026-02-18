@@ -34,6 +34,8 @@ type RepoMock = {
   deleteEventCascade: ReturnType<typeof vi.fn>;
   getSyncState: ReturnType<typeof vi.fn>;
   completeAndSync: ReturnType<typeof vi.fn>;
+  createHackdayTemplateSeed: ReturnType<typeof vi.fn>;
+  getHackdayTemplateSeedByConfluencePageId: ReturnType<typeof vi.fn>;
 };
 
 function createRepoMock(): RepoMock {
@@ -69,6 +71,8 @@ function createRepoMock(): RepoMock {
     deleteEventCascade: vi.fn(),
     getSyncState: vi.fn(),
     completeAndSync: vi.fn(),
+    createHackdayTemplateSeed: vi.fn().mockResolvedValue({ provision_status: 'provisioned' }),
+    getHackdayTemplateSeedByConfluencePageId: vi.fn().mockResolvedValue(null),
   };
 }
 
@@ -97,6 +101,9 @@ describe('HdcService hardening behavior', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    process.env.HACKDAY_TEMPLATE_APP_ID = 'ari:cloud:ecosystem::app/d2f1f15e-9202-43b2-99e5-83722dedc1b2';
+    process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID = 'b003228b-aafa-414e-9ab8-9e1ab5aaf5ae';
+    process.env.HACKDAY_TEMPLATE_MACRO_KEY = 'hackday-2026-customui';
     ({ HdcService: ServiceClass } = await import('../forge-native/src/backend/hdcService'));
   });
 
@@ -165,6 +172,7 @@ describe('HdcService hardening behavior', () => {
       eventId: 'event-created',
       childPageId: 'child-901',
       childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+      templateProvisionStatus: 'provisioned',
     });
     expect(repo.createEvent).toHaveBeenCalledWith(
       expect.objectContaining({

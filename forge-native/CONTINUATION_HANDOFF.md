@@ -569,6 +569,7 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
 - New required vars for template flow:
   - `HACKDAY_TEMPLATE_APP_ID`
+  - `HACKDAY_TEMPLATE_ENVIRONMENT_ID`
   - `HACKDAY_TEMPLATE_MACRO_KEY`
 
 5. **Shared + macro types/UI updated**
@@ -587,7 +588,50 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 1. Apply migration in Supabase for target environments.
 2. Set Forge env vars:
 - `HACKDAY_TEMPLATE_APP_ID`
+- `HACKDAY_TEMPLATE_ENVIRONMENT_ID`
 - `HACKDAY_TEMPLATE_MACRO_KEY`
 3. Move to HD26Forge implementation:
 - add pageId-scoped context resolver + seed bootstrap from `HackdayTemplateSeed`,
 - keep compatibility fallback for legacy singleton `isCurrent` rows until cutover.
+
+## Continuation update (2026-02-18 23:34 UTC)
+
+- Closed the active `Error loading the extension` blocker for newly created HackDay template child pages.
+
+### Root cause
+- HDC was retargeting only part of the Forge macro storage payload when cloning parent macro blocks.
+- Confluence/Forge resolution required additional nested `parameters` metadata to match the target app/environment:
+  - `extension-id`, `app-id`, `environment-id`, and macro `key`.
+
+### Code changes
+1. `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- Added full metadata retargeting for copied `<ac:adf-extension>` blocks.
+- Added env-aware keying with required target environment id.
+2. `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- `getHackdayTemplateMacroConfig` now requires:
+  - `HACKDAY_TEMPLATE_APP_ID`
+  - `HACKDAY_TEMPLATE_ENVIRONMENT_ID`
+  - `HACKDAY_TEMPLATE_MACRO_KEY`
+- Passes target environment id into child-page creation.
+3. `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+- Declares `HACKDAY_TEMPLATE_ENVIRONMENT_ID`.
+
+### Deploy/runtime state
+- Production variable configured:
+  - `HACKDAY_TEMPLATE_ENVIRONMENT_ID=b003228b-aafa-414e-9ab8-9e1ab5aaf5ae`
+- Production deploy:
+  - `4.12.0` (first env-id pass), then `4.13.0` (full nested metadata retarget).
+- Install state:
+  - production on `hackdaytemp.atlassian.net` remains `Up-to-date`.
+
+### Live smoke (direct, authenticated)
+- Created from parent macro on `pageId=7045123`:
+  - `HDC Auto 1771457590664` (`pageId=7241729`)
+- Child page now loads the full HackDay UI (no extension render failure).
+- HDC production logs show corrected generated key:
+  - `d2f1f15e-9202-43b2-99e5-83722dedc1b2/b003228b-aafa-414e-9ab8-9e1ab5aaf5ae/static/hackday-2026-customui`
+
+### Follow-up item
+- HD26Forge production logs currently warn:
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
+- Not blocking template render, but should be remediated in HD26 production env.
