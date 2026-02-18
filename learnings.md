@@ -2286,3 +2286,40 @@ Key hardening changes:
 
 ### Key learning
 1. Keep version bumps explicit and lockfile-aligned to preserve deterministic release state for subsequent deploy/tag workflows.
+
+## Macro Host Provisioning Checkpoint (Feb 18, 2026 10:25 UTC)
+
+### Context
+- Permissions are now sufficient to create/publish Confluence pages on `hackdaytemp`.
+- Goal was to create real parent/instance macro host pages to close Phase 3 macro-context QA (P3-8).
+
+### What changed
+- Created and published parent host pages:
+  - Parent (prod macro embed): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - Parent (dev macro embed): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- Verified global app surface still renders correctly:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
+
+### Deploy/install actions
+- Rebuilt assets locally:
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run typecheck` (forge-native) ✅
+- Redeployed and verified install state:
+  - development deploy ✅ (`Forge 5.18.0`)
+  - production deploy ✅ (`Forge 3.10.0`; first attempt hit rate-limit on `createAppDeploymentUrl`, retry succeeded)
+  - `forge install --upgrade` development ✅
+  - `forge install --upgrade` production ✅
+  - `forge install list` shows both environments `Up-to-date` on `hackdaytemp.atlassian.net` ✅
+
+### Blocker evidence (macro host only)
+- On both parent host pages, macro iframe loads but app UI does not render.
+- Repeated browser-console evidence:
+  - `Failed to load resource ... /assets/index-Bioo6zYe.css`
+  - `Failed to load resource ... /assets/index-DqyBNlPx.js` (or equivalent hashed JS in earlier run)
+- Result:
+  - no visible `Create HackDay instance` wizard on host pages,
+  - no instance (child) page URL created yet.
+
+### Key learning
+1. Current blocker is macro resource delivery/rendering on Confluence host pages (asset 404s), not permissions and not create-wizard business logic.

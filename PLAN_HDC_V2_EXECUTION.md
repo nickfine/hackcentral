@@ -7,6 +7,33 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Macro Host Rendering Blocker Checkpoint (Feb 18, 2026 10:25 UTC)
+
+### Completed
+- Confirmed permissions recovery for page creation on `hackdaytemp` by creating/publishing real parent host pages:
+  - production macro parent host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - development macro parent host: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- Revalidated deployment/install state and forced fresh redeploy:
+  - `npm run frontend:build` ✅
+  - `npm run macro:build` ✅
+  - `npm run typecheck` ✅
+  - `forge deploy -e development` ✅ (`5.18.0`)
+  - `forge deploy -e production` ✅ (`3.10.0`, succeeded after one rate-limit retry)
+  - `forge install --upgrade` development/production ✅
+  - `forge install list` shows both envs `Up-to-date` on `hackdaytemp` ✅
+- Confirmed global surface remains healthy:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
+
+### Blocker evidence
+- Macro host pages still fail to render app UI due macro iframe asset fetch failures:
+  - `.../assets/index-Bioo6zYe.css` 404
+  - `.../assets/index-DqyBNlPx.js` 404
+- Because macro UI is not rendering, `Create HackDay instance` wizard is unavailable in host context and no instance/child page URL can be produced yet.
+
+### Plan impact
+- P3-8 remains blocked, but blocker has shifted from permissions to macro asset delivery/runtime on host pages.
+- Next action is targeted Forge macro resource troubleshooting (resource path/asset serving) rather than wizard feature work.
+
 ## Release Version Bump Checkpoint (Feb 18, 2026 01:49 UTC)
 
 ### Completed
