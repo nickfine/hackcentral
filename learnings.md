@@ -1,5 +1,40 @@
 # Learnings
 
+## HD26 Genericization + Event Metadata Wiring Checkpoint (Feb 18, 2026 23:56 UTC)
+
+### Completed
+- Continued HD26Forge genericization pass to remove active Custom UI `HackDay 2026` branding assumptions from user-visible copy.
+- Added backend event metadata payload in `getEventPhase`:
+  - file: `/Users/nickster/Downloads/HD26Forge/src/index.js`
+  - new response field: `eventMeta` with `name`, `timezone`, `startAt`, `endAt`, `schedule`.
+- Wired frontend to consume event metadata with safe defaults:
+  - files:
+    - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+    - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+    - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Schedule.jsx`
+  - effects:
+    - schedule heading now uses event name from resolver metadata,
+    - countdown timer label/time window now uses event metadata first, then fallback defaults.
+- Completed copy-only genericization updates in:
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/lib/missionBriefContent.js`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/data/motdMessages.js`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/shared/MotdBanner.jsx`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Signup.jsx`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/styles/tokens.css`
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HD26Forge/static/frontend run build` ✅
+- `npm -C /Users/nickster/Downloads/HD26Forge run lint` ✅
+
+### Operational follow-up observed
+- `forge variables list -e production` in HD26Forge confirms:
+  - `SUPABASE_SERVICE_ROLE_KEY` is present and encrypted.
+- Recent production logs still show warning from app version `5.27.0`:
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
+- Follow-up required:
+  - deploy latest HD26Forge production build and re-check logs on a fresh invocation to confirm warning clearance.
+
 ## Phase 7 Template Macro Render Fix + Live Smoke Closure (Feb 18, 2026 23:34 UTC)
 
 ### Root cause confirmed
