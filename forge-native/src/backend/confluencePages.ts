@@ -28,6 +28,12 @@ interface ParentPagePayload {
   };
 }
 
+interface MacroStorageSnippetOptions {
+  targetAppId: string;
+  targetMacroKey: string;
+  fallbackLabel?: string;
+}
+
 async function parseJson<T>(response: ForgeResponse): Promise<T> {
   const body = await response.text();
   if (!body) {
@@ -43,9 +49,19 @@ async function assertOk(response: ForgeResponse, operation: string): Promise<voi
   }
 }
 
-function getMacroStorageSnippet(): string {
-  const appId = process.env.FORGE_APP_ID || DEFAULT_APP_ID;
-  const macroKey = process.env.FORGE_MACRO_KEY || DEFAULT_MACRO_KEY;
+function escapeStorageText(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getMacroStorageSnippet(options?: MacroStorageSnippetOptions): string {
+  const appId = options?.targetAppId || process.env.FORGE_APP_ID || DEFAULT_APP_ID;
+  const macroKey = options?.targetMacroKey || process.env.FORGE_MACRO_KEY || DEFAULT_MACRO_KEY;
+  const fallbackLabel = options?.fallbackLabel || 'HackDay Central macro';
   const localId = crypto.randomUUID();
 
   return [
@@ -61,7 +77,7 @@ function getMacroStorageSnippet(): string {
     '</ac:adf-attribute>',
     '</ac:adf-node>',
     '<ac:adf-fallback>',
-    '<p>HackDay Central macro</p>',
+    `<p>${escapeStorageText(fallbackLabel)}</p>`,
     '</ac:adf-fallback>',
     '</ac:adf-extension>',
   ].join('');
@@ -110,9 +126,20 @@ export async function createChildPageUnderParent(input: {
   parentPageId: string;
   title: string;
   tagline?: string;
+  targetAppId?: string;
+  targetMacroKey?: string;
+  fallbackLabel?: string;
 }): Promise<{ pageId: string; pageUrl: string }> {
   const parentMetadata = await getParentPageMetadata(input.parentPageId);
-  const macroSnippet = parentMetadata.macroSnippet || getMacroStorageSnippet();
+  const hasExplicitTargetMacro = Boolean(input.targetAppId && input.targetMacroKey);
+  const macroSnippet = hasExplicitTargetMacro
+    ? getMacroStorageSnippet({
+        targetAppId: input.targetAppId!,
+        targetMacroKey: input.targetMacroKey!,
+        fallbackLabel: input.fallbackLabel,
+      })
+    : parentMetadata.macroSnippet || getMacroStorageSnippet();
+  const tagline = escapeStorageText(input.tagline || 'HackDay instance page');
 
   const response = await api.asApp().requestConfluence(route`/wiki/api/v2/pages`, {
     method: 'POST',
@@ -128,7 +155,7 @@ export async function createChildPageUnderParent(input: {
       body: {
         storage: {
           representation: 'storage',
-          value: `<p>${input.tagline || 'HackDay instance page'}</p>${macroSnippet}`,
+          value: `<p>${tagline}</p>${macroSnippet}`,
         },
       },
     }),

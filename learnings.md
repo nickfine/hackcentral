@@ -3103,3 +3103,26 @@ Key hardening changes:
 ### Procedural learning
 1. Default-query regressions on operational scripts prevent silent drift between CLI defaults and handler defaults.
 2. Explicit edge-state precedence tests reduce UI guidance regressions when permission and in-flight states overlap.
+
+## Phase 7 Template Spinout Kickoff (Feb 18, 2026 22:42 UTC)
+
+### Scope completed
+- Implemented HackDay-template provisioning foundation in HDC Forge Native:
+  - new migration for `Event.runtime_type`, `Event.template_target`, and `HackdayTemplateSeed`.
+  - `hdcCreateInstanceDraft` now provisions `hackday_template` runtime by default and writes seed rows.
+  - child-page creation now supports explicit target macro embedding (`targetAppId` + `targetMacroKey`) for HackDay macro handoff.
+- Extended shared/frontend contracts:
+  - `CreateInstanceDraftInput.instanceRuntime/templateTarget`
+  - `EventRegistryItem.runtimeType/templateTarget`
+  - `CreateInstanceDraftResult.templateProvisionStatus`.
+- Updated macro UX for template runtime rows:
+  - native HDC lifecycle/sync/delete actions are hidden,
+  - explicit handoff guidance shown: continue setup/runtime in HackDay.
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+
+### Procedural learning
+1. Shipping migration + contract + UX handoff in one checkpoint avoids partial states where templates are created but operators still see incompatible native controls.
+2. Keeping fallback behavior in repositories (`withNullEventConfig`, missing-table guards) reduces rollout risk across environments that may lag one migration.

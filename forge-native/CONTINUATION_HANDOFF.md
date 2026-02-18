@@ -532,3 +532,62 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - full suite + typecheck pass (`71/71`).
 - Phase 7 queue state:
   - `P7-1`..`P7-4` all closed.
+
+## Continuation update (2026-02-18 22:42 UTC)
+
+- Implemented HDC template-spinout foundation for HackDay child templates.
+
+### What changed
+
+1. **Schema + contract migration added**
+- `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260218161000_phase7_hackday_template_seed.sql`
+- Adds:
+  - `Event.runtime_type` + default/backfill/check,
+  - `Event.template_target` check,
+  - `HackdayTemplateSeed` table + unique/indexes.
+
+2. **Backend provisioning flow extended**
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- `hdcCreateInstanceDraft` now:
+  - resolves runtime (`hackday_template` default, `hdc_native` opt-in),
+  - embeds HackDay target macro on child page for template runtime,
+  - writes `Event.runtime_type/template_target`,
+  - writes `HackdayTemplateSeed` row,
+  - returns `templateProvisionStatus`.
+- Repository now includes:
+  - template-seed create/read methods,
+  - seed cleanup in `deleteEventCascade`,
+  - legacy fallback defaults for missing runtime columns.
+
+3. **Confluence page helper generalized**
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- `createChildPageUnderParent` now supports explicit target macro params:
+  - `targetAppId`, `targetMacroKey`, `fallbackLabel`.
+
+4. **Manifest/env updated**
+- `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+- New required vars for template flow:
+  - `HACKDAY_TEMPLATE_APP_ID`
+  - `HACKDAY_TEMPLATE_MACRO_KEY`
+
+5. **Shared + macro types/UI updated**
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Adds runtime/template contract fields and hides native HDC admin actions for `hackday_template` rows with explicit handoff messaging.
+
+### Validation executed
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+
+### Immediate next steps
+
+1. Apply migration in Supabase for target environments.
+2. Set Forge env vars:
+- `HACKDAY_TEMPLATE_APP_ID`
+- `HACKDAY_TEMPLATE_MACRO_KEY`
+3. Move to HD26Forge implementation:
+- add pageId-scoped context resolver + seed bootstrap from `HackdayTemplateSeed`,
+- keep compatibility fallback for legacy singleton `isCurrent` rows until cutover.

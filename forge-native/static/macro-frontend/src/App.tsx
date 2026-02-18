@@ -295,6 +295,7 @@ export function App(): JSX.Element {
 
   const canAdminInstance = Boolean(context?.permissions.isPrimaryAdmin || context?.permissions.isCoAdmin);
   const isPrimaryAdmin = Boolean(context?.permissions.isPrimaryAdmin);
+  const isTemplateRuntime = Boolean(context?.event?.runtimeType === 'hackday_template');
   const isReadOnlyInstance = Boolean(
     context?.event && (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived')
   );
@@ -637,6 +638,8 @@ export function App(): JSX.Element {
         wizardSchemaVersion: 2,
         completedStep: wizardStep,
         launchMode: 'draft',
+        instanceRuntime: 'hackday_template',
+        templateTarget: 'hackday',
         basicInfo: {
           eventName: eventName.trim(),
           eventIcon: eventIcon || '🚀',
@@ -679,7 +682,9 @@ export function App(): JSX.Element {
         CREATE_DRAFT_TIMEOUT_MS,
         `Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds.`
       );
-      setMessage(`Draft created. Child page id: ${result.childPageId}`);
+      setMessage(
+        `Draft created. Child page id: ${result.childPageId}. Template provision status: ${result.templateProvisionStatus ?? 'provisioned'}.`
+      );
       setCreateDraftTimedOut(false);
       resetWizard(true);
       invalidateSwitcherCaches(context);
@@ -757,6 +762,10 @@ export function App(): JSX.Element {
       setError('No instance context available for hack submission.');
       return;
     }
+    if (context.event.runtimeType === 'hackday_template') {
+      setError('This template instance is managed in HackDay. Submit hacks in the HackDay app.');
+      return;
+    }
     if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
       setError('Instance is read-only after completion; hack submissions are disabled.');
       return;
@@ -790,6 +799,10 @@ export function App(): JSX.Element {
     async (mode: 'complete' | 'retry') => {
       if (!context?.event) {
         setError('No instance selected for sync.');
+        return;
+      }
+      if (context.event.runtimeType === 'hackday_template') {
+        setError('This template instance is managed in HackDay. Sync actions are disabled in HackDay Central.');
         return;
       }
       if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
@@ -828,6 +841,10 @@ export function App(): JSX.Element {
       setError('No instance selected for lifecycle update.');
       return;
     }
+    if (context.event.runtimeType === 'hackday_template') {
+      setError('This template instance is managed in HackDay. Lifecycle actions are disabled in HackDay Central.');
+      return;
+    }
     if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
       setError('Instance is read-only after completion; lifecycle updates are disabled.');
       return;
@@ -852,6 +869,10 @@ export function App(): JSX.Element {
   const handleDeleteDraft = useCallback(async () => {
     if (!context?.event) {
       setError('No instance selected to delete.');
+      return;
+    }
+    if (context.event.runtimeType === 'hackday_template') {
+      setError('Template seed rows must be deleted from the provisioning workflow; draft delete is disabled here.');
       return;
     }
     if (!isPrimaryAdmin) {
@@ -1116,7 +1137,7 @@ export function App(): JSX.Element {
       {context.pageType === 'parent' ? (
         <section className="grid">
           <article className="card">
-            <h2>Create HackDay instance</h2>
+            <h2>Create HackDay template instance</h2>
             <div className="wizard-steps" role="list" aria-label="Create instance steps">
               {[
                 ['1', 'Basic'],
@@ -1492,11 +1513,14 @@ export function App(): JSX.Element {
             ) : null}
 
             <h3>Submit Hack</h3>
+            {isTemplateRuntime ? (
+              <p>This template is managed in HackDay. Complete local setup and submissions in the HackDay macro.</p>
+            ) : null}
             {isReadOnlyInstance ? <p>This instance is read-only. Hack submissions are disabled.</p> : null}
             <label>
               Title
               <input
-                disabled={saving || isReadOnlyInstance}
+                disabled={saving || isReadOnlyInstance || isTemplateRuntime}
                 value={hackTitle}
                 onChange={(event) => setHackTitle(event.target.value)}
                 placeholder="Meeting Notes Summarizer"
@@ -1505,19 +1529,20 @@ export function App(): JSX.Element {
             <label>
               Description
               <textarea
-                disabled={saving || isReadOnlyInstance}
+                disabled={saving || isReadOnlyInstance || isTemplateRuntime}
                 value={hackDescription}
                 onChange={(event) => setHackDescription(event.target.value)}
                 placeholder="What does this hack solve?"
               />
             </label>
-            <button disabled={saving || isReadOnlyInstance} onClick={() => void handleSubmitHack()}>
+            <button disabled={saving || isReadOnlyInstance || isTemplateRuntime} onClick={() => void handleSubmitHack()}>
               {saving ? 'Submitting…' : 'Submit Hack'}
             </button>
           </article>
 
           <article className="card">
             <h2>Instance Admin</h2>
+            {isTemplateRuntime ? <p>This row is a HackDay template handoff. Continue setup and runtime operations in HackDay.</p> : null}
             <p>
               Rules: max team size {context.event.rules.maxTeamSize}, judging {context.event.rules.judgingModel},{' '}
               {context.event.rules.allowCrossTeamMentoring ? 'cross-team mentoring on' : 'cross-team mentoring off'}
@@ -1532,36 +1557,40 @@ export function App(): JSX.Element {
             </p>
             {context.syncState ? <p>Error category: {formatSyncErrorCategory(context.syncState.syncErrorCategory)}</p> : null}
             {context.syncState?.retryGuidance ? <p>Guidance: {context.syncState.retryGuidance}</p> : null}
-            {instanceAdminActionState.globalHint ? <p className="meta">{instanceAdminActionState.globalHint}</p> : null}
-            <button
-              disabled={instanceAdminActionState.advanceLifecycle.disabled}
-              title={instanceAdminActionState.advanceLifecycle.reason ?? undefined}
-              onClick={() => void handleLaunch()}
-            >
-              {saving ? 'Updating…' : 'Advance Lifecycle'}
-            </button>
-            <button
-              disabled={instanceAdminActionState.completeSync.disabled}
-              title={instanceAdminActionState.completeSync.reason ?? undefined}
-              onClick={() => void runSync('complete')}
-            >
-              {saving ? 'Syncing…' : 'Complete + Sync'}
-            </button>
-            <button
-              disabled={instanceAdminActionState.retrySync.disabled}
-              title={instanceAdminActionState.retrySync.reason ?? undefined}
-              onClick={() => void runSync('retry')}
-            >
-              {saving ? 'Retrying…' : 'Retry Sync'}
-            </button>
-            <button
-              disabled={instanceAdminActionState.deleteDraft.disabled}
-              title={instanceAdminActionState.deleteDraft.reason ?? undefined}
-              className="button-danger"
-              onClick={() => void handleDeleteDraft()}
-            >
-              {saving ? 'Deleting…' : 'Delete Draft'}
-            </button>
+            {isTemplateRuntime ? null : (
+              <>
+                {instanceAdminActionState.globalHint ? <p className="meta">{instanceAdminActionState.globalHint}</p> : null}
+                <button
+                  disabled={instanceAdminActionState.advanceLifecycle.disabled}
+                  title={instanceAdminActionState.advanceLifecycle.reason ?? undefined}
+                  onClick={() => void handleLaunch()}
+                >
+                  {saving ? 'Updating…' : 'Advance Lifecycle'}
+                </button>
+                <button
+                  disabled={instanceAdminActionState.completeSync.disabled}
+                  title={instanceAdminActionState.completeSync.reason ?? undefined}
+                  onClick={() => void runSync('complete')}
+                >
+                  {saving ? 'Syncing…' : 'Complete + Sync'}
+                </button>
+                <button
+                  disabled={instanceAdminActionState.retrySync.disabled}
+                  title={instanceAdminActionState.retrySync.reason ?? undefined}
+                  onClick={() => void runSync('retry')}
+                >
+                  {saving ? 'Retrying…' : 'Retry Sync'}
+                </button>
+                <button
+                  disabled={instanceAdminActionState.deleteDraft.disabled}
+                  title={instanceAdminActionState.deleteDraft.reason ?? undefined}
+                  className="button-danger"
+                  onClick={() => void handleDeleteDraft()}
+                >
+                  {saving ? 'Deleting…' : 'Delete Draft'}
+                </button>
+              </>
+            )}
           </article>
         </section>
       ) : null}

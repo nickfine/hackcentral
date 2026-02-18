@@ -13,6 +13,9 @@ export type SyncErrorCategory = 'none' | 'permission' | 'validation' | 'transien
 export type SubmissionRequirement = 'video_demo' | 'working_prototype' | 'documentation';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type InstanceRuntime = 'hdc_native' | 'hackday_template';
+export type TemplateTarget = 'hackday';
+export type TemplateProvisionStatus = 'provisioned' | 'initialized' | 'failed';
 
 export interface EventRules {
   allowCrossTeamMentoring: boolean;
@@ -50,6 +53,8 @@ export interface EventRegistryItem {
   eventName: string;
   icon: string;
   tagline: string | null;
+  runtimeType?: InstanceRuntime;
+  templateTarget?: TemplateTarget | null;
   lifecycleStatus: LifecycleStatus;
   confluencePageId: string | null;
   isNavigable: boolean;
@@ -105,6 +110,8 @@ export interface CreateInstanceDraftInput {
   wizardSchemaVersion?: 2;
   completedStep?: WizardStep;
   launchMode?: 'draft' | 'go_live';
+  instanceRuntime?: InstanceRuntime;
+  templateTarget?: TemplateTarget;
   basicInfo: {
     eventName: string;
     eventIcon: string;
@@ -135,6 +142,7 @@ export interface CreateInstanceDraftResult {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
+  templateProvisionStatus?: TemplateProvisionStatus;
 }
 
 export interface EventLifecycleResult {
