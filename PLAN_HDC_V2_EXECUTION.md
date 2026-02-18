@@ -1111,3 +1111,20 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next Phase 5 candidate kickoff
 1. Migration/performance readiness: instrumentation for registry lookup and sync duration/error telemetry.
+
+## Progress Update (Feb 18, 2026 - Integrity Review Hardening @ 13:18 UTC)
+
+### Integrity/consistency findings closed
+1. Read-path failure risk from archive-on-read writes was removed.
+2. Derived profile computation no longer performs serial N+1 lifecycle fetches.
+3. Derived profile cache now has bounded size to prevent unbounded growth.
+
+### Code changes
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+
+### Validation (UTC)
+- Window: `2026-02-18T13:18:25Z` -> `2026-02-18T13:18:38Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `vitest v4.0.18` targeted suites ✅ (`31/31`)

@@ -2701,3 +2701,27 @@ Key hardening changes:
 
 ### Key learning
 1. A short-lived in-memory cache plus targeted invalidation gives immediate profile/reputation responsiveness without needing new persistence tables.
+
+## Integrity Review Hardening Checkpoint (Feb 18, 2026 13:18 UTC)
+
+### Review findings addressed
+- Read-path reliability issue: auto-archive writes on read could fail registry/context fetches.
+- Derived profile consistency/performance issue: serial N+1 event fetches and hidden write side-effects during profile computation.
+- Cache consistency issue: unbounded in-memory derived-profile cache growth.
+
+### Fixes applied
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - Auto-archive on read/list now runs as best-effort (`tryAutoArchive...`) and logs warnings on write failures instead of failing reads.
+  - Derived profile now loads related events in parallel via no-archive fetch path (`getEventByIdNoArchive`), removing write side-effects from profile reads.
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - Added derived-profile cache cap (`500` entries) with oldest-entry eviction.
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+  - Added regression test ensuring `listAllEvents` remains successful when auto-archive write fails.
+
+### Validation outcomes (UTC)
+- Window: `2026-02-18T13:18:25Z` -> `2026-02-18T13:18:38Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-hdcService.spec.ts tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`31/31`)
+
+### Key learning
+1. Any write-on-read policy must degrade gracefully; otherwise transient write faults become user-visible read outages.

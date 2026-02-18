@@ -1209,23 +1209,9 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   }
 
   async getEventByConfluencePageId(pageId: string): Promise<DbEvent | null> {
-    try {
-      const row = await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
-        { field: 'confluence_page_id', op: 'eq', value: pageId },
-      ]);
-      return row ? await this.autoArchiveCompletedEvent(row) : null;
-    } catch (error) {
-      if (!hasMissingEventConfigColumns(error)) {
-        throw error;
-      }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
-        EVENT_TABLE,
-        EVENT_SELECT_CORE,
-        [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
-      );
-      if (!legacy) return null;
-      return this.autoArchiveCompletedEvent(withNullEventConfig(legacy));
-    }
+    const event = await this.getEventByConfluencePageIdNoArchive(pageId);
+    if (!event) return null;
+    return this.tryAutoArchiveCompletedEvent(event);
   }
 
   async getEventByCreationRequestId(creationRequestId: string): Promise<DbEvent | null> {
@@ -1247,23 +1233,9 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   }
 
   async getEventById(eventId: string): Promise<DbEvent | null> {
-    try {
-      const row = await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
-        { field: 'id', op: 'eq', value: eventId },
-      ]);
-      return row ? await this.autoArchiveCompletedEvent(row) : null;
-    } catch (error) {
-      if (!hasMissingEventConfigColumns(error)) {
-        throw error;
-      }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
-        EVENT_TABLE,
-        EVENT_SELECT_CORE,
-        [{ field: 'id', op: 'eq', value: eventId }]
-      );
-      if (!legacy) return null;
-      return this.autoArchiveCompletedEvent(withNullEventConfig(legacy));
-    }
+    const event = await this.getEventByIdNoArchive(eventId);
+    if (!event) return null;
+    return this.tryAutoArchiveCompletedEvent(event);
   }
 
   async listEventsByParentPageId(parentPageId: string): Promise<EventRegistryItem[]> {
@@ -1283,7 +1255,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       );
       events = legacy.map((row) => withNullEventConfig(row));
     }
-    events = await this.autoArchiveCompletedEvents(events);
+    events = await this.tryAutoArchiveCompletedEvents(events);
 
     return events
       .slice()
@@ -1305,7 +1277,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       );
       events = legacy.map((row) => withNullEventConfig(row));
     }
-    events = await this.autoArchiveCompletedEvents(events);
+    events = await this.tryAutoArchiveCompletedEvents(events);
 
     return events
       .slice()
@@ -1340,14 +1312,34 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     );
     if (staleIds.size === 0) return events;
 
-    const archivedById = new Map<string, DbEvent>();
-    for (const event of events) {
-      if (!staleIds.has(event.id)) continue;
-      const archived = await this.autoArchiveCompletedEvent(event);
-      archivedById.set(event.id, archived);
-    }
+    const staleEvents = events.filter((event) => staleIds.has(event.id));
+    const archivedRows = await Promise.all(staleEvents.map((event) => this.autoArchiveCompletedEvent(event)));
+    const archivedById = new Map<string, DbEvent>(archivedRows.map((event) => [event.id, event]));
 
     return events.map((event) => archivedById.get(event.id) ?? event);
+  }
+
+  private async tryAutoArchiveCompletedEvent(event: DbEvent): Promise<DbEvent> {
+    try {
+      return await this.autoArchiveCompletedEvent(event);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        '[hdc-auto-archive]',
+        JSON.stringify({ eventId: event.id, lifecycleStatus: event.lifecycle_status, warning: message })
+      );
+      return event;
+    }
+  }
+
+  private async tryAutoArchiveCompletedEvents(events: DbEvent[]): Promise<DbEvent[]> {
+    try {
+      return await this.autoArchiveCompletedEvents(events);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('[hdc-auto-archive]', JSON.stringify({ warning: message, rowCount: events.length }));
+      return events;
+    }
   }
 
   async createEvent(input: {
@@ -1534,8 +1526,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
     let activeInstances = 0;
     let completedInstances = 0;
-    for (const eventId of relevantEventIds) {
-      const event = await this.getEventById(eventId);
+    const events = await Promise.all([...relevantEventIds].map((eventId) => this.getEventByIdNoArchive(eventId)));
+    for (const event of events) {
       if (!event) continue;
       if (event.lifecycle_status === 'completed' || event.lifecycle_status === 'archived') {
         completedInstances += 1;
@@ -1573,6 +1565,42 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       'id,event_id,user_id,role',
       [{ field: 'user_id', op: 'eq', value: userId }]
     );
+  }
+
+  private async getEventByIdNoArchive(eventId: string): Promise<DbEvent | null> {
+    try {
+      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+        { field: 'id', op: 'eq', value: eventId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'id', op: 'eq', value: eventId }]
+      );
+      return legacy ? withNullEventConfig(legacy) : null;
+    }
+  }
+
+  private async getEventByConfluencePageIdNoArchive(pageId: string): Promise<DbEvent | null> {
+    try {
+      return await this.client.selectOne<DbEvent>(EVENT_TABLE, EVENT_SELECT_WITH_CONFIG, [
+        { field: 'confluence_page_id', op: 'eq', value: pageId },
+      ]);
+    } catch (error) {
+      if (!hasMissingEventConfigColumns(error)) {
+        throw error;
+      }
+      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        EVENT_TABLE,
+        EVENT_SELECT_CORE,
+        [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
+      );
+      return legacy ? withNullEventConfig(legacy) : null;
+    }
   }
 
   async logAudit(input: {

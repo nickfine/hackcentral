@@ -205,6 +205,7 @@ const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> =
 };
 
 const DERIVED_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+const DERIVED_PROFILE_CACHE_MAX_ENTRIES = 500;
 const derivedProfileCache = new Map<string, { expiresAt: number; snapshot: DerivedProfileSnapshot }>();
 
 function isReadOnlyLifecycle(status: LifecycleStatus): boolean {
@@ -314,6 +315,12 @@ export class HdcService {
       expiresAt: now + DERIVED_PROFILE_CACHE_TTL_MS,
       snapshot,
     });
+    if (derivedProfileCache.size > DERIVED_PROFILE_CACHE_MAX_ENTRIES) {
+      const oldestKey = derivedProfileCache.keys().next().value as string | undefined;
+      if (oldestKey) {
+        derivedProfileCache.delete(oldestKey);
+      }
+    }
     return snapshot;
   }
 

@@ -279,4 +279,45 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
       lifecycleStatus: 'archived',
     });
   });
+
+  it('does not fail listAllEvents when auto-archive patch fails', async () => {
+    const selectMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-old-completed-2',
+        name: 'Old Completed 2',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'completed',
+        confluence_page_id: 'child-old-2',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-1',
+        hacking_starts_at: '2025-06-01T09:00:00.000Z',
+        submission_deadline_at: '2025-06-05T17:00:00.000Z',
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: {
+          resultsAnnounceAt: '2025-06-10T12:00:00.000Z',
+        },
+      },
+    ]);
+    const patchMany = vi.fn().mockRejectedValue(new Error('transient write failure'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const repo = new SupabaseRepository({ selectMany, patchMany } as never);
+    const result = await repo.listAllEvents();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'event-old-completed-2',
+      lifecycleStatus: 'completed',
+    });
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[hdc-auto-archive]',
+      expect.stringContaining('"warning":"transient write failure"')
+    );
+    warnSpy.mockRestore();
+  });
 });

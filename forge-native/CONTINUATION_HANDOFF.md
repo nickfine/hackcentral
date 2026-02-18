@@ -194,3 +194,16 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Deploy/install status:
   - development deployed `5.31.0` and verified `Up-to-date`.
   - production deployed `3.23.0` and verified `Up-to-date`.
+
+## Continuation update (2026-02-18 13:18 UTC)
+
+- Completed integrity/consistency review hardening pass.
+- Fixed three review findings:
+  - best-effort auto-archive on reads to avoid read outages on write failures,
+  - derived profile computation now avoids write side-effects and serial N+1 fetch pattern,
+  - bounded derived-profile cache size with eviction.
+- Updated files:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+- Validation: `typecheck` + targeted Vitest suites pass (`31/31`).
