@@ -21,6 +21,13 @@ interface ConvexBootstrapPayload {
   registry?: BootstrapData['registry'];
 }
 
+function logRegistryNavigability(source: string, registry: BootstrapData['registry']): void {
+  const total = registry.length;
+  const nonNavigable = registry.filter((item) => !item.isNavigable).length;
+  const withMissingPageId = registry.filter((item) => !item.confluencePageId).length;
+  console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
+}
+
 function normalizeRegistryItemNavigability(
   item: BootstrapData['registry'][number]
 ): BootstrapData['registry'][number] {
@@ -183,10 +190,12 @@ async function updateMentorInConvex(
 }
 
 export async function getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-  return withConfiguredBackend(
+  const data = await withConfiguredBackend(
     () => repository.getBootstrapData(viewer),
     () => getBootstrapDataFromConvex(viewer)
   );
+  logRegistryNavigability('getBootstrapData', data.registry);
+  return data;
 }
 
 export async function createHack(

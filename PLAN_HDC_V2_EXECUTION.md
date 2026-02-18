@@ -7,6 +7,37 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Telemetry + Contract Checks (Feb 18, 2026 00:13 UTC)
+
+### Completed
+- Added switcher navigability telemetry in backend response paths:
+  - `getBootstrapData` logs registry quality counts,
+  - `hdcGetContext` logs parent/instance registry quality counts.
+- Added corresponding UI telemetry emitters on both app surfaces:
+  - global app load path (live + cache),
+  - macro context load path (live + cache).
+- Added backend contract tests to enforce page-ID/navigability coherence:
+  - whitespace/blank `confluencePageId` normalizes to `null`,
+  - `isNavigable` remains consistent with normalized page IDs.
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+- Verification:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`42` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+
+### Plan impact
+- Improves observability for provisioning-related switcher failures and locks backend contract behavior under tests while macro-host permissions remain blocked.
+
 ## Phase 3 Navigability Contract Hardening (Feb 18, 2026 00:07 UTC)
 
 ### Completed

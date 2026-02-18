@@ -481,6 +481,13 @@ function isDeprecated(status: string): boolean {
   return status.toLowerCase() === 'deprecated';
 }
 
+function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
+  const total = registry.length;
+  const nonNavigable = registry.filter((item) => !item.isNavigable).length;
+  const withMissingPageId = registry.filter((item) => !item.confluencePageId).length;
+  console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
+}
+
 async function invokeTyped<K extends keyof Defs>(
   name: K,
   payload?: Parameters<Defs[K]>[0]
@@ -620,6 +627,7 @@ export function App(): JSX.Element {
       siteUrlForCache = data.viewer.siteUrl;
       writeSwitcherRegistryCache(data.viewer.siteUrl, data.registry ?? []);
       setBootstrap(data);
+      logSwitcherNavigabilityTelemetry('global.bootstrap.live', data.registry ?? []);
       setPreviewMode(false);
       setSwitcherWarning('');
     } catch (error) {
@@ -634,6 +642,7 @@ export function App(): JSX.Element {
           const cachedRegistry = readSwitcherRegistryCache(siteUrlForCache);
           if (cachedRegistry) {
             setBootstrap((current) => (current ? { ...current, registry: cachedRegistry } : current));
+            logSwitcherNavigabilityTelemetry('global.bootstrap.cache', cachedRegistry);
             setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
           }
         }

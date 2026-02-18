@@ -1,5 +1,32 @@
 # Learnings
 
+**Phase 3 switcher telemetry + contract checks checkpoint F (Feb 18, 2026 00:13 UTC):**
+- Added switcher data-quality telemetry across backend and both frontends:
+  - backend `getBootstrapData` and `hdcGetContext` now emit `[hdc-switcher-telemetry]` JSON logs containing:
+    - `total`
+    - `nonNavigable`
+    - `withMissingPageId`
+    - source/context fields.
+  - frontend global + macro load paths now emit matching telemetry summaries on live and cached registry loads.
+- Files updated for telemetry:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hackcentral.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Added backend contract checks for `confluencePageId`/`isNavigable` coherence:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+    - verifies `listAllEvents` normalizes whitespace/blank page IDs to `null` and `isNavigable=false`.
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+    - verifies instance-context mapping sets `confluencePageId=null` + `isNavigable=false` for blank page IDs,
+    - verifies context telemetry emission path.
+- Validation rerun:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`42` tests passing)
+- Deploy/install/smoke outcome:
+  - no deploy/install/smoke actions in this checkpoint (observability + contract-test hardening only).
+
 **Phase 3 navigability contract hardening checkpoint E (Feb 18, 2026 00:07 UTC):**
 - Implemented explicit registry navigability contract across backend + both frontends.
 - Shared/backend model updates:

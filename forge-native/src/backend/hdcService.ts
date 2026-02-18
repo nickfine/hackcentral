@@ -3,6 +3,7 @@ import type {
   CreateInstanceDraftResult,
   DeleteDraftResult,
   EventBranding,
+  EventRegistryItem,
   EventLifecycleResult,
   EventRules,
   EventSchedule,
@@ -200,6 +201,16 @@ const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> =
   results: 'completed',
 };
 
+function logContextRegistryNavigability(pageType: 'parent' | 'instance', pageId: string, registry: EventRegistryItem[]): void {
+  const total = registry.length;
+  const nonNavigable = registry.filter((item) => !item.isNavigable).length;
+  const withMissingPageId = registry.filter((item) => !item.confluencePageId).length;
+  console.info(
+    '[hdc-switcher-telemetry]',
+    JSON.stringify({ source: 'hdcGetContext', pageType, pageId, total, nonNavigable, withMissingPageId })
+  );
+}
+
 export class HdcService {
   private readonly repository: SupabaseRepository;
 
@@ -215,6 +226,7 @@ export class HdcService {
 
     if (!event) {
       const registry = await this.repository.listEventsByParentPageId(pageId);
+      logContextRegistryNavigability('parent', pageId, registry);
       return {
         pageType: 'parent',
         pageId,
@@ -246,6 +258,7 @@ export class HdcService {
       typeof event.confluence_page_id === 'string' && event.confluence_page_id.trim()
         ? event.confluence_page_id.trim()
         : null;
+    logContextRegistryNavigability('instance', pageId, registry);
 
     return {
       pageType: 'instance',

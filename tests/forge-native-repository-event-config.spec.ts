@@ -107,4 +107,60 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
     expect(result.event_branding).toBeNull();
     expect(result.event_schedule).toBeNull();
   });
+
+  it('normalizes listAllEvents page IDs into coherent navigability flags', async () => {
+    const selectMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-a',
+        name: 'Event A',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'draft',
+        confluence_page_id: '   ',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-1',
+        hacking_starts_at: null,
+        submission_deadline_at: null,
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: null,
+      },
+      {
+        id: 'event-b',
+        name: 'Event B',
+        icon: '🚀',
+        tagline: null,
+        timezone: 'Europe/London',
+        lifecycle_status: 'registration',
+        confluence_page_id: 'child-2',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-1',
+        hacking_starts_at: null,
+        submission_deadline_at: null,
+        creation_request_id: null,
+        created_by_user_id: null,
+        event_rules: null,
+        event_branding: null,
+        event_schedule: null,
+      },
+    ]);
+
+    const fakeRepo = { client: { selectMany } };
+    const result = await SupabaseRepository.prototype.listAllEvents.call(fakeRepo);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      id: 'event-a',
+      confluencePageId: null,
+      isNavigable: false,
+    });
+    expect(result[1]).toMatchObject({
+      id: 'event-b',
+      confluencePageId: 'child-2',
+      isNavigable: true,
+    });
+  });
 });

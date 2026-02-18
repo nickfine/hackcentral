@@ -302,13 +302,14 @@ describe('HdcService hardening behavior', () => {
 
   it('returns default rules and branding in context for legacy events without config fields', async () => {
     const repo = createRepoMock();
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     repo.getEventByConfluencePageId.mockResolvedValue({
       id: 'event-legacy',
       name: 'Legacy HackDay',
       icon: null,
       tagline: null,
       lifecycle_status: 'draft',
-      confluence_page_id: 'child-legacy',
+      confluence_page_id: '   ',
       confluence_parent_page_id: 'parent-legacy',
       hacking_starts_at: null,
       submission_deadline_at: null,
@@ -333,6 +334,54 @@ describe('HdcService hardening behavior', () => {
     expect(context.event?.branding).toEqual({
       accentColor: '#0f766e',
     });
+    expect(context.event?.confluencePageId).toBeNull();
+    expect(context.event?.isNavigable).toBe(false);
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-switcher-telemetry]',
+      expect.stringContaining('"source":"hdcGetContext"')
+    );
+    telemetrySpy.mockRestore();
+  });
+
+  it('emits parent-context navigability telemetry', async () => {
+    const repo = createRepoMock();
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    repo.getEventByConfluencePageId.mockResolvedValue(null);
+    repo.ensureUser.mockResolvedValue({ id: 'user-parent' });
+    repo.listEventsByParentPageId.mockResolvedValue([
+      {
+        id: 'evt-1',
+        eventName: 'No Page Yet',
+        icon: '🚀',
+        tagline: null,
+        lifecycleStatus: 'draft',
+        confluencePageId: null,
+        isNavigable: false,
+        confluenceParentPageId: 'parent-page',
+        schedule: {},
+        hackingStartsAt: null,
+        submissionDeadlineAt: null,
+        rules: {
+          allowCrossTeamMentoring: true,
+          maxTeamSize: 6,
+          requireDemoLink: false,
+          judgingModel: 'hybrid',
+        },
+        branding: {
+          accentColor: '#0f766e',
+        },
+      },
+    ]);
+
+    const service = new ServiceClass(repo as never);
+    const context = await service.getContext(viewer, 'parent-page');
+
+    expect(context.pageType).toBe('parent');
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      '[hdc-switcher-telemetry]',
+      expect.stringContaining('"pageType":"parent"')
+    );
+    telemetrySpy.mockRestore();
   });
 
   it('preserves previous pushed/skipped counts when sync fails after moving to in_progress', async () => {

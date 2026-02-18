@@ -136,6 +136,13 @@ function formatSubmissionRequirement(requirement: SubmissionRequirement): string
   return 'Documentation';
 }
 
+function logSwitcherNavigabilityTelemetry(source: string, registry: HdcContextResponse['registry']): void {
+  const total = registry.length;
+  const nonNavigable = registry.filter((item) => !item.isNavigable).length;
+  const withMissingPageId = registry.filter((item) => !item.confluencePageId).length;
+  console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
+}
+
 export function App(): JSX.Element {
   const [context, setContext] = useState<HdcContextResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,12 +218,14 @@ export function App(): JSX.Element {
       const payload = await invokeTyped('hdcGetContext', { pageId });
       setContext(payload);
       writeSwitcherRegistryCache(pageId, payload.registry);
+      logSwitcherNavigabilityTelemetry('macro.context.live', payload.registry);
       setSwitcherWarning('');
     } catch (err) {
       if (pageIdForCache) {
         const cachedRegistry = readSwitcherRegistryCache(pageIdForCache);
         if (cachedRegistry) {
           setContext((current) => (current ? { ...current, registry: cachedRegistry } : current));
+          logSwitcherNavigabilityTelemetry('macro.context.cache', cachedRegistry);
           setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
         }
       }
