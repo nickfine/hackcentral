@@ -1549,3 +1549,42 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 ### Plan impact
 - P7-4 is closed.
 - Phase 7 execution queue (`P7-1`..`P7-4`) is now complete.
+
+## Progress Update (Feb 18, 2026 - Phase 7 Template Spinout Foundation @ 22:42 UTC)
+
+### Execution completed
+1. Added template spinout schema migration:
+- `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260218161000_phase7_hackday_template_seed.sql`
+- introduces:
+  - `Event.runtime_type` (`hdc_native` | `hackday_template`),
+  - `Event.template_target` (`hackday`),
+  - `HackdayTemplateSeed` contract table + indexes.
+
+2. Implemented HDC create-flow branching and seed writes:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- behavior:
+  - default create flow now provisions `hackday_template`,
+  - template rows write `HackdayTemplateSeed` payload,
+  - create result includes `templateProvisionStatus`.
+
+3. Added explicit target-macro embedding contract for child page creation:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+- new env vars:
+  - `HACKDAY_TEMPLATE_APP_ID`
+  - `HACKDAY_TEMPLATE_MACRO_KEY`.
+
+4. Updated macro contracts + UI handoff behavior:
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+- `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- template runtime rows now hide native lifecycle/sync/delete controls and show explicit HackDay handoff guidance.
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+
+### Plan impact
+- HDC side of template spinout foundation is in place.
+- Next workstream is HD26Forge runtime context/bootstrap implementation (`pageId -> seed -> event`) and compatibility bridge hardening.

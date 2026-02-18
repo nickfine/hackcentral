@@ -10,6 +10,7 @@ import type {
   EventSchedule,
   EventSyncState,
   HdcContextResponse,
+  InstanceRuntime,
   LifecycleStatus,
   SubmissionRequirement,
   SubmitHackInput,
@@ -54,6 +55,31 @@ function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeInstanceRuntime(runtime: CreateInstanceDraftInput['instanceRuntime']): InstanceRuntime {
+  return runtime === 'hdc_native' ? 'hdc_native' : 'hackday_template';
+}
+
+function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
+  if (runtimeType !== 'hackday_template') return null;
+  return 'hackday';
+}
+
+function getHackdayTemplateMacroConfig(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+  targetMacroKey: string;
+} {
+  const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
+  const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
+  const targetMacroKey = process.env.HACKDAY_TEMPLATE_MACRO_KEY?.trim();
+  if (!targetAppId || !targetEnvironmentId || !targetMacroKey) {
+    throw new Error(
+      'Missing required Forge variables for HackDay templates: HACKDAY_TEMPLATE_APP_ID, HACKDAY_TEMPLATE_ENVIRONMENT_ID, HACKDAY_TEMPLATE_MACRO_KEY.'
+    );
+  }
+  return { targetAppId, targetEnvironmentId, targetMacroKey };
 }
 
 function normalizeEventSchedule(
@@ -400,6 +426,8 @@ export class HdcService {
         eventName: event.name,
         icon: event.icon ?? '🚀',
         tagline: event.tagline,
+        runtimeType: event.runtime_type ?? 'hdc_native',
+        templateTarget: event.template_target,
         lifecycleStatus: event.lifecycle_status,
         confluencePageId,
         isNavigable: Boolean(confluencePageId),
@@ -441,10 +469,16 @@ export class HdcService {
 
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
     if (existingByRequest) {
+      const existingProvisionStatus =
+        existingByRequest.runtime_type === 'hackday_template'
+          ? (await this.repository.getHackdayTemplateSeedByConfluencePageId(existingByRequest.confluence_page_id))
+              ?.provision_status ?? 'provisioned'
+          : undefined;
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
         childPageUrl: existingByRequest.confluence_page_url ?? '',
+        templateProvisionStatus: existingProvisionStatus,
       };
     }
 
@@ -474,10 +508,22 @@ export class HdcService {
       throw new Error('Event name must be unique under this HackDay Central parent page.');
     }
 
+    const runtimeType = normalizeInstanceRuntime(input.instanceRuntime);
+    const templateTarget = resolveTemplateTarget(runtimeType);
+    const templateMacroConfig = runtimeType === 'hackday_template' ? getHackdayTemplateMacroConfig() : null;
+
     const childPage = await createChildPageUnderParent({
       parentPageId: input.parentPageId,
       title: input.basicInfo.eventName,
       tagline: input.basicInfo.eventTagline,
+      ...(templateMacroConfig
+        ? {
+            targetAppId: templateMacroConfig.targetAppId,
+            targetEnvironmentId: templateMacroConfig.targetEnvironmentId,
+            targetMacroKey: templateMacroConfig.targetMacroKey,
+            fallbackLabel: 'HackDay template macro',
+          }
+        : {}),
     });
 
     try {
@@ -523,6 +569,8 @@ export class HdcService {
         createdByUserId: creator.id,
         eventRules,
         eventBranding,
+        runtimeType,
+        templateTarget,
       });
 
       const coAdminIds = [...coAdminUserIds].filter((id) => id !== primaryAdmin.id);
@@ -530,6 +578,35 @@ export class HdcService {
       await this.repository.addEventAdmin(event.id, primaryAdmin.id, 'primary');
       for (const userId of coAdminIds) {
         await this.repository.addEventAdmin(event.id, userId, 'co_admin');
+      }
+
+      let templateProvisionStatus: CreateInstanceDraftResult['templateProvisionStatus'] | undefined;
+      if (runtimeType === 'hackday_template') {
+        const seed = await this.repository.createHackdayTemplateSeed({
+          confluencePageId: childPage.pageId,
+          confluenceParentPageId: input.parentPageId,
+          hdcEventId: event.id,
+          templateName: input.basicInfo.eventName,
+          primaryAdminEmail,
+          coAdminEmails: normalizedCoAdminEmails,
+          seedPayload: {
+            source: 'hdc_template_seed',
+            createdAt: new Date().toISOString(),
+            launchMode,
+            wizardSchemaVersion: input.wizardSchemaVersion ?? 2,
+            completedStep: input.completedStep ?? 5,
+            basicInfo: {
+              eventName: input.basicInfo.eventName,
+              eventIcon: input.basicInfo.eventIcon || '🚀',
+              eventTagline: input.basicInfo.eventTagline,
+            },
+            schedule: eventSchedule,
+            rules: eventRules,
+            branding: eventBranding,
+          },
+          provisionStatus: 'provisioned',
+        });
+        templateProvisionStatus = seed.provision_status;
       }
 
       await Promise.all([
@@ -550,6 +627,9 @@ export class HdcService {
             primaryAdminEmail,
             coAdminEmails: normalizedCoAdminEmails,
             launchMode,
+            runtimeType,
+            templateTarget,
+            templateProvisionStatus: templateProvisionStatus ?? null,
             completedStep: input.completedStep,
             schedule: eventSchedule,
             rules: eventRules,
@@ -562,6 +642,7 @@ export class HdcService {
         eventId: event.id,
         childPageId: childPage.pageId,
         childPageUrl: childPage.pageUrl,
+        templateProvisionStatus,
       };
     } catch (error) {
       await deletePage(childPage.pageId);

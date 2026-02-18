@@ -11,6 +11,7 @@ import type {
   EventRules,
   EventSchedule,
   EventSyncState,
+  InstanceRuntime,
   LifecycleStatus,
   PersonSnapshot,
   SubmissionRequirement,
@@ -33,12 +34,13 @@ const PROJECT_TABLE = 'Project';
 const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
+const HACKDAY_TEMPLATE_SEED_TABLE = 'HackdayTemplateSeed';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
 const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
-const EVENT_SELECT_WITH_CONFIG = `${EVENT_SELECT_CORE},event_rules,event_branding,event_schedule`;
+const EVENT_SELECT_WITH_CONFIG = `${EVENT_SELECT_CORE},event_rules,event_branding,event_schedule,runtime_type,template_target`;
 
 const EXPERIENCE_LABELS: Record<string, string> = {
   newbie: 'Newbie',
@@ -108,7 +110,13 @@ interface DbEvent {
   event_rules: EventRules | null;
   event_branding: EventBranding | null;
   event_schedule: EventSchedule | null;
+  runtime_type: InstanceRuntime | null;
+  template_target: 'hackday' | null;
 }
+type DbEventLegacyCore = Omit<
+  DbEvent,
+  'event_rules' | 'event_branding' | 'event_schedule' | 'runtime_type' | 'template_target'
+>;
 
 interface DbEventAdmin {
   id: string;
@@ -129,6 +137,22 @@ interface DbSyncState {
 interface DbEventAuditLogRetentionRow {
   id: string;
   created_at: string | null;
+}
+
+interface DbHackdayTemplateSeed {
+  id: string;
+  confluence_page_id: string;
+  confluence_parent_page_id: string;
+  hdc_event_id: string;
+  template_name: string;
+  primary_admin_email: string;
+  co_admin_emails: string[] | null;
+  seed_payload: Record<string, unknown> | null;
+  hackday_event_id: string | null;
+  provision_status: 'provisioned' | 'initialized' | 'failed';
+  created_at: string;
+  updated_at: string;
+  initialized_at: string | null;
 }
 
 export interface MigrationEventCandidate {
@@ -289,7 +313,22 @@ function hasMissingEventConfigColumns(error: unknown): boolean {
   const message = error.message.toLowerCase();
   return (
     message.includes('column') &&
-    (message.includes('event_rules') || message.includes('event_branding') || message.includes('event_schedule'))
+    (message.includes('event_rules') ||
+      message.includes('event_branding') ||
+      message.includes('event_schedule') ||
+      message.includes('runtime_type') ||
+      message.includes('template_target'))
+  );
+}
+
+function hasMissingTable(error: unknown, tableName: string): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+  const table = tableName.toLowerCase();
+  return (
+    normalized.includes(`relation "${table}" does not exist`) ||
+    normalized.includes(`could not find the table '${table}'`) ||
+    normalized.includes(`failed to find table '${table}'`)
   );
 }
 
@@ -661,12 +700,14 @@ function matchesProjectFilter(project: DbProject, filter: QueryFilter): boolean 
   return true;
 }
 
-function withNullEventConfig(row: Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>): DbEvent {
+function withNullEventConfig(row: DbEventLegacyCore): DbEvent {
   return {
     ...row,
     event_rules: null,
     event_branding: null,
     event_schedule: null,
+    runtime_type: 'hdc_native',
+    template_target: null,
   };
 }
 
@@ -799,6 +840,8 @@ function toEventRegistryItem(event: DbEvent): EventRegistryItem {
     eventName: event.name,
     icon: event.icon ?? '🚀',
     tagline: event.tagline,
+    runtimeType: event.runtime_type ?? 'hdc_native',
+    templateTarget: event.template_target,
     lifecycleStatus: event.lifecycle_status,
     confluencePageId: pageId || null,
     isNavigable: pageId.length > 0,
@@ -1262,7 +1305,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+      const legacy = await this.client.selectOne<DbEventLegacyCore>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'creation_request_id', op: 'eq', value: creationRequestId }]
@@ -1291,7 +1334,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
           throw error;
         }
         usedLegacyConfigFallback = true;
-        const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        const legacy = await this.client.selectMany<DbEventLegacyCore>(
           EVENT_TABLE,
           EVENT_SELECT_CORE,
           [{ field: 'confluence_parent_page_id', op: 'eq', value: parentPageId }]
@@ -1340,7 +1383,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
           throw error;
         }
         usedLegacyConfigFallback = true;
-        const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        const legacy = await this.client.selectMany<DbEventLegacyCore>(
           EVENT_TABLE,
           EVENT_SELECT_CORE
         );
@@ -1387,7 +1430,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectMany<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+      const legacy = await this.client.selectMany<DbEventLegacyCore>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'name', op: 'ilike', value: `%${query}%` }]
@@ -1484,6 +1527,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     createdByUserId: string;
     eventRules: EventRules;
     eventBranding: EventBranding;
+    runtimeType?: InstanceRuntime;
+    templateTarget?: 'hackday' | null;
   }): Promise<DbEvent> {
     const basePayload = {
       name: input.eventName,
@@ -1498,6 +1543,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       submission_deadline_at: input.submissionDeadlineAt ?? null,
       creation_request_id: input.creationRequestId,
       created_by_user_id: input.createdByUserId,
+      runtime_type: input.runtimeType ?? 'hdc_native',
+      template_target: input.templateTarget ?? null,
     };
     const payloadWithConfig = {
       ...basePayload,
@@ -1523,8 +1570,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
         throw error;
       }
       try {
-        const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
-          EVENT_TABLE,
+        const legacy = await insertEventWithPrunedColumns<DbEventLegacyCore>(
+          (payload) => this.client.insert<DbEventLegacyCore>(EVENT_TABLE, payload),
           basePayload
         );
         return withNullEventConfig(legacy);
@@ -1532,9 +1579,9 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
         if (!hasLegacyEventRequiredFieldError(legacyError)) {
           throw legacyError;
         }
-        const legacy = await insertEventWithPrunedColumns<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+        const legacy = await insertEventWithPrunedColumns<DbEventLegacyCore>(
           (payload) =>
-            this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(EVENT_TABLE, payload),
+            this.client.insert<DbEventLegacyCore>(EVENT_TABLE, payload),
           {
             ...basePayload,
             ...legacyRequiredFields,
@@ -1552,6 +1599,58 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       role,
       added_at: nowIso(),
     });
+  }
+
+  async createHackdayTemplateSeed(input: {
+    confluencePageId: string;
+    confluenceParentPageId: string;
+    hdcEventId: string;
+    templateName: string;
+    primaryAdminEmail: string;
+    coAdminEmails: string[];
+    seedPayload: Record<string, unknown>;
+    provisionStatus?: 'provisioned' | 'initialized' | 'failed';
+  }): Promise<DbHackdayTemplateSeed> {
+    const timestamp = nowIso();
+    try {
+      return await this.client.upsert<DbHackdayTemplateSeed>(
+        HACKDAY_TEMPLATE_SEED_TABLE,
+        {
+          confluence_page_id: input.confluencePageId,
+          confluence_parent_page_id: input.confluenceParentPageId,
+          hdc_event_id: input.hdcEventId,
+          template_name: input.templateName,
+          primary_admin_email: input.primaryAdminEmail,
+          co_admin_emails: input.coAdminEmails,
+          seed_payload: input.seedPayload,
+          provision_status: input.provisionStatus ?? 'provisioned',
+          updated_at: timestamp,
+        },
+        'confluence_page_id'
+      );
+    } catch (error) {
+      if (hasMissingTable(error, HACKDAY_TEMPLATE_SEED_TABLE)) {
+        throw new Error(
+          `Missing required table ${HACKDAY_TEMPLATE_SEED_TABLE}. Apply migration 20260218161000_phase7_hackday_template_seed.sql.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getHackdayTemplateSeedByConfluencePageId(pageId: string): Promise<DbHackdayTemplateSeed | null> {
+    try {
+      return await this.client.selectOne<DbHackdayTemplateSeed>(
+        HACKDAY_TEMPLATE_SEED_TABLE,
+        'id,confluence_page_id,confluence_parent_page_id,hdc_event_id,template_name,primary_admin_email,co_admin_emails,seed_payload,hackday_event_id,provision_status,created_at,updated_at,initialized_at',
+        [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, HACKDAY_TEMPLATE_SEED_TABLE)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async listEventAdmins(eventId: string): Promise<DbEventAdmin[]> {
@@ -1723,7 +1822,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+      const legacy = await this.client.selectOne<DbEventLegacyCore>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'id', op: 'eq', value: eventId }]
@@ -1741,7 +1840,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.selectOne<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+      const legacy = await this.client.selectOne<DbEventLegacyCore>(
         EVENT_TABLE,
         EVENT_SELECT_CORE,
         [{ field: 'confluence_page_id', op: 'eq', value: pageId }]
@@ -1802,6 +1901,14 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   }
 
   async deleteEventCascade(eventId: string): Promise<void> {
+    try {
+      await this.client.deleteMany(HACKDAY_TEMPLATE_SEED_TABLE, [{ field: 'hdc_event_id', op: 'eq', value: eventId }]);
+    } catch (error) {
+      if (!hasMissingTable(error, HACKDAY_TEMPLATE_SEED_TABLE)) {
+        throw error;
+      }
+    }
+
     await this.client.deleteMany(EVENT_ADMIN_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
     await this.client.deleteMany(EVENT_SYNC_STATE_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
     await this.client.deleteMany(EVENT_AUDIT_LOG_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
