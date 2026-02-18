@@ -635,3 +635,35 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - HD26Forge production logs currently warn:
   - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
 - Not blocking template render, but should be remediated in HD26 production env.
+
+## Continuation update (2026-02-18 23:56 UTC)
+
+- Continued HD26Forge Phase 3 genericization + event metadata wiring (cross-repo step required by template spinout plan).
+
+### HD26 changes completed
+1. Backend metadata contract
+- `/Users/nickster/Downloads/HD26Forge/src/index.js`
+- `getEventPhase` now returns `eventMeta`:
+  - `name`, `timezone`, `startAt`, `endAt`, `schedule`
+  - safe defaults when event row is missing.
+2. Frontend event-aware display wiring
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Schedule.jsx`
+- Timer and schedule heading now consume resolver-provided event metadata with fallback behavior.
+3. Remaining active UI copy genericized (removed `HackDay 2026` strings)
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/lib/missionBriefContent.js`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/data/motdMessages.js`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/shared/MotdBanner.jsx`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Signup.jsx`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/styles/tokens.css`
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HD26Forge/static/frontend run build` ✅
+- `npm -C /Users/nickster/Downloads/HD26Forge run lint` ✅
+
+### Ops status
+- `forge variables list -e production` in HD26 now includes encrypted `SUPABASE_SERVICE_ROLE_KEY`.
+- Production logs still show fallback warning on older runtime invocations (`appVersion 5.27.0`).
+- Next ops step: deploy latest HD26 production version, execute fresh invocation, re-check logs for warning clearance.
