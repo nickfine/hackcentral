@@ -7,6 +7,40 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Final Switcher Matrix Closure Attempt + Phase 4 Prep (Feb 18, 2026 11:26 UTC)
+
+### Completed
+- Re-ran required validation/build checks before closure decision:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run` ❌ (`13` failed, `37` passed; localStorage runtime mismatch in switcher helper tests).
+- Confirmed deployed install/runtime versions on `hackdaytemp`:
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`App version 3`, `Up-to-date`)
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e development` ✅ (`App version 5`, `Up-to-date`)
+  - `forge deploy list -e production` ✅ (latest success rows: `2026-02-18T10:59:05.317Z` production major `3`, `2026-02-18T10:59:43.517Z` default/development major `5`)
+- Captured final Phase 3 parent-host matrix artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`
+
+### Blocker evidence
+- PROD parent host (`pageId=5668895`): switcher opens and target row `HDC Auto 1771412434287` is present and enabled across desktop/tablet/mobile, but clicking it does not change URL and does not change macro mode from `Parent page mode`.
+- DEV parent host (`pageId=5799944`): switcher opens across desktop/tablet/mobile, but target row `HDC Auto 1771412434287` is absent in switcher data, so parent->instance transition cannot be executed.
+
+### Immediate unblocked execution (Phase 4 prep)
+- Added Phase 4 prep deliverable:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE4-PREP-SYNC-AUDIT.md`
+- Prep includes:
+  - sync status contract draft (`idle`, `in_progress`, `success`, `partial_success`, `failed_retryable`, `failed_terminal`),
+  - admin retry guidance mappings,
+  - audit-retention implementation/test checklist (`latest 100`),
+  - archive behavior verification checklist (`90` day auto-archive + switcher recent exclusion),
+  - implementation order for first Phase 4 execution pass.
+
+### Plan impact
+- Phase 3 cannot be closed yet due reproducible parent->instance switcher transition blocker on real hosts.
+- Phase 4 has now started in parallel on an unblocked prep track so execution can continue while the Phase 3 runtime blocker is triaged.
+
 ## Phase 3 Macro Host Rendering Blocker Checkpoint (Feb 18, 2026 10:25 UTC)
 
 ### Completed

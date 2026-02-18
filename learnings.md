@@ -1,5 +1,26 @@
 # Learnings
 
+**Phase 3 parent->instance switcher closure attempt + Phase 4 prep checkpoint G (Feb 18, 2026 11:26 UTC):**
+- Validation/build checkpoint before evidence capture:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run` ❌ (`13` failed, `37` passed) due localStorage runtime mismatch:
+    - `TypeError: window.localStorage.clear is not a function`
+    - warning observed in run: ``--localstorage-file` was provided without a valid path`.
+- Runtime version/status checkpoint (UTC ~11:24-11:26):
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`App version 3`, `Up-to-date`)
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e development` ✅ (`App version 5`, `Up-to-date`)
+  - `forge deploy list -e production` ✅ (latest successful entries include production major `3` and default/development major `5`; latest rows at `2026-02-18T10:59:05.317Z` and `2026-02-18T10:59:43.517Z`)
+- Phase 3 evidence artifacts captured on real parent hosts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`
+- Exact blocker evidence captured in matrix:
+  - prod parent (`pageId=5668895`): switcher renders and target row is present/enabled on desktop/tablet/mobile, but click does not transition URL or mode (`Parent page mode` remains, URL remains on parent).
+  - dev parent (`pageId=5799944`): switcher renders on desktop/tablet/mobile, but target child row (`HDC Auto 1771412434287`) is absent.
+- Best unblocked Phase 4 prep executed immediately:
+  - created `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE4-PREP-SYNC-AUDIT.md` with concrete sync status contract draft, retry guidance, audit-retention checklist, archive behavior tests, and implementation order.
+
 **Phase 3 switcher telemetry + contract checks checkpoint F (Feb 18, 2026 00:13 UTC):**
 - Added switcher data-quality telemetry across backend and both frontends:
   - backend `getBootstrapData` and `hdcGetContext` now emit `[hdc-switcher-telemetry]` JSON logs containing:
