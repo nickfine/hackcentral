@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const ROOT = '/Users/nickster/Downloads/HackCentral';
 const FORGE_DIR = path.join(ROOT, 'forge-native');
-const DEFAULT_EVENT_QUERY = 'HackDay 2026';
+const DEFAULT_EVENT_QUERY = 'HDC Auto';
 
 function parseArgs(argv) {
   const args = {

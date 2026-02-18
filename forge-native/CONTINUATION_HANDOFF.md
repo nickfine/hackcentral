@@ -348,3 +348,30 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - Run one fresh production dry-run to reconfirm submitted-hack count remains non-zero.
   - Begin Phase 5 instrumentation follow-through: capture first post-release telemetry sample and compare against perf harness baseline.
   - Execute legacy cleanup checklist items (Confluence orphan pages + migration target naming normalization) and record closure artifact.
+
+## Continuation update (2026-02-18 15:16 UTC)
+
+- Reconfirmed submitted-hack gate stability with fresh production dry-run:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-151231Z.md`
+  - `Total submitted hacks: 1` (canonical event remains non-zero).
+- Captured post-release telemetry comparison artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-TELEMETRY-COMPARISON-20260218-1516Z.md`
+- Comparison outcome:
+  - perf harness sample remains under p95 budgets and equal/better than baseline on all tracked metrics.
+  - production log scan window (`2026-02-18T11:15Z` to `2026-02-18T15:15Z`) showed no `[hdc-performance-telemetry]` events; only switcher/migration-op logs observed.
+- Next action:
+  - perform targeted production invocation(s) to force at least one runtime `registry_lookup` and `sync_execution` telemetry event, then re-check logs.
+
+## Continuation update (2026-02-18 15:19 UTC)
+
+- Executed legacy cleanup closure pass (Phase 5 step 3) and produced closure artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-LEGACY-CLEANUP-CLOSURE-20260218-1518Z.md`
+- Item outcomes:
+  - orphan Confluence pages (`6029333`, `5767177`): still pending manual admin action; Atlassian API auth unavailable in this session (`401 Unauthorized`).
+  - migration target naming normalization: closed by standardizing canonical release target to `HDC Auto*`.
+  - seed submission closure: confirmed closed (`Total submitted hacks: 1`).
+- Tooling normalization applied:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase5-migration-dry-run.mjs`
+  - default event query now `HDC Auto` (was `HackDay 2026`).
+- Verification artifact after normalization:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-20260218-151844Z.md`
