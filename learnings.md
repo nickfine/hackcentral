@@ -2191,3 +2191,42 @@ Key hardening changes:
 
 ### Key learning
 1. For switcher telemetry, derive counts from the same helper contract that gates navigation and warning states; raw field-counting can drift from actual user-visible behavior.
+
+## Phase 3 Macro QA Playwright Scaffold Checkpoint (Feb 18, 2026 01:30 UTC)
+
+### Context
+- Macro-context QA (P3-8) is still blocked on Confluence page-create/discovery permissions.
+- Needed an immediate, reusable execution path so QA can start in minutes once parent/instance URLs are available.
+
+### What changed
+- Added scaffold generator CLI:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase3-macro-qa-scaffold.mjs`
+  - validates both URLs are `.../wiki/pages/viewpage.action?pageId=<id>` on `atlassian.net`,
+  - generates structured markdown evidence sheet with:
+    - viewport matrix,
+    - parent + instance result blocks,
+    - unavailable-state checks (including refresh control),
+    - exit decision (`PASS` / `BLOCKED` / `FAIL`).
+- Wired npm command:
+  - `/Users/nickster/Downloads/HackCentral/package.json`
+  - `npm run qa:phase3:macro-scaffold -- --parent-url "<...>" --instance-url "<...>"`
+- Updated runbook with generator usage:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE3-MACRO-QA-RUNBOOK.md`
+- Added sample output artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-SAMPLE.md`
+
+### Command verification
+- `2026-02-18` `npm run qa:phase3:macro-scaffold -- --parent-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=111111" --instance-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=222222" --out "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-SAMPLE.md"` ✅
+
+### Validation (local)
+- `2026-02-18` `npm run typecheck` (forge-native) ✅
+- `2026-02-18` `npm run frontend:build` (forge-native) ✅
+- `2026-02-18` `npm run macro:build` (forge-native) ✅
+- `2026-02-18` `npm run test:run` (repo root) ✅ (`44` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Latest production submit smoke artifact remains: `prodSmoke-20260217-170434`.
+
+### Key learning
+1. When environment permissions block live QA, ship execution scaffolding with strict input validation and prefilled evidence structure so the blocked step converts to a fast-run task once access is granted.

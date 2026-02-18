@@ -7,6 +7,35 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Macro QA Playwright Scaffold Checkpoint (Feb 18, 2026 01:30 UTC)
+
+### Completed
+- Added reusable scaffold generator for macro-context QA evidence capture:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase3-macro-qa-scaffold.mjs`
+  - validates Confluence parent/instance `viewpage.action?pageId=...` URLs,
+  - emits timestamped markdown checklist with desktop/tablet/mobile matrix, parent+instance sections, and pass/block/fail gate.
+- Added npm command wiring:
+  - `/Users/nickster/Downloads/HackCentral/package.json`
+  - script: `qa:phase3:macro-scaffold`
+- Updated macro QA runbook with scaffold usage examples:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE3-MACRO-QA-RUNBOOK.md`
+- Added sample generated artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-SAMPLE.md`
+- Scaffold command verification:
+  - `npm run qa:phase3:macro-scaffold -- --parent-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=111111" --instance-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=222222" --out "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-SAMPLE.md"` ✅
+- Validation:
+  - `npm run typecheck` (forge-native) ✅
+  - `npm run frontend:build` (forge-native) ✅
+  - `npm run macro:build` (forge-native) ✅
+  - `npm run test:run` (repo root) ✅ (`44` tests passing)
+
+### Deploy/install/smoke outcome
+- No deploy/install/smoke commands executed in this checkpoint.
+- Last confirmed production submit artifact remains `prodSmoke-20260217-170434`.
+
+### Plan impact
+- Once Confluence permissions are restored, P3-8 macro-context QA can start immediately with standardized evidence capture and consistent pass/block/fail reporting.
+
 ## Phase 3 Telemetry Consistency Checkpoint (Feb 18, 2026 01:14 UTC)
 
 ### Completed

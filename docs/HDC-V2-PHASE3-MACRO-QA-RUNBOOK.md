@@ -21,6 +21,25 @@ Both pages must render the HackDay Central macro app.
 - Latest `main` is deployed/installed for environment under test.
 - Switcher registry contains entries with `isNavigable=true` and non-null `confluencePageId`.
 
+## Scaffold Generation (Playwright MCP Prep)
+
+Generate a timestamped QA evidence sheet before running manual MCP Playwright checks:
+
+```bash
+npm run qa:phase3:macro-scaffold -- \
+  --parent-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=<parentPageId>" \
+  --instance-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=<instancePageId>"
+```
+
+Optional: choose a deterministic output path.
+
+```bash
+npm run qa:phase3:macro-scaffold -- \
+  --parent-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=<parentPageId>" \
+  --instance-url "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=<instancePageId>" \
+  --out "docs/artifacts/HDC-V2-PHASE3-MACRO-QA-<label>.md"
+```
+
 ## Viewport Matrix
 
 - Desktop: `1366x900` (macro iframe width target `>1024`)

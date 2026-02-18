@@ -14,6 +14,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "qa:phase3:macro-scaffold": "node scripts/phase3-macro-qa-scaffold.mjs",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },
