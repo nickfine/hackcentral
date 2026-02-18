@@ -2417,3 +2417,21 @@ Key hardening changes:
 
 ### Key learning
 1. For Forge macro cloning across Confluence pages, reusing the host’s real extension storage block is more reliable than manually composing a minimal ADF extension payload.
+
+## Documentation Sync Checkpoint (Feb 18, 2026 11:11 UTC)
+
+### Scope
+- Refreshed execution documentation after create-flow unblock and latest deploy/install verification.
+- Confirmed Phase 3 no longer has a permission blocker for create-on-host validation; remaining work is evidence closure and optional cleanup.
+
+### Canonical QA URLs (carry forward)
+- Site: `https://hackdaytemp.atlassian.net/`
+- Confluence home: `https://hackdaytemp.atlassian.net/wiki/home`
+- App entry (global page URL): `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central`
+- Parent host (prod): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+- Parent host (dev): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- Created child instance (latest verified): `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/5799956/HDC+Auto+1771412434287`
+
+### Current forward focus
+1. Capture final Phase 3 parent->instance switcher evidence matrix on both parent hosts.
+2. Begin Phase 4 implementation items once evidence set is complete.
