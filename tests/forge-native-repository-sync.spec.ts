@@ -24,6 +24,10 @@ describe('SupabaseRepository.completeAndSync status classification', () => {
       syncStatus: 'partial',
       pushedCount: 1,
       skippedCount: 1,
+      lastError: 'Failed to sync 1 hack(s) (h2).',
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
     });
     expect(fakeRepo.updateEventLifecycle).toHaveBeenCalledWith('event-1', 'completed');
     expect(fakeRepo.upsertSyncState).toHaveBeenCalledWith(
@@ -53,6 +57,10 @@ describe('SupabaseRepository.completeAndSync status classification', () => {
       syncStatus: 'failed',
       pushedCount: 0,
       skippedCount: 0,
+      lastError: 'Failed to sync 2 hack(s) (h10, h11).',
+      syncErrorCategory: 'transient',
+      retryable: true,
+      retryGuidance: 'This appears transient. Retry sync in a few seconds; if it persists, capture the error text and escalate.',
     });
     expect(fakeRepo.updateEventLifecycle).not.toHaveBeenCalled();
     expect(fakeRepo.upsertSyncState).toHaveBeenCalledWith(
@@ -89,11 +97,19 @@ describe('SupabaseRepository.completeAndSync status classification', () => {
       syncStatus: 'complete',
       pushedCount: 2,
       skippedCount: 0,
+      lastError: null,
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
     });
     expect(second).toEqual({
       syncStatus: 'complete',
       pushedCount: 0,
       skippedCount: 2,
+      lastError: null,
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
     });
     expect(fakeRepo.markHackSynced).toHaveBeenCalledTimes(2);
   });

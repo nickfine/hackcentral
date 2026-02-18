@@ -16,6 +16,7 @@ import type {
   SubmitHackInput,
   SubmitHackResult,
   SyncResult,
+  SyncErrorCategory,
   SyncStatus,
   ThemePreference,
   UpdateMentorProfileInput,
@@ -151,6 +152,7 @@ function toExperienceLabel(level: string | null): string | null {
 }
 
 function asSyncState(row: DbSyncState): EventSyncState {
+  const guidance = getSyncGuidance(row.sync_status, row.last_error);
   return {
     eventId: row.event_id,
     syncStatus: row.sync_status,
@@ -158,6 +160,52 @@ function asSyncState(row: DbSyncState): EventSyncState {
     lastAttemptAt: row.last_attempt_at,
     pushedCount: row.pushed_count ?? 0,
     skippedCount: row.skipped_count ?? 0,
+    ...guidance,
+  };
+}
+
+function getSyncGuidance(syncStatus: SyncStatus, lastError: string | null): {
+  syncErrorCategory: SyncErrorCategory;
+  retryable: boolean;
+  retryGuidance: string | null;
+} {
+  if (syncStatus === 'complete' || syncStatus === 'not_started' || syncStatus === 'in_progress') {
+    return {
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
+    };
+  }
+
+  if (syncStatus === 'partial') {
+    return {
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
+    };
+  }
+
+  const message = (lastError ?? '').toLowerCase();
+  if (
+    message.includes('failed to sync') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('rate limit') ||
+    message.includes('429') ||
+    message.includes('network') ||
+    message.includes('connection')
+  ) {
+    return {
+      syncErrorCategory: 'transient',
+      retryable: true,
+      retryGuidance: 'This appears transient. Retry sync in a few seconds; if it persists, capture the error text and escalate.',
+    };
+  }
+
+  return {
+    syncErrorCategory: 'unknown',
+    retryable: true,
+    retryGuidance: 'Retry sync once. If the same error repeats, escalate with the event ID and timestamp.',
   };
 }
 
@@ -1498,10 +1546,13 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       lastAttemptAt: syncFinishedAt,
     });
 
+    const guidance = getSyncGuidance(syncStatus, lastError);
     return {
       syncStatus,
       pushedCount,
       skippedCount,
+      lastError,
+      ...guidance,
     };
   }
 }

@@ -123,6 +123,7 @@ export type LifecycleStatus =
   | "archived";
 
 export type SyncStatus = "not_started" | "in_progress" | "partial" | "failed" | "complete";
+export type SyncErrorCategory = "none" | "permission" | "validation" | "transient" | "partial_failure" | "unknown";
 
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
@@ -209,6 +210,9 @@ export interface EventSyncState {
   lastAttemptAt: string | null;
   pushedCount: number;
   skippedCount: number;
+  syncErrorCategory: SyncErrorCategory;
+  retryable: boolean;
+  retryGuidance: string | null;
 }
 
 export interface HdcContextResponse {
@@ -260,6 +264,10 @@ export interface SyncResult {
   syncStatus: SyncStatus;
   pushedCount: number;
   skippedCount: number;
+  lastError: string | null;
+  syncErrorCategory: SyncErrorCategory;
+  retryable: boolean;
+  retryGuidance: string | null;
 }
 
 export type Defs = {

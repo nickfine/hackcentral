@@ -123,6 +123,13 @@ function formatLifecycle(status: EventRegistryItem['lifecycleStatus']): string {
     .join(' ');
 }
 
+function formatSyncErrorCategory(category: SyncResult['syncErrorCategory']): string {
+  return category
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function isAdaptavistEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith('@adaptavist.com');
 }
@@ -777,12 +784,15 @@ export function App(): JSX.Element {
           { eventId: context.event.id }
         );
         setMessage(
-          `Sync status: ${result.syncStatus}. Pushed: ${result.pushedCount}, skipped: ${result.skippedCount}.`
+          `Sync status: ${result.syncStatus}. Pushed: ${result.pushedCount}, skipped: ${result.skippedCount}.${
+            result.retryGuidance ? ` Guidance: ${result.retryGuidance}` : ''
+          }`
         );
         invalidateSwitcherCaches(context);
         await loadContext();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sync failed.');
+        await loadContext();
       } finally {
         setSaving(false);
       }
@@ -1480,6 +1490,8 @@ export function App(): JSX.Element {
               Last run: {context.syncState?.lastAttemptAt || 'never'} | Pushed: {context.syncState?.pushedCount || 0} |
               Skipped: {context.syncState?.skippedCount || 0}
             </p>
+            {context.syncState ? <p>Error category: {formatSyncErrorCategory(context.syncState.syncErrorCategory)}</p> : null}
+            {context.syncState?.retryGuidance ? <p>Guidance: {context.syncState.retryGuidance}</p> : null}
             <button disabled={saving || !canAdminInstance} onClick={() => void handleLaunch()}>
               {saving ? 'Updating…' : 'Advance Lifecycle'}
             </button>

@@ -7,11 +7,13 @@ import type {
   EventLifecycleResult,
   EventRules,
   EventSchedule,
+  EventSyncState,
   HdcContextResponse,
   LifecycleStatus,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
+  SyncErrorCategory,
   SyncResult,
   ThemePreference,
   ViewerContext,
@@ -201,6 +203,80 @@ const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> =
   results: 'completed',
 };
 
+function getSyncGuidance(syncStatus: SyncResult['syncStatus'], lastError: string | null): {
+  syncErrorCategory: SyncErrorCategory;
+  retryable: boolean;
+  retryGuidance: string | null;
+} {
+  if (syncStatus === 'complete' || syncStatus === 'not_started' || syncStatus === 'in_progress') {
+    return {
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
+    };
+  }
+
+  if (syncStatus === 'partial') {
+    return {
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
+    };
+  }
+
+  const message = (lastError ?? '').toLowerCase();
+  if (message.includes('only event admins')) {
+    return {
+      syncErrorCategory: 'permission',
+      retryable: false,
+      retryGuidance: 'You must be a primary admin or co-admin for this instance to run sync.',
+    };
+  }
+  if (message.includes('at least one submitted hack')) {
+    return {
+      syncErrorCategory: 'validation',
+      retryable: false,
+      retryGuidance: 'Submit at least one hack in this instance before running Complete + Sync.',
+    };
+  }
+  if (
+    message.includes('failed to sync') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('rate limit') ||
+    message.includes('429') ||
+    message.includes('network') ||
+    message.includes('connection')
+  ) {
+    return {
+      syncErrorCategory: 'transient',
+      retryable: true,
+      retryGuidance: 'This appears transient. Retry sync in a few seconds; if it persists, capture the error text and escalate.',
+    };
+  }
+
+  return {
+    syncErrorCategory: 'unknown',
+    retryable: true,
+    retryGuidance: 'Retry sync once. If the same error repeats, escalate with the event ID and timestamp.',
+  };
+}
+
+function withSyncGuidance(state: {
+  syncStatus: SyncResult['syncStatus'];
+  lastError: string | null;
+  pushedCount: number;
+  skippedCount: number;
+  eventId: string;
+  lastAttemptAt: string | null;
+}): EventSyncState {
+  const guidance = getSyncGuidance(state.syncStatus, state.lastError);
+  return {
+    ...state,
+    ...guidance,
+  };
+}
+
 function logContextRegistryNavigability(pageType: 'parent' | 'instance', pageId: string, registry: EventRegistryItem[]): void {
   const total = registry.length;
   const nonNavigable = registry.filter((item) => !item.isNavigable).length;
@@ -241,11 +317,12 @@ export class HdcService {
       };
     }
 
-    const [registry, syncState, admins] = await Promise.all([
+    const [registry, rawSyncState, admins] = await Promise.all([
       this.repository.listEventsByParentPageId(event.confluence_parent_page_id ?? pageId),
       this.repository.getSyncState(event.id),
       this.repository.listEventAdmins(event.id),
     ]);
+    const syncState = rawSyncState ? withSyncGuidance(rawSyncState) : null;
 
     const isPrimaryAdmin = admins.some((admin) => admin.user_id === viewerUser.id && admin.role === 'primary');
     const isCoAdmin = admins.some((admin) => admin.user_id === viewerUser.id && admin.role === 'co_admin');
@@ -569,6 +646,10 @@ export class HdcService {
 
     try {
       const syncResult = await this.repository.completeAndSync(eventId);
+      const resultWithGuidance = {
+        ...syncResult,
+        ...getSyncGuidance(syncResult.syncStatus, syncResult.lastError),
+      };
       const auditAction =
         syncResult.syncStatus === 'partial'
           ? 'sync_partial'
@@ -579,11 +660,12 @@ export class HdcService {
         eventId,
         actorUserId: user.id,
         action: auditAction,
-        newValue: syncResult,
+        newValue: resultWithGuidance,
       });
-      return syncResult;
+      return resultWithGuidance;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync failure.';
+      const guidance = getSyncGuidance('failed', message);
       await this.repository.upsertSyncState(eventId, {
         syncStatus: 'failed',
         pushedCount: fallbackPushedCount,
@@ -591,7 +673,7 @@ export class HdcService {
         lastAttemptAt: new Date().toISOString(),
         lastError: message,
       });
-      throw error;
+      throw new Error(`${message} ${guidance.retryGuidance ?? ''}`.trim());
     }
   }
 
@@ -603,13 +685,17 @@ export class HdcService {
     }
 
     const syncResult = await this.repository.completeAndSync(eventId);
+    const resultWithGuidance = {
+      ...syncResult,
+      ...getSyncGuidance(syncResult.syncStatus, syncResult.lastError),
+    };
     await this.repository.logAudit({
       eventId,
       actorUserId: user.id,
       action: 'sync_retry',
-      newValue: syncResult,
+      newValue: resultWithGuidance,
     });
 
-    return syncResult;
+    return resultWithGuidance;
   }
 }

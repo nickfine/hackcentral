@@ -396,6 +396,9 @@ describe('HdcService hardening behavior', () => {
       skippedCount: 2,
       lastError: 'old',
       lastAttemptAt: '2026-02-16T00:00:00.000Z',
+      syncErrorCategory: 'unknown',
+      retryable: true,
+      retryGuidance: 'Retry sync once.',
     });
     repo.completeAndSync.mockRejectedValue(new Error('sync exploded'));
     repo.upsertSyncState.mockResolvedValue({
@@ -405,6 +408,9 @@ describe('HdcService hardening behavior', () => {
       skippedCount: 2,
       lastError: 'sync exploded',
       lastAttemptAt: '2026-02-16T01:00:00.000Z',
+      syncErrorCategory: 'unknown',
+      retryable: true,
+      retryGuidance: 'Retry sync once.',
     });
 
     const service = new ServiceClass(repo as never);
@@ -438,6 +444,10 @@ describe('HdcService hardening behavior', () => {
       syncStatus: 'partial',
       pushedCount: 1,
       skippedCount: 1,
+      lastError: 'Failed to sync 1 hack(s) (project-9).',
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
     });
     repo.upsertSyncState.mockResolvedValue({
       eventId: 'event-9',
@@ -446,6 +456,9 @@ describe('HdcService hardening behavior', () => {
       skippedCount: 0,
       lastError: null,
       lastAttemptAt: '2026-02-16T01:00:00.000Z',
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
     });
 
     const service = new ServiceClass(repo as never);
@@ -455,6 +468,10 @@ describe('HdcService hardening behavior', () => {
       syncStatus: 'partial',
       pushedCount: 1,
       skippedCount: 1,
+      lastError: 'Failed to sync 1 hack(s) (project-9).',
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
     });
     expect(repo.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -585,6 +602,9 @@ describe('HdcService hardening behavior', () => {
       lastAttemptAt: null,
       pushedCount: 0,
       skippedCount: 1,
+      syncErrorCategory: 'partial_failure',
+      retryable: true,
+      retryGuidance: 'Some hacks did not sync. Retry sync now; if failures repeat, review recent project updates and retry.',
     });
 
     const service = new ServiceClass(repo as never);
@@ -609,6 +629,9 @@ describe('HdcService hardening behavior', () => {
       lastAttemptAt: null,
       pushedCount: 1,
       skippedCount: 0,
+      syncErrorCategory: 'none',
+      retryable: false,
+      retryGuidance: null,
     });
     repo.updateEventLifecycle.mockResolvedValue(undefined);
     repo.logAudit.mockResolvedValue(undefined);

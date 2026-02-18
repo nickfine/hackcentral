@@ -963,3 +963,37 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next Phase 4 item (unblocked)
 1. Add explicit sync error categorization and admin-facing retry guidance payloads in backend + UI state.
+
+## Progress Update (Feb 18, 2026 - Phase 4 Sync Guidance @ 12:07 UTC)
+
+### Phase 4 execution completed in this checkpoint
+1. Implemented explicit sync error categorization and retry guidance payloads in backend + macro UI.
+- Backend:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+- UI/types:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- Tests:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+
+### Validation (UTC)
+- Window: `2026-02-18T12:05:49Z` -> `2026-02-18T12:07:37Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` ✅
+- `npm run macro:build` ✅
+- `vitest v4.0.18` targeted suites ✅
+  - `tests/forge-native-repository-sync.spec.ts` (`5/5`)
+  - `tests/forge-native-hdcService.spec.ts` (`18/18`)
+  - `tests/forge-native-repository-event-config.spec.ts` (`4/4`)
+
+### Deploy/install verification (UTC)
+- Development deploy: `5.28.0` ✅
+- Production deploy: `3.20.0` ✅
+- Install upgrades confirmed both environments `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Next Phase 4 item (unblocked)
+1. Implement completion read-only enforcement for instance editing surfaces and add tests for post-completion write blockers.

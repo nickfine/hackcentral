@@ -113,3 +113,26 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
     - `tests/forge-native-repository-event-config.spec.ts` (`4/4`)
     - `tests/forge-native-hdcService.spec.ts` (`18/18`)
 - No deploy executed in this checkpoint (repo/backend-only change staged for next deploy batch).
+
+## Continuation update (2026-02-18 12:07 UTC)
+
+- Completed next Phase 4 slice: sync error categorization + retry guidance payloads.
+- New sync payload fields now flow through backend and macro UI:
+  - `syncErrorCategory`
+  - `retryable`
+  - `retryGuidance`
+  - `lastError` on `SyncResult`
+- Code touchpoints:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- Test updates:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+- Validation status: typecheck + frontend build + macro build + targeted Vitest suites all pass.
+- Deploy/install status:
+  - development deployed `5.28.0` and install verified `Up-to-date`.
+  - production deployed `3.20.0` and install verified `Up-to-date`.

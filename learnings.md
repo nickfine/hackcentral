@@ -2509,3 +2509,49 @@ Key hardening changes:
 
 ### Key learning
 1. Retention can be enforced without schema migration by applying a post-insert prune pass keyed by `event_id`; this keeps rollout risk low while preserving deterministic cap behavior.
+
+## Phase 4 Checkpoint - Sync Error Categorization + Retry Guidance (Feb 18, 2026 12:07 UTC)
+
+### Scope completed
+- Added structured sync guidance payloads across backend + macro UI state without requiring DB schema migration.
+- Backend files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+- Frontend type/UI files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Regression tests updated:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-sync.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+
+### Behavior delivered
+- `SyncResult` and `EventSyncState` now expose:
+  - `syncErrorCategory` (`none|permission|validation|transient|partial_failure|unknown`)
+  - `retryable`
+  - `retryGuidance`
+  - `lastError` on sync result payloads
+- Macro Instance Admin panel now renders error category and retry guidance from sync state.
+- Sync action feedback includes guidance text, and sync failure path forces context refresh so latest persisted guidance is visible.
+
+### Validation outcomes (UTC)
+- Validation window: `2026-02-18T12:05:49Z` -> `2026-02-18T12:07:37Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` in `/forge-native` ✅
+- `npm run macro:build` in `/forge-native` ✅
+- `npm run test:run -- tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`5/5`)
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅ (`18/18`)
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts` (`vitest v4.0.18`) ✅ (`4/4`)
+
+### Deploy/install outcomes (UTC)
+- Forge CLI runtime notes during deploy: CLI `12.14.0` (update available `12.14.1`), Node warning for unsupported local runtime.
+- Development deploy started `2026-02-18T12:06:03Z` -> deployed app version `5.28.0` ✅
+- Production deploy started `2026-02-18T12:06:47Z` -> deployed app version `3.20.0` ✅
+- Install upgrade checks:
+  - development `2026-02-18T12:06:38Z`: site already latest ✅
+  - production `2026-02-18T12:07:20Z`: site already latest ✅
+  - `forge install list` confirms both env installs `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Key learning
+1. Guidance metadata can be shipped immediately by deriving from `syncStatus + lastError`, which avoids migration risk while still giving admins actionable retry UX.
