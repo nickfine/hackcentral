@@ -1,5 +1,34 @@
 # Learnings
 
+**Phase 3 switcher runtime triage + closure checkpoint H (Feb 18, 2026 11:54 UTC):**
+- Root-cause fix implemented for parent->instance switcher transition in Forge macro context:
+  - `router.navigate` now uses Confluence page path (`/wiki/pages/viewpage.action?pageId=...`) rather than absolute URL.
+  - Added fallbacks for host navigation resiliency:
+    - `router.open(absoluteUrl)`
+    - `window.location.assign(absoluteUrl)`
+- Files updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+- Validation rerun:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run` ❌ (`13` failed / `37` passed) with existing runner issue:
+    - `TypeError: window.localStorage.clear is not a function`
+    - warning: ``--localstorage-file` was provided without a valid path`
+- Deploy/install outcomes:
+  - `forge deploy --non-interactive -e production` ✅ (`3.19.0`)
+  - `forge deploy --non-interactive -e development` ✅ (`5.27.0`) after one transient rate-limit retry
+  - `forge install --upgrade ... -e production` ✅ (already latest)
+  - `forge install --upgrade ... -e development` ✅ (already latest after one transient task-conflict retry)
+  - `forge install list` confirms production major `3` and development major `5`, both `Up-to-date` on `hackdaytemp`
+- Runtime verification on real macro host pages:
+  - PROD parent host (`pageId=5668895`) matrix now passes desktop/tablet/mobile for target child `pageId=5799956`.
+  - DEV parent host originally lacked PROD child row (expected parent scoping); created DEV-scoped child `pageId=5799975` (`HDC Auto DEV 1771415612395`) via parent wizard and verified desktop/tablet/mobile parent->instance transition pass.
+- Evidence artifacts updated:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`
+
 **Phase 3 parent->instance switcher closure attempt + Phase 4 prep checkpoint G (Feb 18, 2026 11:26 UTC):**
 - Validation/build checkpoint before evidence capture:
   - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅

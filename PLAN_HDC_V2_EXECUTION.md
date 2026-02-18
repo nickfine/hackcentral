@@ -7,6 +7,38 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Phase 3 Runtime Triage Closure + DEV Parent Population (Feb 18, 2026 11:54 UTC)
+
+### Completed
+- Patched switcher navigation path in both UI surfaces to avoid no-op transitions in macro host context:
+  - use Confluence-relative path for `router.navigate`,
+  - fallback to `router.open(absoluteUrl)`,
+  - final fallback `window.location.assign(absoluteUrl)`.
+- Redeployed and revalidated environment line:
+  - production deploy: `3.19.0` ✅
+  - development deploy: `5.27.0` ✅
+  - install states remain `Up-to-date` (prod major `3`, dev major `5`) on `hackdaytemp`.
+- Parent->instance matrix outcomes:
+  - PROD parent (`pageId=5668895`) to child (`pageId=5799956`): desktop/tablet/mobile all PASS.
+  - DEV parent initially failed against PROD child label due parent scoping.
+  - Created DEV-scoped child via wizard:
+    - `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/5799975/HDC+Auto+DEV+1771415612395`
+  - DEV parent (`pageId=5799944`) to child (`pageId=5799975`): desktop/tablet/mobile all PASS.
+
+### Validation status
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test:run` ❌ (existing local runner issue: `window.localStorage.clear is not a function` caused by invalid `--localstorage-file` path in this shell context)
+
+### Evidence artifacts
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`
+
+### Plan impact
+- Phase 3 switcher evidence is now closed with parent-scoped target instances on both parent hosts.
+- Phase 4 prep remains active and can proceed from implementation order in `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE4-PREP-SYNC-AUDIT.md`.
+
 ## Phase 3 Final Switcher Matrix Closure Attempt + Phase 4 Prep (Feb 18, 2026 11:26 UTC)
 
 ### Completed

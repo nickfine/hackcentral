@@ -955,7 +955,16 @@ export function App(): JSX.Element {
 
     try {
       const bridge = await import('@forge/bridge');
-      await bridge.router.navigate(absoluteTarget);
+      await bridge.router.navigate(targetPath);
+      return;
+    } catch {
+      // Fall through to broader navigation options.
+    }
+
+    try {
+      const bridge = await import('@forge/bridge');
+      await bridge.router.open(absoluteTarget);
+      return;
     } catch {
       if (typeof window !== 'undefined') {
         window.location.assign(absoluteTarget);

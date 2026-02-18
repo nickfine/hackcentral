@@ -74,3 +74,25 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - dev parent: target row absent in switcher.
 - Unblocked Phase 4 prep executed in parallel:
   - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE4-PREP-SYNC-AUDIT.md`
+
+## Continuation update (2026-02-18 11:54 UTC)
+
+- Runtime fix shipped for switcher navigation on macro hosts:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`
+- Navigation behavior changed to:
+  - `router.navigate('/wiki/pages/viewpage.action?pageId=...')` first,
+  - fallback `router.open(absoluteUrl)`,
+  - fallback `window.location.assign(absoluteUrl)`.
+- Deploy/install line:
+  - production deployed `3.19.0` ✅
+  - development deployed `5.27.0` ✅
+  - installs remain `Up-to-date` on `hackdaytemp`.
+- Parent->instance QA result after fix:
+  - PROD parent (`5668895`) -> child (`5799956`) passes desktop/tablet/mobile.
+  - DEV parent (`5799944`) required DEV-scoped child creation; created:
+    - `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/5799975/HDC+Auto+DEV+1771415612395`
+  - DEV parent -> new child (`5799975`) passes desktop/tablet/mobile.
+- Updated evidence artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-PROD-PARENT.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE3-MACRO-QA-20260218-DEV-PARENT.md`

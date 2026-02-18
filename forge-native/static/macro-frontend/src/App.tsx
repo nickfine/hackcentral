@@ -880,7 +880,15 @@ export function App(): JSX.Element {
       }
 
       try {
-        await router.navigate(absoluteTarget);
+        await router.navigate(targetPath);
+        return;
+      } catch {
+        // Fall through to broader navigation options.
+      }
+
+      try {
+        await router.open(absoluteTarget);
+        return;
       } catch {
         if (typeof window !== 'undefined') {
           window.location.assign(absoluteTarget);
