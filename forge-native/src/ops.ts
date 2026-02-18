@@ -268,7 +268,7 @@ export async function handler(request: WebTriggerRequest): Promise<{
       };
     }
 
-    const eventNameQuery = payload.eventNameQuery?.trim() || 'HackDay 2026';
+    const eventNameQuery = payload.eventNameQuery?.trim() || 'HDC Auto';
     const report = await buildMigrationDryRunReport(eventNameQuery);
     return {
       statusCode: 200,
