@@ -445,3 +445,14 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - both pages now show archived-state banner (`This content is archived. Restore to make changes.`).
 - Phase state:
   - initial Phase 6 deliverable set is fully closed (`P6-1`..`P6-5`).
+
+## Continuation update (2026-02-18 15:45 UTC)
+
+- Added Phase 6 operator shortcuts in root `/package.json`:
+  - `qa:phase6:weekly-core`
+  - `qa:phase6:telemetry-check`
+  - `qa:phase6:weekly-check`
+- Added next-cycle weekly verification stub artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260225-STUB.md`
+- Verified telemetry shortcut execution:
+  - `npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:telemetry-check` ✅

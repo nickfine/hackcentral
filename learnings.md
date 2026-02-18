@@ -2990,3 +2990,19 @@ Key hardening changes:
 
 ### Procedural learning
 1. When API auth is constrained, authenticated browser automation is a viable fallback for deterministic manual admin operations with traceable evidence.
+
+## Phase 6 Operator Ergonomics Checkpoint (Feb 18, 2026 15:45 UTC)
+
+### Scope completed
+- Added operator-safe npm aliases for recurring Phase 6 checks:
+  - `qa:phase6:weekly-core`
+  - `qa:phase6:telemetry-check`
+  - `qa:phase6:weekly-check`
+- Added pre-seeded next-cycle artifact stub:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260225-STUB.md`
+
+### Validation
+- Executed `npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:telemetry-check` successfully.
+
+### Procedural learning
+1. Turning runbook commands into scripts materially reduces operator error and speeds weekly evidence generation.

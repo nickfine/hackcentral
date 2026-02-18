@@ -17,6 +17,9 @@
     "test:coverage": "vitest run --coverage",
     "qa:phase3:macro-scaffold": "node scripts/phase3-macro-qa-scaffold.mjs",
     "qa:phase5:migration-dry-run": "node scripts/phase5-migration-dry-run.mjs",
+    "qa:phase6:weekly-core": "npm run qa:phase5:migration-dry-run -- --environment production && npm run test:perf:phase5",
+    "qa:phase6:telemetry-check": "cd forge-native && forge logs -e production --since 30m --limit 1000 | rg \"hdc-performance-telemetry|sync_execution|registry_lookup\" -n",
+    "qa:phase6:weekly-check": "npm run qa:phase6:weekly-core && npm run qa:phase6:telemetry-check",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },

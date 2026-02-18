@@ -1420,3 +1420,20 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 ### Plan impact
 - Initial Phase 6 queue is now fully complete (`P6-1` through `P6-5`).
 - No open historical hygiene blockers remain from this execution track.
+
+## Progress Update (Feb 18, 2026 - Phase 6 Operator Ergonomics @ 15:45 UTC)
+
+### Execution completed
+1. Added recurring-check npm command aliases in root package scripts:
+- `qa:phase6:weekly-core`
+- `qa:phase6:telemetry-check`
+- `qa:phase6:weekly-check`
+
+2. Added pre-seeded next-cycle weekly verification stub:
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260225-STUB.md`
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:telemetry-check` ✅
+
+### Plan impact
+- Phase 6 weekly operations are now faster and less error-prone to execute.
