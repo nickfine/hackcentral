@@ -164,6 +164,103 @@ function hasMissingEventConfigColumns(error: unknown): boolean {
   );
 }
 
+function extractEventNotNullColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const match = normalized.match(
+    /null value in column "([a-zA-Z0-9_]+)" of relation "Event" violates not-null constraint/i
+  );
+  return match ? match[1].toLowerCase() : null;
+}
+
+function extractMissingEventColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const quoted = normalized.match(/column\s+"Event"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (quoted) return quoted[1];
+  const plain = normalized.match(/column\s+Event\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  if (plain) return plain[1];
+  const pgrst = normalized.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Event' in the schema cache/i);
+  if (pgrst) return pgrst[1];
+  return null;
+}
+
+function hasLegacyEventRequiredFieldError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+  if (!normalized.includes('"code":"23502"') && !normalized.includes('23502')) {
+    return false;
+  }
+  const notNullColumn = extractEventNotNullColumn(error);
+  if (notNullColumn) {
+    return (
+      notNullColumn === 'id' ||
+      notNullColumn === 'slug' ||
+      notNullColumn === 'year' ||
+      notNullColumn === 'phase' ||
+      notNullColumn === 'rubric_config' ||
+      notNullColumn === 'updated_at'
+    );
+  }
+  return normalized.includes('failing row contains (null, null,');
+}
+
+function toEventSlug(eventName: string): string {
+  const normalized = eventName
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const base = (normalized || 'event').slice(0, 48);
+  return `${base}-${randomUUID().slice(0, 8)}`;
+}
+
+function buildLegacyEventRequiredFields(eventName: string): Record<string, unknown> {
+  return {
+    id: randomUUID(),
+    slug: toEventSlug(eventName),
+    year: new Date().getUTCFullYear(),
+    phase: 'SETUP',
+    rubric_config: {},
+    updated_at: nowIso(),
+    updatedAt: nowIso(),
+  };
+}
+
+async function insertEventWithPrunedColumns<T>(
+  insertFn: (payload: Record<string, unknown>) => Promise<T>,
+  payload: Record<string, unknown>
+): Promise<T> {
+  const queue: Array<Record<string, unknown>> = [payload];
+  const seen = new Set<string>();
+
+  while (queue.length > 0) {
+    const candidate = queue.shift()!;
+    const signature = JSON.stringify(
+      Object.entries(candidate)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => [key, value ?? null])
+    );
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+
+    try {
+      return await insertFn(candidate);
+    } catch (error) {
+      const missingColumn = extractMissingEventColumn(error);
+      if (missingColumn && missingColumn in candidate) {
+        const withoutMissing = { ...candidate };
+        delete withoutMissing[missingColumn];
+        queue.push(withoutMissing);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to insert Event after pruning unsupported columns.');
+}
+
 function hasMissingProjectTitleColumn(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = normalizeSupabaseErrorMessage(error).toLowerCase();
@@ -1145,23 +1242,49 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       creation_request_id: input.creationRequestId,
       created_by_user_id: input.createdByUserId,
     };
+    const payloadWithConfig = {
+      ...basePayload,
+      event_rules: input.eventRules,
+      event_branding: input.eventBranding,
+      event_schedule: input.eventSchedule,
+    };
+    const legacyRequiredFields = buildLegacyEventRequiredFields(input.eventName);
 
     try {
-      return await this.client.insert<DbEvent>(EVENT_TABLE, {
-        ...basePayload,
-        event_rules: input.eventRules,
-        event_branding: input.eventBranding,
-        event_schedule: input.eventSchedule,
-      });
+      return await this.client.insert<DbEvent>(EVENT_TABLE, payloadWithConfig);
     } catch (error) {
+      if (hasLegacyEventRequiredFieldError(error)) {
+        return insertEventWithPrunedColumns<DbEvent>(
+          (payload) => this.client.insert<DbEvent>(EVENT_TABLE, payload),
+          {
+          ...payloadWithConfig,
+          ...legacyRequiredFields,
+          }
+        );
+      }
       if (!hasMissingEventConfigColumns(error)) {
         throw error;
       }
-      const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
-        EVENT_TABLE,
-        basePayload
-      );
-      return withNullEventConfig(legacy);
+      try {
+        const legacy = await this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+          EVENT_TABLE,
+          basePayload
+        );
+        return withNullEventConfig(legacy);
+      } catch (legacyError) {
+        if (!hasLegacyEventRequiredFieldError(legacyError)) {
+          throw legacyError;
+        }
+        const legacy = await insertEventWithPrunedColumns<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(
+          (payload) =>
+            this.client.insert<Omit<DbEvent, 'event_rules' | 'event_branding' | 'event_schedule'>>(EVENT_TABLE, payload),
+          {
+            ...basePayload,
+            ...legacyRequiredFields,
+          }
+        );
+        return withNullEventConfig(legacy);
+      }
     }
   }
 

@@ -21,6 +21,11 @@ interface ConfluencePage {
 interface ParentPagePayload {
   id: string;
   spaceId?: string | number;
+  body?: {
+    storage?: {
+      value?: string;
+    };
+  };
 }
 
 async function parseJson<T>(response: ForgeResponse): Promise<T> {
@@ -62,9 +67,15 @@ function getMacroStorageSnippet(): string {
   ].join('');
 }
 
-async function getParentSpaceId(parentPageId: string): Promise<string> {
+function extractMacroExtensionBlock(storageValue: string | undefined): string | null {
+  if (!storageValue) return null;
+  const match = storageValue.match(/<ac:adf-extension>[\s\S]*?<\/ac:adf-extension>/i);
+  return match ? match[0] : null;
+}
+
+async function getParentPageMetadata(parentPageId: string): Promise<{ spaceId: string; macroSnippet: string | null }> {
   const response = await api.asApp().requestConfluence(
-    route`/wiki/api/v2/pages/${parentPageId}`,
+    route`/wiki/api/v2/pages/${parentPageId}?body-format=storage`,
     {
       method: 'GET',
       headers: {
@@ -79,7 +90,11 @@ async function getParentSpaceId(parentPageId: string): Promise<string> {
   if (!spaceId) {
     throw new Error(`Unable to determine Confluence space id for parent page ${parentPageId}.`);
   }
-  return String(spaceId);
+
+  return {
+    spaceId: String(spaceId),
+    macroSnippet: extractMacroExtensionBlock(payload.body?.storage?.value),
+  };
 }
 
 function extractPageUrl(payload: ConfluencePage): string {
@@ -96,7 +111,8 @@ export async function createChildPageUnderParent(input: {
   title: string;
   tagline?: string;
 }): Promise<{ pageId: string; pageUrl: string }> {
-  const spaceId = await getParentSpaceId(input.parentPageId);
+  const parentMetadata = await getParentPageMetadata(input.parentPageId);
+  const macroSnippet = parentMetadata.macroSnippet || getMacroStorageSnippet();
 
   const response = await api.asApp().requestConfluence(route`/wiki/api/v2/pages`, {
     method: 'POST',
@@ -107,12 +123,12 @@ export async function createChildPageUnderParent(input: {
     body: JSON.stringify({
       status: 'current',
       title: input.title,
-      spaceId,
+      spaceId: parentMetadata.spaceId,
       parentId: input.parentPageId,
       body: {
         storage: {
           representation: 'storage',
-          value: `<p>${input.tagline || 'HackDay instance page'}</p>${getMacroStorageSnippet()}`,
+          value: `<p>${input.tagline || 'HackDay instance page'}</p>${macroSnippet}`,
         },
       },
     }),

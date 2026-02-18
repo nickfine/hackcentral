@@ -108,6 +108,60 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
     expect(result.event_schedule).toBeNull();
   });
 
+  it('retries with legacy required event fields when Event insert fails with 23502', async () => {
+    const insert = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error(
+          'Supabase POST Event failed (400): {"code":"23502","message":"null value in column \\"id\\" of relation \\"Event\\" violates not-null constraint"}'
+        )
+      )
+      .mockRejectedValueOnce(
+        new Error(
+          "Supabase POST Event failed (400): {\"code\":\"PGRST204\",\"message\":\"Could not find the 'rubric_config' column of 'Event' in the schema cache\"}"
+        )
+      )
+      .mockResolvedValueOnce({
+        id: 'event-legacy-1',
+        name: baseCreateEventInput.eventName,
+        icon: baseCreateEventInput.icon,
+        tagline: baseCreateEventInput.tagline,
+        timezone: baseCreateEventInput.timezone,
+        lifecycle_status: baseCreateEventInput.lifecycleStatus,
+        confluence_page_id: baseCreateEventInput.confluencePageId,
+        confluence_page_url: baseCreateEventInput.confluencePageUrl,
+        confluence_parent_page_id: baseCreateEventInput.confluenceParentPageId,
+        hacking_starts_at: baseCreateEventInput.hackingStartsAt,
+        submission_deadline_at: baseCreateEventInput.submissionDeadlineAt,
+        creation_request_id: baseCreateEventInput.creationRequestId,
+        created_by_user_id: baseCreateEventInput.createdByUserId,
+        event_rules: baseCreateEventInput.eventRules,
+        event_branding: baseCreateEventInput.eventBranding,
+        event_schedule: baseCreateEventInput.eventSchedule,
+      });
+
+    const fakeRepo = { client: { insert } };
+    const result = await SupabaseRepository.prototype.createEvent.call(fakeRepo, baseCreateEventInput);
+
+    expect(insert).toHaveBeenCalledTimes(3);
+    expect(insert.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        slug: expect.stringMatching(/^hackday-config-test-/),
+        year: expect.any(Number),
+        phase: 'SETUP',
+        rubric_config: {},
+        updated_at: expect.any(String),
+        updatedAt: expect.any(String),
+        event_rules: baseCreateEventInput.eventRules,
+        event_branding: baseCreateEventInput.eventBranding,
+        event_schedule: baseCreateEventInput.eventSchedule,
+      })
+    );
+    expect(insert.mock.calls[2][1]).not.toHaveProperty('rubric_config');
+    expect(result.id).toBe('event-legacy-1');
+  });
+
   it('normalizes listAllEvents page IDs into coherent navigability flags', async () => {
     const selectMany = vi.fn().mockResolvedValue([
       {

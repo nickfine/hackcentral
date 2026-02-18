@@ -833,3 +833,24 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 1. Patch repository `createEvent` insertion path for legacy/new schema compatibility (non-null + column drift handling for `events`), then rerun:
    - Create wizard submit smoke (capture child page URL/pageId),
    - P3 final evidence closure including parent->instance navigation.
+
+## Progress Update (Feb 18, 2026 - Create Flow Unblocked)
+
+### Phase 3 status
+- Parent macro host QA matrix on desktop/tablet/mobile: completed.
+- Create wizard submit path on real host pages: now operational.
+- Child instance creation and redirect verified.
+- Instance macro render verified on created child page.
+
+### Evidence URLs
+- Parent host (prod): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+- Parent host (dev): `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799944`
+- Created child instance (latest): `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/5799956/HDC+Auto+1771412434287`
+
+### Execution notes
+- Backend create path now handles mixed legacy/current Supabase Event schema constraints.
+- Child macro embedding now copies the working parent extension block, removing extension-render failures on generated pages.
+
+### Remaining work to close Phase 3 fully
+1. Capture final parent->instance switcher navigation evidence matrix including both production and development parent hosts.
+2. Optional cleanup: archive/remove intermediate auto-created QA child pages once artifacts are captured.

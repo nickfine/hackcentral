@@ -2377,3 +2377,43 @@ Key hardening changes:
 
 ### Key learning
 1. Macro-host rendering and breakpoint switcher behavior are now stable on real Confluence pages; remaining create-flow failure is downstream schema compatibility in Supabase (`events` insert contract), not macro UI or Confluence embed plumbing.
+
+## Create Flow Unblock Checkpoint (Feb 18, 2026 11:01 UTC)
+
+### Objective
+- Remove remaining create-wizard blocker on macro host pages and validate real child instance creation + render.
+
+### Code changes
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - Added adaptive `Event` insert compatibility path for legacy schema drift:
+    - retries on `23502` legacy not-null failures,
+    - seeds legacy-required fields (`id`, `slug`, `year`, `phase`, `updatedAt`/`updated_at`),
+    - prunes unsupported columns dynamically when Supabase returns `PGRST204` missing-column errors.
+- `/Users/nickster/Downloads/HackCentral/tests/forge-native-repository-event-config.spec.ts`
+  - Added regression coverage for 23502 fallback + missing-column pruning (`rubric_config`) path.
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+  - Child page creation now reuses the parent page’s actual working `<ac:adf-extension>...</ac:adf-extension>` block (from parent storage body) instead of emitting a simplified synthetic extension payload.
+
+### Validation (local)
+- `npm run test:run` ✅ (`50` tests)
+- `npm run typecheck` ✅
+- `npm run frontend:build` ✅
+- `npm run macro:build` ✅
+
+### Deploy/install outcomes
+- Production deploy succeeded: `3.18.0` (2026-02-18 10:53:40 UTC)
+- Development deploy succeeded: `5.26.0` (2026-02-18 10:53:00 UTC then 10:53:?? latest dev line after retry)
+- One transient development deploy rate-limit (`createAppDeploymentUrl`) was retried successfully.
+- Install upgrades (dev/prod) both `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Smoke evidence (resolved)
+- Create flow now succeeds from parent macro host and redirects to real child instance page:
+  - Parent used: `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+  - New child created: `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/5799956/HDC+Auto+1771412434287`
+  - Child pageId: `5799956`
+- Instance page macro render check:
+  - iframe count for Forge macro on child page: `1`
+  - extension render error banner present: `false`
+
+### Key learning
+1. For Forge macro cloning across Confluence pages, reusing the host’s real extension storage block is more reliable than manually composing a minimal ADF extension payload.
