@@ -73,12 +73,25 @@ export interface EventSyncState {
   retryGuidance: string | null;
 }
 
+export interface DerivedProfileSnapshot {
+  userId: string;
+  submittedHacks: number;
+  syncedHacks: number;
+  activeInstances: number;
+  completedInstances: number;
+  reputationScore: number;
+  reputationTier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  calculatedAt: string;
+  cacheTtlMs: number;
+}
+
 export interface HdcContextResponse {
   pageType: 'parent' | 'instance';
   pageId: string;
   event: EventRegistryItem | null;
   registry: EventRegistryItem[];
   syncState: EventSyncState | null;
+  derivedProfile?: DerivedProfileSnapshot | null;
   permissions: {
     canCreateInstances: boolean;
     isPrimaryAdmin: boolean;

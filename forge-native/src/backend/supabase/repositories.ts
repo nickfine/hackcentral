@@ -5,6 +5,7 @@ import type {
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
+  DerivedProfileSnapshot,
   EventBranding,
   EventRegistryItem,
   EventRules,
@@ -196,6 +197,13 @@ function shouldAutoArchiveCompletedEvent(event: DbEvent, nowMs: number): boolean
   if (referenceMs === null || referenceMs > nowMs) return false;
   const ageMs = nowMs - referenceMs;
   return ageMs > EVENT_AUTO_ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function toReputationTier(score: number): DerivedProfileSnapshot['reputationTier'] {
+  if (score >= 200) return 'platinum';
+  if (score >= 120) return 'gold';
+  if (score >= 60) return 'silver';
+  return 'bronze';
 }
 
 function getSyncGuidance(syncStatus: SyncStatus, lastError: string | null): {
@@ -1506,11 +1514,64 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     return this.listProjects([{ field: 'event_id', op: 'eq', value: eventId }]);
   }
 
+  async getDerivedProfile(userId: string, cacheTtlMs: number): Promise<DerivedProfileSnapshot> {
+    const [ownedProjects, adminRows] = await Promise.all([
+      this.listProjects([{ field: 'owner_id', op: 'eq', value: userId }]),
+      this.listEventAdminsByUserId(userId),
+    ]);
+
+    const ownedHacks = ownedProjects.filter((project) => project.source_type === 'hack_submission');
+    const syncedHacks = ownedHacks.filter((project) => Boolean(project.synced_to_library_at));
+    const relevantEventIds = new Set<string>();
+    for (const row of adminRows) {
+      relevantEventIds.add(row.event_id);
+    }
+    for (const project of ownedHacks) {
+      if (project.event_id) {
+        relevantEventIds.add(project.event_id);
+      }
+    }
+
+    let activeInstances = 0;
+    let completedInstances = 0;
+    for (const eventId of relevantEventIds) {
+      const event = await this.getEventById(eventId);
+      if (!event) continue;
+      if (event.lifecycle_status === 'completed' || event.lifecycle_status === 'archived') {
+        completedInstances += 1;
+      } else {
+        activeInstances += 1;
+      }
+    }
+
+    const reputationScore = ownedHacks.length * 10 + syncedHacks.length * 15 + activeInstances * 5 + completedInstances * 12;
+
+    return {
+      userId,
+      submittedHacks: ownedHacks.length,
+      syncedHacks: syncedHacks.length,
+      activeInstances,
+      completedInstances,
+      reputationScore,
+      reputationTier: toReputationTier(reputationScore),
+      calculatedAt: nowIso(),
+      cacheTtlMs,
+    };
+  }
+
   async markHackSynced(projectId: string): Promise<void> {
     await this.client.patchMany<DbProject>(
       PROJECT_TABLE,
       { synced_to_library_at: nowIso() },
       [{ field: 'id', op: 'eq', value: projectId }]
+    );
+  }
+
+  private async listEventAdminsByUserId(userId: string): Promise<DbEventAdmin[]> {
+    return this.client.selectMany<DbEventAdmin>(
+      EVENT_ADMIN_TABLE,
+      'id,event_id,user_id,role',
+      [{ field: 'user_id', op: 'eq', value: userId }]
     );
   }
 

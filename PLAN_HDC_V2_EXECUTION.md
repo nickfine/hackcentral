@@ -1078,3 +1078,36 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 
 ### Next Phase 4 item
 1. Implement cross-instance derived profile/reputation computation + cache policy.
+
+## Progress Update (Feb 18, 2026 - Phase 4 Derived Profile/Reputation @ 13:02 UTC)
+
+### Phase 4 execution completed in this checkpoint
+1. Implemented cross-instance derived profile/reputation computation with cache policy.
+- Backend computation + cache:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- Contract/type updates:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+- UI surfacing:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+- Test updates:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+
+### Validation (UTC)
+- Window: `2026-02-18T13:00:34Z` -> `2026-02-18T13:02:46Z`
+- `npm run typecheck` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` ✅
+- `npm run macro:build` ✅
+- `vitest v4.0.18` targeted suites ✅
+  - `tests/forge-native-hdcService.spec.ts` (`20/20`)
+  - `tests/forge-native-repository-event-config.spec.ts` + `tests/forge-native-repository-sync.spec.ts` (`10/10`)
+
+### Deploy/install verification (UTC)
+- Development deploy: `5.31.0` ✅
+- Production deploy: `3.23.0` ✅
+- Install upgrades/checks confirm both environments `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Next Phase 5 candidate kickoff
+1. Migration/performance readiness: instrumentation for registry lookup and sync duration/error telemetry.

@@ -1,6 +1,7 @@
 import type {
   CreateInstanceDraftInput,
   CreateInstanceDraftResult,
+  DerivedProfileSnapshot,
   DeleteDraftResult,
   EventBranding,
   EventRegistryItem,
@@ -203,6 +204,9 @@ const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> =
   results: 'completed',
 };
 
+const DERIVED_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+const derivedProfileCache = new Map<string, { expiresAt: number; snapshot: DerivedProfileSnapshot }>();
+
 function isReadOnlyLifecycle(status: LifecycleStatus): boolean {
   return status === 'completed' || status === 'archived';
 }
@@ -298,6 +302,25 @@ export class HdcService {
     this.repository = repository;
   }
 
+  private async getDerivedProfile(userId: string): Promise<DerivedProfileSnapshot> {
+    const cached = derivedProfileCache.get(userId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.snapshot;
+    }
+
+    const snapshot = await this.repository.getDerivedProfile(userId, DERIVED_PROFILE_CACHE_TTL_MS);
+    derivedProfileCache.set(userId, {
+      expiresAt: now + DERIVED_PROFILE_CACHE_TTL_MS,
+      snapshot,
+    });
+    return snapshot;
+  }
+
+  private invalidateDerivedProfile(userId: string): void {
+    derivedProfileCache.delete(userId);
+  }
+
   async getContext(viewer: ViewerContext, pageId: string): Promise<HdcContextResponse> {
     const [event, viewerUser] = await Promise.all([
       this.repository.getEventByConfluencePageId(pageId),
@@ -341,6 +364,8 @@ export class HdcService {
         : null;
     logContextRegistryNavigability('instance', pageId, registry);
 
+    const derivedProfile = await this.getDerivedProfile(viewerUser.id);
+
     return {
       pageType: 'instance',
       pageId,
@@ -361,6 +386,7 @@ export class HdcService {
       },
       registry,
       syncState,
+      derivedProfile,
       permissions: {
         canCreateInstances: true,
         isPrimaryAdmin,
@@ -623,6 +649,7 @@ export class HdcService {
         title: payload.title,
       },
     });
+    this.invalidateDerivedProfile(user.id);
 
     return result;
   }
@@ -677,6 +704,7 @@ export class HdcService {
         action: auditAction,
         newValue: resultWithGuidance,
       });
+      this.invalidateDerivedProfile(user.id);
       return resultWithGuidance;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync failure.';
@@ -718,6 +746,7 @@ export class HdcService {
       action: 'sync_retry',
       newValue: resultWithGuidance,
     });
+    this.invalidateDerivedProfile(user.id);
 
     return resultWithGuidance;
   }

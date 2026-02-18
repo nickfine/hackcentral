@@ -1472,6 +1472,12 @@ export function App(): JSX.Element {
             </h2>
             <p>Status: {formatLifecycle(context.event.lifecycleStatus)}</p>
             <p>{context.event.tagline || 'No tagline provided.'}</p>
+            {context.derivedProfile ? (
+              <p>
+                Reputation: {context.derivedProfile.reputationTier} ({context.derivedProfile.reputationScore}) · Hacks:{' '}
+                {context.derivedProfile.submittedHacks} · Synced: {context.derivedProfile.syncedHacks}
+              </p>
+            ) : null}
 
             <h3>Submit Hack</h3>
             {isReadOnlyInstance ? <p>This instance is read-only. Hack submissions are disabled.</p> : null}

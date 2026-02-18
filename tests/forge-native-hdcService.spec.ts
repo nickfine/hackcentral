@@ -28,6 +28,7 @@ type RepoMock = {
   updateEventLifecycle: ReturnType<typeof vi.fn>;
   listEventAdmins: ReturnType<typeof vi.fn>;
   listEventHackProjects: ReturnType<typeof vi.fn>;
+  getDerivedProfile: ReturnType<typeof vi.fn>;
   submitHack: ReturnType<typeof vi.fn>;
   listProjectsByEventId: ReturnType<typeof vi.fn>;
   deleteEventCascade: ReturnType<typeof vi.fn>;
@@ -52,6 +53,17 @@ function createRepoMock(): RepoMock {
     updateEventLifecycle: vi.fn(),
     listEventAdmins: vi.fn(),
     listEventHackProjects: vi.fn(),
+    getDerivedProfile: vi.fn().mockResolvedValue({
+      userId: 'mock-user',
+      submittedHacks: 0,
+      syncedHacks: 0,
+      activeInstances: 0,
+      completedInstances: 0,
+      reputationScore: 0,
+      reputationTier: 'bronze',
+      calculatedAt: '2026-02-18T00:00:00.000Z',
+      cacheTtlMs: 300000,
+    }),
     submitHack: vi.fn(),
     listProjectsByEventId: vi.fn(),
     deleteEventCascade: vi.fn(),
@@ -338,6 +350,10 @@ describe('HdcService hardening behavior', () => {
     });
     expect(context.event?.confluencePageId).toBeNull();
     expect(context.event?.isNavigable).toBe(false);
+    expect(context.derivedProfile).toMatchObject({
+      userId: 'mock-user',
+      reputationTier: 'bronze',
+    });
     expect(telemetrySpy).toHaveBeenCalledWith(
       '[hdc-switcher-telemetry]',
       expect.stringContaining('"source":"hdcGetContext"')

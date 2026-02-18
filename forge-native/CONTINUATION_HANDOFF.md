@@ -180,3 +180,17 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Deploy/install status:
   - development deployed `5.30.0` and verified `Up-to-date`.
   - production deployed `3.22.0` and verified `Up-to-date`.
+
+## Continuation update (2026-02-18 13:02 UTC)
+
+- Completed Phase 4 derived profile/reputation slice.
+- Added cross-instance derived profile computation (hacks/sync/instance participation -> reputation score + tier):
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+- Added 5-minute in-memory cache policy in service layer with explicit invalidation on mutating sync/hack actions:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+- Updated shared/frontend contracts to carry `derivedProfile` in instance context.
+- Macro UI now displays derived reputation summary on instance view.
+- Validation status: typecheck/build/targeted tests all pass.
+- Deploy/install status:
+  - development deployed `5.31.0` and verified `Up-to-date`.
+  - production deployed `3.23.0` and verified `Up-to-date`.

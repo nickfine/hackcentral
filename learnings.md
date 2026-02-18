@@ -2655,3 +2655,49 @@ Key hardening changes:
 
 ### Key learning
 1. Running archival lazily on read paths enables immediate policy enforcement without introducing a scheduler dependency.
+
+## Phase 4 Checkpoint - Derived Profile/Reputation + Cache Policy (Feb 18, 2026 13:02 UTC)
+
+### Scope completed
+- Implemented cross-instance derived profile/reputation computation for instance context entry.
+- Added backend cache policy (5-minute TTL) with mutation-triggered invalidation.
+- Updated files:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/supabase/repositories.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/App.tsx`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+
+### Behavior delivered
+- `HdcContextResponse` now carries optional `derivedProfile` metadata on instance pages:
+  - `submittedHacks`, `syncedHacks`, `activeInstances`, `completedInstances`,
+  - `reputationScore`, `reputationTier`, `calculatedAt`, `cacheTtlMs`.
+- Profile computation source:
+  - owned hack submissions + sync markers,
+  - admin-linked and owned-event participation across instances,
+  - deterministic tiering (`bronze|silver|gold|platinum`).
+- Cache policy:
+  - in-memory 5-minute TTL cache in `HdcService`, keyed by user id,
+  - explicit invalidation after `submitHack`, `completeAndSync`, and `retrySync`.
+- Macro UI now surfaces derived reputation summary in instance header.
+
+### Validation outcomes (UTC)
+- Validation window: `2026-02-18T13:00:34Z` -> `2026-02-18T13:02:46Z`.
+- `npm run typecheck` in `/forge-native` (`hackday-central-forge-native@0.1.3`) ✅
+- `npm run frontend:build` in `/forge-native` ✅
+- `npm run macro:build` in `/forge-native` ✅
+- `npm run test:run -- tests/forge-native-hdcService.spec.ts` (`vitest v4.0.18`) ✅ (`20/20`)
+- `npm run test:run -- tests/forge-native-repository-event-config.spec.ts tests/forge-native-repository-sync.spec.ts` (`vitest v4.0.18`) ✅ (`10/10`)
+
+### Deploy/install outcomes (UTC)
+- Development deploy started `2026-02-18T13:01:09Z` -> deployed app version `5.31.0` ✅
+- Production deploy started `2026-02-18T13:01:59Z` -> deployed app version `3.23.0` ✅
+- Install verification:
+  - development `2026-02-18T13:01:48Z` -> site latest ✅
+  - production `2026-02-18T13:02:34Z` -> site latest ✅
+  - `forge install list` confirms both env installs remain `Up-to-date` on `hackdaytemp.atlassian.net`.
+
+### Key learning
+1. A short-lived in-memory cache plus targeted invalidation gives immediate profile/reputation responsiveness without needing new persistence tables.
