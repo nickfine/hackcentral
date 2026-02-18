@@ -2916,3 +2916,22 @@ Key hardening changes:
 
 ### Key learning
 1. Any write-on-read policy must degrade gracefully; otherwise transient write faults become user-visible read outages.
+
+## Phase 6 Kickoff + Ops Runbook Checkpoint (Feb 18, 2026 15:30 UTC)
+
+### Scope completed
+- Established Phase 6 kickoff anchor and operations runbook for sustained post-release execution.
+- Added:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-KICKOFF.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-OPS-RUNBOOK.md`
+
+### Decisions captured
+- Phase 6 objective is operational maturity (telemetry cadence, weekly verification, rollback readiness), not new feature expansion.
+- Canonical production target for recurring migration checks is now explicitly `HDC Auto`.
+- Weekly verification contract is fixed to three checks:
+  1. migration dry-run integrity,
+  2. perf harness p95 budget compliance,
+  3. production runtime telemetry presence for both `registry_lookup` and `sync_execution`.
+
+### Procedural learning
+1. A closed feature phase still needs an explicit run-state phase; codifying cadence, thresholds, and responders prevents regressions from becoming ad-hoc firefighting.

@@ -386,3 +386,19 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Closure status:
   - Phase 5 engineering execution closed and release-ready.
   - only residual item remains manual Confluence orphan-page archive/delete (`6029333`, `5767177`), non-blocking.
+
+## Continuation update (2026-02-18 15:30 UTC)
+
+- Initiated Phase 6 execution track and published kickoff anchor:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-KICKOFF.md`
+- Completed P6-1 ops runbook deliverable:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE6-OPS-RUNBOOK.md`
+- Operational contract now codified:
+  - weekly migration dry-run on canonical query `HDC Auto`,
+  - weekly perf harness thresholds (`registry_lookup p95 < 120ms`, `complete_and_sync p95 < 220ms`),
+  - weekly production telemetry proof for `registry_lookup` + `sync_execution`,
+  - explicit incident severity/rollback sequence.
+- Next queued phase-6 items:
+  1. P6-2 weekly verification artifact template
+  2. P6-3 telemetry sampling ownership schedule
+  3. P6-4 regression triage checklist
