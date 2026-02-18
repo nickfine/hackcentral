@@ -1512,3 +1512,21 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 - Next queued items:
   1. P7-3 validation gate codification
   2. P7-4 high-signal regression test additions
+
+## Progress Update (Feb 18, 2026 - Phase 7 P7-3 Validation Gate Codification @ 17:02 UTC)
+
+### Execution completed
+1. Published validation-gate policy document:
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE7-VALIDATION-GATES.md`
+
+2. Added pre-merge validation command:
+- `/Users/nickster/Downloads/HackCentral/package.json` -> `qa:phase7:premerge`
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅
+- includes forge-native typecheck + full test suite pass (`67/67`).
+
+### Plan impact
+- P7-3 is closed.
+- Remaining queue:
+  1. P7-4 high-signal regression test additions

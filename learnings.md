@@ -3070,3 +3070,18 @@ Key hardening changes:
 ### Validation
 - `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:weekly-report-scaffold -- --week-of 2026-02-23` ✅
 - `npm -C /Users/nickster/Downloads/HackCentral run test:run` ✅ (`67/67`)
+
+## Phase 7 P7-3 Validation Gate Codification (Feb 18, 2026 17:02 UTC)
+
+### Scope completed
+- Added formal Phase 7 validation gate policy:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-V2-PHASE7-VALIDATION-GATES.md`
+- Added standardized pre-merge command:
+  - `qa:phase7:premerge` in `/Users/nickster/Downloads/HackCentral/package.json`
+
+### Validation
+- Executed `npm -C /Users/nickster/Downloads/HackCentral run qa:phase7:premerge` ✅
+- Result: typecheck pass + full suite pass (`67/67`)
+
+### Procedural learning
+1. Codifying gate classes (`docs-only`, `ui-or-backend`, `ops-or-release`) reduces ambiguity about when heavy validation is mandatory.
