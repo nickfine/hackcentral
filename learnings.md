@@ -1,5 +1,32 @@
 # Learnings
 
+## HD26 Production Verification Attempt (Feb 19, 2026 00:03 UTC)
+
+### Completed
+- Deployed HD26Forge to production:
+  - app version: `5.29.0`
+  - command: `forge deploy --non-interactive -e production`
+  - install status: `Up-to-date` on `hackdaytemp.atlassian.net`.
+- Verified both related PRs are merged to `main`:
+  - HackCentral PR `#3` (`d0f302ecc550f6c03ec9e8df474f74d54f05299f`)
+  - HD26Forge PR `#2` (`38e1b23a6ec1a7ed43a37895e42ca1c6e6d3e86b`)
+- Executed authenticated Confluence smoke attempt against production app route:
+  - `tests/e2e/confluence/shared/smoke.spec.ts` on `confluence-admin`
+  - target URL used: `https://hackdaytemp.atlassian.net/forge-apps/a/d2f1f15e-9202-43b2-99e5-83722dedc1b2/e/b003228b-aafa-414e-9ab8-9e1ab5aaf5ae/r/hackday`
+  - result: app rendered; test failed on assertion expecting `Ideas [1-9]` while UI showed `Ideas 0`.
+
+### Verification outcome
+- `SUPABASE_SERVICE_ROLE_KEY` is present in production Forge variables.
+- Forge production logs still only show historical warning events from app version `5.27.0` (timestamp `2026-02-18T23:33:27Z`).
+- No fresh resolver log entries were returned for `5.29.0` in repeated queries during this checkpoint, so warning clearance is still **not yet confirmed by logs**.
+
+### Next action
+- Trigger a fresh known resolver path from a macro-hosted page (not full-page app route), then re-run:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Confirm either:
+  1. no fallback warning appears for `5.29.0`, or
+  2. warning appears on `5.29.0` and investigate env injection/runtime path.
+
 ## HD26 Genericization + Event Metadata Wiring Checkpoint (Feb 18, 2026 23:56 UTC)
 
 ### Completed
