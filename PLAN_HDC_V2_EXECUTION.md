@@ -7,6 +7,12 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Canonical Cross-Repo Plan Reference
+
+- Full canonical plan text is saved at:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+- This execution doc tracks implementation progress/status against that plan.
+
 ## Cross-Repo Verification Checkpoint (Feb 19, 2026 00:03 UTC)
 
 ### Completed
