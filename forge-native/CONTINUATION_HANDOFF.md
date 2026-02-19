@@ -1131,3 +1131,36 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 ### Current state
 - Spinout runtime metadata contract no longer depends on optional output fields.
 - Backward compatibility is preserved for callers that omit `instanceRuntime`/`templateTarget` on create input.
+
+## Continuation update (2026-02-19 02:31 UTC)
+
+- Executed the next spinout-cutover item: removed page-scoped dependency on legacy singleton `isCurrent` in HD26 runtime resolution.
+
+### HD26 implementation
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+- Behavior changes:
+  - if `pageId` is present and no seed exists, resolver now tries `Event.confluence_page_id` mapping first,
+  - if page mapping is missing, returns `runtimeSource="unmapped_page"` with no legacy fallback,
+  - catch-path legacy fallback remains only for non-page invocations,
+  - page-scoped resolver errors now return `runtimeSource="context_error"` with `event: null`.
+
+### Deploy/install/verification
+- Deployed HD26 production successfully (latest row at `2026-02-19T02:29:35.603Z`, major `5`).
+- Install check:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+- Fresh macro-hosted verification:
+  - `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` -> `PASS` (pages `6783016`, `6782997`, `7241729`).
+
+### Warning gate outcome
+- Required command executed:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Result:
+  - no service-role fallback warning signature found,
+  - grouped response returned empty `appLogs` payload in this window (`totalLogs` metadata present).
+- Supplemental proof:
+  - health-check log scan in same run window passed with no forbidden signatures (`service-role fallback`, `isCurrent fallback`, seed bootstrap failure).
+
+### Current state
+- Template/page-scoped spinout runtime no longer depends on singleton `isCurrent`.
+- Remaining legacy fallback scope is explicitly limited to non-page invocation contexts.

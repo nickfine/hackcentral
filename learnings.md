@@ -33,6 +33,49 @@
 - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
 - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
 
+## HD26 Spinout Cutover - Page-Scoped Fallback Removal (Feb 19, 2026 02:31 UTC)
+
+### Scope completed
+- Implemented Phase 5 cutover tightening in HD26 runtime context resolution so page-scoped invocations no longer depend on global `isCurrent`.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+
+### Runtime-path changes
+- Added page mapping lookup:
+  - resolve by `Event.confluence_page_id` when template seed is absent.
+- Changed no-seed page behavior:
+  - returns `runtimeSource: "event_page_mapping"` when mapped,
+  - returns `runtimeSource: "unmapped_page"` with `event: null` when unmapped,
+  - no legacy `isCurrent` fallback for page-scoped requests.
+- Changed error-path behavior:
+  - legacy `isCurrent` fallback retained only for non-page invocations (`pageId` missing),
+  - page-scoped resolver errors now return `runtimeSource: "context_error"` with `event: null`.
+
+### Deploy + verification
+- Deployed HD26 production:
+  - `forge deploy --non-interactive -e production` -> latest successful production deploy at `2026-02-19T02:29:35.603Z` (major `5`).
+- Install state:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+- Fresh macro-hosted invocations + log hygiene:
+  - `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` -> `PASS` on pages `6783016`, `6782997`, `7241729`.
+
+### Required warning check outcome
+- Command executed:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Exact outcome:
+  - service-role fallback warning signature not present (`SERVICE_ROLE_WARNING_PRESENT=0`),
+  - grouped API returned empty log payload in this window (`"appLogs": []`, `GROUPED_APPLOGS_EMPTY=1`).
+- Additional evidence source:
+  - health-check command log scan (same production window) passed with no forbidden signatures, including:
+    - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY...`
+    - `falling back to isCurrent`
+    - `Failed to bootstrap Event from HackdayTemplateSeed`.
+
+### Plan impact
+- Spinout plan Phase 5 cutover intent is now satisfied for template/page-scoped runtime:
+  - template-created pages no longer rely on singleton `isCurrent`.
+- Remaining compatibility fallback is limited to non-page invocation contexts only.
+
 ## HD26 Production Health Check Command (Feb 19, 2026 00:46 UTC)
 
 ### Scope completed
