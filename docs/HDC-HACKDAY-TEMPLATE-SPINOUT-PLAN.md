@@ -5,6 +5,12 @@ HDC will create **HackDay template instances** by creating a child Confluence pa
 
 This plan preserves backward compatibility using a compatibility bridge, then deprecates singleton `isCurrent` behavior after validation.
 
+### Execution status checkpoint (Feb 19, 2026 02:37 UTC)
+- HDC template provisioning path is active in production.
+- HD26 runtime context resolution is fully page-scoped.
+- Legacy singleton `isCurrent` fallback path has been removed from HD26 resolver runtime flow.
+- Remaining workstream is operational monitoring/documentation hygiene, not architecture or contract migration.
+
 ## Scope and Decisions Locked
 1. Clone model: single HackDay Forge app, multiple child pages/instances.
 2. Repo strategy: refactor `/Users/nickster/Downloads/HD26Forge` in place.

@@ -1164,3 +1164,37 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 ### Current state
 - Template/page-scoped spinout runtime no longer depends on singleton `isCurrent`.
 - Remaining legacy fallback scope is explicitly limited to non-page invocation contexts.
+
+## Continuation update (2026-02-19 02:37 UTC)
+
+- Completed full legacy fallback removal for HD26 spinout runtime context resolution.
+
+### HD26 implementation
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+- Final cutover behavior:
+  - removed non-page `isCurrent` fallback branch,
+  - missing trusted page context now resolves to `runtimeSource="missing_page_context"` with `event: null`,
+  - resolver catch path returns `runtimeSource="context_error"` with `event: null` (no global singleton fallback).
+
+### Deploy/install/verification
+- Deployed HD26 production `5.38.0`.
+- Install check:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+- Observation window run:
+  - executed three fresh macro-hosted health-check runs (`9` total invocations) across pages `6783016`, `6782997`, `7241729`,
+  - each run passed via `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod`.
+
+### Warning gate outcome
+- Required command executed:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Signature results:
+  - service-role fallback warning absent (`SERVICE_ROLE_WARNING_PRESENT=0`),
+  - `isCurrent` fallback warning absent (`ISCURRENT_WARNING_PRESENT=0`),
+  - grouped payload returned empty `appLogs` in sampled window (`GROUPED_APPLOGS_EMPTY=1`).
+- Supplemental proof:
+  - health-check log scans remained clean for all forbidden signatures.
+
+### Current state
+- HD26 spinout context resolution is now fully page-scoped with no singleton `isCurrent` dependency path remaining.
+- Spinout plan cutover gate is effectively closed; next work should focus on routine ops monitoring and residual runbook cleanup only.

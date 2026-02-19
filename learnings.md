@@ -76,6 +76,45 @@
   - template-created pages no longer rely on singleton `isCurrent`.
 - Remaining compatibility fallback is limited to non-page invocation contexts only.
 
+## HD26 Spinout Cutover - Full Legacy Fallback Removal (Feb 19, 2026 02:37 UTC)
+
+### Scope completed
+- Removed the remaining non-page legacy `isCurrent` fallback path from HD26 runtime context resolution.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+
+### Exact runtime changes
+- Deleted legacy helper usage for global singleton lookup in resolver context flow.
+- `resolveInstanceContext(...)` now returns:
+  - `runtimeSource: "missing_page_context"` with `event: null` when no trusted pageId is present.
+- `getCurrentEventContext(...)` catch path now returns:
+  - `runtimeSource: "context_error"` with `event: null` (no `isCurrent` fallback branch).
+
+### Deploy + verification
+- Production deploy:
+  - `forge deploy --non-interactive -e production` -> app version `5.38.0`.
+- Install state:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+- Observation window:
+  - executed three fresh macro-hosted health-check runs across template pages `6783016`, `6782997`, `7241729` (total 9 invocations),
+  - each run passed: `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod`.
+
+### Warning evidence
+- Required command executed:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Signature scan outcome:
+  - `SERVICE_ROLE_WARNING_PRESENT=0`
+  - `ISCURRENT_WARNING_PRESENT=0`
+  - grouped payload still empty in sampled window (`GROUPED_APPLOGS_EMPTY=1`).
+- Supplemental runtime evidence:
+  - health-check log scan remained clean for forbidden signatures in same window.
+
+### Plan impact
+- Spinout cutover target is now fully enforced:
+  - no runtime dependency on singleton `isCurrent` remains in HD26 context resolver path.
+- Done Criteria item 2 is satisfied directly:
+  - template-created pages no longer depend on `isCurrent`.
+
 ## HD26 Production Health Check Command (Feb 19, 2026 00:46 UTC)
 
 ### Scope completed
