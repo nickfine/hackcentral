@@ -5,7 +5,7 @@
 **Current baseline (as implemented):**
 - Multi-tenant vertical slice exists (draft creation, child page + macro insertion, hack submit, complete/sync, retry).
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
-- Status is best described as: **Phase 1 complete + early Phase 2 started**.
+- Status is best described as: **Phases 1-7 execution complete, with spinout cutover closed in production**.
 
 ## Canonical Cross-Repo Plan Reference
 
@@ -20,9 +20,35 @@
 - Progress/handoff docs synced to reflect merged state and deployment evidence.
 - HD26 production deploy promoted to `5.29.0`; install confirmed latest on `hackdaytemp`.
 
-### Pending confirmation
+### Pending confirmation (superseded by later checkpoint)
 - Service-role fallback warning clearance is not yet confirmed by production logs because no fresh `5.29.0` resolver log lines were observed in current log window.
 - Next gate: macro-hosted invocation + immediate log recheck.
+
+## Cross-Repo Verification Closure (Feb 19, 2026 02:37 UTC)
+
+### Completed
+- HD26 spinout cutover is fully closed in production:
+  - page-scoped context resolution is active,
+  - singleton `isCurrent` fallback path has been removed from runtime resolver flow.
+- HD26 production deploy/install state:
+  - deploy line includes `5.38.0` success,
+  - `forge install --upgrade ... -e production` reports `Up-to-date` on `hackdaytemp`.
+- Fresh macro-hosted observation window executed on production template pages (`6783016`, `6782997`, `7241729`):
+  - three health-check runs (`9` total invocations) passed.
+
+### Required warning gate outcome
+- Command executed:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Signature scan result:
+  - service-role fallback warning absent (`SERVICE_ROLE_WARNING_PRESENT=0`),
+  - `isCurrent` fallback warning absent (`ISCURRENT_WARNING_PRESENT=0`),
+  - grouped payload returned empty `appLogs` in sampled window.
+- Supplemental proof:
+  - production health-check log scans remained clean for all forbidden signatures.
+
+### Plan impact
+- Canonical spinout plan gate is closed end-to-end.
+- Remaining roadmap focus is operational cadence + next feature-phase execution, not spinout migration/cutover.
 
 ## Phase 3 Runtime Triage Closure + DEV Parent Population (Feb 18, 2026 11:54 UTC)
 
