@@ -1,5 +1,12 @@
 # Learnings
 
+## Canonical Plan Reference (Feb 19, 2026 00:05 UTC)
+
+- Saved the full source-of-truth template-spinout plan as a standalone doc for cross-chat continuity:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+- Future chats should treat this file as the canonical plan text for:
+  - `Plan: HackDay Template Spinout via HDC (Using HD26Forge as Canonical App)`.
+
 ## HD26 Production Health Check Command (Feb 19, 2026 00:46 UTC)
 
 ### Scope completed

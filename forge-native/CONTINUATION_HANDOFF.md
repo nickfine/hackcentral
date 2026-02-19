@@ -3,6 +3,13 @@
 Date: 2026-02-18  
 Workspace: `/Users/nickster/Downloads/HackCentral`
 
+## Canonical plan anchor
+
+- Use this file as the source-of-truth plan text across continuation chats:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+- Plan title:
+  - `Plan: HackDay Template Spinout via HDC (Using HD26Forge as Canonical App)`
+
 ## Current state
 
 - Create wizard blocker has been resolved end-to-end on `hackdaytemp.atlassian.net`.
