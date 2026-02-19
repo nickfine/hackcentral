@@ -69,13 +69,13 @@ In HDC event model (existing `Event` row used by HDC):
    - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
    - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
 2. Add fields:
-   - `instanceRuntime?: "hdc_native" | "hackday_template"` (UI default for new flow: `"hackday_template"`).
-   - `templateTarget?: "hackday"`.
+   - `instanceRuntime?: "hdc_native" | "hackday_template"` (kept optional for backward-compatible callers; backend defaults to `"hackday_template"`).
+   - `templateTarget?: "hackday"` (kept optional on input; backend derives from runtime type).
 3. Extend `EventRegistryItem` with:
-   - `runtimeType?: "hdc_native" | "hackday_template"`.
-   - `templateTarget?: "hackday" | null`.
+   - `runtimeType: "hdc_native" | "hackday_template"`.
+   - `templateTarget: "hackday" | null`.
 4. Extend create result payload with:
-   - `templateProvisionStatus?: "provisioned" | "initialized" | "failed"`.
+   - `templateProvisionStatus: "provisioned" | "initialized" | "failed" | null`.
 
 ### HDC Backend Service Contract
 1. `hdcCreateInstanceDraft` behavior branch:

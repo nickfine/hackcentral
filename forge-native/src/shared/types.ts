@@ -168,8 +168,8 @@ export interface EventRegistryItem {
   eventName: string;
   icon: string;
   tagline: string | null;
-  runtimeType?: InstanceRuntime;
-  templateTarget?: TemplateTarget | null;
+  runtimeType: InstanceRuntime;
+  templateTarget: TemplateTarget | null;
   lifecycleStatus: LifecycleStatus;
   confluencePageId: string | null;
   isNavigable: boolean;
@@ -260,7 +260,7 @@ export interface CreateInstanceDraftResult {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
-  templateProvisionStatus?: TemplateProvisionStatus;
+  templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
 export interface EventLifecycleResult {

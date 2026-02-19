@@ -7,6 +7,32 @@
 - Future chats should treat this file as the canonical plan text for:
   - `Plan: HackDay Template Spinout via HDC (Using HD26Forge as Canonical App)`.
 
+## Spinout Contract Optionality Cleanup (Feb 19, 2026 01:56 UTC)
+
+### Scope completed
+- Tightened spinout runtime metadata contracts to remove stale output optional fields while keeping create-input compatibility.
+- Updated:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+
+### Exact outcome
+- `EventRegistryItem.runtimeType` is now required.
+- `EventRegistryItem.templateTarget` is now required nullable (`"hackday" | null`).
+- `CreateInstanceDraftResult.templateProvisionStatus` is now required nullable (`"provisioned" | "initialized" | "failed" | null`).
+- `CreateInstanceDraftInput.instanceRuntime/templateTarget` remain optional by design for backward-compatible callers; backend still normalizes defaults.
+- `hdcService.createInstanceDraft(...)` now always returns `templateProvisionStatus`:
+  - template runtime -> status string,
+  - non-template runtime -> `null`.
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test -- tests/forge-native-hdcService.spec.ts` ✅ (`20/20`)
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+
 ## HD26 Production Health Check Command (Feb 19, 2026 00:46 UTC)
 
 ### Scope completed

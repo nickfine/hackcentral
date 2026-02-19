@@ -122,6 +122,7 @@ describe('HdcService hardening behavior', () => {
       eventId: 'event-1',
       childPageId: 'child-100',
       childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-100',
+      templateProvisionStatus: null,
     });
     expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
     expect(repo.getEventNameConflicts).not.toHaveBeenCalled();

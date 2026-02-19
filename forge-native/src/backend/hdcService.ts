@@ -473,7 +473,7 @@ export class HdcService {
         existingByRequest.runtime_type === 'hackday_template'
           ? (await this.repository.getHackdayTemplateSeedByConfluencePageId(existingByRequest.confluence_page_id))
               ?.provision_status ?? 'provisioned'
-          : undefined;
+          : null;
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
@@ -580,7 +580,7 @@ export class HdcService {
         await this.repository.addEventAdmin(event.id, userId, 'co_admin');
       }
 
-      let templateProvisionStatus: CreateInstanceDraftResult['templateProvisionStatus'] | undefined;
+      let templateProvisionStatus: CreateInstanceDraftResult['templateProvisionStatus'] = null;
       if (runtimeType === 'hackday_template') {
         const seed = await this.repository.createHackdayTemplateSeed({
           confluencePageId: childPage.pageId,
@@ -629,7 +629,7 @@ export class HdcService {
             launchMode,
             runtimeType,
             templateTarget,
-            templateProvisionStatus: templateProvisionStatus ?? null,
+            templateProvisionStatus,
             completedStep: input.completedStep,
             schedule: eventSchedule,
             rules: eventRules,

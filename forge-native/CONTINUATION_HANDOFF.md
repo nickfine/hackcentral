@@ -1101,3 +1101,33 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Full-width defaults now have a repeatable command path.
 - Previously missing-iframe page `5799975` is repaired.
 - Verified runtime sample pages all show iframe width `908px` with marker present.
+
+## Continuation update (2026-02-19 01:56 UTC)
+
+- Closed the pending "optionals" contract cleanup for template spinout metadata.
+
+### Changes applied
+- Tightened shared + macro contract types:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/macro-frontend/src/types.ts`
+- Output metadata is now explicit:
+  - `EventRegistryItem.runtimeType` required.
+  - `EventRegistryItem.templateTarget` required nullable.
+  - `CreateInstanceDraftResult.templateProvisionStatus` required nullable.
+- Backend behavior aligned in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/hdcService.ts`
+  - create flow now always returns `templateProvisionStatus` (`null` when non-template).
+- Regression expectation updated:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-hdcService.spec.ts`
+- Canonical spinout plan optionality text updated:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+
+### Validation
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- `npm -C /Users/nickster/Downloads/HackCentral run test -- tests/forge-native-hdcService.spec.ts` ✅ (`20/20`)
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run macro:build` ✅
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run frontend:build` ✅
+
+### Current state
+- Spinout runtime metadata contract no longer depends on optional output fields.
+- Backward compatibility is preserved for callers that omit `instanceRuntime`/`templateTarget` on create input.
