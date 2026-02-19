@@ -1,5 +1,35 @@
 # Learnings
 
+## HD26 Template Spinout Parity Check (Parent 5668895) (Feb 19, 2026 00:36 UTC)
+
+### Scope completed
+- Executed independent parent->child template spinout from the second production parent host and validated HD26 page-scoped context on the newly created child.
+
+### Parent -> child creation evidence
+- Parent macro host:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+- Created event name:
+  - `HDC Spinout 1771461373277`
+- Child page created:
+  - pageId: `6783016`
+  - URL: `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/6783016/HDC+Spinout+1771461373277`
+
+### Page-scoped context validation
+- On child page, HD26 iframe loaded.
+- Navigated to `Schedule` and confirmed heading:
+  - `HDC Spinout 1771461373277 Schedule`
+- Confirms page-scoped resolver mapping works from both parent hosts (`7045123` and `5668895`).
+
+### Production log follow-up
+- Command:
+  - `forge logs -e production --verbose --since 20m --limit 400`
+- Observed only existing `5.30.0` warnings:
+  - `No start date set for event, skipping reminders`
+- Did not observe:
+  - `Error resolving instance context, falling back to isCurrent`
+  - `Failed to bootstrap Event from HackdayTemplateSeed`
+  - service-role fallback warning.
+
 ## HD26 Template Spinout E2E Verification (Feb 19, 2026 00:34 UTC)
 
 ### Scope completed

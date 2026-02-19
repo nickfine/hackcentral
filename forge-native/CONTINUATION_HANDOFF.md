@@ -833,3 +833,28 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
     - `Error resolving instance context, falling back to isCurrent`
     - `Failed to bootstrap Event from HackdayTemplateSeed`
     - service-role fallback warning.
+
+## Continuation update (2026-02-19 00:36 UTC)
+
+- Completed parity verification on the second production parent host (`5668895`).
+
+### Parent -> child spinout run (second parent)
+- Parent:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895`
+- Created event:
+  - `HDC Spinout 1771461373277`
+- New child:
+  - `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/6783016/HDC+Spinout+1771461373277`
+  - pageId: `6783016`
+
+### HD26 context verification
+- Child macro loads HD26 iframe.
+- `Schedule` heading confirms expected event name:
+  - `HDC Spinout 1771461373277 Schedule`
+- Interpretation:
+  - page-scoped mapping is working consistently from both verified parent hosts (`7045123`, `5668895`).
+
+### Post-run logs (HD26 production)
+- `forge logs -e production --verbose --since 20m --limit 400`:
+  - only `5.30.0` warnings observed: `No start date set for event, skipping reminders`.
+  - no instance-context fallback/bootstrap failure signals observed.
