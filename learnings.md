@@ -1,5 +1,32 @@
 # Learnings
 
+## HD26 Reminder Warning Noise Cleanup (Feb 19, 2026 00:41 UTC)
+
+### Scope completed
+- Removed high-volume production warning noise for draft/template events with no configured start date.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+  - changed `checkAndSendFreeAgentReminders(...)` missing-start-date path from `console.warn(...)` to `logDebug(...)`.
+
+### Deploy + verification
+- Deployed HD26Forge production:
+  - app version: `5.31.0`
+  - command: `forge deploy --non-interactive -e production`
+- Install state:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+- Triggered fresh macro-hosted invocations on:
+  - `pageId=6783016`
+  - `pageId=6782997`
+  - `pageId=7241729`
+  - all rendered HD26 iframe marker successfully.
+
+### Log evidence
+- Post-deploy check:
+  - `forge logs -e production --verbose --since 15m --limit 400`
+- Found warning string only in older `5.30.0` entries:
+  - `No start date set for event, skipping reminders`
+- No new occurrences observed on `5.31.0` during this checkpoint window.
+
 ## HD26 Template Spinout Parity Check (Parent 5668895) (Feb 19, 2026 00:36 UTC)
 
 ### Scope completed

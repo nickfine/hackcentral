@@ -858,3 +858,29 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - `forge logs -e production --verbose --since 20m --limit 400`:
   - only `5.30.0` warnings observed: `No start date set for event, skipping reminders`.
   - no instance-context fallback/bootstrap failure signals observed.
+
+## Continuation update (2026-02-19 00:41 UTC)
+
+- Performed production log-noise cleanup on HD26 reminder path.
+
+### Change implemented
+- File:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+- Updated `checkAndSendFreeAgentReminders(...)`:
+  - missing-start-date branch now logs via `logDebug(...)` instead of `console.warn(...)`.
+- Intent:
+  - avoid recurring WARN noise for draft/template events that intentionally do not set start dates.
+
+### Deploy/install
+- HD26 production deploy:
+  - `forge deploy --non-interactive -e production` -> `5.31.0`
+- Install:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` -> `Up-to-date`.
+
+### Verification
+- Triggered fresh macro-hosted invocations on child pages:
+  - `6783016`, `6782997`, `7241729`
+  - all rendered `MISSION CONTROL v2.0` frame marker.
+- Logs check (`forge logs --since 15m --limit 400`):
+  - warning string observed only in historical `5.30.0` entries,
+  - no new occurrences observed for `5.31.0` in this checkpoint window.
