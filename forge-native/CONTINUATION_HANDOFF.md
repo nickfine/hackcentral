@@ -721,3 +721,48 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - No fallback warning observed for fresh post-invocation production traffic on `5.29.0`.
 - Historical warning remains visible only for `5.27.0` entries.
 - No runtime env-resolution fix/deploy required in this checkpoint.
+
+## Continuation update (2026-02-19 00:17 UTC)
+
+- Executed next hardening pass in HD26Forge runtime context resolution.
+
+### Change implemented
+- File updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+- `getConfluencePageId(req)` now:
+  - trusts Confluence resolver context first (`context.extension.content.id`, then `context.extension.page.id`),
+  - treats `payload.pageId` as compatibility fallback only,
+  - no longer uses `context.extension.id` as page id fallback.
+- Added `normalizeConfluencePageId(...)` helper to normalize numeric IDs and parse `pageId` from URL strings.
+
+### Rationale
+- Payload-first page-id resolution creates page-context spoofing risk because payload is caller-controlled.
+- Context-first resolution preserves page-scoped template bootstrap semantics for `HackdayTemplateSeed` lookup.
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HD26Forge run lint` ✅ (`forge lint`, no issues).
+
+### Next recommended step
+- Deploy HD26Forge production with this hardening and perform one macro-hosted smoke on `hackdaytemp` to confirm no behavioral regression in instance-context resolution.
+
+## Continuation update (2026-02-19 00:21 UTC)
+
+- Promoted the HD26 context-resolution hardening to production and executed post-deploy macro smoke.
+
+### Deploy/install
+- `/Users/nickster/Downloads/HD26Forge`:
+  - `forge deploy --non-interactive -e production` ✅
+  - deployed app version: `5.30.0`
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅ (`Up-to-date`)
+
+### Verification
+- Macro-hosted smoke target:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729`
+- Result:
+  - Forge iframe detected,
+  - app marker `MISSION CONTROL v2.0` visible in embedded frame after scroll/wait,
+  - no runtime warning/error lines surfaced in sampled production logs window (`forge logs --since 10m`).
+
+### Observed unrelated test signal
+- `tests/e2e/confluence/roles/role-nav.spec.ts` (`confluence-admin`) still fails on expected `Analytics` nav visibility for this instance page.
+- This appears to be data/phase/role-state expectation mismatch in the legacy e2e assertion, not a regression from page-id resolution hardening.

@@ -1,5 +1,51 @@
 # Learnings
 
+## HD26 Hardening Promotion + Macro Smoke (Feb 19, 2026 00:21 UTC)
+
+### Completed
+- Promoted HD26Forge hardening change to production:
+  - command: `forge deploy --non-interactive -e production`
+  - deployed app version: `5.30.0`
+- Verified installation state:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive`
+  - result: site already latest (`Up-to-date`).
+
+### Post-deploy verification
+- Macro-hosted instance page smoke on:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729`
+- Confirmed Forge iframe renders and app marker appears in embedded frame after scroll/wait (`MISSION CONTROL v2.0`).
+- Checked production logs window after invocation:
+  - `forge logs -e production --verbose --since 10m --limit 300`
+  - result: no runtime error/warning lines returned in sampled window.
+
+### Additional note
+- Targeted e2e role-nav test on this instance page still fails a pre-existing assertion expecting `Analytics` nav visibility for `confluence-admin`; this is not introduced by the page-id hardening change and predates this checkpoint.
+
+## HD26 Context-Resolution Hardening (Feb 19, 2026 00:17 UTC)
+
+### Scope completed
+- Hardened HD26Forge instance-context page resolution to trust Confluence resolver context before payload input.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/src/index.js`
+
+### Change details
+- Added `normalizeConfluencePageId(...)` helper:
+  - accepts numeric page IDs directly,
+  - parses page IDs from URL strings containing `?pageId=<id>`.
+- Updated `getConfluencePageId(req)` behavior:
+  - now prioritizes trusted context fields:
+    - `context.extension.content.id`
+    - `context.extension.page.id`
+  - uses `payload.pageId` only as last-resort compatibility fallback.
+- Removed `context.extension.id` fallback to avoid ambiguous/non-page identifiers being treated as Confluence page IDs.
+
+### Why this was done
+- `req.payload` is caller-controlled; prioritizing it over resolver context allows page-context spoofing risk.
+- This hardening keeps page-scoped template bootstrap resolution aligned with actual host-page context.
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HD26Forge run lint` ✅ (`forge lint`, no issues)
+
 ## HD26 Macro-Hosted Warning Verification (Feb 19, 2026 00:08 UTC)
 
 ### Trigger + log capture sequence
