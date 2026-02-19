@@ -1015,3 +1015,44 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 
 ### Current status
 - New child pages are now full-width by default from the app-side provisioning path.
+
+## Continuation update (2026-02-19 01:34 UTC)
+
+- Closed remaining rollout actions for default full-width child-page behavior.
+
+### Completed actions
+1. **Existing child-page backfill (production)**
+- Inventory source: production dry-run (`eventNameQuery=HDC`) -> 6 matched child pages.
+- Backfilled page IDs:
+  - `5799956`, `7241729`, `5799975`, `7241751`, `6782997`, `6783016`
+- For each page, upserted:
+  - `content-appearance-draft: full-width`
+  - `content-appearance-published: full-width`
+- Verification:
+  - all six pages now return both properties as `full-width`.
+  - runtime macro width observed at `908px` on 5/6 pages after reload; `5799975` had no iframe in this check (properties still applied).
+
+2. **Regression coverage**
+- Added:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-confluencePages.spec.ts`
+- Tests assert:
+  - both full-width properties are written on child create,
+  - app->user requester fallback works for property writes,
+  - child creation remains non-blocking if layout-property writes fail (warning path).
+- Validation:
+  - `vitest tests/forge-native-confluencePages.spec.ts` -> `3 passed`
+  - `vitest tests/forge-native-hdcService.spec.ts` -> `20 passed`
+
+3. **Second-parent live smoke**
+- Parent host: `5668895`
+- Created event: `HDC FullWidth B 1771464828073`
+- New child page: `7208968`
+- Child checks:
+  - `content-appearance-draft = full-width`
+  - `content-appearance-published = full-width`
+  - iframe width `908px`
+
+### Current state
+- New child pages default to full-width automatically (backend behavior in production `4.14.0`).
+- Known existing HDC child pages are backfilled.
+- Both parent hosts have fresh create-flow evidence with full-width child outcomes.

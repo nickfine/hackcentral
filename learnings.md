@@ -3579,3 +3579,48 @@ Key hardening changes:
 
 ### Learning
 1. Setting both draft and published appearance properties is required for consistent full-width behavior across editor/view states.
+
+## Full-width rollout closure checkpoint (2026-02-19 01:34 UTC)
+
+### Scope closed
+- Completed one-time backfill for existing HDC child pages to enforce full-width Confluence layout defaults.
+- Added regression tests for Forge Native full-width property upsert behavior.
+- Executed second-parent live create-flow smoke to confirm end-to-end behavior.
+
+### Backfill executed (production)
+- Source inventory: `HDC` production dry-run report (`matched events: 6`).
+- Backfilled page IDs:
+  - `5799956`, `7241729`, `5799975`, `7241751`, `6782997`, `6783016`
+- For each page, set (create/update as needed):
+  - `content-appearance-draft = full-width`
+  - `content-appearance-published = full-width`
+- Post-backfill verification:
+  - all six pages return both properties as `full-width`.
+  - five pages show macro iframe width `908px` after reload.
+  - page `5799975` has full-width properties but no iframe detected in this run (page content variance; non-blocking for layout property migration).
+
+### Regression tests added
+- New test file:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-confluencePages.spec.ts`
+- Coverage:
+  1. successful upsert of both full-width properties on child create,
+  2. fallback from `asApp` to `asUser` when property operations are forbidden,
+  3. non-blocking child creation when property upsert fails (warning path).
+- Validation:
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-confluencePages.spec.ts` ✅ (`3/3`)
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-hdcService.spec.ts` ✅ (`20/20`)
+
+### Second-parent smoke (live)
+- Parent macro host: `pageId=5668895`
+- Created event: `HDC FullWidth B 1771464828073`
+- Child page: `7208968`
+- Child verification:
+  - `content-appearance-draft = full-width`
+  - `content-appearance-published = full-width`
+  - iframe width observed: `908px`
+
+### Outcome
+- Full-width behavior is now:
+  - defaulted for all new child pages via backend provisioning,
+  - backfilled for existing known HDC child pages,
+  - validated on both production parent hosts.
