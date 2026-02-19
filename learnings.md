@@ -3525,3 +3525,26 @@ Key hardening changes:
 ### Procedural learning
 1. In Forge macro surfaces, avoid viewport-unit min-height semantics unless iframe resize strategy is explicitly bounded.
 2. Auto-resize + `vh`-based min-height can silently create host/frame feedback loops even when app content itself is valid.
+
+## HD26 macro height behavior refinement (2026-02-19 01:11 UTC)
+
+### Operator feedback
+- Fixed-cap macro container (`1000px`) removed clipping/loop but introduced nested scroll (Confluence page scroll + iframe internal scroll).
+
+### Change implemented
+- Updated macro-host layout policy in:
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+- Removed macro `max-h` + `overflow-y-auto` cap.
+- Kept loop-prevention guardrails:
+  - no viewport-based min-height in macro mode,
+  - no sticky macro header in iframe context.
+
+### Production result
+- Deployed HD26 `5.35.0`.
+- Runtime checks on `6782997`, `6783016`, `7241729`:
+  - iframe height stabilizes at full content height (`4409px`),
+  - frame `clientHeight == scrollHeight` (no internal iframe scroll),
+  - no unbounded growth observed in time-series sampling.
+
+### Learning
+1. For Confluence macro embeds, prefer full auto-height (no internal scroll container) once resize feedback sources are removed.

@@ -967,3 +967,24 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 
 ### Status
 - Macro is visible and no longer exhibits unbounded height growth.
+
+## Continuation update (2026-02-19 01:11 UTC)
+
+- Applied UX refinement per operator feedback: removed nested-scroll macro cap while preserving loop prevention.
+
+### What changed
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+  - removed macro-mode `max-h-[1000px]` + internal `overflow-y-auto`,
+  - retained macro-mode non-viewport min-height behavior,
+  - retained non-sticky macro header behavior.
+
+### Deployment + verification
+- HD26 production deploy: `5.35.0`.
+- Verified on `pageId=6782997`, `6783016`, `7241729`:
+  - iframe now auto-sizes to full content (`4409px`),
+  - `clientHeight == scrollHeight` inside frame,
+  - no continued height growth after settling.
+
+### Current behavior
+- No inner scroll-in-scroll.
+- Macro height equals page content height (auto-size).
