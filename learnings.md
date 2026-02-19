@@ -1,5 +1,31 @@
 # Learnings
 
+## HD26 Macro-Hosted Warning Verification (Feb 19, 2026 00:08 UTC)
+
+### Trigger + log capture sequence
+- Triggered a **macro-hosted instance-page invocation** on `hackdaytemp` (not full-page route), using authenticated admin storage state:
+  - navigated candidates:
+    - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799956`
+    - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799975`
+    - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729`
+  - successful macro-host confirmation on `pageId=7241729`:
+    - marker `MISSION CONTROL v2.0` detected inside Forge iframe
+    - page title: `HDC Auto 1771457590664 - Nick Fine - Confluence`
+- Immediately ran (from `/Users/nickster/Downloads/HD26Forge`):
+  - `forge logs -e production --verbose --grouped --limit 300`
+
+### Evidence
+- Immediate grouped log pull returned fallback warning entries only for `appVersion 5.27.0` (`2026-02-18T23:33:27Z`), message:
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
+- Follow-up narrow window check after invocation:
+  - `forge logs -e production --verbose --since 20m --limit 300`
+  - GraphQL result `appLogs: []` for `2026-02-18T23:47:16.789Z` -> `2026-02-19T00:07:17.242Z`.
+
+### Outcome
+- No fallback warning was observed for fresh post-invocation runtime traffic on production line `5.29.0`.
+- Warning remains present only as historical `5.27.0` log data.
+- No HD26 code/env-resolution hotfix or redeploy required in this checkpoint.
+
 ## HD26 Production Verification Attempt (Feb 19, 2026 00:03 UTC)
 
 ### Completed

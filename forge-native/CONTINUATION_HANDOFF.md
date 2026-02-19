@@ -694,3 +694,30 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 
 ### Immediate next step
 - Perform one macro-hosted invocation from a known Confluence page (instance page), then re-run logs and confirm `5.29.0` warning status.
+
+## Continuation update (2026-02-19 00:08 UTC)
+
+- Executed the pending macro-hosted verification step on `hackdaytemp` and captured production logs immediately after invocation.
+
+### Macro-hosted invocation evidence
+- Used authenticated Confluence admin session (Playwright storage state) against instance-page URLs:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799956`
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5799975`
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729`
+- Confirmed successful macro host invocation on `pageId=7241729`:
+  - app marker `MISSION CONTROL v2.0` found inside Forge iframe,
+  - page title resolved as `HDC Auto 1771457590664 - Nick Fine - Confluence`.
+
+### Required log command + result
+- Ran immediately from `/Users/nickster/Downloads/HD26Forge`:
+  - `forge logs -e production --verbose --grouped --limit 300`
+- Returned fallback warning entries only for historical `appVersion 5.27.0` (`2026-02-18T23:33:27Z`):
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.`
+- Additional post-invocation window verification:
+  - `forge logs -e production --verbose --since 20m --limit 300`
+  - GraphQL payload contained `appLogs: []` for `2026-02-18T23:47:16.789Z` -> `2026-02-19T00:07:17.242Z`.
+
+### Gate outcome
+- No fallback warning observed for fresh post-invocation production traffic on `5.29.0`.
+- Historical warning remains visible only for `5.27.0` entries.
+- No runtime env-resolution fix/deploy required in this checkpoint.
