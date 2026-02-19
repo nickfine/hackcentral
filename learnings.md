@@ -1,5 +1,27 @@
 # Learnings
 
+## HD26 E2E Nav Contract Stabilization (Feb 19, 2026 00:24 UTC)
+
+### Scope completed
+- Closed the active false-negative e2e signal on macro-hosted Confluence role/nav checks.
+- Updated HD26Forge e2e specs/helpers:
+  - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/roles/role-nav.spec.ts`
+  - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/admin/nav-permissions.spec.ts`
+  - `/Users/nickster/Downloads/HD26Forge/tests/e2e/helpers/devControls.ts`
+
+### What changed
+- Aligned nav expectations with real UI contract:
+  - `Analytics` is not a top-level nav item (it is inside `Admin Panel`), so top-nav assertions now expect count `0`.
+- Hardened Dev Controls helper close behavior:
+  - replaced brittle count-based close checks with retry logic using overlay/toggle close paths,
+  - reused deterministic close logic after phase changes.
+
+### Validation
+- Executed targeted macro-hosted Confluence e2e run on instance page URL:
+  - `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729'`
+  - `npx playwright test tests/e2e/confluence/roles/role-nav.spec.ts tests/e2e/confluence/admin/nav-permissions.spec.ts --project confluence-admin`
+- Result: `2 passed`.
+
 ## HD26 Hardening Promotion + Macro Smoke (Feb 19, 2026 00:21 UTC)
 
 ### Completed
