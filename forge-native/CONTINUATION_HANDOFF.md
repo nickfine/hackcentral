@@ -1056,3 +1056,41 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - New child pages default to full-width automatically (backend behavior in production `4.14.0`).
 - Known existing HDC child pages are backfilled.
 - Both parent hosts have fresh create-flow evidence with full-width child outcomes.
+
+## Continuation update (2026-02-19 01:44 UTC)
+
+- Closed both pending optionals from the prior checkpoint.
+
+### Optional A: page `5799975` remediation
+- Issue:
+  - no iframe render despite full-width properties being set.
+- Root cause:
+  - storage macro block referenced legacy dev env id `6ef543d7-4817-408a-ae19-1b466c81a797`.
+- Fix:
+  - patched page storage body via Confluence content update API to retarget macro environment id to production `86632806-eb9b-42b5-ae6d-ee09339702b6`.
+- Verification:
+  - page now renders iframe (`908x548`) with marker present.
+
+### Optional B: reusable backfill command
+- Implemented query-driven full-width backfill via existing Forge Native webtrigger:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/ops.ts`
+  - new action: `backfill_full_width`.
+- Exported helper for reuse:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+  - `ensurePageFullWidthByDefault(pageId)` exported.
+- Added operator CLI wrapper:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase7-full-width-backfill.mjs`
+  - npm script: `qa:phase7:full-width-backfill`.
+
+### Deploy + run evidence
+- Forge Native deployed to production `4.15.0`.
+- Ran:
+  - `npm run qa:phase7:full-width-backfill -- --environment production --event-query "HDC"`
+- Artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-FULL-WIDTH-BACKFILL-hdc-20260219-014221Z.md`
+  - result: `matched 7`, `updated 7`, `failed 0`.
+
+### Current state
+- Full-width defaults now have a repeatable command path.
+- Previously missing-iframe page `5799975` is repaired.
+- Verified runtime sample pages all show iframe width `908px` with marker present.

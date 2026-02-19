@@ -1,4 +1,5 @@
 import { SupabaseRepository } from './backend/supabase/repositories';
+import { ensurePageFullWidthByDefault } from './backend/confluencePages';
 
 interface WebTriggerRequest {
   method: string;
@@ -6,7 +7,7 @@ interface WebTriggerRequest {
 }
 
 interface DryRunPayload {
-  action?: 'dry_run' | 'seed_hack';
+  action?: 'dry_run' | 'seed_hack' | 'backfill_full_width';
   eventNameQuery?: string;
   eventId?: string;
   hackTitle?: string;
@@ -243,6 +244,80 @@ async function seedHackForEvent(payload: DryRunPayload): Promise<{
   };
 }
 
+async function backfillFullWidthByEventQuery(eventNameQuery: string): Promise<{
+  generatedAtUtc: string;
+  eventNameQuery: string;
+  eventCount: number;
+  processedCount: number;
+  successCount: number;
+  failureCount: number;
+  skippedMissingPageIdCount: number;
+  events: Array<{
+    eventId: string;
+    eventName: string;
+    confluencePageId: string | null;
+    status: 'updated' | 'failed' | 'skipped_missing_page_id';
+    error?: string;
+  }>;
+}> {
+  const repository = new SupabaseRepository();
+  const candidates = await repository.listMigrationEventCandidatesByName(eventNameQuery);
+
+  const events: Array<{
+    eventId: string;
+    eventName: string;
+    confluencePageId: string | null;
+    status: 'updated' | 'failed' | 'skipped_missing_page_id';
+    error?: string;
+  }> = [];
+
+  for (const event of candidates) {
+    const confluencePageId =
+      typeof event.confluence_page_id === 'string' && event.confluence_page_id.trim()
+        ? event.confluence_page_id.trim()
+        : null;
+
+    if (!confluencePageId) {
+      events.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId: null,
+        status: 'skipped_missing_page_id',
+      });
+      continue;
+    }
+
+    try {
+      await ensurePageFullWidthByDefault(confluencePageId);
+      events.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId,
+        status: 'updated',
+      });
+    } catch (error) {
+      events.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId,
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    generatedAtUtc: new Date().toISOString(),
+    eventNameQuery,
+    eventCount: candidates.length,
+    processedCount: events.filter((event) => event.status !== 'skipped_missing_page_id').length,
+    successCount: events.filter((event) => event.status === 'updated').length,
+    failureCount: events.filter((event) => event.status === 'failed').length,
+    skippedMissingPageIdCount: events.filter((event) => event.status === 'skipped_missing_page_id').length,
+    events,
+  };
+}
+
 export async function handler(request: WebTriggerRequest): Promise<{
   statusCode: number;
   headers: Record<string, string[]>;
@@ -265,6 +340,16 @@ export async function handler(request: WebTriggerRequest): Promise<{
         statusCode: 200,
         headers: { 'Content-Type': ['application/json'] },
         body: JSON.stringify(seedResult),
+      };
+    }
+
+    if (action === 'backfill_full_width') {
+      const eventNameQuery = payload.eventNameQuery?.trim() || 'HDC';
+      const backfillReport = await backfillFullWidthByEventQuery(eventNameQuery);
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': ['application/json'] },
+        body: JSON.stringify(backfillReport),
       };
     }
 

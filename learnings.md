@@ -3624,3 +3624,41 @@ Key hardening changes:
   - defaulted for all new child pages via backend provisioning,
   - backfilled for existing known HDC child pages,
   - validated on both production parent hosts.
+
+## Optional follow-ups closed (2026-02-19 01:44 UTC)
+
+### 1) Fixed missing macro render on `pageId=5799975`
+- Root cause:
+  - page storage macro block still referenced legacy dev environment id:
+    - `6ef543d7-4817-408a-ae19-1b466c81a797`
+  - production-installed macro environment is:
+    - `86632806-eb9b-42b5-ae6d-ee09339702b6`
+- Repair applied:
+  - updated page storage body (`/wiki/rest/api/content/5799975`) to retarget macro env id from legacy dev to production.
+  - normalized macro labels from development -> production wording.
+- Result:
+  - iframe renders again on `5799975` (`908x548`, marker present).
+
+### 2) Added reusable full-width backfill command
+- Backend (Forge Native webtrigger action):
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/ops.ts`
+  - new action: `backfill_full_width`
+  - query-based event scan + per-page `ensurePageFullWidthByDefault(...)` execution.
+- Backend helper export:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+  - exported `ensurePageFullWidthByDefault(pageId)`.
+- Operator script:
+  - `/Users/nickster/Downloads/HackCentral/scripts/phase7-full-width-backfill.mjs`
+  - npm command:
+    - `npm run qa:phase7:full-width-backfill -- --environment production --event-query "HDC"`
+
+### Validation
+- Forge Native production deploy:
+  - `4.15.0`
+- Backfill command output artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-FULL-WIDTH-BACKFILL-hdc-20260219-014221Z.md`
+  - summary: matched `7`, updated `7`, failed `0`.
+- Runtime re-check across key pages (`5799956`, `7241729`, `5799975`, `7241751`, `7208968`, `6782997`, `6783016`):
+  - all render macro iframe,
+  - all observed width `908px`,
+  - marker present on each page.

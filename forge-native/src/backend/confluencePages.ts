@@ -345,7 +345,7 @@ async function upsertPageProperty(
   await assertOk(response, `Creating page property '${propertyKey}' for page ${pageId}`);
 }
 
-async function ensurePageFullWidthByDefault(pageId: string): Promise<void> {
+export async function ensurePageFullWidthByDefault(pageId: string): Promise<void> {
   const failures: string[] = [];
   for (const propertyKey of FULL_WIDTH_PAGE_PROPERTY_KEYS) {
     let success = false;
