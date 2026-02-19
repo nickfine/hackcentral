@@ -3458,3 +3458,36 @@ Key hardening changes:
 ### Procedural learning
 1. Shipping migration + contract + UX handoff in one checkpoint avoids partial states where templates are created but operators still see incompatible native controls.
 2. Keeping fallback behavior in repositories (`withNullEventConfig`, missing-table guards) reduces rollout risk across environments that may lag one migration.
+
+## HD26 macro visibility fix checkpoint (2026-02-19 00:57 UTC)
+
+### Issue observed
+- On Confluence instance pages, the embedded HD26 macro appeared clipped to the top header strip.
+- Runtime evidence before fix (live `hackdaytemp` pages `6782997`, `6783016`, `7241729`):
+  - iframe height was consistently `150px`, while app document height was `~4409px`.
+
+### Root cause
+- HD26 macro manifest explicitly set `viewportSize: max`, which disables Confluence macro auto-resizing behavior.
+- File:
+  - `/Users/nickster/Downloads/HD26Forge/manifest.yml`
+
+### Fix applied
+- Removed `viewportSize: max` from `modules.macro[].hackday-2026-customui`.
+- Deployed HD26Forge to production:
+  - `forge deploy --non-interactive -e production` -> app version `5.32.0`
+- Confirmed install is current:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence --environment production --non-interactive` -> already latest.
+
+### Verification evidence (post-deploy)
+- Fresh macro-hosted invocation on `pageId=6782997`:
+  - iframe bounding box became `760x4854` (was `760x150` pre-fix).
+- Cross-page re-check:
+  - `6782997` -> iframe height `664` (or higher on refresh, observed `4854`)
+  - `6783016` -> iframe height `5210`
+  - `7241729` -> iframe height `5121`
+- Interpretation:
+  - macro is now auto-sizing to rendered app content instead of being fixed at `150px`.
+
+### Procedural learning
+1. For Forge Confluence macros, avoid setting `viewportSize` unless fixed-height behavior is explicitly required.
+2. The fastest production proof for macro clipping is direct iframe `boundingBox.height` vs frame `documentElement.scrollHeight` on live page IDs.

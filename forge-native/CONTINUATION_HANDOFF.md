@@ -908,3 +908,33 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` ✅
 - Output confirms:
   - `PASS: macro invocations and production log scan are clean`.
+
+## Continuation update (2026-02-19 00:57 UTC)
+
+- Resolved HD26 instance-page macro clipping (top-strip-only visibility) in production.
+
+### Root cause
+- HD26 macro manifest had fixed macro viewport config enabled:
+  - `/Users/nickster/Downloads/HD26Forge/manifest.yml`
+  - `modules.macro[].viewportSize: max`
+- In Confluence macro host pages this prevented expected auto-height behavior and produced a short iframe.
+
+### Change implemented
+- Removed `viewportSize: max` from the HD26 macro module.
+
+### Deploy/install
+- `forge deploy --non-interactive -e production` -> `5.32.0`
+- `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence --environment production --non-interactive` -> already latest.
+
+### Verification evidence
+- Pre-fix runtime sample (same pages):
+  - iframe height `150px`, content height `~4409px`.
+- Post-fix runtime samples:
+  - `pageId=6782997` iframe `760x4854` (fresh invocation)
+  - `pageId=6783016` iframe height `5210`
+  - `pageId=7241729` iframe height `5121`
+- All pages continue to render HD26 marker (`MISSION CONTROL v2.0`) inside iframe.
+
+### Current status
+- Macro visibility/clipping issue is fixed in production.
+- No additional runtime code changes were required beyond manifest viewport config removal.
