@@ -1,5 +1,35 @@
 # Learnings
 
+## HD26 Template Spinout E2E Verification (Feb 19, 2026 00:34 UTC)
+
+### Scope completed
+- Executed a true parent->child template spinout from HackCentral macro host, then validated HD26 page-scoped context on the newly created child.
+
+### Parent -> child creation evidence
+- Parent macro host used:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7045123`
+- Created event name:
+  - `HDC Spinout 1771461223558`
+- Child page created and opened:
+  - pageId: `6782997`
+  - URL: `https://hackdaytemp.atlassian.net/wiki/spaces/~642558c74b23217e558e9a25/pages/6782997/HDC+Spinout+1771461223558`
+
+### Page-scoped context validation
+- On child page, HD26 iframe loaded and rendered.
+- Navigated to `Schedule` and confirmed heading:
+  - `HDC Spinout 1771461223558 Schedule`
+- This confirms the child resolved event context by page-scoped mapping (not legacy global `isCurrent` context bleed).
+
+### Production log follow-up (HD26Forge)
+- Command:
+  - `forge logs -e production --verbose --since 30m --limit 400`
+- Observed only `5.30.0` warning entries:
+  - `No start date set for event, skipping reminders`
+- Did **not** observe:
+  - `Error resolving instance context, falling back to isCurrent`
+  - `Failed to bootstrap Event from HackdayTemplateSeed`
+  - `[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY...`
+
 ## HD26 Full Confluence-Admin E2E Baseline (Feb 19, 2026 00:30 UTC)
 
 ### Scope completed

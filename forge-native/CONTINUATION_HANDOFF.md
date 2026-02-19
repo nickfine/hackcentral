@@ -804,3 +804,32 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729' npx playwright test tests/e2e/confluence --project confluence-admin`
 - Result:
   - `3 passed` (`shared/smoke`, `roles/role-nav`, `admin/nav-permissions`).
+
+## Continuation update (2026-02-19 00:34 UTC)
+
+- Executed the next queued high-signal verification: true parent->child template spinout and HD26 page-scoped context validation.
+
+### Parent -> child spinout run
+- Parent macro host:
+  - `https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7045123`
+- Created event:
+  - `HDC Spinout 1771461223558`
+- New child page:
+  - `https://hackdaytemp.atlassian.net/wiki/spaces/~642558c74b23217e558e9a25/pages/6782997/HDC+Spinout+1771461223558`
+  - pageId: `6782997`
+
+### HD26 context verification (new child)
+- HD26 iframe loaded on `6782997`.
+- Navigated to `Schedule` and confirmed heading:
+  - `HDC Spinout 1771461223558 Schedule`
+- Interpretation:
+  - context is resolving to page-scoped event mapping for the new child,
+  - no observable legacy `isCurrent` context bleed.
+
+### Post-run log evidence (HD26 production)
+- `forge logs -e production --verbose --since 30m --limit 400`:
+  - observed only `5.30.0` warnings: `No start date set for event, skipping reminders`.
+  - did not observe:
+    - `Error resolving instance context, falling back to isCurrent`
+    - `Failed to bootstrap Event from HackdayTemplateSeed`
+    - service-role fallback warning.
