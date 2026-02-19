@@ -22,6 +22,7 @@
     "qa:phase6:weekly-check": "npm run qa:phase6:weekly-core && npm run qa:phase6:telemetry-check",
     "qa:phase7:weekly-report-scaffold": "node scripts/phase7-weekly-report-scaffold.mjs",
     "qa:phase7:full-width-backfill": "node scripts/phase7-full-width-backfill.mjs",
+    "qa:spinout:template-smoke-scaffold": "node scripts/spinout-template-provision-smoke-scaffold.mjs",
     "qa:phase7:premerge": "npm --prefix forge-native run typecheck && npm run test:run",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"

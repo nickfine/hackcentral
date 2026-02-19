@@ -1631,3 +1631,25 @@ Use this file as the execution source, and keep `HackDayCentral_spec_v2.md` as t
 ### Plan impact
 - HDC side of template spinout foundation is in place.
 - Next workstream is HD26Forge runtime context/bootstrap implementation (`pageId -> seed -> event`) and compatibility bridge hardening.
+
+## Progress Update (Feb 19, 2026 - Spinout Phase 6 Ops/Docs Closure @ 03:04 UTC)
+
+### Execution completed
+1. Closed the next incomplete phase from the canonical spinout plan: **Phase 6 Documentation and Ops** (HDC repo scope).
+2. Added spinout-specific runbook/checklist/template docs:
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md`
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-RELEASE-CHECKLIST.md`
+- `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md`
+
+3. Added reusable smoke artifact scaffold path:
+- script: `/Users/nickster/Downloads/HackCentral/scripts/spinout-template-provision-smoke-scaffold.mjs`
+- command: `npm -C /Users/nickster/Downloads/HackCentral run qa:spinout:template-smoke-scaffold -- ...`
+- test: `/Users/nickster/Downloads/HackCentral/tests/spinout-template-provision-smoke-scaffold.spec.ts`
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/spinout-template-provision-smoke-scaffold.spec.ts` (executed in this checkpoint)
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` (executed in this checkpoint)
+
+### Plan impact
+- Canonical spinout Phase 6 deliverables now have explicit, repeatable HDC-side operational artifacts and checklist gates.
+- Execution scope was limited to this phase only, per continuation constraint.
