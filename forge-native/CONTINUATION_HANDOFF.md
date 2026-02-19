@@ -938,3 +938,32 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 ### Current status
 - Macro visibility/clipping issue is fixed in production.
 - No additional runtime code changes were required beyond manifest viewport config removal.
+
+## Continuation update (2026-02-19 01:06 UTC)
+
+- Closed follow-on macro UX issue after visibility fix: apparent infinite scroll / growing iframe height.
+
+### Root cause
+- HD26 macro host layout still included viewport-relative min-height behavior (`min-h-screen`, `min-h-[calc(100vh-200px)]`).
+- With Confluence auto-resize active, this formed a resize feedback loop.
+
+### Evidence (pre-fix)
+- On `pageId=6782997`, iframe height grew across samples:
+  - `150 -> 1306 -> 4676 -> 4854 -> 5032 -> 5210 -> 6189`.
+
+### Change implemented
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+  - added explicit macro-host detection from Forge context.
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+  - macro mode no longer uses viewport-based min-height behavior,
+  - macro mode now applies bounded container (`max-h-[1000px]`) with internal vertical scroll,
+  - full-page/global layout behavior unchanged.
+
+### Deploy + verify
+- Deployed HD26 production `5.34.0`.
+- Verified on instance pages `6782997`, `6783016`, `7241729`:
+  - iframe height stabilized at `1000px`.
+- Post-fix time-series check confirms no ongoing growth after settling.
+
+### Status
+- Macro is visible and no longer exhibits unbounded height growth.

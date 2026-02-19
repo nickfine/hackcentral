@@ -3491,3 +3491,37 @@ Key hardening changes:
 ### Procedural learning
 1. For Forge Confluence macros, avoid setting `viewportSize` unless fixed-height behavior is explicitly required.
 2. The fastest production proof for macro clipping is direct iframe `boundingBox.height` vs frame `documentElement.scrollHeight` on live page IDs.
+
+## HD26 macro height stabilization checkpoint (2026-02-19 01:06 UTC)
+
+### Symptom after visibility fix
+- After removing macro `viewportSize`, the macro became visible but appeared to grow indefinitely on instance pages.
+- Measured on `pageId=6782997` over time:
+  - `150 -> 1306 -> 4676 -> 4854 -> 5032 -> 5210 -> 6189` (continued growth).
+
+### Root cause
+- In macro-host context, app layout still used viewport-relative sizing patterns (`min-h-screen`, `min-h-[calc(100vh-200px)]`).
+- With Confluence auto-resize enabled, this created a feedback loop where iframe height growth increased viewport height, which increased content minimum height again.
+
+### Fix implemented (HD26Forge)
+- Files:
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+- Changes:
+  - Added macro-host detection from Forge context (`extension.type` / `moduleKey`).
+  - Disabled viewport-based min-height behavior in macro-host mode.
+  - Added macro-host height cap + internal scroll container:
+    - `max-h-[1000px] overflow-y-auto overflow-x-hidden`.
+  - Kept full-page/global behavior unchanged.
+
+### Deploy + verification
+- Production deploy:
+  - `forge deploy --non-interactive -e production` -> `5.34.0`
+- Fresh runtime checks on `hackdaytemp` instance pages:
+  - `6782997`, `6783016`, `7241729` all stabilized at iframe height `1000px`.
+- Time-series check on `6782997` post-fix:
+  - settled to `1000` and remained stable (no continued growth).
+
+### Procedural learning
+1. In Forge macro surfaces, avoid viewport-unit min-height semantics unless iframe resize strategy is explicitly bounded.
+2. Auto-resize + `vh`-based min-height can silently create host/frame feedback loops even when app content itself is valid.
