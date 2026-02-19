@@ -1,5 +1,28 @@
 # Learnings
 
+## HD26 Production Health Check Command (Feb 19, 2026 00:46 UTC)
+
+### Scope completed
+- Added a reusable production health-check command in HD26Forge to validate macro-hosted runtime + log hygiene in one step.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/scripts/prod-health-check.mjs`
+  - `/Users/nickster/Downloads/HD26Forge/package.json` (`qa:health:prod`)
+
+### Command behavior
+- Invokes known macro-hosted pages (`6783016`, `6782997`, `7241729`) using Playwright admin storage state.
+- Confirms `MISSION CONTROL v2.0` marker appears in embedded Forge iframe (with retry and bounded wait).
+- Scans production logs (`forge logs -e production --since 10m --limit 400`) for forbidden signatures:
+  - `falling back to isCurrent`
+  - `Failed to bootstrap Event from HackdayTemplateSeed`
+  - service-role fallback warning
+  - reminder missing-start warning.
+
+### Validation
+- Ran:
+  - `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod`
+- Result:
+  - `PASS: macro invocations and production log scan are clean`.
+
 ## HD26 Reminder Warning Noise Cleanup (Feb 19, 2026 00:41 UTC)
 
 ### Scope completed

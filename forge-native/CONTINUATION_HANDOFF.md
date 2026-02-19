@@ -884,3 +884,27 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - Logs check (`forge logs --since 15m --limit 400`):
   - warning string observed only in historical `5.30.0` entries,
   - no new occurrences observed for `5.31.0` in this checkpoint window.
+
+## Continuation update (2026-02-19 00:46 UTC)
+
+- Opened new-stream operational baseline by adding a reusable HD26 production health-check command.
+
+### Added in HD26Forge
+- `/Users/nickster/Downloads/HD26Forge/scripts/prod-health-check.mjs`
+- `/Users/nickster/Downloads/HD26Forge/package.json`:
+  - `qa:health:prod`
+
+### Health-check coverage
+- Macro-hosted invocation + iframe marker verification on:
+  - `6783016`, `6782997`, `7241729`
+- Production log scan (`--since 10m`) for known regressions:
+  - `falling back to isCurrent`
+  - `Failed to bootstrap Event from HackdayTemplateSeed`
+  - service-role fallback warning
+  - reminder missing-start warning.
+- Includes retry logic for iframe-load flakiness to avoid false negatives.
+
+### Validation
+- `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` ✅
+- Output confirms:
+  - `PASS: macro invocations and production log scan are clean`.
