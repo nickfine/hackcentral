@@ -988,3 +988,30 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 ### Current behavior
 - No inner scroll-in-scroll.
 - Macro height equals page content height (auto-size).
+
+## Continuation update (2026-02-19 01:25 UTC)
+
+- Implemented default full-width page layout for newly created HackDay child pages.
+
+### Backend change
+- `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- `createChildPageUnderParent(...)` now calls `ensurePageFullWidthByDefault(pageId)` after create.
+- New helper behavior:
+  - upserts `content-appearance-draft` + `content-appearance-published` to `full-width` via Confluence v2 page-properties API,
+  - app/user fallback for each property,
+  - warning-only on failure (does not block child-page creation).
+
+### Deploy + verification
+- Forge Native deployed to production: `4.14.0`.
+- Verified with real macro create flow:
+  - parent page: `7045123`
+  - created event: `HDC FullWidth 1771464315923`
+  - new child page: `7241751`
+- Confluence property checks on child:
+  - `content-appearance-draft = full-width`
+  - `content-appearance-published = full-width`
+- Runtime UI evidence:
+  - child HD26 macro host iframe width observed at `908px` (full-width layout applied vs prior fixed-width baseline).
+
+### Current status
+- New child pages are now full-width by default from the app-side provisioning path.

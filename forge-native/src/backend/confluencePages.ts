@@ -2,6 +2,8 @@ import api, { route } from '@forge/api';
 
 const DEFAULT_APP_ID = 'f828e0d4-e9d0-451d-b818-533bc3e95680';
 const DEFAULT_MACRO_KEY = 'hackday-central-macro';
+const FULL_WIDTH_APPEARANCE_VALUE = 'full-width';
+const FULL_WIDTH_PAGE_PROPERTY_KEYS = ['content-appearance-draft', 'content-appearance-published'] as const;
 
 interface ForgeResponse {
   ok: boolean;
@@ -16,6 +18,19 @@ interface ConfluencePage {
     base?: string;
     webui?: string;
   };
+}
+
+interface ConfluencePageProperty {
+  id: string;
+  key?: string;
+  value?: unknown;
+  version?: {
+    number?: number;
+  };
+}
+
+interface ConfluencePagePropertyListResponse {
+  results?: ConfluencePageProperty[];
 }
 
 interface ParentPagePayload {
@@ -265,6 +280,95 @@ function extractPageUrl(payload: ConfluencePage): string {
   return `${base}${webui}`;
 }
 
+async function getPagePropertyByKey(
+  pageId: string,
+  propertyKey: string,
+  requester: Requester
+): Promise<ConfluencePageProperty | null> {
+  const response = await confluenceClient(requester).requestConfluence(
+    route`/wiki/api/v2/pages/${pageId}/properties?key=${propertyKey}&limit=1`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    }
+  );
+  await assertOk(response, `Fetching page property '${propertyKey}' for page ${pageId}`);
+  const payload = await parseJson<ConfluencePagePropertyListResponse>(response);
+  const results = Array.isArray(payload.results) ? payload.results : [];
+  return results[0] || null;
+}
+
+async function upsertPageProperty(
+  pageId: string,
+  propertyKey: string,
+  value: string,
+  requester: Requester
+): Promise<void> {
+  const existing = await getPagePropertyByKey(pageId, propertyKey, requester);
+  if (existing?.id) {
+    const currentVersion = Number(existing.version?.number || 1);
+    const response = await confluenceClient(requester).requestConfluence(
+      route`/wiki/api/v2/pages/${pageId}/properties/${existing.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: propertyKey,
+          value,
+          version: {
+            number: currentVersion + 1,
+            message: 'Set default page appearance to full-width',
+          },
+        }),
+      }
+    );
+    await assertOk(response, `Updating page property '${propertyKey}' for page ${pageId}`);
+    return;
+  }
+
+  const response = await confluenceClient(requester).requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      key: propertyKey,
+      value,
+    }),
+  });
+  await assertOk(response, `Creating page property '${propertyKey}' for page ${pageId}`);
+}
+
+async function ensurePageFullWidthByDefault(pageId: string): Promise<void> {
+  const failures: string[] = [];
+  for (const propertyKey of FULL_WIDTH_PAGE_PROPERTY_KEYS) {
+    let success = false;
+    let lastFailure = '';
+    for (const requester of ['app', 'user'] as const) {
+      try {
+        await upsertPageProperty(pageId, propertyKey, FULL_WIDTH_APPEARANCE_VALUE, requester);
+        success = true;
+        break;
+      } catch (error) {
+        lastFailure = `${requester}: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+    if (!success) {
+      failures.push(`${propertyKey} -> ${lastFailure || 'unknown error'}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Failed to set full-width appearance properties. ${failures.join(' | ')}`);
+  }
+}
+
 export async function createChildPageUnderParent(input: {
   parentPageId: string;
   title: string;
@@ -340,6 +444,18 @@ export async function createChildPageUnderParent(input: {
 
   if (!payload.id) {
     throw new Error('Confluence API did not return child page id.');
+  }
+
+  try {
+    await ensurePageFullWidthByDefault(payload.id);
+  } catch (error) {
+    console.warn(
+      '[hdc-page-layout-warning]',
+      JSON.stringify({
+        pageId: payload.id,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    );
   }
 
   return {

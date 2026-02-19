@@ -3548,3 +3548,34 @@ Key hardening changes:
 
 ### Learning
 1. For Confluence macro embeds, prefer full auto-height (no internal scroll container) once resize feedback sources are removed.
+
+## HackCentral default full-width child pages (2026-02-19 01:25 UTC)
+
+### Change implemented
+- Updated child-page provisioning to set Confluence page appearance to full width by default.
+- File:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/backend/confluencePages.ts`
+- Behavior:
+  - after child page creation, backend upserts both page properties:
+    - `content-appearance-draft = full-width`
+    - `content-appearance-published = full-width`
+  - uses app/user requester fallback per property key,
+  - logs warning without blocking page creation if appearance upsert fails.
+
+### Validation
+- Typecheck:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck` ✅
+- Targeted service tests:
+  - `npm -C /Users/nickster/Downloads/HackCentral run test:run -- tests/forge-native-hdcService.spec.ts` ✅ (`20/20`)
+- Live production verification:
+  - deployed Forge Native production `4.14.0`
+  - created new child from parent macro host `pageId=7045123`:
+    - event: `HDC FullWidth 1771464315923`
+    - child page: `7241751`
+  - child page property probe confirms:
+    - `content-appearance-draft`: `full-width`
+    - `content-appearance-published`: `full-width`
+  - child macro iframe width observed at `908px` (wider than fixed-width baseline).
+
+### Learning
+1. Setting both draft and published appearance properties is required for consistent full-width behavior across editor/view states.
