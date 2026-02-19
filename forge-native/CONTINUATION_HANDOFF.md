@@ -787,3 +787,20 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
   - `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729' npx playwright test tests/e2e/confluence/roles/role-nav.spec.ts tests/e2e/confluence/admin/nav-permissions.spec.ts --project confluence-admin`
 - Result:
   - `2 passed`.
+
+## Continuation update (2026-02-19 00:30 UTC)
+
+- Completed full confluence-admin suite stabilization on macro-hosted instance page context.
+
+### Change implemented
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+- Adjusted smoke expectation:
+  - from `Ideas [1-9]` (dataset-dependent)
+  - to `Ideas <number>` (render-contract dependent, includes zero-state).
+
+### Validation
+- Command:
+  - `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729' npx playwright test tests/e2e/confluence --project confluence-admin`
+- Result:
+  - `3 passed` (`shared/smoke`, `roles/role-nav`, `admin/nav-permissions`).

@@ -1,5 +1,24 @@
 # Learnings
 
+## HD26 Full Confluence-Admin E2E Baseline (Feb 19, 2026 00:30 UTC)
+
+### Scope completed
+- Stabilized the remaining shared smoke false-negative and confirmed full confluence-admin suite pass on macro-hosted instance context.
+- Updated:
+  - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+
+### Change details
+- Relaxed smoke data assertion from requiring non-zero ideas (`Ideas [1-9]`) to requiring numeric ideas count (`Ideas <number>`), so test validates render contract instead of dataset size.
+
+### Validation
+- Command:
+  - `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729' npx playwright test tests/e2e/confluence --project confluence-admin`
+- Result:
+  - `3 passed`:
+    - `tests/e2e/confluence/shared/smoke.spec.ts`
+    - `tests/e2e/confluence/roles/role-nav.spec.ts`
+    - `tests/e2e/confluence/admin/nav-permissions.spec.ts`
+
 ## HD26 E2E Nav Contract Stabilization (Feb 19, 2026 00:24 UTC)
 
 ### Scope completed
