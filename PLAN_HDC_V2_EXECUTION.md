@@ -7,6 +7,17 @@
 - Core persistence is currently Supabase-backed (`Event`, `EventAdmin`, `EventSyncState`, `EventAuditLog`) rather than Confluence page-property storage.
 - Status is best described as: **Phase 1 complete + early Phase 2 started**.
 
+## Cross-Repo Verification Checkpoint (Feb 19, 2026 00:03 UTC)
+
+### Completed
+- HD26 genericization + `eventMeta` contract changes are merged to `main` (`HD26Forge` PR `#2`).
+- Progress/handoff docs synced to reflect merged state and deployment evidence.
+- HD26 production deploy promoted to `5.29.0`; install confirmed latest on `hackdaytemp`.
+
+### Pending confirmation
+- Service-role fallback warning clearance is not yet confirmed by production logs because no fresh `5.29.0` resolver log lines were observed in current log window.
+- Next gate: macro-hosted invocation + immediate log recheck.
+
 ## Phase 3 Runtime Triage Closure + DEV Parent Population (Feb 18, 2026 11:54 UTC)
 
 ### Completed

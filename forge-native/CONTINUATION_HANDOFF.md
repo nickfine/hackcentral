@@ -667,3 +667,30 @@ Workspace: `/Users/nickster/Downloads/HackCentral`
 - `forge variables list -e production` in HD26 now includes encrypted `SUPABASE_SERVICE_ROLE_KEY`.
 - Production logs still show fallback warning on older runtime invocations (`appVersion 5.27.0`).
 - Next ops step: deploy latest HD26 production version, execute fresh invocation, re-check logs for warning clearance.
+
+## Continuation update (2026-02-19 00:03 UTC)
+
+- Executed HD26 production verification step after merges.
+
+### Deploy/install
+- HD26Forge production deploy succeeded:
+  - `forge deploy --non-interactive -e production`
+  - app version: `5.29.0`
+- Install upgrade check:
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive`
+  - status: already latest.
+
+### Runtime verification attempt
+- Ran authenticated Confluence smoke against production route:
+  - `E2E_CONFLUENCE_URL=.../e/b003228b-aafa-414e-9ab8-9e1ab5aaf5ae/r/hackday npx playwright test tests/e2e/confluence/shared/smoke.spec.ts --project confluence-admin`
+- Outcome:
+  - app rendered in iframe,
+  - test failed on data expectation (`Ideas 0` vs expected `Ideas [1-9]`), not on extension load.
+
+### Log verification state
+- Forge variables confirm encrypted `SUPABASE_SERVICE_ROLE_KEY` is set in production.
+- Repeated `forge logs -e production --verbose --grouped --limit 300` queries still return only historical fallback warnings from app version `5.27.0` (`23:33:27Z`).
+- No fresh `5.29.0` resolver log lines observed yet, so service-role fallback warning clearance remains pending confirmation.
+
+### Immediate next step
+- Perform one macro-hosted invocation from a known Confluence page (instance page), then re-run logs and confirm `5.29.0` warning status.
