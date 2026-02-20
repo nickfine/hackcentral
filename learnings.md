@@ -3974,3 +3974,314 @@ Key hardening changes:
 
 ### Commit hash(es)
 - Validated release commit (HD26Forge `main`): `e98d9fa`
+
+## Team Detail UX Remediation promotion checkpoint (2026-02-20 10:51 UTC)
+
+### Scope
+- Executed only the next pending slice after the `2026-02-20 01:45 UTC` validation boundary: HackDay 2026 Team Detail Page UX remediation and production promotion.
+- Scope remained presentation-layer only (no Supabase schema/model changes).
+
+### Exact changes
+1. Team Detail two-zone restructure + contextual CTA contract:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+   - removed redundant `Team Detail` label,
+   - promoted capacity indicator (`x/y members` + fill bar),
+   - replaced lower submission CTA block with single contextual header CTA (`You're on this team` / `Request to Join` / `Leave Team`),
+   - moved `Delete Idea` behind overflow menu,
+   - added typed confirmation gate (`Type "<team name>" to confirm`) before delete button enables,
+   - grouped editable sections into one workspace card with section dividers,
+   - added helper placeholders:
+     - `Describe what you're building in one sentence`
+     - `What user problem does this solve? Be specific`
+     - `Links, resources, or additional context for judges and voters`
+   - switched to inline pencil icon edit affordance,
+   - elevated Team Members above content cards,
+   - made skills prominent per member,
+   - added hybrid skill-gap signal (`inferred roles + team.lookingFor`),
+   - changed pending requests empty state to collapsed single line (`No pending requests`) and expandable when count `> 0`.
+
+2. App-level leave-team wiring:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+   - added `handleLeaveTeam` resolver path and passed `onLeaveTeam` into Team Detail.
+
+3. Top-bar context dedupe for Team Detail only:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+   - added `showTeamContextInHeader` prop and suppressed team-context block on team-detail route while preserving other pages.
+
+4. Countdown label hardening + phase-target semantics:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+   - countdown label now phase-humanized (`until Team Formation begins/closes`, etc.),
+   - removed dependence on raw event-name tokens in timer label,
+   - added robust epoch-string parsing to avoid raw timestamp leakage.
+
+5. Phase stepper visual state strengthening:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/ui/PhaseIndicator.jsx`
+   - stronger active highlight,
+   - explicit check icon for completed phases,
+   - muted future phase treatment.
+
+6. Test coverage updates:
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/smoke.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+   - added assertions for overflow delete gate and raw countdown-leak absence.
+
+7. Release tracking + built assets:
+   - `/Users/nickster/Downloads/HD26Forge/package.json`
+   - `/Users/nickster/Downloads/HD26Forge/package-lock.json`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package-lock.json`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/dist/*` refreshed.
+
+### Exact versions
+- HD26Forge app package: `7.5.59 -> 7.5.60`
+- HD26Forge custom UI package: `1.2.33 -> 1.2.34`
+- Forge production deploy line on `hackdaytemp`: `5.58.0 -> 5.60.0`
+
+### Validation results
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅ (`hackday-custom-ui@1.2.34`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`4/4`)
+- `/Users/nickster/Downloads/HD26Forge`: `E2E_CONFLUENCE_URL=... npm run test:e2e:confluence` ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS: macro invocations and production log scan are clean`)
+- Note: pre-deploy confluence smoke correctly failed on old production line due expected raw-label leak; post-deploy rerun passed.
+
+### Deploy/install outcomes
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.60.0`
+  - latest successful production deploy row: `2026-02-20T10:49:14.621Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+- install verification:
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` -> `App version 5`, `Up-to-date`.
+
+### Commit hash(es)
+- Implemented + promoted release commit (HD26Forge `main`): `7a65604`
+- Push status: `origin/main` updated `045823d..7a65604`.
+
+## Continuation update (2026-02-20 10:53 UTC)
+
+### Scope
+- Closed the next pending slice after the `2026-02-20 10:51 UTC` checkpoint: progress-doc synchronization and rollback evidence confirmation.
+- No additional product code changes were made in HD26Forge in this slice.
+
+### Exact changes
+1. Added this timestamped checkpoint to all required HackCentral progress artifacts:
+   - `/Users/nickster/Downloads/HackCentral/learnings.md`
+   - `/Users/nickster/Downloads/HackCentral/forge-native/CONTINUATION_HANDOFF.md`
+   - `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md`
+   - `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
+2. Confirmed rollback anchor remains the promoted HD26Forge `main` commit.
+
+### Exact versions
+- HD26Forge app package: `7.5.60`
+- HD26Forge custom UI package: `1.2.34`
+- Forge production deploy line on `hackdaytemp`: `5.60.0`
+
+### Validation results
+- No new validation commands were required for this docs-only closure slice.
+- Authoritative validation remains from `2026-02-20 10:51 UTC`:
+  - local custom-ui build ✅
+  - local e2e ✅ (`4/4`)
+  - confluence e2e post-deploy ✅ (`3/3`)
+  - production health check ✅ (`PASS`)
+
+### Deploy/install outcomes
+- No new deploy/install operations were executed in this docs-only slice.
+- Authoritative deploy/install state remains:
+  - `forge deploy -e production --non-interactive` succeeded with deployed version `5.60.0`
+  - `forge install --upgrade ... -e production --non-interactive` reported site up-to-date
+  - install list still indicates `App version 5`, `Up-to-date`
+
+### Commit hash(es)
+- No new HD26Forge commit in this docs-only slice.
+- Rollback target remains HD26Forge `main` commit: `7a65604`.
+
+## Continuation update (2026-02-20 12:05 UTC)
+
+### Scope
+- Closed the next pending slice after the `2026-02-20 10:53 UTC` checkpoint: Team Detail pass-2 visual polish and structural refinement.
+- Scope remained presentation-layer only (no Supabase schema/model changes).
+
+### Exact changes
+1. Team Detail pass-2 UX polish:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+   - compressed identity header into two-row layout,
+   - moved captain/member presence badge inline with team-name row,
+   - removed instructional subtitle and redundant capacity label,
+   - replaced generic team icon with initials avatar,
+   - slim semantic capacity bar (green/amber/red thresholding),
+   - rebalanced content zone to 40/60 desktop split (`Team Members` then `Workspace` on mobile),
+   - unified card styling (`rounded-xl`, `border`, `shadow-sm`, consistent padding),
+   - merged pending requests into Team Members card,
+   - removed nested-box treatment for Looking For and standardized pills,
+   - refined member rows (name/captain/callsign/skills rhythm),
+   - standardized workspace sections with always-visible edit pencils,
+   - updated placeholder guidance strings for Goal/Problem/More Info.
+2. Phase-stepper visual-state refinement:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/ui/PhaseIndicator.jsx`
+   - stronger complete/active/future differentiation,
+   - active ring/pulse emphasis,
+   - complete/future connector treatment (solid vs dashed).
+3. E2E coverage updates:
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/smoke.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+   - added pass-2 contract assertions and mobile stack verification.
+4. Release/version artifacts:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/dist/*` refreshed.
+
+### Exact versions
+- HD26Forge app package: `7.5.60 -> 7.5.61`
+- HD26Forge custom UI package: `1.2.34 -> 1.2.35`
+- Forge production deploy line on `hackdaytemp`: `5.60.0 -> 5.61.0`
+
+### Validation results
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅ (`hackday-custom-ui@1.2.35`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`5/5`)
+- `/Users/nickster/Downloads/HD26Forge`: `E2E_CONFLUENCE_URL=... npm run test:e2e:confluence` ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS`)
+
+### Deploy/install outcomes
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.61.0`
+  - latest successful production deploy row: `2026-02-20T12:03:51.564Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+- install verification:
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` -> `App version 5`, `Up-to-date`.
+
+### Commit hash(es)
+- HD26Forge release commit (main): `07fd5e2`
+- Push status: `origin/main` updated `7a65604..07fd5e2`.
+
+## Continuation update (2026-02-20 13:29 UTC)
+
+### Scope
+- Closed the next pending slice after the `2026-02-20 12:05 UTC` checkpoint: Team Detail final polish (pass 3) plus production promotion and verification.
+- Scope remained presentation-layer only (no Supabase schema or backend contract changes).
+
+### Exact changes
+1. Team Detail final polish implementation:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+   - swapped columns to workspace-first (`60%`) and members-second (`40%`) on desktop; mobile stack is workspace then members,
+   - strengthened deterministic initials avatar styling,
+   - placed `x/y members` and capacity bar on a single row,
+   - differentiated captain vs membership status badges,
+   - removed visible `Team Workspace` heading (kept semantic `sr-only`),
+   - shortened section label to `Problem to Solve`,
+   - normalized section rhythm/edit icon polish,
+   - softened members heading and pending zero-state,
+   - aligned member metadata row (`Captain` + skills together),
+   - added bottom anchor footer (`Last updated ...` + `Back to all teams`).
+2. Phase-stepper final state polish:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/ui/PhaseIndicator.jsx`
+   - clearer active emphasis and muted future state treatment in compact modes.
+3. Local mock/e2e contract alignment:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/smoke.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+   - updated assertions for workspace-first order, section-label semantics, badge differentiation, same-row capacity and footer anchor.
+4. Release metadata/build outputs:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/dist/*` refreshed.
+
+### Exact versions
+- HD26Forge app package: `7.5.61 -> 7.5.62`
+- HD26Forge custom UI package: `1.2.35 -> 1.2.36`
+- Forge production deploy line on `hackdaytemp`: `5.61.0 -> 5.62.0`
+
+### Validation results
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`5/5`)
+- `/Users/nickster/Downloads/HD26Forge`: `E2E_CONFLUENCE_URL=... npm run test:e2e:confluence` ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS`)
+
+### Deploy/install outcomes
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.62.0`
+  - latest successful production deploy row: `2026-02-20T13:25:40.888Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: site already at latest version
+- install verification:
+  - `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` -> `App version 5`, `Up-to-date`.
+
+### Commit hash(es)
+- HD26Forge release commit on `main`: `30382c0`
+- Push status: `origin/main` advanced `07fd5e2..30382c0`.
+
+## Continuation update (2026-02-20 15:09 UTC)
+
+### Scope
+- Closed only the next pending slice after the `2026-02-20 13:29 UTC` checkpoint: **HackDay 2026 Team Detail pass-4 final tweaks + engagement features**.
+- Promotion scope matched prior pass-2/pass-3 runbook behavior (build, local e2e, confluence e2e, prod health, deploy, install upgrade, install list).
+- No Supabase schema migration in this slice; `team_vibe` and `team_reactions` are frontend-local with explicit TODO backend wiring markers.
+
+### Exact changes
+1. Tailwind accent token support:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/tailwind.config.js`
+   - added `accent` scale (`50..700`) for required pass-4 utility classes.
+2. Team Detail pass-4 implementation:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+   - section headers normalized to `text-gray-400 font-semibold text-xs uppercase tracking-wide`,
+   - captain/status/visitor CTA badge differentiation,
+   - quiet pending-empty state,
+   - teal `Looking For` pills + visitor hover affordance,
+   - equal-height two-column card behavior (`items-stretch`, `h-full`),
+   - team vibe pill + captain dropdown (local state),
+   - skills coverage visualization,
+   - quick reactions row with toggle/count behavior (local state),
+   - visitor skill-match recruitment prompt,
+   - footer vitality line (`Created ... · Last updated ...`, optional edit-count support when present).
+3. Phase stepper final state treatment:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/ui/PhaseIndicator.jsx`
+   - active/completed/future dot, label, and connector-state differentiation applied across standard/compact modes.
+4. Local mock contract alignment:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/App.jsx`
+   - mock team enriched with pass-4 fields (`lookingFor`, `maxMembers`, `createdAt`, `teamVibe`, seeded reactions) and role-path coverage retained.
+5. E2E updates:
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/smoke.spec.ts`
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/confluence/shared/smoke.spec.ts`
+   - assertions updated for pass-4 UI contracts (visual hierarchy, badge states, vibe, coverage, reactions, CTA, footer, phase states, layout).
+6. Release metadata/build artifacts:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` + lock
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/dist/*`
+
+### Exact versions
+- `/Users/nickster/Downloads/HD26Forge/package.json`: `7.5.62 -> 7.5.63`
+- `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json`: `1.2.36 -> 1.2.37`
+- Forge production deployed app line: `5.62.0 -> 5.63.0`
+
+### Validation results
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅ (`hackday-custom-ui@1.2.37`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`5/5`)
+- `/Users/nickster/Downloads/HD26Forge`: `E2E_CONFLUENCE_URL=... npm run test:e2e:confluence`
+  - pre-deploy run ❌ (expected mismatch against old production UI)
+  - post-deploy rerun ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (pre and post deploy PASS)
+
+### Deploy/install outcomes
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.63.0`
+  - latest production deploy row: `2026-02-20T15:05:42.104Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅
+  - result: `App version 5`, `Up-to-date`
+
+### Commit hash(es)
+- HD26Forge release commit: `a6825c4` (pushed `origin/main`, range `30382c0..a6825c4`).
+- HackCentral docs repo: `no new commit`.
+
+### Rollback safety evidence
+- Pre-change anchors:
+  - HD26Forge: branch `main`, HEAD `30382c0` (rollback anchor for pass-4)
+  - HackCentral: branch `main`, HEAD `a8f6e01`
+- Post-change anchors:
+  - HD26Forge: branch `main`, HEAD `a6825c4`; rollback anchor remains `30382c0`
+  - HackCentral: branch `main`, HEAD `a8f6e01` (docs appended, not committed in this slice)
