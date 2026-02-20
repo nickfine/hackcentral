@@ -3798,3 +3798,179 @@ Key hardening changes:
   1. runbook updated,
   2. release checklist entries added,
   3. template-provision smoke template/scaffold added.
+
+## Local UX checkpoint (2026-02-19 23:45 GMT)
+
+### Scope
+- HD26Forge stabilization workstream (team detail and join-request UX) after live and local regressions.
+
+### Completed in this checkpoint
+1. Join request CTA/state handling was hardened in team detail and app-level handlers.
+2. Captain approval location was made explicit by always rendering the pending-requests panel for captains.
+3. Join request message persistence was fixed in backend `requestToJoin` insert payload.
+4. Team deletion support (captain-only) is available for test reset workflows.
+5. Team page submission CTA was restored in local flow:
+   - captains: `SUBMIT PROJECT`
+   - team members: `VIEW SUBMISSION` with captain-only guidance.
+
+### Validation executed
+- `/Users/nickster/Downloads/HD26Forge`: `npm run lint` ✅
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅
+
+### Environment status
+- Production deploy for join-request fixes is live at HD26Forge `5.48.0`.
+- Latest submission-bar restoration has been validated locally and is currently tracked as local-first workflow state.
+
+### Immediate next checks
+1. Verify team-detail CTA visibility by role (`captain`, `member`, `non-member`).
+2. Re-validate join request submit -> pending -> captain approve/decline loop in local before next deploy decision.
+
+## Local UX verification checkpoint (2026-02-19 23:50 GMT)
+
+### Scope
+- Executed only the next incomplete HD26Forge local UX slice from the 23:45 GMT source-of-truth checkpoints:
+  - role CTA matrix verification (`captain`, `team member`, `non-member`),
+  - local join-request lifecycle verification (submit -> pending -> captain accept/decline feedback).
+
+### Changes applied (HD26Forge)
+1. Restored captain inclusion in team-member CTA gating for local/mixed team payloads:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+   - `isMember` now treats captains as members (`isCaptain || members.some(...)`) so captains always see `SUBMIT PROJECT`.
+2. Added local e2e coverage for the required matrix and lifecycle states:
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+   - verifies:
+     - captain sees pending requests panel + `SUBMIT PROJECT`,
+     - non-captain member sees `VIEW SUBMISSION` + captain-only note,
+     - non-member sees `REQUEST TO JOIN` and `REQUEST PENDING APPROVAL`,
+     - captain receives success feedback on both accept and decline actions.
+
+### Validation executed
+- `/Users/nickster/Downloads/HD26Forge`: `npm run lint` ✅
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`3/3`)
+
+### Boundary
+- Existing local fixes (create idea visibility, delete idea flow, join-request error/success surfacing) remain intact.
+- No deploy or production health-check command executed in this checkpoint (held for explicit operator direction).
+
+## Local UI polish checkpoint (2026-02-20 00:26 GMT)
+
+### Scope
+- Continued HD26Forge UI stabilization focused on:
+  1. pending-request action button icon/label alignment,
+  2. nav naming/order cleanup,
+  3. light-mode contrast regression recovery,
+  4. schedule page-title cleanup.
+
+### Completed in this checkpoint
+1. Pending-request action buttons now render icon + label on one line:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+2. Primary nav label/order update applied:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/AppLayout.jsx`
+   - `Ideas` renamed to `Hack Ideas & Teams` and moved before `Schedule`.
+3. Marketplace page title aligned with nav label:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Marketplace.jsx`
+4. Restored missing light-mode dashboard contrast guardrails and missing style class definitions:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/index.css`
+   - restored selectors include `.ecd-next-action-surface`, `.ecd-owner-modal-shell`, `.ecd-owner-image-frame`, and `[data-color-mode="light"]` overrides for cinematic/decision surfaces.
+
+### Validation executed
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (repeated after each UI slice; final run `3/3`)
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+
+### Deploy/install status
+- Deployed and upgraded to `hackdaytemp` after light-mode restoration:
+  - `forge deploy -e production --non-interactive` ✅
+  - `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - deployed version: `5.51.0`
+
+### Pending/local-only delta
+- Schedule H1 title normalization to fixed `Schedule` (removes event-name prefix) is implemented locally:
+  - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Schedule.jsx`
+- Frontend build is passing for this delta, but commit/push/deploy for this specific title change is still pending.
+
+## Schedule heading promotion checkpoint (2026-02-20 00:30 GMT)
+
+### Scope
+- Promoted the pending HD26Forge schedule-heading slice from the `2026-02-20 00:26 GMT` boundary only.
+
+### Changes promoted
+1. Fixed schedule page title to a static `Schedule` heading (removed event-name prefix):
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Schedule.jsx`
+2. Applied required version bump for this release slice:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` `7.5.52 -> 7.5.53`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` `1.2.26 -> 1.2.27`
+3. Committed and pushed on `main`:
+   - commits: `42e8326`, `6949759`
+   - remote: `origin/main` (head `6949759`)
+
+### Validation outcome
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS: macro invocations and production log scan are clean`)
+
+### Deploy + upgrade outcome
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - latest successful production deploy row: `2026-02-20T00:30:01.353Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+  - install list confirms `hackdaytemp` production `App version: 5`, `Status: Up-to-date`
+
+### Version evidence captured
+- Release package version: `7.5.53`
+- Custom UI package version: `1.2.27`
+- Forge production app version on site: `5` (latest)
+
+## Light-mode countdown contrast promotion checkpoint (2026-02-20 01:41 GMT)
+
+### Scope
+- Promoted the light-mode countdown urgency chip contrast fix for Dashboard milestone cards on `hackdaytemp`.
+
+### Changes promoted
+1. Improved light-mode readability for countdown chip (`In ...`) text/background:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/index.css`
+   - selector override: `[data-color-mode="light"] .ecd-urgency-chip`
+2. Release version bump:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` `7.5.57 -> 7.5.58`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` `1.2.31 -> 1.2.32`
+3. Git promotion:
+   - commit `e98d9fa` pushed to `origin/main`.
+
+### Validation outcome
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- No additional local e2e/prod health-check rerun was executed in this micro-slice.
+
+### Deploy + upgrade outcome
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.58.0`
+  - latest successful production deploy row: `2026-02-20T01:38:40.781Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+
+## Post-release validation closure checkpoint (2026-02-20 01:45 UTC)
+
+### Scope
+- Executed only the next pending slice from the latest `2026-02-20 01:41 GMT` checkpoint: close missing post-deploy validation coverage for the released light-mode countdown contrast update.
+
+### Exact changes
+1. No additional HD26Forge code delta was introduced in this slice.
+2. Validation was executed directly against the already-promoted release line (`e98d9fa`).
+
+### Exact versions
+- HD26Forge app package: `7.5.58`
+- HD26Forge custom UI package: `1.2.32`
+- Forge production deploy line on `hackdaytemp`: `5.58.0` (unchanged in this slice)
+
+### Validation results
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`4/4`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS: macro invocations and production log scan are clean`)
+
+### Deploy/install outcomes
+- No new deploy or install command executed in this verification-only slice.
+- Prior deployment/install state from `2026-02-20 01:41 GMT` remains authoritative (`5.58.0`, site up-to-date).
+
+### Commit hash(es)
+- Validated release commit (HD26Forge `main`): `e98d9fa`

@@ -209,3 +209,150 @@ In HDC event model (existing `Event` row used by HDC):
 3. HD26Forge moves to service-role backend key with strict server-side permission checks.
 4. HDC remains source for template registry metadata; HackDay remains source for runtime lifecycle and participation data.
 5. Backward compatibility for existing non-template instances is required until formal fallback removal checkpoint is passed.
+
+## Execution checkpoint (2026-02-19 23:45 GMT)
+
+### Context note
+- No new canonical spinout phase was executed in this checkpoint.
+- Work performed was HD26Forge local UX stabilization required to unblock team workflow testing.
+
+### Operational progress captured
+1. Join-request UX/state reliability fixes completed and validated.
+2. Captain approval surface made persistent on team detail.
+3. Team-page submission CTA restored locally for captain/member role paths.
+
+### Evidence anchors
+- `/Users/nickster/Downloads/HackCentral/learnings.md` (latest local UX checkpoint)
+- `/Users/nickster/Downloads/HackCentral/forge-native/CONTINUATION_HANDOFF.md` (handoff-ready state)
+- `/Users/nickster/Downloads/HackCentral/PLAN_HDC_V2_EXECUTION.md` (execution log entry)
+
+### Next actionable step
+- Continue with local role-matrix verification and then decide deploy timing for the submit-bar restoration delta.
+
+## Execution checkpoint (2026-02-19 23:50 GMT)
+
+### Context note
+- No new canonical spinout phase was executed in this checkpoint.
+- Work was intentionally constrained to the next incomplete HD26Forge local UX stabilization slice from the 23:45 GMT source-of-truth checkpoint.
+
+### Local UX verification closure
+1. Verified team-detail CTA matrix by role in local workflow (`captain`, `member`, `non-member`).
+2. Verified join-request lifecycle in local (`submit -> pending -> captain accept/decline`) with explicit captain feedback.
+3. Applied minimal captain CTA guard fix in local UI contract:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
+4. Added local e2e proof artifact:
+   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
+
+### Validation
+- `/Users/nickster/Downloads/HD26Forge`: `npm run lint` ✅
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`3/3`)
+
+### Boundary
+- Existing prior fixes (create idea visibility, delete idea flow, join-request error/success surfacing) were preserved.
+- Deploy and production health-check actions were not executed in this checkpoint and remain operator-directed.
+
+## Execution checkpoint (2026-02-20 00:26 GMT)
+
+### Context note
+- No new canonical spinout phase was executed in this checkpoint.
+- Work remained in HD26Forge local UX/presentation hardening.
+
+### Operational progress captured
+1. Recovered dashboard light-mode contrast behavior for cinematic/decision surfaces (including Mission Window area).
+2. Completed nav naming/order cleanup (`Hack Ideas & Teams` before `Schedule`) and aligned marketplace heading.
+3. Fixed pending-request accept/decline button icon-label alignment.
+4. Promoted the light-mode recovery slice to production and verified `hackdaytemp` upgrade state (v`5.51.0`).
+
+### Current boundary
+- Schedule title normalization (`Schedule` without event-name prefix) is implemented locally and built, but remains pending commit/push/deploy.
+
+### Next actionable step
+- Promote schedule title cleanup delta to production and perform one quick `hackdaytemp` visual smoke on Schedule + Dashboard light mode.
+
+## Execution checkpoint (2026-02-20 00:30 GMT)
+
+### Context note
+- No new canonical spinout architecture phase was executed in this checkpoint.
+- Work was constrained to the pending HD26Forge `Schedule` heading promotion slice from the `00:26 GMT` source-of-truth boundary.
+
+### Operational progress captured
+1. Promoted local schedule title normalization to production:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/Schedule.jsx`
+   - page title is now exactly `Schedule`.
+2. Applied required release version bump:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` `7.5.52 -> 7.5.53`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` `1.2.26 -> 1.2.27`
+3. Completed git promotion on `main`:
+   - commits `42e8326` and `6949759` pushed to `origin/main` (head `6949759`).
+
+### Validation
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`3/3`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS`)
+
+### Deploy and upgrade
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - latest successful production deploy row: `2026-02-20T00:30:01.353Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+- install verification confirms `hackdaytemp` production is `App version 5` and `Up-to-date`.
+
+### Version evidence
+- App package: `7.5.53`
+- Custom UI package: `1.2.27`
+- Forge production app version on site: `5` (latest)
+
+## Execution checkpoint (2026-02-20 01:41 GMT)
+
+### Context note
+- No new canonical spinout architecture phase was executed in this checkpoint.
+- Work was constrained to a production micro-release in HD26Forge for light-mode countdown chip contrast.
+
+### Operational progress captured
+1. Promoted Dashboard light-mode countdown chip readability fix:
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/index.css`
+   - selector: `[data-color-mode="light"] .ecd-urgency-chip`
+2. Applied release version bump:
+   - `/Users/nickster/Downloads/HD26Forge/package.json` `7.5.57 -> 7.5.58`
+   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` `1.2.31 -> 1.2.32`
+3. Git promotion completed:
+   - commit `e98d9fa` pushed on `main`.
+
+### Validation
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- No additional e2e/prod health-check execution in this checkpoint (CSS-only micro-slice).
+
+### Deploy and upgrade
+- `/Users/nickster/Downloads/HD26Forge`: `forge deploy -e production --non-interactive` ✅
+  - deployed app version: `5.58.0`
+  - latest successful production deploy row: `2026-02-20T01:38:40.781Z`
+- `/Users/nickster/Downloads/HD26Forge`: `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅
+  - result: `Site is already at the latest version`
+
+## Execution checkpoint (2026-02-20 01:45 UTC)
+
+### Context note
+- No new canonical spinout architecture phase was executed in this checkpoint.
+- Work was intentionally constrained to the next pending validation slice after the `01:41 GMT` micro-release.
+
+### Operational progress captured
+1. Closed the missing post-release validation coverage for the already-promoted countdown-contrast release.
+2. Executed runbook-default verification commands on the current production release line (`e98d9fa`).
+
+### Exact versions
+- HD26Forge app package: `7.5.58`
+- HD26Forge custom-ui package: `1.2.32`
+- Production deployed app line on `hackdaytemp`: `5.58.0`
+
+### Validation
+- `/Users/nickster/Downloads/HD26Forge/static/frontend`: `npm run build` ✅
+- `/Users/nickster/Downloads/HD26Forge`: `npm run test:e2e:local` ✅ (`4/4`)
+- `/Users/nickster/Downloads/HD26Forge`: `npm run qa:health:prod` ✅ (`PASS`)
+
+### Deploy and upgrade
+- No new deploy/install operations were required for this verification-only slice.
+- Prior deploy/install outcomes from `2026-02-20 01:41 GMT` remain authoritative (`5.58.0`, site up-to-date).
+
+### Commit hash(es)
+- Validated release commit: `e98d9fa`
