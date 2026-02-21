@@ -1,6 +1,8 @@
 # Design System & Redesign — Completion Status
 
 Status as of the latest redesign work (Phases 1–4). Use this to see what’s **done** vs **optional/remaining** from the original plan.
+Last reviewed: February 21, 2026.
+For the separate HackDay Central v2 execution stream (Phases 1–7), use `PLAN_HDC_V2_EXECUTION.md`.
 
 ---
 

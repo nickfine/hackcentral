@@ -1,9 +1,10 @@
 # Next Steps - HackCentral
 
-**Status:** v0.6.4 · Phases 1–4 complete  
-**Last updated:** February 1, 2026
+**Status:** v0.6.13 · Phases 1–4 complete (core app roadmap)  
+**Last updated:** February 21, 2026
 
 For detailed implementation notes, browser test results, and technical patterns see **`learnings.md`**. For full spec and schema see **`ROADMAP.md`**.
+For the parallel HackDay Central v2 execution tracker (Phases 1–7 complete), see **`PLAN_HDC_V2_EXECUTION.md`**.
 
 ---
 
