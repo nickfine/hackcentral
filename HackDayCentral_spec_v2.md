@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-HackDay Central (HDC) will evolve from a single-instance hackathon management system into a multi-tenant platform serving as the central hub and template factory for hackathon events across The Adaptavist Group. This specification defines the architecture, data models, user flows, error handling and technical implementation for creating on-demand HackDay instances while maintaining a unified library and cross-event analytics.
+HackDay Central (HDC) will evolve from a single-instance HackDay management system into a multi-tenant platform serving as the central hub and template factory for HackDay events across The Adaptavist Group. This specification defines the architecture, data models, user flows, error handling and technical implementation for creating on-demand HackDay instances while maintaining a unified library and cross-event analytics.
 
 This version (2.0) incorporates structural improvements including a consolidated creation wizard, explicit permission tiers, data sync failure handling, page property size management and comprehensive error state definitions.
 
