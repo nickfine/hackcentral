@@ -17,10 +17,10 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { name: 'Spark', icon: <Zap className="h-4 w-4" />, threshold: 25, color: 'from-amber-400 to-orange-500' },
-  { name: 'Momentum', icon: <Rocket className="h-4 w-4" />, threshold: 50, color: 'from-cyan-400 to-blue-500' },
-  { name: 'Scale', icon: <TrendingUp className="h-4 w-4" />, threshold: 75, color: 'from-purple-400 to-indigo-600' },
-  { name: 'Transformation', icon: <Sparkles className="h-4 w-4" />, threshold: 100, color: 'from-emerald-400 to-teal-500' },
+  { name: 'Spark', icon: <Zap className="h-4 w-4" />, threshold: 25, color: 'bg-teal-500' },
+  { name: 'Momentum', icon: <Rocket className="h-4 w-4" />, threshold: 50, color: 'bg-teal-500' },
+  { name: 'Scale', icon: <TrendingUp className="h-4 w-4" />, threshold: 75, color: 'bg-teal-500' },
+  { name: 'Transformation', icon: <Sparkles className="h-4 w-4" />, threshold: 100, color: 'bg-teal-500' },
 ];
 
 export interface CollectiveProgressCardProps {
@@ -105,7 +105,7 @@ export function CollectiveProgressCard({
             transition={
               shouldReduceMotion ? { duration: 0 } : { duration: 1, ease: 'easeOut' }
             }
-            className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-400)]"
+            className="h-full rounded-full bg-primary"
           />
         </div>
         {nextStage && currentProgress < 100 && (

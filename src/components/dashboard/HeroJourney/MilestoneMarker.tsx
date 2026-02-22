@@ -31,17 +31,17 @@ export function MilestoneMarker({
       <div
         className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
           isCurrent
-            ? 'bg-cyan-400/30 ring-2 ring-cyan-400 scale-110'
+            ? 'bg-primary/30 ring-2 ring-primary scale-110'
             : isActive
               ? 'bg-white/10'
-              : 'bg-slate-700/50'
+              : 'bg-gray-700/50'
         }`}
       >
         <span
           className={
             isActive
-              ? 'text-cyan-300'
-              : 'text-slate-500'
+              ? 'text-primary'
+              : 'text-gray-500'
           }
         >
           {stage.icon}
@@ -49,7 +49,7 @@ export function MilestoneMarker({
       </div>
       <span
         className={`text-xs font-medium ${
-          isCurrent ? 'text-cyan-300' : isActive ? 'text-slate-300' : 'text-slate-500'
+          isCurrent ? 'text-primary' : isActive ? 'text-gray-300' : 'text-gray-500'
         }`}
       >
         {stage.name}

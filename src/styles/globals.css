@@ -1,81 +1,81 @@
 @import "tailwindcss";
 
-/* HackDay Central Design System - Tailwind v4 Theme */
-/* Deep indigo + electric cyan + warm magenta/purple */
+/* HackDay 2026 Design System - docs/HackDay_Design_system.md */
+/* Teal-only primary; Tailwind gray neutrals; emerald/amber/red for status */
 @theme {
-  /* Electric cyan primary */
-  --color-primary: #06b6d4;
-  --color-primary-foreground: #0f172a;
-  --color-primary-50: #ecfeff;
-  --color-primary-100: #cffafe;
-  --color-primary-200: #a5f3fc;
-  --color-primary-300: #67e8f9;
-  --color-primary-400: #22d3ee;
-  --color-primary-500: #06b6d4;
-  --color-primary-600: #0891b2;
-  --color-primary-700: #0e7490;
-  --color-primary-800: #155e75;
-  --color-primary-900: #164e63;
+  /* Teal primary (only accent) - #14b8a6 */
+  --color-primary: #14b8a6;
+  --color-primary-foreground: #ffffff;
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
 
-  /* Warm magenta/purple accent (badges & impact) */
-  --color-secondary: #d946ef;
-  --color-secondary-foreground: #fdf4ff;
-  --color-secondary-50: #fdf4ff;
-  --color-secondary-100: #fae8ff;
-  --color-secondary-200: #f5d0fe;
-  --color-secondary-300: #f0abfc;
-  --color-secondary-400: #e879f9;
-  --color-secondary-500: #d946ef;
-  --color-secondary-600: #c026d3;
-  --color-secondary-700: #a21caf;
-  --color-secondary-800: #86198f;
-  --color-secondary-900: #701a75;
+  /* Secondary: same as primary (no second accent per doc) */
+  --color-secondary: #14b8a6;
+  --color-secondary-foreground: #ffffff;
+  --color-secondary-50: #f0fdfa;
+  --color-secondary-100: #ccfbf1;
+  --color-secondary-200: #99f6e4;
+  --color-secondary-300: #5eead4;
+  --color-secondary-400: #2dd4bf;
+  --color-secondary-500: #14b8a6;
+  --color-secondary-600: #0d9488;
+  --color-secondary-700: #0f766e;
+  --color-secondary-800: #115e59;
+  --color-secondary-900: #134e4a;
 
-  /* Accent secondary (purple) */
-  --color-accent-secondary: #a855f7;
+  /* Muted accent (gray) - no purple */
+  --color-accent-secondary: #6b7280;
 
-  /* Semantic colors (light mode default) */
+  /* Neutrals - Tailwind gray only */
   --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #0f172a;
+  --color-foreground: #111827;
+  --color-muted: #f9fafb;
+  --color-muted-foreground: #6b7280;
+  --color-accent: #f3f4f6;
+  --color-accent-foreground: #111827;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #fafafa;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #06b6d4;
-  --color-card: #f8fafc;
-  --color-card-foreground: #0f172a;
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #14b8a6;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
 
-  /* Status colors */
+  /* Status - emerald/amber/red only */
   --color-success: #10b981;
   --color-success-light: #d1fae5;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
   --color-error: #ef4444;
   --color-error-light: #fee2e2;
-  --color-info: #06b6d4;
-  --color-info-light: #cffafe;
+  --color-info: #14b8a6;
+  --color-info-light: #ccfbf1;
 
-  /* Quality gate colors */
+  /* Quality gate - amber/emerald/gray */
   --color-draft: #f59e0b;
-  --color-verified: #22c55e;
-  --color-deprecated: #71717a;
+  --color-verified: #10b981;
+  --color-deprecated: #6b7280;
 
-  /* Maturity stage colors */
+  /* Maturity - amber/emerald, gray for non-status */
   --color-experimenting: #f59e0b;
-  --color-repeating: #3b82f6;
-  --color-scaling: #8b5cf6;
-  --color-transforming: #22c55e;
+  --color-repeating: #6b7280;
+  --color-scaling: #6b7280;
+  --color-transforming: #10b981;
 
-  /* Experience level colors */
-  --color-newbie: #94a3b8;
-  --color-curious: #60a5fa;
-  --color-comfortable: #34d399;
-  --color-power-user: #a78bfa;
-  --color-expert: #f472b6;
+  /* Experience - gray scale (no blue/purple/pink accent) */
+  --color-newbie: #9ca3af;
+  --color-curious: #6b7280;
+  --color-comfortable: #10b981;
+  --color-power-user: #6b7280;
+  --color-expert: #6b7280;
 
   /* Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -128,7 +128,8 @@
     height: 100%;
   }
 
-  /* Headings */
+  /* Four-tier typography - docs/HackDay_Design_system.md */
+  /* Tier 1: page title — text-4xl sm:text-5xl font-black tracking-tight; Tier 2: text-lg font-semibold; Tier 3: text-sm font-normal; Tier 4: text-xs font-normal */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     letter-spacing: -0.025em;
@@ -139,6 +140,7 @@
     font-feature-settings: 'tnum' 1;
   }
 
+  /* Base heading sizes; prefer tier utilities (text-4xl font-black, text-lg font-semibold, etc.) on components */
   h1 { font-size: 2.25rem; line-height: 2.5rem; }
   h2 { font-size: 1.875rem; line-height: 2.25rem; }
   h3 { font-size: 1.5rem; line-height: 2rem; }
@@ -172,20 +174,20 @@
 
 /* Component layer for reusable patterns */
 @layer components {
-  /* Card variants */
+  /* Card - doc: white, gray border, rounded-xl, shadow-sm */
   .card {
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     border: 1px solid var(--color-border);
     background-color: var(--color-card);
     color: var(--color-card-foreground);
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
 
   .card-header {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 
   .card-title {
@@ -201,22 +203,30 @@
   }
 
   .card-content {
-    padding: 1.5rem;
+    padding: 1.25rem;
     padding-top: 0;
   }
 
   .card-footer {
     display: flex;
     align-items: center;
-    padding: 1.5rem;
+    padding: 1.25rem;
     padding-top: 0;
   }
 
-  /* Badge variants */
+  /* Section label - doc: text-xs font-semibold tracking-wider text-gray-500 / dark:text-gray-400 */
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--color-muted-foreground);
+  }
+
+  /* Badge - doc: no pill-shaped; use rounded-lg */
   .badge {
     display: inline-flex;
     align-items: center;
-    border-radius: 9999px;
+    border-radius: var(--radius-lg);
     border: 1px solid transparent;
     padding: 0.125rem 0.625rem;
     font-size: 0.75rem;
@@ -230,8 +240,8 @@
   }
 
   .badge-secondary {
-    background-color: var(--color-secondary);
-    color: var(--color-secondary-foreground);
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
   }
 
   .badge-outline {
@@ -259,12 +269,12 @@
   }
 
   .badge-deprecated {
-    background-color: #f4f4f5;
-    color: #52525b;
-    border-color: #e4e4e7;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
-  /* Maturity stage badges */
+  /* Maturity stage - amber/emerald/gray only */
   .badge-experimenting {
     background-color: #fef3c7;
     color: #92400e;
@@ -272,34 +282,34 @@
   }
 
   .badge-repeating {
-    background-color: #dbeafe;
-    color: #1e40af;
-    border-color: #bfdbfe;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
   .badge-scaling {
-    background-color: #f3e8ff;
-    color: #6b21a8;
-    border-color: #e9d5ff;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
   .badge-transforming {
-    background-color: #dcfce7;
-    color: #166534;
-    border-color: #bbf7d0;
+    background-color: #d1fae5;
+    color: #065f46;
+    border-color: #a7f3d0;
   }
 
-  /* Experience level badges */
+  /* Experience level - gray/emerald only */
   .badge-newbie {
-    background-color: #f1f5f9;
-    color: #475569;
-    border-color: #e2e8f0;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
   .badge-curious {
-    background-color: #dbeafe;
-    color: #1e40af;
-    border-color: #bfdbfe;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
   .badge-comfortable {
@@ -309,24 +319,24 @@
   }
 
   .badge-power-user {
-    background-color: #ede9fe;
-    color: #5b21b6;
-    border-color: #ddd6fe;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
   .badge-expert {
-    background-color: #fce7f3;
-    color: #9d174d;
-    border-color: #fbcfe8;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-color: #e5e7eb;
   }
 
-  /* Button base */
+  /* Button base - doc: primary rounded-lg */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     font-size: 0.875rem;
     font-weight: 500;
     transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms;
@@ -353,16 +363,18 @@
   }
 
   .btn-secondary {
-    background-color: var(--color-secondary);
-    color: var(--color-secondary-foreground);
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-foreground);
   }
 
   .btn-secondary:hover {
-    opacity: 0.8;
+    background-color: var(--color-accent);
+    color: var(--color-accent-foreground);
   }
 
   .btn-outline {
-    border: 1px solid var(--color-input);
+    border: 1px solid var(--color-border);
     background-color: var(--color-background);
   }
 
@@ -390,7 +402,7 @@
     height: 2.25rem;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
   }
 
   .btn-md {
@@ -402,7 +414,7 @@
     height: 2.75rem;
     padding-left: 2rem;
     padding-right: 2rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
   }
 
   .btn-icon {
@@ -661,21 +673,22 @@
     50% { opacity: 0.85; transform: scale(1.05); }
   }
 
-  /* Glow for hero progress near milestone */
+  /* Glow for hero progress - teal */
   .glow-milestone {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.2);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.4), 0 0 40px rgba(20, 184, 166, 0.2);
   }
 
-  /* Hero CTAs — welcoming hero section */
+  /* Hero CTAs - doc: solid teal, no gradient */
   .btn-hero-primary {
-    background: linear-gradient(135deg, #06b6d4, #0ea5e9);
-    color: #0f172a;
-    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4);
+    background-color: #14b8a6;
+    color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
   .btn-hero-primary:hover {
-    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5), 0 0 24px rgba(6, 182, 212, 0.3);
+    background-color: #0d9488;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
   .btn-hero-secondary:hover {
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 1px var(--color-border);
   }
 }

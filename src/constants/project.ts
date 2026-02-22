@@ -15,9 +15,9 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
 
 export const PROJECT_STATUS_BADGE_COLORS: Record<string, string> = {
   idea: 'bg-amber-100 text-amber-800 border-amber-200',
-  building: 'bg-blue-100 text-blue-800 border-blue-200',
-  incubation: 'bg-purple-100 text-purple-800 border-purple-200',
-  completed: 'bg-green-100 text-green-800 border-green-200',
+  building: 'bg-teal-100 text-teal-800 border-teal-200',
+  incubation: 'bg-gray-100 text-gray-800 border-gray-200',
+  completed: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   archived: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
@@ -44,7 +44,7 @@ export const HACK_TYPES = [
 
 /** Hack type badge colors for list/detail. */
 export const HACK_TYPE_BADGE_COLORS: Record<string, string> = {
-  prompt: 'bg-violet-100 text-violet-800 border-violet-200',
+  prompt: 'bg-gray-100 text-gray-800 border-gray-200',
   skill: 'bg-amber-100 text-amber-800 border-amber-200',
   app: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 };

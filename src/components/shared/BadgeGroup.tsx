@@ -18,7 +18,7 @@ const BADGE_VARIANT_CLASSES: Record<BadgeVariant, string> = {
   default: 'bg-primary/10 text-primary border border-primary/20',
   prompt: 'bg-blue-50 text-blue-700 border border-blue-200',
   skill: 'bg-orange-50 text-orange-700 border border-orange-200',
-  app: 'bg-purple-50 text-purple-700 border border-purple-200',
+  app: 'bg-gray-100 text-gray-800 border border-gray-200',
   verified: 'bg-green-100 text-green-800 border border-green-200',
   muted: 'bg-muted text-muted-foreground border border-border',
   outline: 'border border-border text-foreground',

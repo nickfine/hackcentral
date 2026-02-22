@@ -34,9 +34,9 @@ export function WallOfWins() {
   const win = sampleWins[currentIndex];
 
   return (
-    <div className="card border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-800 dark:from-amber-950/20 dark:to-orange-950/20">
+    <div className="card border-border p-5">
       <div className="flex items-start gap-3">
-        <Quote className="mt-1 h-5 w-5 shrink-0 text-amber-600" />
+        <Quote className="mt-1 h-5 w-5 shrink-0 text-teal-500" />
         <div className="min-h-[60px]">
           <AnimatePresence mode="wait">
             <motion.div

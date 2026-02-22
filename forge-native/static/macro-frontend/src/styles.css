@@ -1,7 +1,10 @@
+/* HackDay 2026 Design System: teal primary #14b8a6, gray neutrals */
 :root {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-  color: #1f2937;
-  background: #f5f7fb;
+  color: #111827;
+  background: #f9fafb;
+  --brand: #14b8a6;
+  --brand-soft: #f0fdfa;
 }
 
 * {
@@ -61,7 +64,7 @@ body {
 
 .switcher-trigger:focus-visible,
 .switcher-row:focus-visible {
-  outline: 2px solid #0f766e;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
@@ -160,7 +163,7 @@ body {
 
 .switcher-row.current {
   border-color: #99f6e4;
-  background: #ecfeff;
+  background: var(--brand-soft);
 }
 
 .switcher-row-main {
@@ -290,9 +293,9 @@ textarea {
 }
 
 .wizard-step.active {
-  border-color: #0f766e;
-  color: #0f766e;
-  background: #ecfeff;
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
 }
 
 .wizard-step.done {
@@ -337,7 +340,7 @@ button {
   padding: 9px 12px;
   margin-right: 8px;
   margin-top: 8px;
-  background: #0f766e;
+  background: var(--brand);
   color: #fff;
   cursor: pointer;
 }

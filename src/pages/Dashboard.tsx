@@ -66,7 +66,7 @@ export default function Dashboard() {
     if (prev != null && current > prev) {
       confettiFiredRef.current = true;
       const fire = (opts: Parameters<typeof confetti>[0]) => confetti(opts);
-      fire({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#06b6d4', '#d946ef', '#a855f7'] });
+      fire({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#14b8a6', '#0d9488', '#99f6e4'] });
       setTimeout(() => fire({ particleCount: 20, spread: 100, origin: { y: 0.6 } }), 200);
     }
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, String(current));
@@ -78,7 +78,7 @@ export default function Dashboard() {
     const key = 'hackcentral_first_copy_done';
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
-    confetti({ particleCount: 24, spread: 50, origin: { y: 0.6 }, colors: ['#06b6d4', '#d946ef'] });
+    confetti({ particleCount: 24, spread: 50, origin: { y: 0.6 }, colors: ['#14b8a6', '#0d9488'] });
   };
 
   const scrollToCommunityHacks = () => {

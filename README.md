@@ -9,7 +9,7 @@ An AI Maturity Accelerator platform that transforms early adopter experiments in
 - **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Convex (Database, Real-time, Server Functions)
 - **Forge Native**: Atlassian Forge app for Confluence integration (global page + macro)
-- **Styling**: Tailwind CSS 4
+- **Styling**: Tailwind CSS 4; UI follows [docs/HackDay_Design_system.md](docs/HackDay_Design_system.md)
 - **UI Components**: Custom components with Framer Motion animations
 - **Icons**: Lucide React
 - **Testing**: Vitest + React Testing Library

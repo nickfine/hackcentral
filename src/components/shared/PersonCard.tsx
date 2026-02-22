@@ -15,7 +15,7 @@ const EXPERIENCE_BADGE_CLASSES: Record<string, string> = {
   newbie: 'bg-gray-100 text-gray-700 border border-gray-200',
   curious: 'bg-blue-50 text-blue-700 border border-blue-200',
   comfortable: 'bg-green-50 text-green-700 border border-green-200',
-  power_user: 'bg-violet-50 text-violet-700 border border-violet-200',
+  power_user: 'bg-gray-100 text-gray-800 border border-gray-200',
   expert: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 

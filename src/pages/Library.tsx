@@ -493,7 +493,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
       )}
 
       {/* Featured Hacks Section — one row, no Curated badge, no category row */}
-      <div className="card p-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)]">
+      <div className="card p-6 border-l-4 border-l-primary">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Featured Hacks</h2>

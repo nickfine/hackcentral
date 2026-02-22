@@ -78,8 +78,7 @@ export function ImpactStoriesCarousel({
         </button>
       </div>
 
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-white to-cyan-50 p-4 shadow-lg dark:from-purple-950/20 dark:via-slate-900 dark:to-cyan-950/20 sm:p-6 lg:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-purple-400/20 to-cyan-400/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:p-8">
 
         <div className="relative z-10">
           <AnimatePresence mode="wait">
@@ -103,7 +102,7 @@ export function ImpactStoriesCarousel({
                     </div>
                   )}
                   {story.metrics.errorReduction != null && (
-                    <div className="flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300">
+                    <div className="flex items-center gap-2 rounded-lg bg-teal-500/10 px-3 py-1.5 text-sm font-medium text-teal-700 dark:text-teal-300">
                       {story.metrics.errorReduction}% fewer errors
                     </div>
                   )}

@@ -31,7 +31,7 @@ export function WelcomeHero(_props: WelcomeHeroProps) {
           initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="break-words text-2xl font-bold tracking-tight sm:text-3xl md:text-5xl lg:text-6xl"
+          className="break-words text-4xl font-black tracking-tight sm:text-5xl text-gray-900 dark:text-white"
         >
           HackDay Central
         </motion.h1>

@@ -25,14 +25,14 @@ export function WallOfThanksStrip() {
   {/* 8pt spacing: p-8 lg:p-10, rounded-xl, min-h for uniform height with recognition card */}
   return (
     <div
-      className="flex h-full min-h-[220px] flex-col rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50/80 to-orange-50/80 p-8 lg:p-10 dark:border-amber-800/40 dark:from-amber-950/20 dark:to-orange-950/20"
+      className="flex h-full min-h-[220px] flex-col rounded-xl border border-gray-200 bg-white p-8 shadow-sm lg:p-10 dark:border-gray-700 dark:bg-gray-800"
       role="region"
       aria-live="polite"
       aria-label="Wall of thanks"
     >
       <div className="flex flex-1 flex-col justify-center gap-6">
         <Quote
-          className="h-6 w-6 shrink-0 font-bold text-amber-600 dark:text-amber-400 sm:h-8 sm:w-8"
+          className="h-6 w-6 shrink-0 font-bold text-teal-500 sm:h-8 sm:w-8"
           aria-hidden
           strokeWidth={2.5}
         />

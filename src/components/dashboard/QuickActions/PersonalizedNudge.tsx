@@ -39,10 +39,10 @@ export function PersonalizedNudge({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent p-6 rounded-xl"
+      className="card border-l-4 border-l-primary p-6 rounded-xl"
     >
       <div className="flex items-start gap-4">
-        <div className="rounded-full bg-primary/10 p-2">
+        <div className="rounded-lg bg-primary/10 p-2">
           <Award className="h-5 w-5 text-primary" />
         </div>
         <div>

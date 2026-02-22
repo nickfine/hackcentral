@@ -19,7 +19,7 @@ const actions: Action[] = [
     sublabel: 'AI-assisted form',
     icon: <Upload className="h-5 w-5" />,
     href: '/hacks?tab=completed&action=new',
-    color: 'from-cyan-500 to-blue-500',
+    color: 'bg-teal-500',
   },
   {
     id: 'request-mentor',
@@ -27,7 +27,7 @@ const actions: Action[] = [
     sublabel: 'Get unstuck fast',
     icon: <GraduationCap className="h-5 w-5" />,
     href: '/people?tab=mentors',
-    color: 'from-purple-500 to-pink-500',
+    color: 'bg-teal-500',
   },
   {
     id: 'browse-arsenal',
@@ -35,7 +35,7 @@ const actions: Action[] = [
     sublabel: 'Copy top hack',
     icon: <Library className="h-5 w-5" />,
     href: '/hacks?tab=completed&arsenal=true',
-    color: 'from-emerald-500 to-teal-500',
+    color: 'bg-teal-500',
   },
 ];
 
@@ -51,7 +51,7 @@ export function QuickActionsPanel() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-white shadow-md transition-transform duration-200 ease-out hover:scale-110 hover:rotate-12 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-8 sm:right-8 sm:h-16 sm:w-16"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-white shadow-md transition-transform duration-200 ease-out hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:bottom-8 sm:right-8 sm:h-16 sm:w-16"
         aria-label={isOpen ? 'Close quick actions' : 'Open quick actions'}
       >
         <AnimatePresence mode="wait">
@@ -100,7 +100,7 @@ export function QuickActionsPanel() {
                   className="group flex w-full items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted"
                 >
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-md transition-transform group-hover:scale-110`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.color} text-white shadow-md transition-transform group-hover:scale-105`}
                   >
                     {action.icon}
                   </div>

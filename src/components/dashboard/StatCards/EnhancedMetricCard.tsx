@@ -37,7 +37,7 @@ export function EnhancedMetricCard({
       onMouseEnter={() => microStory && setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100" />
 
       <div className="relative z-10 space-y-4">
         <div className="flex items-center justify-between">
@@ -83,7 +83,7 @@ export function EnhancedMetricCard({
         )}
 
         {microStory && (
-          <div className="absolute right-2 top-2 h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+          <div className="absolute right-2 top-2 h-2 w-2 animate-pulse rounded-full bg-primary" />
         )}
       </div>
 

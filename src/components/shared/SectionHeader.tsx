@@ -24,10 +24,11 @@ export interface SectionHeaderProps {
   variant?: 'page' | 'section';
 }
 
+/* Four-tier typography: Tier 1 page title, Tier 2 section/subpage */
 const TITLE_CLASSES: Record<string, string> = {
-  page: 'text-3xl md:text-4xl font-bold tracking-tight',
-  section: 'text-xl font-semibold tracking-tight',
-  default: 'text-2xl md:text-3xl font-bold tracking-tight',
+  page: 'text-4xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white',
+  section: 'text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100',
+  default: 'text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100',
 };
 
 export function SectionHeader({
@@ -57,7 +58,7 @@ export function SectionHeader({
           {titleSuffix != null && titleSuffix}
         </div>
         {description != null && description !== '' && (
-          <p className="text-muted-foreground mt-2 text-base leading-relaxed">
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
             {description}
           </p>
         )}

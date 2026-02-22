@@ -5,54 +5,54 @@
 
 export const designTokens = {
   colors: {
-    // Primary brand colors
+    // Primary - teal only (HackDay Design System)
     primary: {
-      50: '#f0f9ff',
-      100: '#e0f2fe',
-      200: '#bae6fd',
-      300: '#7dd3fc',
-      400: '#38bdf8',
-      500: '#0ea5e9',
-      600: '#0284c7',
-      700: '#0369a1',
-      800: '#075985',
-      900: '#0c4a6e',
-      950: '#082f49',
+      50: '#f0fdfa',
+      100: '#ccfbf1',
+      200: '#99f6e4',
+      300: '#5eead4',
+      400: '#2dd4bf',
+      500: '#14b8a6',
+      600: '#0d9488',
+      700: '#0f766e',
+      800: '#115e59',
+      900: '#134e4a',
+      950: '#042f2e',
     },
-    // Secondary/accent colors
+    // Secondary: same as primary (no second accent)
     secondary: {
-      50: '#fdf4ff',
-      100: '#fae8ff',
-      200: '#f5d0fe',
-      300: '#f0abfc',
-      400: '#e879f9',
-      500: '#d946ef',
-      600: '#c026d3',
-      700: '#a21caf',
-      800: '#86198f',
-      900: '#701a75',
-      950: '#4a044e',
+      50: '#f0fdfa',
+      100: '#ccfbf1',
+      200: '#99f6e4',
+      300: '#5eead4',
+      400: '#2dd4bf',
+      500: '#14b8a6',
+      600: '#0d9488',
+      700: '#0f766e',
+      800: '#115e59',
+      900: '#134e4a',
+      950: '#042f2e',
     },
-    // Neutral/gray scale
+    // Neutral - Tailwind gray only
     neutral: {
-      50: '#fafafa',
-      100: '#f4f4f5',
-      200: '#e4e4e7',
-      300: '#d4d4d8',
-      400: '#a1a1aa',
-      500: '#71717a',
-      600: '#52525b',
-      700: '#3f3f46',
-      800: '#27272a',
-      900: '#18181b',
-      950: '#09090b',
+      50: '#f9fafb',
+      100: '#f3f4f6',
+      200: '#e5e7eb',
+      300: '#d1d5db',
+      400: '#9ca3af',
+      500: '#6b7280',
+      600: '#4b5563',
+      700: '#374151',
+      800: '#1f2937',
+      900: '#111827',
+      950: '#030712',
     },
-    // Status colors
+    // Status - emerald/amber/red only
     status: {
       success: {
-        light: '#dcfce7',
-        DEFAULT: '#22c55e',
-        dark: '#15803d',
+        light: '#d1fae5',
+        DEFAULT: '#10b981',
+        dark: '#047857',
       },
       warning: {
         light: '#fef3c7',
@@ -65,32 +65,32 @@ export const designTokens = {
         dark: '#b91c1c',
       },
       info: {
-        light: '#dbeafe',
-        DEFAULT: '#3b82f6',
-        dark: '#1d4ed8',
+        light: '#ccfbf1',
+        DEFAULT: '#14b8a6',
+        dark: '#0f766e',
       },
     },
-    // Quality gate status colors (Completed Hacks)
+    // Quality gate - amber/emerald/gray
     qualityGates: {
-      draft: '#f59e0b',      // amber (legacy, same as in_progress)
-      in_progress: '#f59e0b', // amber
-      verified: '#22c55e',   // green
-      deprecated: '#71717a', // gray
+      draft: '#f59e0b',
+      in_progress: '#f59e0b',
+      verified: '#10b981',
+      deprecated: '#6b7280',
     },
-    // Maturity stages
+    // Maturity - amber/emerald/gray
     maturity: {
-      experimenting: '#f59e0b',  // amber
-      repeating: '#3b82f6',      // blue
-      scaling: '#8b5cf6',        // purple
-      transforming: '#22c55e',   // green
+      experimenting: '#f59e0b',
+      repeating: '#6b7280',
+      scaling: '#6b7280',
+      transforming: '#10b981',
     },
-    // Experience levels
+    // Experience - gray/emerald only
     experience: {
-      newbie: '#94a3b8',      // slate
-      curious: '#60a5fa',     // blue
-      comfortable: '#34d399', // emerald
-      power_user: '#a78bfa',  // violet
-      expert: '#f472b6',      // pink
+      newbie: '#9ca3af',
+      curious: '#6b7280',
+      comfortable: '#10b981',
+      power_user: '#6b7280',
+      expert: '#6b7280',
     },
   },
 

@@ -124,11 +124,11 @@ function StarterCard({
       className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+        <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           Starter
         </span>
         {hack.isRisingStar && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             <Sparkles className="h-3 w-3" aria-hidden />
             Rising Star
           </span>

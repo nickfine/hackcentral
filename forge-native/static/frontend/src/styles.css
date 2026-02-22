@@ -1,16 +1,17 @@
+/* HackDay 2026 Design System: teal primary #14b8a6, Tailwind gray neutrals */
 :root {
-  --bg: #f6f9fc;
+  --bg: #f9fafb;
   --surface: #ffffff;
-  --surface-muted: #f8fbff;
-  --text: #0f1d33;
-  --text-soft: #667a96;
-  --line: #d9e1ee;
-  --line-strong: #c7d2e4;
-  --brand: #15b8d8;
-  --brand-strong: #0c90b0;
-  --brand-soft: #e8f7fb;
-  --success: #2ab273;
-  --shadow-sm: 0 8px 22px rgba(14, 38, 74, 0.06);
+  --surface-muted: #f3f4f6;
+  --text: #111827;
+  --text-soft: #6b7280;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --brand: #14b8a6;
+  --brand-strong: #0d9488;
+  --brand-soft: #ccfbf1;
+  --success: #10b981;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 14px 36px rgba(15, 41, 76, 0.12);
   --radius-lg: 14px;
   --radius-md: 12px;
@@ -79,7 +80,7 @@ button {
   display: grid;
   place-items: center;
   color: white;
-  background: linear-gradient(135deg, #ff7c47, #ff5f3d);
+  background: var(--brand);
   font-size: 18px;
 }
 
@@ -216,7 +217,7 @@ button {
   min-height: 44px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: #f8fbff;
+  background: var(--surface-muted);
   color: var(--text);
   text-align: left;
   display: flex;
@@ -233,12 +234,12 @@ button {
 
 .switcher-row:hover:not(:disabled) {
   border-color: var(--line-strong);
-  background: #eef6ff;
+  background: var(--surface-muted);
 }
 
 .switcher-row.current {
-  border-color: #9fe9ff;
-  background: #ecfcff;
+  border-color: var(--brand-soft);
+  background: #f0fdfa;
 }
 
 .switcher-row:disabled {
@@ -302,7 +303,7 @@ button {
   display: grid;
   place-items: center;
   color: white;
-  background: #5a64d8;
+  background: var(--brand);
   font-weight: 700;
 }
 
@@ -332,7 +333,7 @@ button {
   border: 1px solid transparent;
   background: transparent;
   border-radius: 10px;
-  color: #4d6280;
+  color: var(--text-soft);
   font-size: 15px;
   height: 42px;
   display: flex;
@@ -350,8 +351,8 @@ button {
 
 .side-link-active {
   color: var(--text);
-  background: #eef3fa;
-  border-color: #e2e9f5;
+  background: var(--brand-soft);
+  border-color: var(--brand);
   font-weight: 600;
 }
 
@@ -542,8 +543,8 @@ button {
 }
 
 .pill-prompt {
-  background: #efe9ff;
-  color: #6a3ee1;
+  background: var(--surface-muted);
+  color: var(--text-soft);
 }
 
 .pill-skill {
@@ -577,14 +578,14 @@ button {
 }
 
 .quote-card {
-  background: linear-gradient(135deg, #f5ece7, #f8f3ef);
-  border-color: #e2c8b7;
+  background: var(--surface);
+  border-color: var(--line);
   padding: 20px;
 }
 
 .quote-mark {
   margin: 0;
-  color: #d19c67;
+  color: var(--brand);
   font-size: 35px;
 }
 
@@ -684,8 +685,8 @@ button {
 
 .featured-block {
   padding: 16px;
-  border-color: #cce9f0;
-  background: linear-gradient(135deg, #eef8ff, #f9f5ff);
+  border-color: var(--line);
+  background: var(--surface);
 }
 
 .featured-grid {
@@ -738,7 +739,7 @@ button {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #6f6ef0, #4db0ff);
+  background: var(--brand);
   color: white;
   display: grid;
   place-items: center;
@@ -790,7 +791,7 @@ button {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2dbedf, #6f75f4);
+  background: var(--brand);
 }
 
 .collective-meta {
@@ -923,8 +924,8 @@ button {
 
 .btn-primary {
   color: white;
-  background: linear-gradient(135deg, var(--brand), #10a9d0);
-  border-color: #0e9ec4;
+  background: var(--brand);
+  border-color: var(--brand-strong);
 }
 
 .btn-primary:hover {
@@ -952,9 +953,9 @@ button {
   bottom: 24px;
   width: 56px;
   height: 56px;
-  border-radius: 999px;
+  border-radius: 12px;
   border: 0;
-  background: linear-gradient(135deg, #1bbce0, #2c9ef8);
+  background: var(--brand);
   color: white;
   font-size: 28px;
   cursor: pointer;

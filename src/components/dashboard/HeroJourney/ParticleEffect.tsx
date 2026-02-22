@@ -31,7 +31,7 @@ export function ParticleEffect({ progress }: ParticleEffectProps) {
             repeat: Infinity,
             delay: (i % particleCount) * 0.4,
           }}
-          className="absolute w-1 h-1 bg-cyan-400/50 rounded-full"
+          className="absolute w-1 h-1 bg-primary/50 rounded-full"
         />
       ))}
     </div>
