@@ -105,11 +105,11 @@ inside the child, without re-running the creation wizard.
   image URL, theme (light/dark/system), banner message; save calls `updateEventBranding` then
   refresh. Event admin = creator or co-admin from seed (no Supabase role required).
 
-### Changes — HDC wizard (optional cleanup)
+### HDC wizard cleanup (done)
 
-- Simplify Step 4 (Branding) to just the minimum needed to bootstrap (e.g. accent
-  color only, or remove the step entirely). Full branding is done post-creation in the
-  child.
+- Step 4 (Branding) simplified to accent color only + note that full branding is set
+  in the child page Admin Panel → Branding tab. Review step shows: &quot;accent … · Set
+  banner/theme in child Admin Panel after creation.&quot;
 
 ---
 

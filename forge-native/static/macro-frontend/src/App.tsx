@@ -1381,33 +1381,12 @@ export function App(): JSX.Element {
             {wizardStep === 4 ? (
               <>
                 <label>
-                  Banner Message
-                  <input
-                    value={bannerMessage}
-                    onChange={(event) => setBannerMessage(event.target.value)}
-                    placeholder="Build boldly. Share what works."
-                  />
-                </label>
-                <label>
-                  Accent Color
+                  Accent Color (optional)
                   <input value={accentColor} onChange={(event) => setAccentColor(event.target.value)} placeholder="#0f766e" />
                 </label>
-                <label>
-                  Theme Preference
-                  <select value={themePreference} onChange={(event) => setThemePreference(event.target.value as ThemePreference)}>
-                    <option value="system">System default</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                  </select>
-                </label>
-                <label>
-                  Banner Image URL
-                  <input
-                    value={bannerImageUrl}
-                    onChange={(event) => setBannerImageUrl(event.target.value)}
-                    placeholder="https://..."
-                  />
-                </label>
+                <p className="meta">
+                  Full branding (banner, theme, banner image) can be set after creation in the child page&apos;s Admin Panel → Branding tab.
+                </p>
               </>
             ) : null}
 
@@ -1441,8 +1420,7 @@ export function App(): JSX.Element {
                 <p><strong>Categories:</strong> {categoriesInput || '—'}</p>
                 <p><strong>Prizes:</strong> {prizesText || '—'}</p>
                 <p>
-                  <strong>Branding:</strong> {bannerMessage || '—'} · {accentColor || '—'} · {themePreference} ·{' '}
-                  {bannerImageUrl || '—'}
+                  <strong>Branding:</strong> accent {accentColor || 'default'} · Set banner/theme in child Admin Panel after creation.
                 </p>
               </section>
             ) : null}
