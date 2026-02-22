@@ -1,6 +1,6 @@
 # Progress Archive - 2026-02-21
 
-Purpose: preserve full historical checkpoint logs after compacting active source-of-truth docs.
+Purpose: preserve full historical checkpoint logs after compacting active source-of-truth docs. See also **`../../README.md`** for the overall archive structure.
 
 ## Archived files
 - `/Users/nickster/Downloads/HackCentral/docs/archive/progress/2026-02-21/learnings.full.2026-02-21.md`

@@ -185,6 +185,7 @@ Badges, leaderboards, and impact stories to create FOMO and measurable value vis
 - [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Phased development plan
 - [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
 - [Convex Docs](https://docs.convex.dev) - Official Convex documentation
+- **Progress and plans:** Active source-of-truth is `learnings.md`, `PLAN_HDC_V2_EXECUTION.md`, and `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
 
 ## 🎯 Success Metrics
 

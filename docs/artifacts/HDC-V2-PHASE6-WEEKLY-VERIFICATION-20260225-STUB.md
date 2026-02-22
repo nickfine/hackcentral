@@ -8,6 +8,11 @@
 - Environment: production
 - Canonical query: `HDC Auto`
 
+## Note
+
+- Week of 2026-02-22 verification completed: `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-V2-PHASE6-WEEKLY-VERIFICATION-20260222-1323Z.md`
+- This stub is for the week of 2026-02-23 (next run).
+
 ## Run Log
 
 1. Migration dry-run
@@ -33,6 +38,7 @@ npm -C /Users/nickster/Downloads/HackCentral run test:perf:phase5
 ```bash
 npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:telemetry-check
 ```
+- Note: ripgrep `15.1.0` installed at `/opt/homebrew/bin/rg` (2026-02-22). Script is fully operational.
 - `registry_lookup` seen: yes/no
 - `sync_execution` seen: yes/no
 - Pass/Fail:

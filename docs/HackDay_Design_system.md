@@ -53,10 +53,12 @@ Every text element on every page must belong to exactly one tier.
 
 | Tier | Purpose | Size | Weight | Example |
 |------|---------|------|--------|---------|
-| 1 - Page title | One per page, primary heading | `text-2xl` (1.5rem) | `font-bold` | "Ready for Team Formation" |
+| 1 - Page title | One per page, primary heading (Dashboard, Schedule, Rules, Hack Ideas & Teams) | `text-4xl sm:text-5xl` (2.25rem / 3rem) | `font-black` | "Hack Ideas & Teams", "Schedule", "Rules", "Mission status" |
 | 2 - Section context | Key callouts, actionable context | `text-lg` (1.125rem) | `font-semibold` | "Next action: Find a Team" |
 | 3 - Body | Descriptive text, feed items, labels | `text-sm` (0.875rem) | `font-normal` | "Maya Rodriguez joined Rescue House" |
 | 4 - Meta/timestamp | Relative times, footers, sublabels | `text-xs` (0.75rem) | `font-normal` | "2m ago", "UNTIL NEXT PHASE" |
+
+**Page title (Tier 1):** Use `text-4xl sm:text-5xl font-black tracking-tight` with the page’s primary text colour (e.g. `text-text-primary` or design-system Tier 1 colours) so that Dashboard, Schedule, Rules, and Hack Ideas & Teams share the same large title treatment.
 
 ### Tier colour mapping
 
@@ -70,8 +72,9 @@ Every text element on every page must belong to exactly one tier.
 ### Rules
 
 - If a text element does not fit a tier, it is the wrong size or weight
-- No `text-3xl` or larger anywhere in the application
-- Hero headings are Tier 1, not a special oversized tier
+- **Page titles** (one per page on Dashboard, Schedule, Rules, Hack Ideas & Teams): use `text-4xl sm:text-5xl font-black tracking-tight` for consistency across these main app pages
+- Section headings and subpage titles (e.g. within a detail view) use `text-2xl font-bold` where a smaller heading is appropriate
+- Hero headings and main page titles are Tier 1 with the large size above; in-card or detail-view headings may use Tier 2
 - Metric numbers (e.g. Event Pulse counts) use Tier 3 size with `font-semibold`
 
 ---
