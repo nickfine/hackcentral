@@ -1,10 +1,61 @@
-/* HackDay 2026 Design System: teal primary #14b8a6, gray neutrals */
+/* HackDay 2026 Design System: teal primary, gray neutrals, four-tier typography */
+
+/* --------------------------------------------------------------------------- */
+/* 1. Colour palette and dark mode (design system §1, §10)                      */
+/* --------------------------------------------------------------------------- */
+
 :root {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: #111827;
   background: #f9fafb;
+  /* Primary accent – teal only */
   --brand: #14b8a6;
-  --brand-soft: #f0fdfa;
+  --brand-hover: #0d9488;
+  --brand-soft: rgba(20, 184, 166, 0.1);
+  /* Gray scale (Tailwind gray) */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  /* Semantic status – only for status indicators */
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  /* Tier colours */
+  --text-tier1: var(--gray-900);
+  --text-tier2: var(--gray-800);
+  --text-tier3: var(--gray-700);
+  --text-tier4: var(--gray-500);
+  /* Surfaces */
+  --surface-page: var(--gray-50);
+  --surface-card: #ffffff;
+  --border-card: var(--gray-200);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #fff;
+    background: var(--gray-900);
+    --brand-soft: rgba(20, 184, 166, 0.15);
+    --text-tier1: #fff;
+    --text-tier2: var(--gray-100);
+    --text-tier3: var(--gray-300);
+    --text-tier4: var(--gray-400);
+    --surface-page: var(--gray-900);
+    --surface-card: var(--gray-800);
+    --border-card: var(--gray-700);
+    --shadow-card: none;
+  }
 }
 
 * {
@@ -15,10 +66,15 @@ body {
   margin: 0;
 }
 
+/* --------------------------------------------------------------------------- */
+/* 2. Shell and layout – spacing 24px between sections (§3)                   */
+/* --------------------------------------------------------------------------- */
+
 .shell {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px;
+  background: var(--surface-page);
 }
 
 .top {
@@ -33,15 +89,77 @@ body {
   min-width: 0;
 }
 
-.top h1 {
+/* --------------------------------------------------------------------------- */
+/* 3. Typography – four tiers (§2)                                              */
+/* --------------------------------------------------------------------------- */
+
+/* Tier 1 – Page title (one per page) */
+.top h1,
+.shell > .top h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: var(--text-tier1);
 }
 
+@media (min-width: 640px) {
+  .top h1,
+  .shell > .top h1 {
+    font-size: 3rem;
+  }
+}
+
+/* Tier 4 – Meta (header subtitle) */
 .top p {
   margin: 6px 0 0;
-  color: #5b6475;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-tier4);
 }
+
+/* Tier 2 – Section / card titles */
+.card h2,
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-tier2);
+}
+
+.card h3 {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+/* Tier 3 – Body and form labels */
+label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tier3);
+}
+
+.card p {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-tier3);
+  margin: 0 0 12px;
+}
+
+/* Tier 4 – Meta text */
+.meta {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-tier4);
+  word-break: break-all;
+}
+
+/* --------------------------------------------------------------------------- */
+/* 4. App switcher                                                             */
+/* --------------------------------------------------------------------------- */
 
 .app-switcher {
   position: relative;
@@ -55,11 +173,17 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border-radius: 12px;
-  border: 1px solid #c6cfdf;
-  background: #ffffff;
-  color: #1f2937;
+  border-radius: 8px;
+  border: 1px solid var(--gray-300);
+  background: var(--surface-card);
+  color: var(--text-tier2);
   padding: 8px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-trigger {
+    border-color: var(--gray-600);
+  }
 }
 
 .switcher-trigger:focus-visible,
@@ -73,7 +197,7 @@ body {
 }
 
 .switcher-trigger-label {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   max-width: 240px;
   overflow: hidden;
@@ -82,7 +206,7 @@ body {
 }
 
 .switcher-trigger-caret {
-  color: #64748b;
+  color: var(--gray-500);
 }
 
 .switcher-overlay {
@@ -102,49 +226,62 @@ body {
   width: min(520px, calc(100vw - 40px));
   max-height: min(72vh, 700px);
   overflow: auto;
-  background: #ffffff;
-  border: 1px solid #dbe2ef;
-  border-radius: 14px;
-  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.24);
-  padding: 8px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 12px;
   z-index: 30;
 }
 
+@media (prefers-color-scheme: dark) {
+  .switcher-menu {
+    box-shadow: none;
+  }
+}
+
 .switcher-section + .switcher-section {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #ecf0f6;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-card);
 }
 
 .switcher-section-title {
   margin: 2px 6px 6px;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--text-tier4);
 }
 
 .switcher-empty {
   margin: 0;
   padding: 8px;
-  color: #64748b;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
+  color: var(--text-tier4);
 }
 
 .switcher-row {
   width: 100%;
   margin: 0;
   border: 1px solid transparent;
-  background: #f8fbff;
-  color: #1f2937;
-  border-radius: 10px;
-  padding: 10px;
+  background: var(--gray-50);
+  color: var(--text-tier2);
+  border-radius: 8px;
+  padding: 10px 12px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-row {
+    background: var(--gray-800);
+  }
 }
 
 .switcher-row + .switcher-row {
@@ -152,8 +289,15 @@ body {
 }
 
 .switcher-row:hover:not(:disabled) {
-  border-color: #dbe2ef;
-  background: #f0f8ff;
+  border-color: var(--gray-300);
+  background: var(--gray-100);
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-row:hover:not(:disabled) {
+    border-color: var(--gray-600);
+    background: var(--gray-700);
+  }
 }
 
 .switcher-row:disabled {
@@ -162,7 +306,7 @@ body {
 }
 
 .switcher-row.current {
-  border-color: #99f6e4;
+  border-color: var(--brand);
   background: var(--brand-soft);
 }
 
@@ -174,7 +318,7 @@ body {
 }
 
 .switcher-row-title {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -182,77 +326,136 @@ body {
 }
 
 .switcher-row-meta {
-  font-size: 0.78rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: var(--text-tier4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Status badge – non-pill (rounded-lg), semantic colours (§6) */
 .switcher-row-status {
   flex-shrink: 0;
   font-size: 0.75rem;
-  border: 1px solid #dbe2ef;
-  border-radius: 999px;
-  padding: 2px 8px;
-  color: #475569;
-  background: #ffffff;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
 }
+
+.switcher-row-status.status-complete {
+  color: var(--emerald-600);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-row-status.status-complete {
+    color: #34d399;
+  }
+}
+
+.switcher-row-status.status-pending {
+  color: var(--amber-600);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-row-status.status-pending {
+    color: #fbbf24;
+  }
+}
+
+.switcher-row-status.status-blocked {
+  color: var(--red-600);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .switcher-row-status.status-blocked {
+    color: #f87171;
+  }
+}
+
+/* --------------------------------------------------------------------------- */
+/* 5. Notes (§8)                                                               */
+/* --------------------------------------------------------------------------- */
 
 .note {
   margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #d2dae8;
-  background: #eef4ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-200);
+  background: var(--gray-100);
+  font-size: 0.875rem;
+  color: var(--text-tier3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .note {
+    border-color: var(--gray-700);
+    background: var(--gray-800);
+  }
 }
 
 .note.success {
-  background: #e9f8ee;
-  border-color: #b7e6c4;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .note.error,
 .shell.error {
-  background: #ffefef;
-  border-color: #f3b3b3;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
+
+/* --------------------------------------------------------------------------- */
+/* 6. Grid and cards (§3, §4) – 24px gap, p-5, rounded-xl, shadow light only   */
+/* --------------------------------------------------------------------------- */
 
 .grid {
   display: grid;
-  gap: 16px;
+  gap: 24px;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #dbe2ef;
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.05);
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
 }
 
-h2,
-h3 {
-  margin-top: 0;
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow: none;
+  }
 }
 
-label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 0.92rem;
-  color: #374151;
-}
+/* --------------------------------------------------------------------------- */
+/* 7. Form controls (§8) – gray borders, 8px radius, error state              */
+/* --------------------------------------------------------------------------- */
 
 input,
 textarea,
 select {
   width: 100%;
   margin-top: 4px;
-  border: 1px solid #c6cfdf;
+  border: 1px solid var(--gray-300);
   border-radius: 8px;
-  padding: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
   font: inherit;
+  color: var(--text-tier2);
+  background: var(--surface-card);
+}
+
+@media (prefers-color-scheme: dark) {
+  input,
+  textarea,
+  select {
+    border-color: var(--gray-600);
+  }
 }
 
 textarea {
@@ -260,49 +463,252 @@ textarea {
 }
 
 .input-error {
-  border-color: #dc2626;
+  border-color: var(--red-500) !important;
 }
 
 .field-error {
-  margin: -2px 0 10px;
-  color: #b91c1c;
-  font-size: 0.82rem;
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--red-600);
 }
 
-.meta {
-  margin: 8px 0 0;
-  color: #5b6475;
-  font-size: 0.78rem;
-  word-break: break-all;
+@media (prefers-color-scheme: dark) {
+  .field-error {
+    color: #f87171;
+  }
 }
+
+/* --------------------------------------------------------------------------- */
+/* 8. Phase stepper / wizard steps (§7) – non-pill, text + optional connector  */
+/* --------------------------------------------------------------------------- */
 
 .wizard-steps {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 0 12px;
+  margin-bottom: 8px;
 }
 
 .wizard-step {
-  font-size: 0.76rem;
-  padding: 4px 8px;
-  border: 1px solid #dbe2ef;
-  border-radius: 999px;
-  color: #64748b;
-  background: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--gray-400);
 }
 
 .wizard-step.active {
-  border-color: var(--brand);
+  font-weight: 600;
   color: var(--brand);
-  background: var(--brand-soft);
 }
 
 .wizard-step.done {
-  border-color: #a7f3d0;
-  color: #166534;
-  background: #f0fdf4;
+  color: var(--gray-500);
 }
+
+@media (prefers-color-scheme: dark) {
+  .wizard-step.done {
+    color: var(--gray-300);
+  }
+}
+
+/* Optional: connector between steps (1px line) */
+.wizard-steps::after {
+  content: '';
+  display: none;
+}
+
+/* --------------------------------------------------------------------------- */
+/* 9. Review block                                                             */
+/* --------------------------------------------------------------------------- */
+
+.review {
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--gray-50);
+}
+
+@media (prefers-color-scheme: dark) {
+  .review {
+    background: var(--gray-800);
+  }
+}
+
+.review p {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  color: var(--text-tier3);
+}
+
+/* --------------------------------------------------------------------------- */
+/* 10. Buttons (§5) – primary teal rounded-lg, secondary border, no pill       */
+/* --------------------------------------------------------------------------- */
+
+.wizard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Secondary / ghost */
+.button-muted {
+  background: transparent;
+  color: var(--text-tier3);
+  border: 1px solid var(--gray-300);
+}
+
+.button-muted:hover:not(:disabled) {
+  background: var(--gray-100);
+  color: var(--text-tier2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .button-muted {
+    border-color: var(--gray-600);
+    color: var(--gray-300);
+  }
+
+  .button-muted:hover:not(:disabled) {
+    background: var(--gray-700);
+    color: var(--gray-100);
+  }
+}
+
+.button-danger {
+  background: var(--red-500);
+  color: #fff;
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--red-600);
+}
+
+/* --------------------------------------------------------------------------- */
+/* 11. Registry list – spacing 12px, standard card-like rows                  */
+/* --------------------------------------------------------------------------- */
+
+.registry {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.registry li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-card);
+}
+
+.registry li strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-tier2);
+}
+
+/* Registry status badge – same semantic classes as switcher */
+.registry .status-complete {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--emerald-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .registry .status-complete {
+    color: #34d399;
+  }
+}
+
+.registry .status-pending {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--amber-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .registry .status-pending {
+    color: #fbbf24;
+  }
+}
+
+.registry .status-blocked {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--red-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .registry .status-blocked {
+    color: #f87171;
+  }
+}
+
+/* Inline status text (e.g. instance card Status line) */
+.status-complete {
+  color: var(--emerald-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-complete {
+    color: #34d399;
+  }
+}
+
+.status-pending {
+  color: var(--amber-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-pending {
+    color: #fbbf24;
+  }
+}
+
+.status-blocked {
+  color: var(--red-600);
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-blocked {
+    color: #f87171;
+  }
+}
+
+/* --------------------------------------------------------------------------- */
+/* 12. Checkbox row, fieldset                                                   */
+/* --------------------------------------------------------------------------- */
 
 .checkbox-row {
   display: flex;
@@ -315,65 +721,23 @@ textarea {
   margin: 0;
 }
 
-.review {
-  border: 1px solid #dbe2ef;
-  border-radius: 10px;
+fieldset {
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
   padding: 12px;
-  background: #fafcff;
+  margin-bottom: 12px;
 }
 
-.review p {
-  margin: 0 0 6px;
-  font-size: 0.9rem;
+fieldset legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-tier2);
+  padding: 0 4px;
 }
 
-.wizard-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-button {
-  border: none;
-  border-radius: 10px;
-  padding: 9px 12px;
-  margin-right: 8px;
-  margin-top: 8px;
-  background: var(--brand);
-  color: #fff;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.button-muted {
-  background: #475569;
-}
-
-.button-danger {
-  background: #b91c1c;
-}
-
-.registry {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-}
-
-.registry li {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid #dbe2ef;
-  border-radius: 10px;
-  padding: 10px;
-}
+/* --------------------------------------------------------------------------- */
+/* 13. Responsive                                                              */
+/* --------------------------------------------------------------------------- */
 
 @media (max-width: 1024px) {
   .switcher-menu {
@@ -413,7 +777,7 @@ button:disabled {
     top: auto;
     width: 100%;
     max-height: 82vh;
-    border-radius: 16px 16px 0 0;
+    border-radius: 12px 12px 0 0;
     border-left: 0;
     border-right: 0;
     border-bottom: 0;

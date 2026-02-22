@@ -125,6 +125,15 @@ function formatLifecycle(status: EventRegistryItem['lifecycleStatus']): string {
     .join(' ');
 }
 
+/** Map lifecycle to design-system status class: complete=emerald, pending=amber, blocked=red */
+function getLifecycleStatusClass(
+  status: EventRegistryItem['lifecycleStatus']
+): 'status-complete' | 'status-pending' | 'status-blocked' {
+  if (status === 'completed' || status === 'archived') return 'status-complete';
+  if (status === 'draft') return 'status-pending';
+  return 'status-pending';
+}
+
 function formatSyncErrorCategory(category: SyncResult['syncErrorCategory']): string {
   return category
     .split('_')
@@ -1104,7 +1113,9 @@ export function App(): JSX.Element {
                               </span>
                               <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
                             </span>
-                            <span className="switcher-row-status">{formatLifecycle(item.lifecycleStatus)}</span>
+                            <span className={`switcher-row-status ${getLifecycleStatusClass(item.lifecycleStatus)}`}>
+                              {formatLifecycle(item.lifecycleStatus)}
+                            </span>
                           </button>
                         );
                       })
@@ -1469,7 +1480,9 @@ export function App(): JSX.Element {
                     <strong>
                       {item.icon} {item.eventName}
                     </strong>
-                    <span>{formatLifecycle(item.lifecycleStatus)}</span>
+                    <span className={getLifecycleStatusClass(item.lifecycleStatus)}>
+                      {formatLifecycle(item.lifecycleStatus)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1484,7 +1497,12 @@ export function App(): JSX.Element {
             <h2>
               {context.event.icon} {context.event.eventName}
             </h2>
-            <p>Status: {formatLifecycle(context.event.lifecycleStatus)}</p>
+            <p>
+              Status:{' '}
+              <span className={getLifecycleStatusClass(context.event.lifecycleStatus)}>
+                {formatLifecycle(context.event.lifecycleStatus)}
+              </span>
+            </p>
             <p>{context.event.tagline || 'No tagline provided.'}</p>
             {context.derivedProfile ? (
               <p>
