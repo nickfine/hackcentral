@@ -113,22 +113,29 @@ inside the child, without re-running the creation wizard.
 
 ---
 
-## Phase 3 — Full creation from HackCentral web app (deferred)
+## Phase 3 — Full creation from HackCentral web app (implemented)
 
 **Goal:** Admin never needs to go to Confluence to create a HackDay — the whole wizard
 runs inside HackCentral.
 
-### What is required (future work, not in scope now)
+### Implemented (February 2026)
 
-- A **Forge web trigger** on HDC that accepts a wizard payload and creates the child
-  Confluence page + Event + seed, returning the child page URL.
-- An **auth bridge** so HackCentral (Convex/Clerk identity) can call the Forge web
-  trigger as an authenticated Atlassian user. This is the hardest part and needs its
-  own design spike.
-- A full wizard UI inside HackCentral mirroring the current Confluence wizard steps.
-
-> **Recommendation:** Do not start Phase 3 until Phase 1 is live. If the Phase 1
-> deep-link handoff is low-friction enough in practice, Phase 3 may not be necessary.
+- **Forge web trigger** (`hackday-create-from-web`): Accepts POST with wizard payload +
+  `creatorEmail` and optional `parentPageId`. Secured by shared secret
+  (`X-HackDay-Create-Secret` header or `body.secret`). Uses `CONFLUENCE_HDC_PARENT_PAGE_ID`
+  and `HACKDAY_CREATE_WEB_SECRET` in Forge env. Handler: `createFromWeb.handler`.
+- **Creator identity:** No Atlassian auth bridge; the web app sends the signed-in user’s
+  email (from Clerk) as `creatorEmail`. The Forge handler calls `createInstanceDraft` with
+  `overrideCreatorEmail`, so the creator is resolved by email in Supabase (same domain
+  rules apply).
+- **Convex action** `createHackDayFromWeb`: Gets current user email from Clerk, calls the
+  Forge web trigger URL with `FORGE_HACKDAY_CREATE_WEB_TRIGGER_URL` and
+  `HACKDAY_CREATE_WEB_SECRET`. Requires these and optionally `CONFLUENCE_HDC_PARENT_PAGE_ID`
+  in Convex env.
+- **Wizard UI:** `/hackdays/create` — 5 steps (Basic, Schedule, Rules, Branding, Review).
+  Submit calls the Convex action and opens the new child page URL on success.
+- **HackDays hub:** "Create in app" links to `/hackdays/create`; "Or create from Confluence"
+  still opens the parent page for the macro flow.
 
 ---
 

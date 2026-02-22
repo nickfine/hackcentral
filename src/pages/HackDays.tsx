@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAction } from 'convex/react';
 import { ExternalLink, Plus, Calendar, User, Rocket } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
@@ -71,28 +72,33 @@ export default function HackDays() {
     };
   }, [listEvents, getParentUrl]);
 
-  const handleCreateHackDay = () => {
-    if (parentPageUrl) {
-      window.open(parentPageUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   return (
     <div className="min-w-0 space-y-6">
       <SectionHeader
         variant="page"
         title="HackDays"
         description="Create and open HackDay events. Each runs on its own Confluence page."
-        action={
-          parentPageUrl
-            ? {
-                label: 'Create HackDay',
-                icon: <Plus className="h-4 w-4" />,
-                onClick: handleCreateHackDay,
-              }
-            : undefined
-        }
       />
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          to="/hackdays/create"
+          className="btn btn-primary inline-flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create in app
+        </Link>
+        {parentPageUrl && (
+          <a
+            href={parentPageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline btn-sm inline-flex items-center gap-1 text-muted-foreground"
+          >
+            Or create from Confluence
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </div>
 
       {error && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">

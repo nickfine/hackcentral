@@ -18,6 +18,7 @@ const TeamPulse = lazy(() => import('@/pages/TeamPulse').then((m) => ({ default:
 const LibraryAssetDetail = lazy(() => import('@/pages/LibraryAssetDetail').then((m) => ({ default: m.default })))
 const Hacks = lazy(() => import('@/pages/Hacks').then((m) => ({ default: m.default })))
 const HackDays = lazy(() => import('@/pages/HackDays').then((m) => ({ default: m.default })))
+const CreateHackDay = lazy(() => import('@/pages/CreateHackDay').then((m) => ({ default: m.default })))
 
 /**
  * Redirect component that preserves query params and adds tab param.
@@ -157,6 +158,14 @@ function App() {
               element={
                 <Suspense fallback={<PageFallback />}>
                   <HackDays />
+                </Suspense>
+              }
+            />
+            <Route
+              path="hackdays/create"
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <CreateHackDay />
                 </Suspense>
               }
             />

@@ -23,9 +23,15 @@ modules:
       handler: index.handler
     - key: phase5-migration-ops
       handler: ops.handler
+    - key: create-from-web
+      handler: createFromWeb.handler
   webtrigger:
     - key: phase5-migration-wt
       function: phase5-migration-ops
+      response:
+        type: dynamic
+    - key: hackday-create-from-web
+      function: create-from-web
       response:
         type: dynamic
 
@@ -66,3 +72,5 @@ environment:
     - HACKDAY_TEMPLATE_APP_ID
     - HACKDAY_TEMPLATE_ENVIRONMENT_ID
     - HACKDAY_TEMPLATE_MACRO_KEY
+    - CONFLUENCE_HDC_PARENT_PAGE_ID
+    - HACKDAY_CREATE_WEB_SECRET

@@ -22,6 +22,10 @@ const vars = [
   { env: 'SUPABASE_SERVICE_ROLE_KEY', required: true },
   { env: 'CONFLUENCE_HDC_PARENT_PAGE_URL', required: false },
   { env: 'SUPABASE_SCHEMA', required: false },
+  // Phase 3 in-app creation
+  { env: 'FORGE_HACKDAY_CREATE_WEB_TRIGGER_URL', required: false },
+  { env: 'HACKDAY_CREATE_WEB_SECRET', required: false },
+  { env: 'CONFLUENCE_HDC_PARENT_PAGE_ID', required: false },
 ];
 
 function setConvexEnv(name, value) {

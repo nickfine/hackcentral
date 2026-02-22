@@ -453,9 +453,14 @@ export class HdcService {
     };
   }
 
+  /**
+   * Options for creation when invoked from the web (Phase 3). When set, the creator
+   * is resolved by email instead of Atlassian viewer context.
+   */
   async createInstanceDraft(
     viewer: ViewerContext,
-    input: CreateInstanceDraftInput
+    input: CreateInstanceDraftInput,
+    options?: { overrideCreatorEmail?: string }
   ): Promise<CreateInstanceDraftResult> {
     if (!input.basicInfo.eventName.trim()) {
       throw new Error('Event name is required.');
@@ -486,12 +491,13 @@ export class HdcService {
       };
     }
 
-    const viewerEmail =
-      (await getCurrentUserEmail(viewer.accountId)) ||
-      (await this.repository.getUserByAccountId(viewer.accountId))?.email ||
-      fallbackEmailFromAccount(viewer.accountId);
-
-    const normalizedViewerEmail = normalizeEmail(viewerEmail);
+    const normalizedViewerEmail = options?.overrideCreatorEmail
+      ? normalizeEmail(options.overrideCreatorEmail)
+      : normalizeEmail(
+          (await getCurrentUserEmail(viewer.accountId)) ||
+            (await this.repository.getUserByAccountId(viewer.accountId))?.email ||
+            fallbackEmailFromAccount(viewer.accountId)
+        );
     ensureAdaptavistEmail(normalizedViewerEmail);
 
     const primaryAdminEmail = normalizeEmail(input.basicInfo.primaryAdminEmail || normalizedViewerEmail);
@@ -531,7 +537,9 @@ export class HdcService {
     });
 
     try {
-      const creator = await this.repository.ensureUser(viewer, normalizedViewerEmail);
+      const creator = options?.overrideCreatorEmail
+        ? await this.repository.ensureUserByEmail(normalizedViewerEmail)
+        : await this.repository.ensureUser(viewer, normalizedViewerEmail);
       const primaryAdmin =
         primaryAdminEmail === normalizedViewerEmail
           ? creator
