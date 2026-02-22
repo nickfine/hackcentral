@@ -93,6 +93,18 @@ inside the child, without re-running the creation wizard.
 - HD26Forge already reads the seed at bootstrap — re-read on each load so admin changes
   are reflected immediately on next page load. No cache invalidation needed for v1.
 
+### Phase 2 implementation (done)
+
+- **Backend (HD26Forge)** `src/index.js`: `getEventPhase` returns merged branding from
+  seed over event and `isEventAdmin` (current user email matches `primary_admin_email` or
+  `co_admin_emails` from HackdayTemplateSeed). New resolver `updateEventBranding` (event-admin
+  only) updates `HackdayTemplateSeed.seed_payload.branding` and `Event.event_branding`.
+- **Frontend**: App stores `eventBranding` and `isEventAdmin` from `getEventPhase`; passes
+  `onRefreshEventPhase` to refresh after save. AppLayout shows Admin nav when `isEventAdmin`.
+  AdminPanel: “Branding” tab (visible only when `isEventAdmin`) with accent color, banner
+  image URL, theme (light/dark/system), banner message; save calls `updateEventBranding` then
+  refresh. Event admin = creator or co-admin from seed (no Supabase role required).
+
 ### Changes — HDC wizard (optional cleanup)
 
 - Simplify Step 4 (Branding) to just the minimum needed to bootstrap (e.g. accent
