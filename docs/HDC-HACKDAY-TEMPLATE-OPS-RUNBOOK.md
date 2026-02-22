@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Runbook for the Spinout Phase 6 operational path:
+Runbook for the Spinout Phase 6 operational path. For the **basic “create child HackDay” user flow** (parent page → wizard → child page → HD26Forge), see **`HDC-CREATE-CHILD-HACKDAY-FLOW.md`**.
+
+Runbook focus:
 1. Provision template from HDC parent macro.
 2. Verify seed/mapping contract integrity.
 3. Verify HackDay bootstrap and page-scoped isolation.

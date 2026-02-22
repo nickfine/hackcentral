@@ -10,20 +10,23 @@ Purpose: active cross-repo continuity notes only.
 4. `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
 
 ## Current status snapshot (authoritative)
-- Latest checkpoint time: 2026-02-21 13:59 UTC.
+- Latest checkpoint time: 2026-02-22 ~21:00 UTC.
 - Spinout migration/cutover workstream: complete.
 - Runtime mode: page-scoped context resolution in production.
 - Legacy dependency: singleton `isCurrent` fallback removed from HD26 resolver flow.
-- Current production line observed: Forge app `5.71.0`.
-- Current HD26Forge versions observed: root `7.5.70`, frontend `1.2.44`.
-- Latest code anchor on HD26Forge: `a31cfc0` on `main`.
+- Current HackCentral versions: root `0.6.23`, forge-native `0.1.4`.
+- Current HackCentral Forge app: `4.16.0`.
+- Current HD26Forge versions: root `7.5.76`, frontend `1.2.50`.
+- Current HD26Forge Forge app: `5.77.0`.
+- Latest code anchor on HD26Forge: `6f364c7` on `main`.
+- Latest code anchor on HackCentral: `91f60c3` on `main`.
 
 ## Latest retained checkpoints (active window)
-1. 2026-02-21 12:25 UTC: dashboard/theme parity pass and release hygiene.
-2. 2026-02-21 12:48 UTC: contrast/hierarchy refinement pass + production promotion.
-3. 2026-02-21 13:13 UTC: dashboard visual system tightening pass.
-4. 2026-02-21 13:55 UTC: dark-mode rollover fix + production promotion.
-5. 2026-02-21 13:59 UTC: validation-only closure, no code/deploy changes.
+1. 2026-02-21 13:55 UTC: dark-mode rollover fix + production promotion.
+2. 2026-02-21 13:59 UTC: validation-only closure, no code/deploy changes.
+3. 2026-02-21 14:24 UTC: Team Detail pill contrast remediation + deploy.
+4. 2026-02-22: HD26Forge code integrity audit – backend fixes (user.id bug, UUID IDs, magic numbers, error handling), frontend fixes (CSS tokenization, font mismatch, a11y, dead code), event-scoped theming. Deployed as `5.77.0`.
+5. 2026-02-22: HackCentral code integrity audit – schema cleanup (dead indexes, dead table, draft status removal), shared constants (email domain, timezone), frontend consolidation (icon maps, filter buttons, preview limits). Deployed as `4.16.0`.
 
 ## Validation state (latest retained checkpoint)
 - `npm --prefix /Users/nickster/Downloads/HD26Forge/static/frontend run build` passed.
@@ -34,62 +37,73 @@ Purpose: active cross-repo continuity notes only.
 
 ## Active boundary
 - No open architecture migration tasks remain for spinout.
+- Code integrity audit complete across both codebases (HIGH, MEDIUM, LOW items all resolved).
 - Current workstream is operational monitoring plus frontend UX iteration.
+
+## Creating child HackDay apps from HDC
+- **Basic flow:** Parent Confluence page (with HDC macro) → “Create HackDay template instance” wizard → child page with HD26Forge macro; Event + HackdayTemplateSeed written; HD26Forge resolves context by pageId from seed.
+- **Doc:** `docs/HDC-CREATE-CHILD-HACKDAY-FLOW.md` — prerequisites (Forge vars, Supabase tables), user steps, backend reference, verification checklist, troubleshooting.
+- **Forge vars (HDC app):** `HACKDAY_TEMPLATE_APP_ID`, `HACKDAY_TEMPLATE_ENVIRONMENT_ID`, `HACKDAY_TEMPLATE_MACRO_KEY` must be set so the child page is created with the HD26Forge macro.
 
 ## Archive
 - Full pre-compaction history is preserved at:
 - `/Users/nickster/Downloads/HackCentral/docs/archive/progress/2026-02-21/learnings.full.2026-02-21.md`
 - `/Users/nickster/Downloads/HackCentral/docs/archive/progress/2026-02-21/README.md`
 
-## Continuation update (2026-02-21 14:24 UTC)
+## Continuation update (2026-02-22)
 
 ### Scope
-- Closed exactly one pending slice after the `2026-02-21 13:59 UTC` checkpoint: Team Detail dark-mode pill contrast remediation and production promotion to `hackdaytemp`.
-- Scope was constrained to Team Detail pill contrast contracts (team/idea page), matching e2e selector contract updates, release bump/dist refresh, and deploy/install verification.
-- No backend/schema/API/manifest/env/routing/data-flow changes in this slice.
+Full code integrity and consistency audit across both HD26Forge and HackCentral codebases. All HIGH, MEDIUM, and LOW severity items resolved.
 
-### Exact changes
-1. Team Detail pill surfaces migrated from light-only utility classes to semantic classes in:
-   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/components/TeamDetail.jsx`
-   - Added semantic contracts for: membership badge, team vibe pill variants, vibe select control, quick reactions (idle/active), captain pending-empty state, "Looking For" pills, "looking for your skills" callout, and skill-coverage states.
-2. Added explicit light/dark contrast contracts in:
-   - `/Users/nickster/Downloads/HD26Forge/static/frontend/src/index.css`
-   - New class family: `team-detail-*` with mode-specific overrides under `[data-color-mode="dark"]`.
-3. Updated local e2e test contract to target semantic classes instead of brittle light-utility selectors:
-   - `/Users/nickster/Downloads/HD26Forge/tests/e2e/local/team-detail-ux.spec.ts`
-4. Applied required release hygiene + bundle refresh:
-   - `/Users/nickster/Downloads/HD26Forge/package.json` + lock (`7.5.71 -> 7.5.72`)
-   - `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json` + lock (`1.2.45 -> 1.2.46`)
-   - refreshed `/Users/nickster/Downloads/HD26Forge/static/frontend/dist/*`
-5. Commit/push:
-   - HD26Forge commit `ea0db46` (`Fix team detail pill contrast in dark mode and bump versions`) pushed to `origin/main`.
+### HD26Forge changes (v7.5.76 / frontend v1.2.50 / Forge `5.77.0`)
+**Backend (`src/index.js`):**
+- Fixed `user.id` runtime bug in `updateAutoAssignOptIn` (missing variable assignment).
+- Replaced 22 `Date.now()+Math.random()` ID patterns with `crypto.randomUUID()` via `makeId()` helper.
+- Extracted 6 magic numbers to named constants (`OBSERVERS_MAX_SIZE`, `SUPABASE_BATCH_SIZE`, etc.).
+- Extracted `OBSERVERS_TEAM_ID = "team-observers"` constant.
+- Standardized event registration error handling (returns `warning` field instead of silent swallow).
+- Removed duplicate JSDoc block.
 
-### Exact versions
-- `/Users/nickster/Downloads/HD26Forge/package.json`: `7.5.71 -> 7.5.72`
-- `/Users/nickster/Downloads/HD26Forge/static/frontend/package.json`: `1.2.45 -> 1.2.46`
-- Production deploy in this slice: Forge app version `5.73.0`.
+**Frontend:**
+- Replaced ~50 hardcoded hex colors in `index.css` with CSS variable tokens; removed ~15 redundant dark-mode overrides.
+- Fixed Tailwind font family mismatch (heading/sans/display now correctly reference Sora/Manrope).
+- Added `aria-label` and `aria-pressed` to view toggle buttons in Voting and Marketplace.
+- Extracted shared `MAX_SKILLS = 5` to `data/constants.js`.
+- Deleted unused `useReducedMotion.js` and `useNotifications.js` hooks.
+- Added vote error feedback toast in Voting component.
+- Event-scoped theming: `ThemeContext` + `ThemeStateProvider` with per-page localStorage persistence.
 
-### Validation results
-- `npm --prefix /Users/nickster/Downloads/HD26Forge/static/frontend run build` ✅ (`hackday-custom-ui@1.2.46`)
-- `npm -C /Users/nickster/Downloads/HD26Forge run test:e2e:local -- tests/e2e/local/team-detail-ux.spec.ts` ✅ (`3/3`)
-- `npm -C /Users/nickster/Downloads/HD26Forge run test:e2e:local` ✅ (`10/10`)
-- `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` ✅ pre-deploy (`PASS`)
-- `npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod` ✅ post-deploy (`PASS`)
-- `E2E_CONFLUENCE_URL='https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=7241729' npm -C /Users/nickster/Downloads/HD26Forge run test:e2e:confluence` ✅ (`5/5`)
+**Commit:** `6f364c7` on `main`.
+
+### HackCentral changes (v0.6.23 / forge-native v0.1.4 / Forge `4.16.0`)
+**Schema (`convex/schema.ts`):**
+- Removed unused `by_ai_related` index from `projectComments`.
+- Removed unused `by_category` index from `capabilityTags`.
+- Removed dead `recognitionBadges` table.
+- Removed `"draft"` from `libraryAssets` status union.
+
+**Backend:**
+- Deleted spent `migrateHackTypes.ts` migration file.
+- Updated `forgeBridge.ts`: new assets created as `"in_progress"` instead of `"draft"`.
+- Cleaned up `libraryAssets.ts`: removed `migrateDraftToInProgress` mutation and `"draft"` from validators.
+- Cleaned up `seedData.ts`: removed `"draft"` from `LIBRARY_STATUSES` and `recognitionBadges` cleanup.
+- Added trust-model comment to `forgeBridge.ts` auth boundary.
+- Documented Clerk domain constraint in `auth.config.ts`.
+
+**Forge native:**
+- Extracted `ALLOWED_EMAIL_DOMAIN` and `DEFAULT_TIMEZONE` constants in `hdcService.ts`, `repositories.ts`, and both frontend apps.
+
+**Frontend:**
+- Consolidated duplicate hack-type icon maps into shared `HACK_TYPE_ICON_COMPONENTS` in `constants/project.ts`.
+- Removed non-functional "More Filters" button from Projects page.
+- Extracted preview limit constants in Library, People, and Search pages.
+
+**Commit:** `91f60c3` on `main`.
 
 ### Deploy/install outcomes
-- `forge deploy -e production --non-interactive` ✅ (deployed `5.73.0`; `forge deploy list -e production` latest row `2026-02-21T14:22:40.891Z`, `production`, major `5`, `Success`).
-- `forge install --upgrade --site hackdaytemp.atlassian.net --product confluence -e production --non-interactive` ✅ (`Site is already at the latest version`).
-- `forge install list --site hackdaytemp.atlassian.net --product confluence -e production` ✅ (`Up-to-date`, installation `5ba1ba16-d69f-4aaa-9dfc-038f9571d095`, app major `5`).
+- HD26Forge: `forge deploy -e production` ✅ (`5.77.0`), hackdaytemp up-to-date.
+- HackCentral: `forge deploy -e production` ✅ (`4.16.0`), hackdaytemp up-to-date.
 
-### Commit hash(es)
-- HD26Forge: `ea0db46` (pushed `main`, range `e81162c..ea0db46`).
-- HackCentral docs repo: `no new commit` (checkpoint appended in working tree only).
-
-### Rollback safety evidence
-- Pre-change anchors:
-  - HD26Forge: branch `main`, HEAD `e81162c` (rollback anchor)
-  - HackCentral: branch `main`, HEAD `b7b3882` (rollback anchor)
-- Post-change anchors:
-  - HD26Forge: branch `main`, HEAD `ea0db46`; rollback anchor remains `e81162c`.
-  - HackCentral: branch `main`, HEAD `b7b3882`; rollback anchor unchanged.
+### Rollback anchors
+- HD26Forge: pre-change `755bb7f`, post-change `6f364c7`.
+- HackCentral: pre-change `26b66d4` (docs commit), post-change `91f60c3`.

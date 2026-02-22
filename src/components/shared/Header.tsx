@@ -283,6 +283,9 @@ function MobileNav({ onClose, onOpenFeedback }: MobileNavProps) {
           <MobileNavLink to="/hacks" onClick={onClose}>
             Hacks
           </MobileNavLink>
+          <MobileNavLink to="/hackdays" onClick={onClose}>
+            HackDays
+          </MobileNavLink>
           <MobileNavLink to="/people" onClick={onClose}>
             People
           </MobileNavLink>

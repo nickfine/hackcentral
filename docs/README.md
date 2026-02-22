@@ -15,6 +15,7 @@ Canonical docs for HDC architecture, plans, and ops.
 |-----|--------|
 | **ADR-001-HDC-V2-ARCHITECTURE.md** | Architecture decision record. |
 | **HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md** | Spinout plan (compact); links to archive for full history. |
+| **HDC-CREATE-CHILD-HACKDAY-FLOW.md** | **Creating a child HackDay from HDC** — user flow, prerequisites, verification. |
 | **HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md** | Ops runbook for template provisioning. |
 | **HDC-HACKDAY-TEMPLATE-RELEASE-CHECKLIST.md** | Release checklist. |
 | **HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md** | Smoke test template. |

@@ -2,22 +2,25 @@
 
 An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-## 🚀 Tech Stack
+**Current version:** `0.6.23` / forge-native `0.1.4` / Forge app `4.16.0`
+
+## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Convex (Database, Real-time, Server Functions)
+- **Forge Native**: Atlassian Forge app for Confluence integration (global page + macro)
 - **Styling**: Tailwind CSS 4
 - **UI Components**: Custom components with Framer Motion animations
 - **Icons**: Lucide React
 - **Testing**: Vitest + React Testing Library
-- **Deployment**: Vercel
+- **Deployment**: Vercel (web app) + Forge (Confluence apps on hackdaytemp.atlassian.net)
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Node.js 18+ and npm
 - A Convex account (free tier available at [convex.dev](https://convex.dev))
 
-## 🛠️ Setup
+## Setup
 
 ### 1. Install Dependencies
 
@@ -67,7 +70,7 @@ This starts both:
 - Convex backend (watches for changes in `convex/`)
 - Vite frontend (http://localhost:5173)
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 HackCentral/
@@ -76,8 +79,20 @@ HackCentral/
 │   ├── profiles.ts         # Profile queries/mutations
 │   ├── projects.ts         # Project queries/mutations
 │   ├── libraryAssets.ts    # Library queries/mutations
+│   ├── forgeBridge.ts      # Forge ↔ Convex bridge mutations
 │   ├── capabilityTags.ts   # Capability tag queries
+│   ├── auth.config.ts      # Clerk auth config (domain is hardcoded - see doc comment)
 │   └── seedData.ts         # Seed data functions
+├── forge-native/            # Atlassian Forge app (v0.1.4)
+│   ├── manifest.yml        # Forge manifest (global page + macro)
+│   ├── src/
+│   │   ├── backend/        # Forge resolvers
+│   │   │   ├── hdcService.ts      # HackCentral service layer
+│   │   │   └── supabase/          # Supabase repository layer
+│   │   └── shared/types.ts # Shared constants (ALLOWED_EMAIL_DOMAIN, DEFAULT_TIMEZONE)
+│   └── static/
+│       ├── frontend/       # Global page Custom UI
+│       └── macro-frontend/ # Macro Custom UI
 ├── src/
 │   ├── components/         # React components
 │   │   ├── shared/        # Shared components (Header, Sidebar, Layout)
@@ -86,32 +101,27 @@ HackCentral/
 │   │   ├── library/       # Library components
 │   │   ├── people/        # People module components
 │   │   └── projects/      # Project components
+│   ├── constants/         # Shared constants (project types, icon maps)
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/               # Utilities and configuration
 │   │   ├── convex.ts      # Convex client setup
 │   │   ├── design-system.ts # Design tokens
 │   │   └── utils.ts       # Utility functions
 │   ├── pages/             # Page components
-│   │   ├── Dashboard.tsx
-│   │   ├── Library.tsx
-│   │   ├── People.tsx
-│   │   ├── Projects.tsx
-│   │   └── Profile.tsx
 │   ├── styles/            # Global styles
 │   ├── types/             # TypeScript types
 │   └── App.tsx            # Main app component
 ├── tests/                 # Test files
-├── ROADMAP.md            # Complete project roadmap
-├── IMPLEMENTATION_PLAN.md # Detailed implementation plan
-└── CONVEX_SETUP.md       # Detailed Convex setup guide
-
+├── docs/                  # Runbooks, architecture docs, artifacts
+├── learnings.md           # Active cross-repo continuity notes
+└── PLAN_HDC_V2_EXECUTION.md # V2 execution plan
 ```
 
-## 🎨 Design system
+## Design system
 
 Shared UI components and page patterns (SectionHeader, ModalWrapper, SkeletonGrid, etc.) are documented in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md). Use these for new pages and modals to keep the app consistent.
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run tests
@@ -127,7 +137,7 @@ npm run test:run
 npm run test:coverage
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Deploy Convex Backend
 
@@ -148,6 +158,14 @@ Vercel will automatically:
 - Deploy the `dist/` folder
 - Configure SPA routing (via `vercel.json`)
 
+### Deploy Forge App to hackdaytemp
+
+```bash
+cd forge-native
+forge deploy --environment production --non-interactive
+forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive
+```
+
 ### Monitoring & feedback (Phase 4)
 
 - **Error tracking (Sentry)**  
@@ -159,13 +177,13 @@ Vercel will automatically:
 - **A/B testing (lightweight)**  
   Convex env vars drive copy variants. In Convex Dashboard → Settings → Environment Variables, set `NUDGE_COPY_VARIANT=a` or `b` to switch the learning-summary nudge copy on project detail. The app uses `settings.getPublicConfig`; add more keys there to run other experiments.
 
-## 📖 Key Concepts
+## Key Concepts
 
 ### AI Maturity Dashboard
 Visualizes org-wide AI maturity progress using a staged behavioral model (Experimenting → Repeating → Scaling → Transforming).
 
 ### Completed Hacks & Featured Hacks
-Repository of reusable AI assets (prompts, skills, and apps) with quality gates (Draft → Verified → Deprecated).
+Repository of reusable AI assets (prompts, skills, and apps) with quality gates (In Progress → Verified → Deprecated).
 
 ### People Module
 Pull engine for adoption - makes support visible, enables mentorship, and routes late joiners to appropriate resources.
@@ -179,22 +197,23 @@ One-click pairing system to convert early adopter energy into distributed enable
 ### Recognition & Social Proof
 Badges, leaderboards, and impact stories to create FOMO and measurable value visibility.
 
-## 📚 Documentation
+## Documentation
 
 - [Full Roadmap](./ROADMAP.md) - Complete project vision and technical architecture
 - [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Phased development plan
 - [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
+- [Design System](./DESIGN_SYSTEM.md) - Shared UI components and patterns
 - [Convex Docs](https://docs.convex.dev) - Official Convex documentation
-- **Progress and plans:** Active source-of-truth is `learnings.md`, `PLAN_HDC_V2_EXECUTION.md`, and `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
+- **Active source-of-truth:** `learnings.md`, `PLAN_HDC_V2_EXECUTION.md`, and `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
 
-## 🎯 Success Metrics
+## Success Metrics
 
 - Accelerate from <20% to >50% regular AI-using contributors within 12 months
 - Early adopters seed ≥70% of reusable AI assets
 - Increasing Library reuse rate
 - Increasing % of projects shipping AI artefacts
 
-## 🤝 Contributing
+## Contributing
 
 This is a private organizational tool. Contributions follow the platform's own workflow:
 1. Experiment with AI in your work
@@ -202,11 +221,11 @@ This is a private organizational tool. Contributions follow the platform's own w
 3. Help others through mentorship
 4. Celebrate wins with impact stories
 
-## 📝 License
+## License
 
 Private/Internal Use
 
-## 🔗 Related Resources
+## Related Resources
 
 - [GitHub Repository](https://github.com/nickfine/hackcentral)
 - [Convex Dashboard](https://dashboard.convex.dev)

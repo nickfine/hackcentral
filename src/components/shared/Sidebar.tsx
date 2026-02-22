@@ -10,6 +10,7 @@ import {
   FolderKanban,
   Sparkles,
   Activity,
+  Rocket,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,11 @@ const navItems = [
     to: '/hacks',
     label: 'Hacks',
     icon: FolderKanban,
+  },
+  {
+    to: '/hackdays',
+    label: 'HackDays',
+    icon: Rocket,
   },
   {
     to: '/people',
