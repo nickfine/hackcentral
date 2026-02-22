@@ -1,3 +1,13 @@
+/**
+ * Forge Bridge — Convex mutations and queries called from the Forge backend resolver
+ * (src/index.js) via the Convex HTTP API.
+ *
+ * TRUST MODEL: These handlers run on the Convex server and are invoked from the
+ * Atlassian Forge resolver, which is itself authenticated by Atlassian (accountId /
+ * siteUrl are provided by the Forge runtime, not the end user). No additional
+ * Convex auth layer is applied here — the Forge resolver is the trust boundary.
+ * Do NOT expose these mutations directly to browser clients.
+ */
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -228,7 +238,7 @@ export const createHackFromForge = mutation({
         format: "forge_note",
         text: args.content ?? "",
       },
-      status: "draft",
+      status: "in_progress",
       authorId: profile._id,
       visibility: args.visibility ?? "org",
       isArsenal: false,

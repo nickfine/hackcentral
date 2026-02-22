@@ -10,9 +10,6 @@ import {
   ArrowLeft,
   Link2,
   Copy,
-  FileText,
-  Code,
-  Bot,
   Check,
   Quote,
   User,
@@ -29,7 +26,7 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '@/hooks/useAuth';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
-import { HACK_TYPE_BADGE_COLORS, HACK_TYPE_LABELS_SINGULAR } from '@/constants/project';
+import { HACK_TYPE_BADGE_COLORS, HACK_TYPE_LABELS_SINGULAR, HACK_TYPE_ICON_COMPONENTS } from '@/constants/project';
 import type { SourceRepo } from '@/components/shared/RepoLink';
 import { CopyFeedbackToast } from '@/components/shared/CopyFeedbackToast';
 import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
@@ -37,11 +34,6 @@ import { PromptWithVariables } from './PromptWithVariables';
 
 type AttachmentType = 'referenced' | 'copied' | 'linked' | 'attached';
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  prompt: <FileText className="h-4 w-4" />,
-  skill: <Code className="h-4 w-4" />,
-  app: <Bot className="h-4 w-4" />,
-};
 
 const SAMPLE_TESTIMONIAL = {
   text: 'Saved my team 5 hours with this hack!',
@@ -755,7 +747,8 @@ function SimilarHackCard({
   onSelect: () => void;
 }) {
   const typeLabel = HACK_TYPE_LABELS_SINGULAR[asset.assetType] ?? asset.assetType.replace('_', ' ');
-  const typeIcon = TYPE_ICONS[asset.assetType] ?? <FileText className="h-4 w-4" />;
+  const TypeIcon = HACK_TYPE_ICON_COMPONENTS[asset.assetType] ?? HACK_TYPE_ICON_COMPONENTS.prompt;
+  const typeIcon = <TypeIcon className="h-4 w-4" />;
 
   return (
     <button

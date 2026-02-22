@@ -1,3 +1,7 @@
+import {
+  ALLOWED_EMAIL_DOMAIN,
+  DEFAULT_TIMEZONE,
+} from '../shared/types';
 import type {
   CreateInstanceDraftInput,
   CreateInstanceDraftResult,
@@ -24,14 +28,14 @@ import { createChildPageUnderParent, deletePage, getCurrentUserEmail } from './c
 import { SupabaseRepository } from './supabase/repositories';
 
 function ensureAdaptavistEmail(email: string): void {
-  if (!email.toLowerCase().endsWith('@adaptavist.com')) {
-    throw new Error('Only @adaptavist.com users can create HackDay instances.');
+  if (!email.toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN)) {
+    throw new Error(`Only ${ALLOWED_EMAIL_DOMAIN} users can create HackDay instances.`);
   }
 }
 
 function fallbackEmailFromAccount(accountId: string): string {
   const safe = accountId.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `${safe}@adaptavist.com`;
+  return `${safe}${ALLOWED_EMAIL_DOMAIN}`;
 }
 
 function normalizeEmail(email: string): string {
@@ -87,7 +91,7 @@ function normalizeEventSchedule(
   fallback?: { timezone?: string | null; hackingStartsAt?: string | null; submissionDeadlineAt?: string | null }
 ): EventSchedule {
   return {
-    timezone: normalizeOptionalString(input?.timezone) || normalizeOptionalString(fallback?.timezone) || 'Europe/London',
+    timezone: normalizeOptionalString(input?.timezone) || normalizeOptionalString(fallback?.timezone) || DEFAULT_TIMEZONE,
     registrationOpensAt: normalizeOptionalString(input?.registrationOpensAt),
     registrationClosesAt: normalizeOptionalString(input?.registrationClosesAt),
     teamFormationStartsAt: normalizeOptionalString(input?.teamFormationStartsAt),
@@ -557,7 +561,7 @@ export class HdcService {
         eventName: input.basicInfo.eventName,
         icon: input.basicInfo.eventIcon || '🚀',
         tagline: input.basicInfo.eventTagline,
-        timezone: eventSchedule.timezone || 'Europe/London',
+        timezone: eventSchedule.timezone || DEFAULT_TIMEZONE,
         lifecycleStatus: launchMode === 'go_live' ? 'registration' : 'draft',
         confluencePageId: childPage.pageId,
         confluencePageUrl: childPage.pageUrl,

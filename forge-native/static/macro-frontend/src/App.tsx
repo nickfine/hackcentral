@@ -10,6 +10,7 @@ import type {
   ThemePreference,
   WizardStep,
 } from './types';
+import { DEFAULT_TIMEZONE } from './types';
 import {
   buildConfluencePagePath,
   buildSwitcherSections,
@@ -131,8 +132,10 @@ function formatSyncErrorCategory(category: SyncResult['syncErrorCategory']): str
     .join(' ');
 }
 
+const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
+
 function isAdaptavistEmail(email: string): boolean {
-  return email.trim().toLowerCase().endsWith('@adaptavist.com');
+  return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
 }
 
 function isDateRangeInvalid(start: string, end: string): boolean {
@@ -167,7 +170,7 @@ export function App(): JSX.Element {
   const [wizardLoaded, setWizardLoaded] = useState(false);
   const [pendingCreateRequestId, setPendingCreateRequestId] = useState<string | null>(null);
   const [createDraftTimedOut, setCreateDraftTimedOut] = useState(false);
-  const [timezone, setTimezone] = useState('Europe/London');
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [registrationOpensAt, setRegistrationOpensAt] = useState('');
   const [registrationClosesAt, setRegistrationClosesAt] = useState('');
   const [teamFormationStartsAt, setTeamFormationStartsAt] = useState('');
@@ -409,7 +412,7 @@ export function App(): JSX.Element {
       setEventNameError('');
       setPrimaryAdminEmail('');
       setCoAdminsInput('');
-      setTimezone('Europe/London');
+      setTimezone(DEFAULT_TIMEZONE);
       setRegistrationOpensAt('');
       setRegistrationClosesAt('');
       setTeamFormationStartsAt('');
@@ -521,7 +524,7 @@ export function App(): JSX.Element {
           return 'Event name is required.';
         }
         if (primaryAdminEmail.trim() && !isAdaptavistEmail(primaryAdminEmail)) {
-          return 'Primary admin email must be an @adaptavist.com address.';
+          return `Primary admin email must be an ${ALLOWED_EMAIL_DOMAIN} address.`;
         }
         const invalidCoAdmin = coAdminsInput
           .split(',')
@@ -529,7 +532,7 @@ export function App(): JSX.Element {
           .filter(Boolean)
           .some((email) => !isAdaptavistEmail(email));
         if (invalidCoAdmin) {
-          return 'All co-admin emails must be @adaptavist.com addresses.';
+          return `All co-admin emails must be ${ALLOWED_EMAIL_DOMAIN} addresses.`;
         }
       }
 

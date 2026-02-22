@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, BookOpen } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 
+const RECENT_ACTIVITY_LIMIT = 10;
+const LEADERBOARD_TOP_N = 5;
+
 interface RecentActivityItem {
   _id: string;
   _creationTime: number;
@@ -105,7 +108,7 @@ export function TabbedRecognition({
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {recentActivity.slice(0, 10).map((item) => (
+                    {recentActivity.slice(0, RECENT_ACTIVITY_LIMIT).map((item) => (
                       <li
                         key={item._id}
                         className="flex flex-wrap items-baseline gap-x-1 text-sm"
@@ -143,7 +146,7 @@ export function TabbedRecognition({
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {topContributors.slice(0, 5).map((entry, i) => (
+                    {topContributors.slice(0, LEADERBOARD_TOP_N).map((entry, i) => (
                       <li
                         key={entry.userId}
                         className="flex items-center justify-between text-sm"
@@ -175,7 +178,7 @@ export function TabbedRecognition({
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {topMentors.slice(0, 5).map((entry, i) => (
+                    {topMentors.slice(0, LEADERBOARD_TOP_N).map((entry, i) => (
                       <li
                         key={entry.mentorId}
                         className="flex items-center justify-between text-sm"
@@ -208,7 +211,7 @@ export function TabbedRecognition({
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {mostReusedAssets.slice(0, 5).map((entry, i) => (
+                    {mostReusedAssets.slice(0, LEADERBOARD_TOP_N).map((entry, i) => (
                       <li
                         key={entry.assetId}
                         className="flex items-center justify-between text-sm"

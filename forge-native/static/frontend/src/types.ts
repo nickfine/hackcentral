@@ -1,3 +1,6 @@
+/** Default timezone for events when none is supplied by the event record. */
+export const DEFAULT_TIMEZONE = 'Europe/London';
+
 export interface ViewerContext {
   accountId: string;
   siteUrl: string;

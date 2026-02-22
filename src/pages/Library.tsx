@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, Sparkles, FileText, Bot, Code, Check } from 'lucide-react';
+import { Search, Plus, Sparkles, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -14,8 +14,11 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { EmptyState, ModalWrapper, SkeletonGrid, SectionHeader } from '@/components/shared';
 import { RepositoryInput, parseRepoUrl } from '@/components/library/RepositoryInput';
-import { HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import { HACK_TYPES, HACK_TYPE_BADGE_COLORS, HACK_TYPE_ICON_COMPONENTS } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
+
+const ARSENAL_PREVIEW_LIMIT = 4;
+const GRADUATED_PREVIEW_LIMIT = 8;
 
 const VISIBILITY_OPTIONS = [
   { value: 'org', label: 'Organization (colleagues)' },
@@ -506,7 +509,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {arsenalAssets.slice(0, 4).map((asset) => (
+            {arsenalAssets.slice(0, ARSENAL_PREVIEW_LIMIT).map((asset) => (
               <AssetCard key={asset._id} asset={asset} onSelect={(id) => navigate(`/library/${id}`)} />
             ))}
           </div>
@@ -521,7 +524,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
             Hacks with 10+ reuses — ready for template packs and playbooks.
           </p>
           <ul className="space-y-2">
-            {graduatedAssets.slice(0, 8).map(({ assetId, title, reuseCount }) => (
+            {graduatedAssets.slice(0, GRADUATED_PREVIEW_LIMIT).map(({ assetId, title, reuseCount }) => (
               <li key={assetId}>
                 <button
                   type="button"
@@ -603,14 +606,9 @@ interface AssetCardProps {
 }
 
 function AssetCard({ asset, onSelect }: AssetCardProps) {
-  const typeIcons: Record<string, React.ReactNode> = {
-    prompt: <FileText className="h-4 w-4" />,
-    skill: <Code className="h-4 w-4" />,
-    app: <Bot className="h-4 w-4" />,
-  };
-
   const reuseCount = asset.totalReuseEvents ?? 0;
   const typeLabel = HACK_TYPES.find((t) => t.value === asset.assetType)?.label ?? asset.assetType;
+  const TypeIcon = HACK_TYPE_ICON_COMPONENTS[asset.assetType] ?? HACK_TYPE_ICON_COMPONENTS.prompt;
 
   return (
     <div
@@ -634,7 +632,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
-              {typeIcons[asset.assetType] || <FileText className="h-4 w-4" />}
+              <TypeIcon className="h-4 w-4" />
             </div>
             <h3 className="font-semibold text-sm leading-tight truncate">{asset.title}</h3>
           </div>

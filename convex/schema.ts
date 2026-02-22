@@ -48,8 +48,7 @@ export default defineSchema({
     category: v.optional(v.string()), // Optional grouping
     displayOrder: v.number(),
   })
-    .index("by_code", ["code"])
-    .index("by_category", ["category"]),
+    .index("by_code", ["code"]),
 
   // ============================================================================
   // LIBRARY ASSETS
@@ -64,9 +63,8 @@ export default defineSchema({
       v.literal("app")
     ),
     content: v.any(), // Structured content (prompt text, config, etc.)
-    // Status: 'in_progress' | 'verified' | 'deprecated' (legacy 'draft' kept until migration runs)
+    // Status: 'in_progress' | 'verified' | 'deprecated'
     status: v.union(
-      v.literal("draft"),
       v.literal("in_progress"),
       v.literal("verified"),
       v.literal("deprecated")
@@ -213,8 +211,7 @@ export default defineSchema({
     isAiRelated: v.boolean(), // Flag for AI-related comments
   })
     .index("by_project", ["projectId"])
-    .index("by_author", ["authorId"])
-    .index("by_ai_related", ["isAiRelated"]),
+    .index("by_author", ["authorId"]),
 
   // ============================================================================
   // PROJECT SUPPORT EVENTS
@@ -292,27 +289,6 @@ export default defineSchema({
     .index("by_type", ["contributionType"])
     .index("by_asset", ["assetId"])
     .index("by_project", ["projectId"]),
-
-  // ============================================================================
-  // RECOGNITION BADGES
-  // ============================================================================
-  recognitionBadges: defineTable({
-    userId: v.id("profiles"),
-    // Badge type: 'most_reused' | 'most_verified' | 'fastest_pull_through' | 'mentor_champion'
-    badgeType: v.union(
-      v.literal("most_reused"),
-      v.literal("most_verified"),
-      v.literal("fastest_pull_through"),
-      v.literal("mentor_champion")
-    ),
-    metricValue: v.number(),
-    periodStart: v.number(), // Timestamp
-    periodEnd: v.number(), // Timestamp
-    validationMetadata: v.optional(v.any()), // Anti-gaming metadata
-  })
-    .index("by_user", ["userId"])
-    .index("by_type", ["badgeType"])
-    .index("by_period", ["periodStart", "periodEnd"]),
 
   // ============================================================================
   // FEEDBACK (Phase 4: user feedback loop)

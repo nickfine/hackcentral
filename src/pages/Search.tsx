@@ -44,7 +44,7 @@ export default function Search() {
   const filteredAssets = allAssets === undefined ? [] : allAssets.filter((a) => matchAsset(q, a));
   const filteredProfiles = profiles === undefined ? [] : profiles.filter((p) => matchProfile(q, p));
 
-  const limit = 10;
+  const SEARCH_RESULTS_LIMIT = 10;
 
   return (
     <div className="min-w-0 space-y-6">
@@ -77,7 +77,7 @@ export default function Search() {
               <p className="text-muted-foreground text-sm">No completed hacks match.</p>
             ) : (
               <ul className="space-y-2">
-                {filteredAssets.slice(0, limit).map((asset) => (
+                {filteredAssets.slice(0, SEARCH_RESULTS_LIMIT).map((asset) => (
                   <li key={asset._id}>
                     <Link
                       to={`/hacks?tab=completed&q=${encodeURIComponent(q)}`}
@@ -95,7 +95,7 @@ export default function Search() {
                 ))}
               </ul>
             )}
-            {filteredAssets.length > limit && (
+            {filteredAssets.length > SEARCH_RESULTS_LIMIT && (
               <Link to={`/hacks?tab=completed&q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm mt-2">
                 View all {filteredAssets.length} hacks →
               </Link>
@@ -114,7 +114,7 @@ export default function Search() {
               <p className="text-muted-foreground text-sm">No people match.</p>
             ) : (
               <ul className="space-y-2">
-                {filteredProfiles.slice(0, limit).map((profile) => (
+                {filteredProfiles.slice(0, SEARCH_RESULTS_LIMIT).map((profile) => (
                   <li key={profile._id}>
                     <Link
                       to={`/people?q=${encodeURIComponent(q)}`}
@@ -135,7 +135,7 @@ export default function Search() {
                 ))}
               </ul>
             )}
-            {filteredProfiles.length > limit && (
+            {filteredProfiles.length > SEARCH_RESULTS_LIMIT && (
               <Link to={`/people?q=${encodeURIComponent(q)}`} className="btn btn-ghost btn-sm mt-2">
                 View all {filteredProfiles.length} people →
               </Link>

@@ -1,4 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DEFAULT_TIMEZONE } from './types';
 import type {
   BootstrapData,
   CreateHackInput,
@@ -370,7 +371,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       isNavigable: true,
       confluenceParentPageId: null,
       schedule: {
-        timezone: 'Europe/London',
+        timezone: DEFAULT_TIMEZONE,
         hackingStartsAt: '2026-02-10T09:00:00.000Z',
         submissionDeadlineAt: '2026-02-25T17:00:00.000Z',
       },
@@ -396,7 +397,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       isNavigable: true,
       confluenceParentPageId: null,
       schedule: {
-        timezone: 'Europe/London',
+        timezone: DEFAULT_TIMEZONE,
       },
       hackingStartsAt: null,
       submissionDeadlineAt: null,

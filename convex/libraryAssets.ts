@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -7,7 +7,7 @@ type ProfileDoc = Doc<"profiles"> | null;
 type Identity = Awaited<ReturnType<QueryCtx["auth"]["getUserIdentity"]>>;
 type AssetFilterArgs = {
   assetType?: "prompt" | "skill" | "app";
-  status?: "draft" | "in_progress" | "verified" | "deprecated";
+  status?: "in_progress" | "verified" | "deprecated";
   arsenalOnly?: boolean;
   excludeDeprecated?: boolean;
   limit?: number;
@@ -128,7 +128,6 @@ export const list = query({
     ),
     status: v.optional(
       v.union(
-        v.literal("draft"),
         v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
@@ -183,7 +182,6 @@ export const listWithReuseCounts = query({
     ),
     status: v.optional(
       v.union(
-        v.literal("draft"),
         v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
@@ -452,7 +450,6 @@ export const update = mutation({
     content: v.optional(v.any()),
     status: v.optional(
       v.union(
-        v.literal("draft"),
         v.literal("in_progress"),
         v.literal("verified"),
         v.literal("deprecated")
@@ -522,22 +519,3 @@ export const update = mutation({
   },
 });
 
-/**
- * One-off migration: set status to "in_progress" for all libraryAssets with status "draft".
- * Run once from Convex dashboard (Functions → libraryAssets → migrateDraftToInProgress).
- * After running, you can remove "draft" from the libraryAssets status union in schema.ts.
- */
-export const migrateDraftToInProgress = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const assets = await ctx.db.query("libraryAssets").collect();
-    let count = 0;
-    for (const asset of assets) {
-      if (asset.status === "draft") {
-        await ctx.db.patch(asset._id, { status: "in_progress" });
-        count++;
-      }
-    }
-    return { updated: count, total: assets.length };
-  },
-});

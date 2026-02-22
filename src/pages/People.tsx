@@ -17,6 +17,8 @@ import { EmptyState, SectionHeader, ModalWrapper, SkeletonGrid, PersonCard } fro
 import type { PersonCardProfile } from '@/components/shared';
 import { BulletinBoard } from '@/components/team/BulletinBoard';
 
+const HELPERS_PREVIEW_LIMIT = 6;
+
 type MentorFilter = 'all' | 'available' | 'seeking';
 
 function toPersonCardProfile(
@@ -180,7 +182,7 @@ export default function People() {
                   titleSuffix={<span className="badge badge-outline text-sm">({aiHelpers.length})</span>}
                 />
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {aiHelpers.slice(0, 6).map((profile) => (
+                  {aiHelpers.slice(0, HELPERS_PREVIEW_LIMIT).map((profile) => (
                     <PersonCard
                       key={profile._id}
                       profile={toPersonCardProfile(profile, capabilityTags ?? [])}

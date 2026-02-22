@@ -2,7 +2,7 @@ import { internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
 /** Library asset statuses — used to cycle status in seed data so all stages are represented. */
-const LIBRARY_STATUSES = ["draft", "in_progress", "verified", "deprecated"] as const;
+const LIBRARY_STATUSES = ["in_progress", "verified", "deprecated"] as const;
 
 /**
  * Seed initial capability tags
@@ -1514,12 +1514,6 @@ export const clearDemoData = internalMutation({
     }
     const aiContributions = await ctx.db.query("aiContributions").collect();
     for (const row of aiContributions) {
-      if (demoIds.has(row.userId)) {
-        await ctx.db.delete(row._id);
-      }
-    }
-    const recognitionBadges = await ctx.db.query("recognitionBadges").collect();
-    for (const row of recognitionBadges) {
       if (demoIds.has(row.userId)) {
         await ctx.db.delete(row._id);
       }

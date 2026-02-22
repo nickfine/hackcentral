@@ -7,8 +7,8 @@ const BADGE_LABELS: Record<string, string> = {
 };
 
 /**
- * Derived badges for the current user (last 30 days). Computed from existing data;
- * no write to recognitionBadges table. Used for "Your recognition" on Dashboard/Profile.
+ * Derived badges for the current user (last 30 days). Computed from existing data.
+ * Used for "Your recognition" on Dashboard/Profile.
  */
 export const getDerivedBadgesForCurrentUser = query({
   args: {},

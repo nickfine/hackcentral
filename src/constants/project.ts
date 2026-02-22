@@ -1,7 +1,9 @@
 /**
- * Shared project constants for status labels and badge styling.
- * Used by Projects list, ProjectDetail page, and filters.
+ * Shared project constants for status labels, badge styling, and type icons.
+ * Used by Projects list, ProjectDetail page, Library, and filters.
  */
+import { FileText, Code, Bot } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export const PROJECT_STATUS_LABELS: Record<string, string> = {
   idea: 'Idea',
@@ -45,4 +47,11 @@ export const HACK_TYPE_BADGE_COLORS: Record<string, string> = {
   prompt: 'bg-violet-100 text-violet-800 border-violet-200',
   skill: 'bg-amber-100 text-amber-800 border-amber-200',
   app: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+};
+
+/** Hack type icon components — render as `<Icon className="h-4 w-4" />` at call site. */
+export const HACK_TYPE_ICON_COMPONENTS: Record<string, LucideIcon> = {
+  prompt: FileText,
+  skill: Code,
+  app: Bot,
 };

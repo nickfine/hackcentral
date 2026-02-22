@@ -1,3 +1,9 @@
+/** Allowed email domain for admin operations — single source of truth for backend. */
+export const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
+
+/** Default timezone for events when none is supplied by the event record. */
+export const DEFAULT_TIMEZONE = 'Europe/London';
+
 export interface ViewerContext {
   accountId: string;
   siteUrl: string;

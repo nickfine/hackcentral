@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ALLOWED_EMAIL_DOMAIN, DEFAULT_TIMEZONE } from '../../shared/types';
 import type {
   BootstrapData,
   CreateHackInput,
@@ -814,7 +815,7 @@ function asEventSchedule(
     timezone:
       (typeof schedule.timezone === 'string' && schedule.timezone.trim() ? schedule.timezone.trim() : null) ||
       fallback.timezone ||
-      'Europe/London',
+      DEFAULT_TIMEZONE,
     registrationOpensAt: sanitizeScheduleDatetime(schedule.registrationOpensAt),
     registrationClosesAt: sanitizeScheduleDatetime(schedule.registrationClosesAt),
     teamFormationStartsAt: sanitizeScheduleDatetime(schedule.teamFormationStartsAt),
@@ -856,7 +857,7 @@ function toEventRegistryItem(event: DbEvent): EventRegistryItem {
 
 function buildAccountFallbackEmail(accountId: string): string {
   const safe = accountId.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `${safe}@adaptavist.com`;
+  return `${safe}${ALLOWED_EMAIL_DOMAIN}`;
 }
 
 function buildDisplayNameFromEmail(email: string): string {

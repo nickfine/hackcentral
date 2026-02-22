@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Heart, MessageCircle, HandHelping, FileText, Code, Bot } from 'lucide-react';
+import { Search, Plus, Heart, MessageCircle, HandHelping } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TabButton, EmptyState, ModalWrapper, SectionHeader } from '@/components/shared';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS } from '@/constants/project';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_BADGE_COLORS, HACK_TYPES, HACK_TYPE_BADGE_COLORS, HACK_TYPE_ICON_COMPONENTS, HACK_TYPE_LABELS_SINGULAR } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
 type Visibility = 'private' | 'org' | 'public';
@@ -269,10 +269,6 @@ export default function Projects(props: ProjectsEmbeddedProps = {}) {
                 </option>
               ))}
             </select>
-            <button type="button" className="btn btn-outline btn-md">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </button>
           </div>
         </>
       )}
@@ -389,21 +385,9 @@ interface ProjectCardProps {
   onOfferHelpClick: () => void;
 }
 
-const PROJECT_TYPE_ICONS: Record<string, React.ReactNode> = {
-  prompt: <FileText className="h-4 w-4" />,
-  skill: <Code className="h-4 w-4" />,
-  app: <Bot className="h-4 w-4" />,
-};
-
-/** Singular type label for card lozenge (align with Completed AssetCard). */
-const PROJECT_TYPE_SINGULAR: Record<string, string> = {
-  prompt: 'Prompt',
-  skill: 'Skill',
-  app: 'App',
-};
-
 function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, onLikeClick, onOfferHelpClick }: ProjectCardProps) {
-  const typeLabel = project.hackType ? (PROJECT_TYPE_SINGULAR[project.hackType] ?? project.hackType) : null;
+  const typeLabel = project.hackType ? (HACK_TYPE_LABELS_SINGULAR[project.hackType] ?? project.hackType) : null;
+  const TypeIcon = project.hackType ? (HACK_TYPE_ICON_COMPONENTS[project.hackType] ?? HACK_TYPE_ICON_COMPONENTS.prompt) : HACK_TYPE_ICON_COMPONENTS.prompt;
   const statusLabel = PROJECT_STATUS_LABELS[project.status] ?? project.status;
 
   return (
@@ -420,7 +404,7 @@ function ProjectCard({ project, isAuthenticated, onCardClick, onCommentsClick, o
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
-              {project.hackType ? PROJECT_TYPE_ICONS[project.hackType] ?? <FileText className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+              <TypeIcon className="h-4 w-4" />
             </div>
             <h3 className="font-semibold text-sm leading-tight truncate">{project.title}</h3>
           </div>
