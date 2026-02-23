@@ -1,6 +1,9 @@
 /** Default timezone for events when none is supplied by the event record. */
 export const DEFAULT_TIMEZONE = 'Europe/London';
 
+export type InstanceRuntime = 'hdc_native' | 'hackday_template';
+export type TemplateTarget = 'hackday';
+
 export interface ViewerContext {
   accountId: string;
   siteUrl: string;
@@ -77,6 +80,12 @@ export interface BootstrapData {
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];
   registry: EventRegistryItem[];
+  /** Base URL of HackCentral web app for "Create HackDay" link. Set HACKDAY_CREATE_APP_URL in Forge env. */
+  createAppUrl?: string | null;
+  /** Full URL to Confluence parent page (macro with create wizard). Set in Forge env for "Create in Confluence" link. */
+  parentPageUrl?: string | null;
+  /** Confluence page ID of the HackDay Central parent page. Set CONFLUENCE_HDC_PARENT_PAGE_ID in Forge env. */
+  parentPageId?: string | null;
 }
 
 export interface CreateHackInput {
@@ -249,6 +258,8 @@ export interface CreateInstanceDraftInput extends CreationWizardInput {
   wizardSchemaVersion?: 2;
   completedStep?: WizardStep;
   launchMode?: 'draft' | 'go_live';
+  instanceRuntime?: InstanceRuntime;
+  templateTarget?: TemplateTarget;
 }
 
 export interface CreateInstanceDraftResult {

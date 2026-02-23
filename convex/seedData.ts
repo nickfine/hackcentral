@@ -460,7 +460,7 @@ Bug report:
           url: "https://github.com/example/support-triage-app",
           platform: "github" as const,
         },
-        demoUrl: "https://support-triage-demo.vercel.app",
+        demoUrl: "https://support-triage-demo.example.com",
       },
       {
         title: "Content Moderation App",
@@ -500,7 +500,7 @@ Bug report:
           url: "https://github.com/example/content-moderation-app",
           platform: "github" as const,
         },
-        demoUrl: "https://content-moderation-demo.vercel.app",
+        demoUrl: "https://content-moderation-demo.example.com",
       },
 
       // === GUARDRAILS ===
@@ -1356,7 +1356,7 @@ Include:
             url: "https://github.com/example/demo-app",
             platform: "github",
           },
-          demoUrl: "https://demo-app-example.vercel.app",
+          demoUrl: "https://demo-app-example.example.com",
         };
       }
       return { content: { prompt: "Demo content." } };
@@ -1600,7 +1600,7 @@ export const migrateArsenalAppsToAppFormat = internalMutation({
             "Automatically triages and routes customer support tickets by category, priority, and sentiment. Classifies tickets as technical, billing, feature requests, or bug reports and suggests the right team. Integrates with Jira, Zendesk, and other ticketing systems.",
         },
         sourceRepo: { url: "https://github.com/example/support-triage-app", platform: "github" },
-        demoUrl: "https://support-triage-demo.vercel.app",
+        demoUrl: "https://support-triage-demo.example.com",
       },
       "Content Moderation Agent": {
         title: "Content Moderation App",
@@ -1626,7 +1626,7 @@ export const migrateArsenalAppsToAppFormat = internalMutation({
             "AI-powered content moderation for user-generated content. Detects hate speech, harassment, spam, profanity, PII exposure, and off-topic content. Outputs severity levels, violation types, and suggested actions (warn, hide, escalate). Built for comments, forums, and UGC platforms.",
         },
         sourceRepo: { url: "https://github.com/example/content-moderation-app", platform: "github" },
-        demoUrl: "https://content-moderation-demo.vercel.app",
+        demoUrl: "https://content-moderation-demo.example.com",
       },
     };
     const alsoByNewTitle: Record<string, string> = {

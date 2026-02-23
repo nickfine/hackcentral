@@ -195,7 +195,10 @@ export async function getBootstrapData(viewer: ViewerContext): Promise<Bootstrap
     () => getBootstrapDataFromConvex(viewer)
   );
   logRegistryNavigability('getBootstrapData', data.registry);
-  return data;
+  const createAppUrl = process.env.HACKDAY_CREATE_APP_URL?.trim() || null;
+  const parentPageUrl = process.env.CONFLUENCE_HDC_PARENT_PAGE_URL?.trim() || null;
+  const parentPageId = process.env.CONFLUENCE_HDC_PARENT_PAGE_ID?.trim() || null;
+  return { ...data, createAppUrl, parentPageUrl, parentPageId };
 }
 
 export async function createHack(

@@ -55,7 +55,7 @@ Testing:
 └── @testing-library/user-event 14.x
 
 Deployment:
-└── Vercel (Hosting & SPA routing)
+└── Forge (Confluence apps on hackdaytemp.atlassian.net)
 
 Note: Exact patch versions should be determined from actual package.json 
 generated during project initialization. These ranges indicate major.minor 
@@ -1466,7 +1466,7 @@ export const designTokens = {
    - Set up Convex project (`npx convex dev`) and configure client
    - Set up Clerk authentication
    - Set up ESLint and testing infrastructure
-   - Configure Vercel deployment
+   - Configure Forge deployment
 
 2. **Database Setup** (Week 1-2)
    - Define core database schema in `convex/schema.ts`
@@ -1509,7 +1509,7 @@ export const designTokens = {
 - Library with AI Arsenal (read-only, seeded content)
 - Minimal project management (create, view, comment)
 - Basic collaboration features
-- Deployed to Vercel
+- Deployed to Confluence via Forge
 
 **NOT Included in Phase 1**:
 - Asset submission/verification workflow
@@ -1813,22 +1813,15 @@ export const getEarlyAdopterGini = query({
 
 ## Deployment Plan
 
-### Vercel Configuration
+### Forge Deployment
 
-**`vercel.json`**:
-```json
-{
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "env": {
-    "VITE_CONVEX_URL": "@convex_url",
-    "VITE_CLERK_PUBLISHABLE_KEY": "@clerk_key"
-  }
-}
+See [DEPLOY.md](./DEPLOY.md) for the exact copy-paste steps. Summary:
+
+```bash
+cd forge-native
+npm run custom-ui:build
+forge deploy -e production --non-interactive
+forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
 ### Environment Variables
@@ -1839,47 +1832,12 @@ VITE_CONVEX_URL=https://your-deployment-name.convex.cloud
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
 ```
 
-**Production** (Vercel Environment Variables):
-- Set via Vercel dashboard
-- Use Vercel's environment variable management
-- Add `CLERK_JWKS_URL` to Convex production deployment settings
-
-### Deployment Steps
-
-1. **Initial Setup**:
-   - Connect GitHub repo to Vercel
-   - Configure environment variables:
-     - `VITE_CONVEX_URL` (from Convex deployment)
-     - `VITE_CLERK_PUBLISHABLE_KEY` (from Clerk dashboard)
-   - Set up build command: `npm run build`
-   - Set output directory: `dist`
-
-2. **Convex Backend Deployment**:
-   ```bash
-   npm run convex:deploy
-   ```
-   - Creates production Convex deployment
-   - Get production URL and add to Vercel env vars
-   - Add `CLERK_JWKS_URL` to Convex production environment variables
-
-3. **Clerk Production Setup**:
-   - Switch to Production instance in Clerk Dashboard
-   - Configure production domain
-   - Update email domain restrictions for production
-   - Copy production publishable key to Vercel
-
-4. **Seed Initial Data**:
-   - Use Convex Dashboard to run seed functions
-   - Or create internal mutations for seeding
-
-5. **Continuous Deployment**:
-   - Push to `main` branch triggers production deploy
-   - Use preview deployments for PRs
-   - Run tests before deployment
+**Production** (Forge environment variables):
+- Set via `forge variables set -e production`
+- See `forge variables list -e production` for current values
 
 ### Monitoring
 
-- Set up Vercel Analytics
 - Configure error tracking (Sentry)
 - Monitor Convex usage and performance (Convex Dashboard)
 - Track key metrics (user adoption, Library reuse, etc.)

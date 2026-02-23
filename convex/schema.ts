@@ -106,7 +106,7 @@ export default defineSchema({
         commitMessage: v.optional(v.string()),
       })
     ),
-    // Live demo URL for apps (e.g. Vercel, Netlify hosted)
+    // Live demo URL for apps
     demoUrl: v.optional(v.string()),
   })
     .index("by_author", ["authorId"])

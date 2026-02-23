@@ -1,0 +1,7 @@
+Use this app ID only if you need to uninstall the OLD HackCentral app from hackdaytemp.
+Run uninstall from a copy of the repo (or a manifest) that has this app id in app.id.
+
+Old app ID: f828e0d4-e9d0-451d-b818-533bc3e95680
+
+Uninstall command (when manifest has OLD app id):
+  forge uninstall --site hackdaytemp.atlassian.net --product confluence

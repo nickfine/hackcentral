@@ -13,7 +13,7 @@ An AI Maturity Accelerator platform that transforms early adopter experiments in
 - **UI Components**: Custom components with Framer Motion animations
 - **Icons**: Lucide React
 - **Testing**: Vitest + React Testing Library
-- **Deployment**: Vercel (web app) + Forge (Confluence apps on hackdaytemp.atlassian.net)
+- **Deployment**: Forge (Confluence apps on hackdaytemp.atlassian.net)
 
 ## Prerequisites
 
@@ -139,6 +139,8 @@ npm run test:coverage
 
 ## Deployment
 
+**→ See [DEPLOY.md](./DEPLOY.md) for the exact copy-paste steps.** Summary below.
+
 ### Deploy Convex Backend
 
 ```bash
@@ -147,32 +149,21 @@ npm run convex:deploy
 
 This creates a production Convex deployment. Update your production environment with the new URL.
 
-### Deploy Frontend to Vercel
+### Deploy Confluence App (hackdaytemp)
 
-1. Connect your GitHub repository to Vercel
-2. Add environment variable: `VITE_CONVEX_URL=<your-production-convex-url>`
-3. Deploy!
-
-Vercel will automatically:
-- Run `npm run build`
-- Deploy the `dist/` folder
-- Configure SPA routing (via `vercel.json`)
-
-### Deploy Forge App to hackdaytemp
+From **forge-native**: build Custom UI first, then deploy and install:
 
 ```bash
 cd forge-native
-forge deploy --environment production --non-interactive
-forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive
+npm run custom-ui:build
+forge deploy -e production --non-interactive
+forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
 ### Monitoring & feedback (Phase 4)
 
 - **Error tracking (Sentry)**  
-  Set `VITE_SENTRY_DSN` in production (e.g. in Vercel env) to report unhandled errors. Leave unset in dev. See `.env.example`.
-
-- **Vercel Analytics**  
-  Page views and Web Vitals are reported when the app is deployed on Vercel (`@vercel/analytics` is included).
+  Set `VITE_SENTRY_DSN` in production to report unhandled errors. Leave unset in dev. See `.env.example`.
 
 - **A/B testing (lightweight)**  
   Convex env vars drive copy variants. In Convex Dashboard → Settings → Environment Variables, set `NUDGE_COPY_VARIANT=a` or `b` to switch the learning-summary nudge copy on project detail. The app uses `settings.getPublicConfig`; add more keys there to run other experiments.

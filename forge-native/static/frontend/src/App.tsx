@@ -1,14 +1,17 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { router } from '@forge/bridge';
 import { DEFAULT_TIMEZONE } from './types';
 import type {
   BootstrapData,
   CreateHackInput,
+  CreateInstanceDraftInput,
   CreateProjectInput,
-  Defs,
   FeaturedHack,
   PersonSnapshot,
   ProjectSnapshot,
+  ThemePreference,
   UpdateMentorProfileInput,
+  WizardStep,
 } from './types';
 import {
   buildConfluencePagePath,
@@ -20,25 +23,33 @@ import {
   switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
+import { invokeTyped } from './hooks/useForgeData';
+import { NAV_ITEMS, type View, type HackTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
+import { Layout } from './components/Layout';
+import { WelcomeHero, StatCards } from './components/Dashboard';
+import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
+import { getInitials } from './utils/format';
+import { ScheduleBuilder, type ScheduleBuilderOutput } from './components/create/ScheduleBuilder';
+
+/** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
+const HACKCENTRAL_UI_VERSION = '0.2.0';
+if (typeof console !== 'undefined' && console.log) {
+  console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
+}
 
 const BOOTSTRAP_TIMEOUT_MS = 15000;
 const LOCAL_PREVIEW_HOSTS = new Set(['localhost', '127.0.0.1']);
-const HACKS_SCOPE_NOTE = 'Forge currently shows Featured Hacks in this tab (full Completed Hacks parity is pending).';
-const TEAM_PULSE_PLACEHOLDER_NOTE =
-  'Team Pulse is placeholder mode for now: values are estimated for layout/testing, not official analytics.';
+const HACKS_SCOPE_NOTE = '';
+const TEAM_PULSE_PLACEHOLDER_NOTE = '';
+const CREATE_DRAFT_TIMEOUT_MS = 15_000;
+const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
 
-type View = 'dashboard' | 'hacks' | 'team_up' | 'team_pulse';
-type HackTab = 'completed' | 'in_progress';
-type HackTypeFilter = 'all' | 'prompt' | 'skill' | 'app';
-type HackStatusFilter = 'all' | 'draft' | 'in_progress' | 'verified' | 'deprecated';
-type MentorFilter = 'hackers' | 'available';
-type ModalView = 'none' | 'submit_hack' | 'create_project' | 'mentor_profile';
-type RecognitionTab = 'recent' | 'contributors' | 'mentors' | 'reused';
+function isAdaptavistEmail(email: string): boolean {
+  return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
+}
 
-interface NavItem {
-  id: View;
-  label: string;
-  icon: string;
+function isDateRangeInvalid(start: string, end: string): boolean {
+  return Boolean(start && end && start > end);
 }
 
 interface BulletinPost {
@@ -54,14 +65,8 @@ interface Badge {
   id: string;
   label: string;
   count?: number;
+  badgeVariant?: 'amber' | 'teal' | 'blue';
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◻' },
-  { id: 'hacks', label: 'Hacks', icon: '▣' },
-  { id: 'team_up', label: 'Team Up', icon: '⚉' },
-  { id: 'team_pulse', label: 'Team pulse', icon: '⌁' },
-];
 
 const BULLETIN_POSTS: BulletinPost[] = [
   {
@@ -83,11 +88,11 @@ const BULLETIN_POSTS: BulletinPost[] = [
 ];
 
 const BADGES: Badge[] = [
-  { id: 'b-rising', label: 'Rising Star' },
-  { id: 'b-mentor', label: 'Mentor Champion', count: 3 },
-  { id: 'b-verify', label: 'Verifier', count: 5 },
-  { id: 'b-reused', label: 'Most Reused', count: 12 },
-  { id: 'b-early', label: 'Early Adopter' },
+  { id: 'b-rising', label: 'Rising Star', badgeVariant: 'amber' },
+  { id: 'b-mentor', label: 'Mentor Champion', count: 3, badgeVariant: 'teal' },
+  { id: 'b-verify', label: 'Verifier', count: 5, badgeVariant: 'blue' },
+  { id: 'b-reused', label: 'Most Reused', count: 12, badgeVariant: 'blue' },
+  { id: 'b-early', label: 'Early Adopter', badgeVariant: 'amber' },
 ];
 
 const LOCAL_PREVIEW_DATA: BootstrapData = {
@@ -102,138 +107,268 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
     schema: 'public',
   },
   summary: {
-    totalPeople: 12,
-    totalHacks: 38,
-    featuredHacks: 8,
-    inProgressProjects: 7,
-    completedProjects: 3,
-    activeMentors: 5,
+    totalPeople: 47,
+    totalHacks: 94,
+    featuredHacks: 16,
+    inProgressProjects: 12,
+    completedProjects: 8,
+    activeMentors: 9,
   },
   featuredHacks: [
+    // ── Atlassian Ecosystem ──────────────────────────────────────────────
     {
-      id: 'local-hack-1',
-      title: 'Meeting Notes Summarizer',
-      description: 'Extract action items, decisions, and key points from meeting notes.',
+      id: 'hack-jira-epic-breakdown',
+      title: 'Jira Epic Breakdown',
+      description: 'Paste a one-liner epic description and get a full set of user stories with acceptance criteria, story points, and edge-case notes — ready to copy into Jira.',
       assetType: 'prompt',
       status: 'verified',
-      reuseCount: 2,
-      authorName: 'Alex M',
+      reuseCount: 34,
+      authorName: 'Priya S.',
       visibility: 'org',
-      intendedUser: 'Team leads',
-      context: 'Weekly standups and retro notes',
-      limitations: 'Needs source notes with speaker labels',
-      riskNotes: 'Double-check assigned owners before sharing',
+      intendedUser: 'Product managers and engineers',
+      context: 'Sprint planning or backlog grooming sessions',
+      limitations: 'Works best for functional features; not great for infrastructure epics',
+      riskNotes: 'Review acceptance criteria — the model can over-specify edge cases',
       sourceRepoUrl: null,
       demoUrl: null,
     },
     {
-      id: 'local-hack-2',
-      title: 'Code Review Prompt - Security Focus',
-      description: 'Comprehensive code review prompt that focuses on security vulnerabilities.',
+      id: 'hack-confluence-page-summary',
+      title: 'Confluence Page Summariser',
+      description: 'Give it a Confluence page URL and it returns a 5-bullet executive summary, key decisions, and a list of open questions. Huge time-saver for long design docs.',
       assetType: 'prompt',
       status: 'verified',
-      reuseCount: 1,
-      authorName: 'Nick Fine',
+      reuseCount: 28,
+      authorName: 'Tom H.',
+      visibility: 'org',
+      intendedUser: 'Anyone catching up on a page',
+      context: 'Copy the page body into the prompt — works with Claude or GPT-4',
+      limitations: 'Loses nuance on highly technical specs',
+      riskNotes: 'Do not include pages marked CONFIDENTIAL',
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-sprint-retro-synth',
+      title: 'Sprint Retrospective Synthesiser',
+      description: 'Converts raw retro sticky-note exports (CSV or Miro JSON) into a structured "What we learned / What we\'ll change" report with action owners and due dates.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 19,
+      authorName: 'Chloe R.',
+      visibility: 'org',
+      intendedUser: 'Scrum masters and delivery leads',
+      context: 'Run after each sprint retro before the all-hands update',
+      limitations: 'Needs at least 10 sticky notes to produce meaningful themes',
+      riskNotes: 'Anonymise contributors before pasting into public AI tools',
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-jql-natural-language',
+      title: 'Natural Language → JQL',
+      description: 'Type what you want in plain English ("all bugs from the mobile team opened last month that are still unassigned") and get a ready-to-paste JQL query.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 41,
+      authorName: 'Marcus D.',
+      visibility: 'org',
+      intendedUser: 'Anyone who avoids writing JQL manually',
+      context: 'Works in Claude, GPT-4, and Cursor chat',
+      limitations: 'Complex field names (custom fields) need to be provided manually',
+      riskNotes: null,
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-pr-description-writer',
+      title: 'Bitbucket PR Description Writer',
+      description: 'Paste your git diff (or a summary of changes) and get a properly formatted PR description: what changed, why, how to test, and a risk checklist.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 22,
+      authorName: 'Lena M.',
       visibility: 'org',
       intendedUser: 'Engineers',
-      context: 'PR review quality gate',
-      limitations: 'Requires full diff context',
-      riskNotes: 'Output is advisory only',
+      context: 'Run before opening every PR',
+      limitations: 'Large diffs (500+ lines) need chunking — summarise per-file first',
+      riskNotes: 'Check that secrets are not in the diff before pasting',
       sourceRepoUrl: null,
       demoUrl: null,
     },
     {
-      id: 'local-hack-3',
-      title: 'Technical Documentation Generator',
-      description: 'Generate clear comprehensive docs for APIs and functions.',
-      assetType: 'prompt',
-      status: 'verified',
-      reuseCount: 0,
-      authorName: 'Taylor',
-      visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
-      riskNotes: null,
-      sourceRepoUrl: null,
-      demoUrl: null,
-    },
-    {
-      id: 'local-hack-4',
-      title: 'User Story Expander',
-      description: 'Turn brief feature requests into detailed user stories with acceptance criteria.',
-      assetType: 'prompt',
-      status: 'verified',
-      reuseCount: 0,
-      authorName: 'Sam',
-      visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
-      riskNotes: null,
-      sourceRepoUrl: null,
-      demoUrl: null,
-    },
-    {
-      id: 'local-hack-5',
-      title: 'Prompt Engineering Checklist',
-      description: 'Checklist to improve prompt quality and reduce hallucinations.',
-      assetType: 'skill',
-      status: 'verified',
-      reuseCount: 0,
-      authorName: 'Casey',
-      visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
-      riskNotes: null,
-      sourceRepoUrl: null,
-      demoUrl: null,
-    },
-    {
-      id: 'local-hack-6',
-      title: 'Customer Support Triage',
-      description: 'AI-powered triage for customer support tickets.',
+      id: 'hack-confluence-healthcheck',
+      title: 'Confluence Space Healthcheck',
+      description: 'A Forge app that scans a Confluence space for stale pages (untouched > 6 months), orphaned pages (no parent), and broken links — outputs a triage report.',
       assetType: 'app',
       status: 'verified',
-      reuseCount: 0,
-      authorName: 'Jordan',
+      reuseCount: 11,
+      authorName: 'Nick Fine',
       visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
+      intendedUser: 'Space admins and documentation owners',
+      context: 'Run quarterly to keep spaces healthy',
+      limitations: 'Does not flag intentionally archived pages — add an "archive" label to exclude',
+      riskNotes: null,
+      sourceRepoUrl: 'https://bitbucket.org/adaptavist/confluence-healthcheck',
+      demoUrl: null,
+    },
+    // ── AI & Productivity ─────────────────────────────────────────────────
+    {
+      id: 'hack-cursor-rules-generator',
+      title: 'Cursor Rules Generator',
+      description: 'Tell it your tech stack, team conventions, and testing philosophy — it outputs a ready-to-use .cursorrules file that keeps Claude on-brand for your repo.',
+      assetType: 'skill',
+      status: 'verified',
+      reuseCount: 56,
+      authorName: 'Nick Fine',
+      visibility: 'org',
+      intendedUser: 'Engineers using Cursor IDE',
+      context: 'Run once per repo; update when conventions change',
+      limitations: 'More effective with a detailed prompt about your stack',
       riskNotes: null,
       sourceRepoUrl: null,
       demoUrl: null,
     },
     {
-      id: 'local-hack-7',
-      title: 'Prompt Injection Defense',
-      description: 'Detect and prevent prompt injection in user inputs.',
+      id: 'hack-prompt-compression',
+      title: 'Prompt Compression Toolkit',
+      description: 'A set of three reusable prompt patterns that compress verbose system prompts by 40–60% without losing intent — reduces cost and improves response speed.',
       assetType: 'skill',
+      status: 'verified',
+      reuseCount: 31,
+      authorName: 'Danielle K.',
+      visibility: 'org',
+      intendedUser: 'Anyone managing high-volume AI workflows',
+      context: 'Apply before finalising any system prompt going to production',
+      limitations: 'Very domain-specific prompts resist compression — verify outputs manually',
+      riskNotes: null,
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-claude-persona-blocks',
+      title: 'Modular Claude Persona Blocks',
+      description: 'A library of composable system-prompt building blocks: tone, expertise level, output format, chain-of-thought style. Mix and match for any use case.',
+      assetType: 'skill',
+      status: 'verified',
+      reuseCount: 44,
+      authorName: 'Alex M.',
+      visibility: 'org',
+      intendedUser: 'Prompt engineers and product teams',
+      context: 'Use as a starting point; always test with your real data',
+      limitations: 'Persona blocks do not substitute for task-specific context',
+      riskNotes: null,
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-okr-progress-reporter',
+      title: 'OKR Progress Reporter',
+      description: 'Paste key-result metrics into the prompt and get a natural-language progress narrative suitable for exec updates — with confidence scores and blocker highlights.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 17,
+      authorName: 'Yemi O.',
+      visibility: 'org',
+      intendedUser: 'Team leads and heads of department',
+      context: 'Run at end of each quarter before QBR preparation',
+      limitations: 'Requires clean numeric data — works poorly with qualitative-only KRs',
+      riskNotes: 'Do not include sensitive financial targets in shared AI tools',
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-slack-digest',
+      title: 'Slack Channel Digest',
+      description: 'Export a Slack channel history (JSON) and get a concise digest: key decisions made, action items assigned, unresolved questions, and mood sentiment.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 25,
+      authorName: 'Fatima A.',
+      visibility: 'org',
+      intendedUser: 'Anyone returning from leave or joining a busy channel',
+      context: 'Works with Slack\'s built-in export feature',
+      limitations: 'Threads are flattened — context from replies may be lost',
+      riskNotes: 'Ensure channel is not HR-restricted before exporting',
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-api-doc-generator',
+      title: 'API Documentation Generator',
+      description: 'Paste an OpenAPI spec or a set of function signatures and get full Confluence-ready documentation: endpoints, params, examples, error codes, and a quickstart guide.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 20,
+      authorName: 'Ravi P.',
+      visibility: 'org',
+      intendedUser: 'Backend engineers and developer advocates',
+      context: 'Run when shipping a new API version',
+      limitations: 'Needs a complete spec; partial specs produce incomplete docs',
+      riskNotes: null,
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-incident-postmortem',
+      title: 'Incident Post-Mortem Writer',
+      description: 'Give it your incident timeline, contributing factors, and resolution steps — it writes a blameless post-mortem in the Atlassian standard format, ready for Confluence.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 14,
+      authorName: 'Chris B.',
+      visibility: 'org',
+      intendedUser: 'SREs and on-call engineers',
+      context: 'Write within 24h of incident resolution while context is fresh',
+      limitations: 'Cannot infer contributing factors — you must provide them',
+      riskNotes: 'Ensure SLA breach details are reviewed by legal before publishing',
+      sourceRepoUrl: null,
+      demoUrl: null,
+    },
+    {
+      id: 'hack-onboarding-copilot',
+      title: 'New Joiner Onboarding Copilot',
+      description: 'A Forge app embedded in Confluence that answers new-joiner questions using the team\'s own Confluence pages as context — no more pinging Slack for basics.',
+      assetType: 'app',
       status: 'in_progress',
-      reuseCount: 0,
-      authorName: 'Avery',
+      reuseCount: 7,
+      authorName: 'Sam Chen',
       visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
+      intendedUser: 'New joiners and people managers',
+      context: 'Requires a well-structured Confluence onboarding space',
+      limitations: 'Only as good as the source docs — stale pages produce wrong answers',
+      riskNotes: null,
+      sourceRepoUrl: 'https://bitbucket.org/adaptavist/onboarding-copilot',
+      demoUrl: null,
+    },
+    {
+      id: 'hack-vibe-check-guardrail',
+      title: 'Vibe Check Guardrail',
+      description: 'Before publishing any AI-generated content externally, run it through this prompt. It flags off-brand language, overconfident claims, and potential compliance red flags.',
+      assetType: 'skill',
+      status: 'verified',
+      reuseCount: 38,
+      authorName: 'Jordan T.',
+      visibility: 'org',
+      intendedUser: 'Marketing, comms, and anyone publishing AI-written content',
+      context: 'Final check before any customer-facing publication',
+      limitations: 'Not a substitute for legal review on regulated content',
       riskNotes: null,
       sourceRepoUrl: null,
       demoUrl: null,
     },
     {
-      id: 'local-hack-8',
-      title: 'Output Validation Guardrail',
-      description: 'Validate AI outputs before sharing with users.',
-      assetType: 'skill',
-      status: 'deprecated',
-      reuseCount: 0,
-      authorName: 'Morgan',
+      id: 'hack-test-case-generator',
+      title: 'Test Case Generator',
+      description: 'Paste a user story or feature spec and get a full test matrix: happy paths, edge cases, negative tests, and accessibility checks — formatted for Jira Zephyr or Xray.',
+      assetType: 'prompt',
+      status: 'verified',
+      reuseCount: 29,
+      authorName: 'Priya S.',
       visibility: 'org',
-      intendedUser: null,
-      context: null,
-      limitations: null,
+      intendedUser: 'QA engineers and developers writing their own tests',
+      context: 'Run during sprint planning alongside Jira Epic Breakdown',
+      limitations: 'Complex UI flows benefit from screenshots in the prompt',
       riskNotes: null,
       sourceRepoUrl: null,
       demoUrl: null,
@@ -241,123 +376,228 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
   ],
   recentProjects: [
     {
-      id: 'local-project-1',
-      title: 'Confluence release notes template',
-      description: 'Auto-draft release notes from merged ticket metadata.',
-      status: 'idea',
-      statusLabel: 'Idea',
-      hackType: 'app',
-      ownerName: 'Alex Rivera',
-      attachedHacksCount: 2,
-      commentCount: 4,
-      visibility: 'org',
-      workflowTransformed: true,
-      aiImpactHypothesis: 'Reduce release-note prep by 40%',
-      aiToolsUsed: ['Confluence API', 'Jira API'],
-      timeSavedEstimate: 8,
-      failuresAndLessons: 'Need better title normalization.',
-    },
-    {
-      id: 'local-project-2',
-      title: 'Onboarding copilot',
-      description: 'Role-specific onboarding and FAQ assistant.',
+      id: 'proj-confluence-release-notes',
+      title: 'Confluence AI Release Notes Pipeline',
+      description: 'Automatically drafts release notes from merged Jira tickets and Bitbucket PRs, formatted as a Confluence page and routed for review before publishing.',
       status: 'building',
       statusLabel: 'Building',
-      hackType: 'prompt',
-      ownerName: 'Sam Chen',
-      attachedHacksCount: 4,
-      commentCount: 8,
+      hackType: 'app',
+      ownerName: 'Tom H.',
+      attachedHacksCount: 3,
+      commentCount: 9,
       visibility: 'org',
       workflowTransformed: true,
-      aiImpactHypothesis: 'Lower onboarding support requests by 30%',
-      aiToolsUsed: ['ChatGPT'],
-      timeSavedEstimate: 18,
-      failuresAndLessons: 'Prompt tuning helped reduce hallucinations.',
+      aiImpactHypothesis: 'Reduce release-note prep from 3 hours to 15 minutes',
+      aiToolsUsed: ['Confluence Forge', 'Jira API', 'Claude claude-sonnet-4-5'],
+      timeSavedEstimate: 22,
+      failuresAndLessons: 'Early version hallucinated ticket titles — now fetches raw data directly.',
     },
     {
-      id: 'local-project-3',
-      title: 'Token usage monitor',
-      description: 'Track and optimize model usage by workflow.',
+      id: 'proj-ai-onboarding',
+      title: 'AI Onboarding Copilot',
+      description: 'Confluence-embedded chatbot that answers new joiner questions using the team\'s own pages as context. Reduces first-week Slack noise by ~60%.',
       status: 'incubation',
       statusLabel: 'Incubation',
+      hackType: 'app',
+      ownerName: 'Sam Chen',
+      attachedHacksCount: 4,
+      commentCount: 14,
+      visibility: 'org',
+      workflowTransformed: true,
+      aiImpactHypothesis: 'Cut new-joiner support burden by 50%',
+      aiToolsUsed: ['Forge', 'Confluence REST API', 'GPT-4o'],
+      timeSavedEstimate: 35,
+      failuresAndLessons: 'Prompt tuning critical — generic answers without page-specific context were useless.',
+    },
+    {
+      id: 'proj-cursor-workflow',
+      title: 'Engineering Cursor Workflow Kit',
+      description: 'A curated set of Cursor rules, prompt templates, and workflow patterns adopted org-wide. Standardises how we use AI in our dev workflow.',
+      status: 'completed',
+      statusLabel: 'Completed',
       hackType: 'skill',
-      ownerName: 'Jordan Taylor',
-      attachedHacksCount: 1,
-      commentCount: 2,
+      ownerName: 'Nick Fine',
+      attachedHacksCount: 6,
+      commentCount: 21,
+      visibility: 'org',
+      workflowTransformed: true,
+      aiImpactHypothesis: 'Reduce PR review cycles by 30%',
+      aiToolsUsed: ['Cursor', 'Claude'],
+      timeSavedEstimate: 48,
+      failuresAndLessons: 'Rules need per-repo customisation — a one-size-fits-all rules file degraded output quality.',
+    },
+    {
+      id: 'proj-jira-automation',
+      title: 'Jira Sprint Intelligence Dashboard',
+      description: 'Weekly Jira digest that uses AI to surface risk: tickets that have been in review too long, velocity drift, unassigned blockers, and scope-creep signals.',
+      status: 'idea',
+      statusLabel: 'Idea',
+      hackType: 'prompt',
+      ownerName: 'Marcus D.',
+      attachedHacksCount: 2,
+      commentCount: 5,
       visibility: 'org',
       workflowTransformed: false,
-      aiImpactHypothesis: 'Drop token cost by 20%',
-      aiToolsUsed: ['Cursor'],
-      timeSavedEstimate: 6,
+      aiImpactHypothesis: 'Catch sprint failures 3 days earlier',
+      aiToolsUsed: ['Jira API', 'Claude'],
+      timeSavedEstimate: 10,
       failuresAndLessons: null,
     },
   ],
   people: [
     {
       id: 'p1',
-      fullName: 'Nick Test',
-      email: 'nick@nickster.com',
-      experienceLevel: 'curious',
-      experienceLabel: 'AI Curious',
-      mentorCapacity: 0,
-      mentorSessionsUsed: 0,
-      mentorSlotsRemaining: 0,
-      capabilities: ['Happy to Mentor'],
+      fullName: 'Nick Fine',
+      email: 'nick.fine@adaptavist.com',
+      experienceLevel: 'power_user',
+      experienceLabel: 'AI Power User',
+      mentorCapacity: 4,
+      mentorSessionsUsed: 2,
+      mentorSlotsRemaining: 2,
+      capabilities: ['Cursor', 'Claude', 'Forge Apps', 'Prompt Engineering', 'Happy to Mentor'],
     },
     {
       id: 'p2',
-      fullName: 'Nick Fine',
-      email: 'nick.fine@example.com',
-      experienceLevel: 'curious',
-      experienceLabel: 'AI Curious',
+      fullName: 'Priya Sharma',
+      email: 'priya.sharma@adaptavist.com',
+      experienceLevel: 'power_user',
+      experienceLabel: 'AI Power User',
       mentorCapacity: 3,
-      mentorSessionsUsed: 1,
-      mentorSlotsRemaining: 2,
-      capabilities: ['AI Experimenter', 'Seeking Mentor', 'ChatGPT User'],
+      mentorSessionsUsed: 3,
+      mentorSlotsRemaining: 0,
+      capabilities: ['Jira Automation', 'Product Strategy', 'Prompt Engineering', 'Happy to Mentor'],
     },
     {
       id: 'p3',
-      fullName: 'Alex Rivera',
-      email: 'alex@example.com',
-      experienceLevel: 'newbie',
-      experienceLabel: 'AI Newbie',
+      fullName: 'Tom Harvey',
+      email: 'tom.harvey@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
-      mentorSessionsUsed: 0,
-      mentorSlotsRemaining: 2,
-      capabilities: [],
+      mentorSessionsUsed: 1,
+      mentorSlotsRemaining: 1,
+      capabilities: ['Confluence API', 'Forge Apps', 'Documentation'],
     },
     {
       id: 'p4',
       fullName: 'Sam Chen',
-      email: 'sam@example.com',
-      experienceLevel: 'curious',
-      experienceLabel: 'AI Curious',
+      email: 'sam.chen@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
-      mentorSessionsUsed: 0,
-      mentorSlotsRemaining: 2,
-      capabilities: [],
+      mentorSessionsUsed: 2,
+      mentorSlotsRemaining: 0,
+      capabilities: ['GPT-4', 'Product Management', 'Confluence'],
     },
     {
       id: 'p5',
-      fullName: 'Jordan Taylor',
-      email: 'jordan@example.com',
+      fullName: 'Marcus Devereux',
+      email: 'marcus.devereux@adaptavist.com',
+      experienceLevel: 'power_user',
+      experienceLabel: 'AI Power User',
+      mentorCapacity: 3,
+      mentorSessionsUsed: 1,
+      mentorSlotsRemaining: 2,
+      capabilities: ['JQL', 'Jira', 'Data Analysis', 'Happy to Mentor'],
+    },
+    {
+      id: 'p6',
+      fullName: 'Chloe Richards',
+      email: 'chloe.richards@adaptavist.com',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
       mentorSessionsUsed: 0,
       mentorSlotsRemaining: 2,
-      capabilities: [],
+      capabilities: ['Agile Delivery', 'Miro', 'Retrospectives', 'Seeking Mentor'],
     },
     {
-      id: 'p6',
-      fullName: 'Casey Morgan',
-      email: 'casey@example.com',
+      id: 'p7',
+      fullName: 'Lena Müller',
+      email: 'lena.muller@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
+      mentorCapacity: 2,
+      mentorSessionsUsed: 1,
+      mentorSlotsRemaining: 1,
+      capabilities: ['Bitbucket', 'Code Review', 'Cursor', 'Happy to Mentor'],
+    },
+    {
+      id: 'p8',
+      fullName: 'Danielle Kowalski',
+      email: 'danielle.kowalski@adaptavist.com',
       experienceLevel: 'power_user',
       experienceLabel: 'AI Power User',
+      mentorCapacity: 4,
+      mentorSessionsUsed: 2,
+      mentorSlotsRemaining: 2,
+      capabilities: ['Token Optimisation', 'Prompt Engineering', 'LLM Ops', 'Happy to Mentor'],
+    },
+    {
+      id: 'p9',
+      fullName: 'Jordan Taylor',
+      email: 'jordan.taylor@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
+      mentorCapacity: 0,
+      mentorSessionsUsed: 0,
+      mentorSlotsRemaining: 0,
+      capabilities: ['QA', 'Test Automation', 'Zephyr'],
+    },
+    {
+      id: 'p10',
+      fullName: 'Yemi Okafor',
+      email: 'yemi.okafor@adaptavist.com',
+      experienceLevel: 'curious',
+      experienceLabel: 'AI Curious',
+      mentorCapacity: 0,
+      mentorSessionsUsed: 0,
+      mentorSlotsRemaining: 0,
+      capabilities: ['OKRs', 'Strategy', 'Seeking Mentor'],
+    },
+    {
+      id: 'p11',
+      fullName: 'Fatima Al-Hassan',
+      email: 'fatima.alhassan@adaptavist.com',
+      experienceLevel: 'curious',
+      experienceLabel: 'AI Curious',
+      mentorCapacity: 0,
+      mentorSessionsUsed: 0,
+      mentorSlotsRemaining: 0,
+      capabilities: ['Slack', 'Communications', 'Seeking Mentor'],
+    },
+    {
+      id: 'p12',
+      fullName: 'Ravi Patel',
+      email: 'ravi.patel@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
       mentorSessionsUsed: 0,
       mentorSlotsRemaining: 2,
-      capabilities: [],
+      capabilities: ['API Design', 'OpenAPI', 'Developer Experience', 'Happy to Mentor'],
+    },
+    {
+      id: 'p13',
+      fullName: 'Chris Brennan',
+      email: 'chris.brennan@adaptavist.com',
+      experienceLevel: 'comfortable',
+      experienceLabel: 'AI Comfortable',
+      mentorCapacity: 0,
+      mentorSessionsUsed: 0,
+      mentorSlotsRemaining: 0,
+      capabilities: ['SRE', 'Incident Management', 'Confluence'],
+    },
+    {
+      id: 'p14',
+      fullName: 'Alex Rivera',
+      email: 'alex.rivera@adaptavist.com',
+      experienceLevel: 'newbie',
+      experienceLabel: 'AI Newbie',
+      mentorCapacity: 0,
+      mentorSessionsUsed: 0,
+      mentorSlotsRemaining: 0,
+      capabilities: ['Project Management', 'Seeking Mentor'],
     },
   ],
   registry: [
@@ -422,20 +662,6 @@ function shouldFallbackToPreviewOnBootstrapError(error: unknown): boolean {
   return message.includes('supabase') && message.includes('(403)');
 }
 
-function formatLabel(value: string): string {
-  return value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function getInitials(value: string): string {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'U';
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
-}
-
 function percent(value: number, total: number): number {
   if (total <= 0) return 0;
   return (value / total) * 100;
@@ -488,71 +714,6 @@ function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapDat
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
 }
 
-async function invokeTyped<K extends keyof Defs>(
-  name: K,
-  payload?: Parameters<Defs[K]>[0]
-): Promise<ReturnType<Defs[K]>> {
-  const bridge = await import('@forge/bridge');
-  return bridge.invoke(name as string, payload) as Promise<ReturnType<Defs[K]>>;
-}
-
-function HackCard({ item }: { item: FeaturedHack }): JSX.Element {
-  return (
-    <article className="card hack-card">
-      <div className="hack-card-head">
-        <h3>{item.title}</h3>
-        {item.status === 'verified' ? <span className="verified-dot" aria-label="Verified" /> : null}
-      </div>
-      <p className="hack-card-copy">{item.description || 'No description provided.'}</p>
-      <div className="hack-card-foot">
-        <span className={`pill pill-${item.assetType}`}>{formatLabel(item.assetType)}s</span>
-        <span className="meta">{item.reuseCount} reuses</span>
-      </div>
-    </article>
-  );
-}
-
-function ProjectCard({ item }: { item: ProjectSnapshot }): JSX.Element {
-  return (
-    <article className="card project-card">
-      <div className="project-card-head">
-        <h3>{item.title}</h3>
-        <span className="pill pill-outline">{item.statusLabel}</span>
-      </div>
-      <p className="project-card-copy">{item.description || 'No description provided.'}</p>
-      <div className="project-card-foot">
-        {item.hackType ? <span className={`pill pill-${item.hackType}`}>{formatLabel(item.hackType)}s</span> : null}
-        <span className="meta">{item.attachedHacksCount} hacks</span>
-      </div>
-    </article>
-  );
-}
-
-function PersonCard({ item }: { item: PersonSnapshot }): JSX.Element {
-  const hasSlots = item.mentorSlotsRemaining > 0;
-  return (
-    <article className="card person-card">
-      <div className="person-head">
-        <div className="avatar">{getInitials(item.fullName)}</div>
-        <div className="person-id">
-          <h3>{item.fullName}</h3>
-          <span className="pill pill-outline">{item.experienceLabel ?? 'AI Learner'}</span>
-        </div>
-      </div>
-      <div className="person-tags">
-        {item.capabilities.length > 0
-          ? item.capabilities.slice(0, 3).map((capability) => (
-              <span key={`${item.id}-${capability}`} className="soft-tag">
-                {capability}
-              </span>
-            ))
-          : null}
-      </div>
-      {hasSlots ? <div className="slot-pill">Available: {item.mentorSlotsRemaining} slots</div> : null}
-    </article>
-  );
-}
-
 export function App(): JSX.Element {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -601,6 +762,39 @@ export function App(): JSX.Element {
   const [mentorCapacity, setMentorCapacity] = useState('0');
   const [happyToMentor, setHappyToMentor] = useState(false);
   const [seekingMentor, setSeekingMentor] = useState(false);
+
+  // Create HackDay wizard state
+  const [wStep, setWStep] = useState<WizardStep>(1);
+  const [wEventName, setWEventName] = useState('');
+  const [wEventIcon, setWEventIcon] = useState('🚀');
+  const [wEventTagline, setWEventTagline] = useState('');
+  const [wPrimaryAdminEmail, setWPrimaryAdminEmail] = useState('');
+  const [wCoAdminsInput, setWCoAdminsInput] = useState('');
+  const [wEventNameError, setWEventNameError] = useState('');
+  const [wPendingRequestId, setWPendingRequestId] = useState<string | null>(null);
+  const [wTimezone, setWTimezone] = useState(DEFAULT_TIMEZONE);
+  const [wRegistrationOpensAt, setWRegistrationOpensAt] = useState('');
+  const [wRegistrationClosesAt, setWRegistrationClosesAt] = useState('');
+  const [wTeamFormationStartsAt, setWTeamFormationStartsAt] = useState('');
+  const [wTeamFormationEndsAt, setWTeamFormationEndsAt] = useState('');
+  const [wHackingStartsAt, setWHackingStartsAt] = useState('');
+  const [wSubmissionDeadlineAt, setWSubmissionDeadlineAt] = useState('');
+  const [wVotingStartsAt, setWVotingStartsAt] = useState('');
+  const [wVotingEndsAt, setWVotingEndsAt] = useState('');
+  const [wResultsAnnounceAt, setWResultsAnnounceAt] = useState('');
+  const [wAllowCrossTeamMentoring, setWAllowCrossTeamMentoring] = useState(true);
+  const [wMinTeamSize, setWMinTeamSize] = useState('1');
+  const [wMaxTeamSize, setWMaxTeamSize] = useState('6');
+  const [wRequireDemoLink, setWRequireDemoLink] = useState(false);
+  const [wJudgingModel, setWJudgingModel] = useState<'panel' | 'popular_vote' | 'hybrid'>('hybrid');
+  const [wCategoriesInput, setWCategoriesInput] = useState('');
+  const [wPrizesText, setWPrizesText] = useState('');
+  const [wBannerMessage, setWBannerMessage] = useState('');
+  const [wAccentColor, setWAccentColor] = useState('#0f766e');
+  const [wBannerImageUrl, setWBannerImageUrl] = useState('');
+  const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
+  const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
+  const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderOutput | null>(null);
 
   const isLocalPreview =
     typeof window !== 'undefined' && LOCAL_PREVIEW_HOSTS.has(window.location.hostname);
@@ -734,6 +928,22 @@ export function App(): JSX.Element {
       return `${project.title} ${project.description}`.toLowerCase().includes(search);
     });
   }, [allProjects, projectSearch]);
+
+  const globalSearchResults = useMemo(() => {
+    const q = globalSearch.trim().toLowerCase();
+    if (!q) return { hacks: featuredHacks.slice(0, 6), people: allPeople.slice(0, 6), projects: allProjects.slice(0, 6) };
+    const matchHack = (h: { title: string; description: string }) =>
+      `${h.title} ${h.description}`.toLowerCase().includes(q);
+    const matchPerson = (p: { fullName: string; email: string }) =>
+      `${p.fullName} ${p.email}`.toLowerCase().includes(q);
+    const matchProject = (p: { title: string; description: string }) =>
+      `${p.title} ${p.description}`.toLowerCase().includes(q);
+    return {
+      hacks: featuredHacks.filter(matchHack),
+      people: allPeople.filter(matchPerson),
+      projects: allProjects.filter(matchProject),
+    };
+  }, [globalSearch, featuredHacks, allPeople, allProjects]);
 
   const filteredPeople = useMemo(() => {
     const search = teamSearch.trim().toLowerCase();
@@ -927,6 +1137,178 @@ export function App(): JSX.Element {
     }
   }, [happyToMentor, loadBootstrap, mentorCapacity, previewMode, seekingMentor]);
 
+  const resetWizard = useCallback(() => {
+    setWStep(1);
+    setWEventName('');
+    setWEventIcon('🚀');
+    setWEventTagline('');
+    setWPrimaryAdminEmail('');
+    setWCoAdminsInput('');
+    setWEventNameError('');
+    setWPendingRequestId(null);
+    setWTimezone(DEFAULT_TIMEZONE);
+    setWRegistrationOpensAt('');
+    setWRegistrationClosesAt('');
+    setWTeamFormationStartsAt('');
+    setWTeamFormationEndsAt('');
+    setWHackingStartsAt('');
+    setWSubmissionDeadlineAt('');
+    setWVotingStartsAt('');
+    setWVotingEndsAt('');
+    setWResultsAnnounceAt('');
+    setWAllowCrossTeamMentoring(true);
+    setWMinTeamSize('1');
+    setWMaxTeamSize('6');
+    setWRequireDemoLink(false);
+    setWJudgingModel('hybrid');
+    setWCategoriesInput('');
+    setWPrizesText('');
+    setWBannerMessage('');
+    setWAccentColor('#0f766e');
+    setWBannerImageUrl('');
+    setWThemePreference('system');
+    setWLaunchMode('draft');
+    setWScheduleOutput(null);
+  }, []);
+
+  const getWizardValidationError = useCallback((step: WizardStep): string | null => {
+    if (step >= 1) {
+      setWEventNameError('');
+      if (!wEventName.trim()) {
+        setWEventNameError('Event name is required.');
+        return 'Event name is required.';
+      }
+      if (wPrimaryAdminEmail.trim() && !isAdaptavistEmail(wPrimaryAdminEmail)) {
+        return `Primary admin email must be an ${ALLOWED_EMAIL_DOMAIN} address.`;
+      }
+      const badCoAdmin = wCoAdminsInput
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .some((email) => !isAdaptavistEmail(email));
+      if (badCoAdmin) return `All co-admin emails must be ${ALLOWED_EMAIL_DOMAIN} addresses.`;
+    }
+    if (step >= 2) {
+      if (isDateRangeInvalid(wRegistrationOpensAt, wRegistrationClosesAt)) return 'Registration close must be after open.';
+      if (isDateRangeInvalid(wTeamFormationStartsAt, wTeamFormationEndsAt)) return 'Team formation end must be after start.';
+      if (isDateRangeInvalid(wHackingStartsAt, wSubmissionDeadlineAt)) return 'Submission deadline must be after hacking start.';
+      if (isDateRangeInvalid(wVotingStartsAt, wVotingEndsAt)) return 'Voting end must be after start.';
+    }
+    if (step >= 3) {
+      const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
+      const maxT = Math.max(1, Math.floor(Number(wMaxTeamSize) || 1));
+      if (minT > maxT) return 'Minimum team size must be ≤ maximum team size.';
+    }
+    return null;
+  }, [wCoAdminsInput, wEventName, wHackingStartsAt, wMaxTeamSize, wMinTeamSize, wPrimaryAdminEmail, wRegistrationClosesAt, wRegistrationOpensAt, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wVotingEndsAt, wVotingStartsAt]);
+
+  const handleCreateHackDay = useCallback(async () => {
+    const parentPageId = bootstrap?.parentPageId;
+    if (!parentPageId) {
+      setActionError('No parent page configured. Set CONFLUENCE_HDC_PARENT_PAGE_ID in Forge env.');
+      return;
+    }
+
+    const validationError = getWizardValidationError(wStep);
+    if (validationError) {
+      setActionError(validationError);
+      return;
+    }
+
+    if (previewMode) {
+      setActionMessage(`Local preview: would create HackDay "${wEventName.trim()}".`);
+      resetWizard();
+      setView('hackdays');
+      return;
+    }
+
+    setSaving(true);
+    setActionError('');
+    setActionMessage('');
+
+    const requestId = wPendingRequestId || crypto.randomUUID();
+    if (!wPendingRequestId) setWPendingRequestId(requestId);
+
+    const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
+    const maxT = Math.max(minT, Math.floor(Number(wMaxTeamSize) || 1));
+    const categories = wCategoriesInput.split(',').map((v) => v.trim()).filter(Boolean);
+    const coAdminEmails = wCoAdminsInput.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+
+    const payload: CreateInstanceDraftInput = {
+      parentPageId,
+      creationRequestId: requestId,
+      wizardSchemaVersion: 2,
+      completedStep: wStep,
+      launchMode: wLaunchMode,
+      instanceRuntime: 'hackday_template',
+      templateTarget: 'hackday',
+      basicInfo: {
+        eventName: wEventName.trim(),
+        eventIcon: wEventIcon || '🚀',
+        eventTagline: wEventTagline.trim() || undefined,
+        primaryAdminEmail: wPrimaryAdminEmail.trim().toLowerCase() || undefined,
+        coAdminEmails: coAdminEmails.length > 0 ? coAdminEmails : undefined,
+      },
+      schedule: {
+        timezone: wScheduleOutput?.timezone || wTimezone,
+        registrationOpensAt: wScheduleOutput?.registrationOpensAt || wRegistrationOpensAt || undefined,
+        registrationClosesAt: wScheduleOutput?.registrationClosesAt || wRegistrationClosesAt || undefined,
+        teamFormationStartsAt: wScheduleOutput?.teamFormationStartsAt || wTeamFormationStartsAt || undefined,
+        teamFormationEndsAt: wScheduleOutput?.teamFormationEndsAt || wTeamFormationEndsAt || undefined,
+        hackingStartsAt: wScheduleOutput?.hackingStartsAt || wHackingStartsAt || undefined,
+        submissionDeadlineAt: wScheduleOutput?.submissionDeadlineAt || wSubmissionDeadlineAt || undefined,
+        votingStartsAt: wScheduleOutput?.votingStartsAt || wVotingStartsAt || undefined,
+        votingEndsAt: wScheduleOutput?.votingEndsAt || wVotingEndsAt || undefined,
+        resultsAnnounceAt: wScheduleOutput?.resultsAnnounceAt || wResultsAnnounceAt || undefined,
+      },
+      rules: {
+        allowCrossTeamMentoring: wAllowCrossTeamMentoring,
+        minTeamSize: minT,
+        maxTeamSize: maxT,
+        requireDemoLink: wRequireDemoLink,
+        judgingModel: wJudgingModel,
+        categories: categories.length > 0 ? categories : undefined,
+        prizesText: wPrizesText.trim() || undefined,
+      },
+      branding: {
+        bannerMessage: wBannerMessage.trim() || undefined,
+        accentColor: wAccentColor.trim() || undefined,
+        bannerImageUrl: wBannerImageUrl.trim() || undefined,
+        themePreference: wThemePreference,
+      },
+    };
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([
+        invokeTyped('hdcCreateInstanceDraft', payload),
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error(`Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000}s. Retry to continue.`)), CREATE_DRAFT_TIMEOUT_MS);
+        }),
+      ]);
+      clearTimeout(timeoutId);
+      setActionMessage(`HackDay created! Child page: ${result.childPageId}`);
+      setWPendingRequestId(null);
+      resetWizard();
+      await loadBootstrap();
+      setView('hackdays');
+      if (result.childPageUrl) {
+        try { await router.navigate(result.childPageUrl); } catch { /* ignore */ }
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const msg = err instanceof Error ? err.message : 'Failed to create HackDay.';
+      if (msg.includes('already exists')) {
+        setWEventNameError('An instance with this name already exists under this parent page.');
+        setWPendingRequestId(null);
+      } else {
+        setActionError(msg);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, wAccentColor, wAllowCrossTeamMentoring, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
+
   const exportTeamPulse = (): void => {
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
       exportedAt: new Date().toISOString(),
@@ -955,16 +1337,14 @@ export function App(): JSX.Element {
     }
 
     try {
-      const bridge = await import('@forge/bridge');
-      await bridge.router.navigate(targetPath);
+      await router.navigate(targetPath);
       return;
     } catch {
       // Fall through to broader navigation options.
     }
 
     try {
-      const bridge = await import('@forge/bridge');
-      await bridge.router.open(absoluteTarget);
+      await router.open(absoluteTarget);
       return;
     } catch {
       if (typeof window !== 'undefined') {
@@ -1031,202 +1411,44 @@ export function App(): JSX.Element {
   const profileInitial = getInitials(bootstrap.viewer.accountId);
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-wrap">
-          <span className="brand-mark" aria-hidden>
-            ✦
-          </span>
-          <span className="brand-name">HackDay Central</span>
-        </div>
+    <Layout
+      view={view}
+      setView={setView}
+      setHackTab={setHackTab}
+      globalSearch={globalSearch}
+      setGlobalSearch={setGlobalSearch}
+      switcherOpen={switcherOpen}
+      setSwitcherOpen={setSwitcherOpen}
+      switcherRef={switcherRef}
+      switcherMenuRef={switcherMenuRef}
+      onSwitcherMenuKeyDown={onSwitcherMenuKeyDown}
+      switcherGroups={switcherGroups}
+      navigateToSwitcherPage={navigateToSwitcherPage}
+      profileInitial={profileInitial}
+      accountId={bootstrap.viewer.accountId}
+      switcherWarning={switcherWarning}
+      hasNonNavigableSwitcherItems={hasNonNavigableSwitcherItems}
+      refreshSwitcherRegistry={refreshSwitcherRegistry}
+      refreshingSwitcherRegistry={refreshingSwitcherRegistry}
+    >
+      {errorMessage ? <section className="message message-error">{errorMessage}</section> : null}
+      {previewMode ? (
+        <section className="message message-preview">
+          Local preview mode: mock data is shown and write actions are simulated.
+        </section>
+      ) : null}
+      {actionMessage ? <section className="message message-success">{actionMessage}</section> : null}
+      {actionError ? <section className="message message-error">{actionError}</section> : null}
 
-        <div className="top-search">
-          <span className="search-icon" aria-hidden>
-            🔍
-          </span>
-          <input
-            type="search"
-            placeholder="Search Completed Hacks and people..."
-            aria-label="Search Completed Hacks and people"
-            value={globalSearch}
-            onChange={(event) => setGlobalSearch(event.target.value)}
-          />
-        </div>
-
-        <div className="top-actions">
-          <div className="app-switcher" ref={switcherRef}>
-            <button
-              type="button"
-              className="switcher-trigger"
-              aria-expanded={switcherOpen}
-              aria-haspopup="menu"
-              aria-controls="global-app-switcher-menu"
-              onClick={() => setSwitcherOpen((open) => !open)}
-              onKeyDown={(event) => {
-                if (!switcherOpen && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
-                  event.preventDefault();
-                  setSwitcherOpen(true);
-                }
-              }}
-            >
-              <span className="switcher-trigger-icon" aria-hidden>
-                🏠
-              </span>
-              <span className="switcher-trigger-label">HackDay Central</span>
-              <span className="switcher-trigger-caret" aria-hidden>
-                ▾
-              </span>
-            </button>
-
-            {switcherOpen ? (
-              <>
-                <button
-                  type="button"
-                  className="switcher-overlay"
-                  aria-label="Close app switcher"
-                  onClick={() => setSwitcherOpen(false)}
-                />
-                <div
-                  id="global-app-switcher-menu"
-                  className="switcher-menu"
-                  role="menu"
-                  aria-label="HackDay app switcher"
-                  ref={switcherMenuRef}
-                  onKeyDown={onSwitcherMenuKeyDown}
-                >
-                  <section className="switcher-section" aria-label="Home">
-                    <p className="switcher-section-title">Home</p>
-                    <button type="button" data-switcher-option="true" className="switcher-row current" disabled>
-                      <span className="switcher-row-main">
-                        <span className="switcher-row-title">🏠 HackDay Central</span>
-                        <span className="switcher-row-meta">Current page</span>
-                      </span>
-                      <span className="switcher-row-status">Home</span>
-                    </button>
-                  </section>
-
-                  {switcherGroups.map((group) => (
-                    <section key={group.title} className="switcher-section" aria-label={group.title}>
-                      <p className="switcher-section-title">{group.title}</p>
-                      {group.items.length === 0 ? (
-                        <p className="switcher-empty">No events</p>
-                      ) : (
-                        group.items.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            data-switcher-option="true"
-                            className="switcher-row"
-                            disabled={!isNavigableRegistryItem(item)}
-                            onClick={() => {
-                              runSwitcherNavigation(item, (targetPageId) => {
-                                void navigateToSwitcherPage(targetPageId);
-                              });
-                            }}
-                          >
-                            <span className="switcher-row-main">
-                              <span className="switcher-row-title">
-                                {item.icon || '🚀'} {item.eventName}
-                              </span>
-                              <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
-                            </span>
-                            <span className="switcher-row-status">{item.lifecycleStatus.replace('_', ' ')}</span>
-                          </button>
-                        ))
-                      )}
-                    </section>
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </div>
-
-          <button type="button" className="icon-btn" aria-label="Notifications">
-            ⌁
-          </button>
-          <button type="button" className="icon-btn" aria-label="Messages">
-            ◻
-          </button>
-          <span className="profile-chip" title={bootstrap.viewer.accountId}>
-            {profileInitial}
-          </span>
-        </div>
-      </header>
-
-      <div className="frame">
-        <aside className="sidebar">
-          <nav className="side-nav" aria-label="Primary">
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`side-link ${view === item.id ? 'side-link-active' : ''}`}
-                onClick={() => setView(item.id)}
-              >
-                <span className="side-icon" aria-hidden>
-                  {item.icon}
-                </span>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <section className="get-started card">
-            <h3>Get Started</h3>
-            <p>Explore Featured Hacks to find proven prompts, skills, and apps.</p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setView('hacks');
-                setHackTab('completed');
-              }}
-            >
-              Explore Hacks
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setView('dashboard')}>
-              All get-started options
-            </button>
-          </section>
-        </aside>
-
-        <main className="content">
-          {switcherWarning ? <section className="message message-preview">{switcherWarning}</section> : null}
-          {hasNonNavigableSwitcherItems ? (
-            <section className="message message-preview">
-              Some switcher entries are unavailable until their Confluence pages are provisioned.
-              <div style={{ marginTop: '8px' }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => void refreshSwitcherRegistry()}
-                  disabled={refreshingSwitcherRegistry}
-                >
-                  {refreshingSwitcherRegistry ? 'Refreshing registry…' : 'Refresh switcher registry'}
-                </button>
-              </div>
-            </section>
-          ) : null}
-          {errorMessage ? <section className="message message-error">{errorMessage}</section> : null}
-          {previewMode ? (
-            <section className="message message-preview">
-              Local preview mode: mock data is shown and write actions are simulated.
-            </section>
-          ) : null}
-          {actionMessage ? <section className="message message-success">{actionMessage}</section> : null}
-          {actionError ? <section className="message message-error">{actionError}</section> : null}
-
-          {view === 'dashboard' ? (
+      {view === 'dashboard' ? (
             <section className="page-stack">
-              <section className="hero-head">
-                <h1>HackDay Central</h1>
-                <p>Our clubhouse for all things AI, vibecoding and hacking</p>
-              </section>
+              <WelcomeHero onSubmitHack={() => setModalView('submit_hack')} />
+              <StatCards summary={bootstrap.summary} />
 
               <section className="section-head-row">
                 <div>
                   <h2>Latest Hacks</h2>
-                  <p>accelerators and pain removers made by us</p>
+                  <p>Built by us, for us</p>
                 </div>
                 <button
                   type="button"
@@ -1249,8 +1471,8 @@ export function App(): JSX.Element {
               <section className="grid dashboard-pods">
                 <article className="card quote-card">
                   <p className="quote-mark">❞</p>
-                  <p className="quote-body">"Saved my team 5 hours with this hack!"</p>
-                  <p className="quote-meta">Alex M.</p>
+                  <p className="quote-body">"The Jira Epic Breakdown prompt alone saved our whole team a full planning day."</p>
+                  <p className="quote-meta">Priya S. · Product Manager</p>
                 </article>
 
                 <article className="card recognition-card">
@@ -1258,7 +1480,7 @@ export function App(): JSX.Element {
                   <p>Complete mentor sessions, verify hacks, or get reuses to earn badges.</p>
                   <div className="badge-wrap">
                     {BADGES.map((badge) => (
-                      <span key={badge.id} className="badge-pill">
+                      <span key={badge.id} className="badge-pill" data-badge={badge.badgeVariant ?? undefined}>
                         {badge.label}
                         {badge.count ? <span className="badge-count">x{badge.count}</span> : null}
                       </span>
@@ -1310,7 +1532,7 @@ export function App(): JSX.Element {
                 </button>
               </section>
 
-              {hackTab === 'completed' ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
+              {hackTab === 'completed' && HACKS_SCOPE_NOTE ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
 
               <section className="filter-row">
                 <input
@@ -1511,7 +1733,7 @@ export function App(): JSX.Element {
                   Export metrics (placeholder)
                 </button>
               </section>
-              <section className="message message-preview">{TEAM_PULSE_PLACEHOLDER_NOTE}</section>
+              {TEAM_PULSE_PLACEHOLDER_NOTE ? <section className="message message-preview">{TEAM_PULSE_PLACEHOLDER_NOTE}</section> : null}
 
               <article className="card collective-card">
                 <h2>Our Collective Progress</h2>
@@ -1632,8 +1854,665 @@ export function App(): JSX.Element {
               </article>
             </section>
           ) : null}
-        </main>
-      </div>
+
+          {view === 'library' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Library</h1>
+                  <p className="subtitle">Reusable AI assets — prompts, skills, and apps</p>
+                </div>
+              </section>
+              <section className="section-head-row">
+                <div>
+                  <h2>Featured Hacks</h2>
+                  <p>High-trust, curated collection</p>
+                </div>
+              </section>
+              {featuredHacks.length > 0 ? (
+                <section className="grid hacks-grid">
+                  {featuredHacks.map((hack) => (
+                    <HackCard key={hack.id} item={hack} />
+                  ))}
+                </section>
+              ) : (
+                <p className="empty-copy">No library assets yet. Submit a hack to get started.</p>
+              )}
+            </section>
+          ) : null}
+
+          {view === 'hackdays' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>HackDays</h1>
+                </div>
+                {bootstrap?.parentPageId ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => { resetWizard(); setView('create_hackday'); }}
+                  >
+                    + Create HackDay
+                  </button>
+                ) : null}
+              </section>
+
+              {registry.length > 0 ? (
+                <div className="grid hacks-grid">
+                  {registry.map((event) => (
+                    <article key={event.id} className="card hackday-card">
+                      <div className="hackday-card-header">
+                        <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
+                        <h3>{event.eventName}</h3>
+                      </div>
+                      {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+                      <div className="hackday-meta">
+                        <span className="pill pill-outline">{event.lifecycleStatus.replace('_', ' ')}</span>
+                        {event.hackingStartsAt ? (
+                          <span className="hackday-date">
+                            Hacking: {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'short' })}
+                          </span>
+                        ) : null}
+                      </div>
+                      {event.isNavigable && event.confluencePageId ? (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
+                        >
+                          Open
+                        </button>
+                      ) : (
+                        <span className="text-muted">Page not yet available</span>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-copy">No HackDays yet — use the button above to create one.</p>
+              )}
+
+              {!bootstrap?.parentPageId ? (
+                <p className="meta">Set <strong>CONFLUENCE_HDC_PARENT_PAGE_ID</strong> in Forge env to enable the create wizard.</p>
+              ) : null}
+            </section>
+          ) : null}
+
+          {view === 'create_hackday' ? (
+            <section className="wizard-page">
+              <section className="wizard-page-head">
+                <h1>Create HackDay</h1>
+                <p className="subtitle">Set up your event in 5 steps</p>
+              </section>
+
+              {/* Numbered progress stepper */}
+              <div className="wizard-stepper" role="list" aria-label="Wizard progress">
+                {(['Basic Info', 'Schedule', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
+                  const stepNum = idx + 1;
+                  const isDone = wStep > stepNum;
+                  const isActive = wStep === stepNum;
+                  return (
+                    <div key={label} className="ws-step-wrap">
+                      <div
+                        className={`ws-step${isActive ? ' ws-active' : ''}${isDone ? ' ws-done' : ''}`}
+                        role="listitem"
+                        aria-current={isActive ? 'step' : undefined}
+                      >
+                        <div className="ws-circle">{isDone ? '✓' : stepNum}</div>
+                        <span className="ws-label">{label}</span>
+                      </div>
+                      {idx < 4 && (
+                        <div className={`ws-line${isDone ? ' ws-line-done' : ''}`} aria-hidden />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Wizard card: head / body / foot */}
+              <article className="card wizard-card">
+                <div className="wizard-card-head">
+                  <p className="wizard-card-step-eyebrow">Step {wStep} of 5</p>
+                  <h2 className="wizard-card-title">
+                    {wStep === 1 ? 'Basic Info' : wStep === 2 ? 'Schedule' : wStep === 3 ? 'Rules' : wStep === 4 ? 'Branding' : 'Review & Create'}
+                  </h2>
+                  {(wEventNameError || actionError) ? (
+                    <p className="wizard-error" role="alert">{wEventNameError || actionError}</p>
+                  ) : null}
+                </div>
+
+                <div className="wizard-card-body">
+
+                  {/* ── Step 1: Basic Info ── */}
+                  {wStep === 1 ? (
+                    <div className="wizard-fields">
+                      <div className="field-group">
+                        <div className="field-row">
+                          <label htmlFor="w-name" className="field-label">
+                            Event name <span className="required">*</span>
+                          </label>
+                          <input
+                            id="w-name"
+                            className="field-input"
+                            value={wEventName}
+                            onChange={(e) => setWEventName(e.target.value)}
+                            placeholder="e.g. Spring HackDay 2026"
+                          />
+                        </div>
+                        <div className="field-pair">
+                          <div className="field-row">
+                            <label htmlFor="w-icon" className="field-label">Icon (emoji)</label>
+                            <input
+                              id="w-icon"
+                              className="field-input field-input-short"
+                              value={wEventIcon}
+                              onChange={(e) => setWEventIcon(e.target.value)}
+                              placeholder="🚀"
+                              maxLength={4}
+                            />
+                          </div>
+                          <div className="field-row">
+                            <label htmlFor="w-tagline" className="field-label">Tagline</label>
+                            <input
+                              id="w-tagline"
+                              className="field-input"
+                              value={wEventTagline}
+                              onChange={(e) => setWEventTagline(e.target.value)}
+                              placeholder="Optional short description"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Administrators</p>
+                        <div className="field-row">
+                          <label htmlFor="w-admin-email" className="field-label">Primary admin email</label>
+                          <input
+                            id="w-admin-email"
+                            className="field-input"
+                            type="email"
+                            value={wPrimaryAdminEmail}
+                            onChange={(e) => setWPrimaryAdminEmail(e.target.value)}
+                            placeholder="you@adaptavist.com"
+                          />
+                        </div>
+                        <div className="field-row">
+                          <label htmlFor="w-co-admins" className="field-label">Co-admin emails</label>
+                          <input
+                            id="w-co-admins"
+                            className="field-input"
+                            value={wCoAdminsInput}
+                            onChange={(e) => setWCoAdminsInput(e.target.value)}
+                            placeholder="co1@adaptavist.com, co2@adaptavist.com"
+                          />
+                          <span className="field-hint">Comma-separated</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 2: Schedule ── */}
+                  {wStep === 2 ? (
+                    <div className="wizard-fields">
+                      <div className="field-group">
+                        <div className="field-row">
+                          <label htmlFor="w-tz" className="field-label">Timezone</label>
+                          <select id="w-tz" className="field-input" value={wTimezone} onChange={(e) => setWTimezone(e.target.value)}>
+                            <option value="Europe/London">Europe/London</option>
+                            <option value="America/New_York">America/New_York</option>
+                            <option value="America/Chicago">America/Chicago</option>
+                            <option value="America/Denver">America/Denver</option>
+                            <option value="America/Los_Angeles">America/Los_Angeles</option>
+                            <option value="Asia/Kolkata">Asia/Kolkata</option>
+                            <option value="Asia/Singapore">Asia/Singapore</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                            <option value="Australia/Sydney">Australia/Sydney</option>
+                            <option value="UTC">UTC</option>
+                          </select>
+                        </div>
+                      </div>
+                      <ScheduleBuilder timezone={wTimezone} onChange={setWScheduleOutput} />
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 3: Rules ── */}
+                  {wStep === 3 ? (
+                    <div className="wizard-fields">
+                      <div className="field-group">
+                        <p className="field-group-label">Team</p>
+                        <div className="field-pair">
+                          <div className="field-row">
+                            <label htmlFor="w-min-team" className="field-label">Min size</label>
+                            <input id="w-min-team" className="field-input" type="number" min="1" value={wMinTeamSize} onChange={(e) => setWMinTeamSize(e.target.value)} />
+                          </div>
+                          <div className="field-row">
+                            <label htmlFor="w-max-team" className="field-label">Max size</label>
+                            <input id="w-max-team" className="field-input" type="number" min="1" value={wMaxTeamSize} onChange={(e) => setWMaxTeamSize(e.target.value)} />
+                          </div>
+                        </div>
+                        <div className="field-row">
+                          <label htmlFor="w-judging" className="field-label">Judging model</label>
+                          <select id="w-judging" className="field-input" value={wJudgingModel} onChange={(e) => setWJudgingModel(e.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
+                            <option value="hybrid">Hybrid — panel + community vote</option>
+                            <option value="panel">Panel only</option>
+                            <option value="popular_vote">Popular vote</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Permissions</p>
+                        <label className="toggle-row">
+                          <input type="checkbox" checked={wAllowCrossTeamMentoring} onChange={(e) => setWAllowCrossTeamMentoring(e.target.checked)} />
+                          <span className="toggle-text">
+                            <span className="toggle-title">Allow cross-team mentoring</span>
+                            <span className="toggle-desc">Mentors can advise teams they're not a member of</span>
+                          </span>
+                        </label>
+                        <label className="toggle-row">
+                          <input type="checkbox" checked={wRequireDemoLink} onChange={(e) => setWRequireDemoLink(e.target.checked)} />
+                          <span className="toggle-text">
+                            <span className="toggle-title">Require demo link</span>
+                            <span className="toggle-desc">Teams must submit a demo URL to qualify for judging</span>
+                          </span>
+                        </label>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Content</p>
+                        <div className="field-row">
+                          <label htmlFor="w-categories" className="field-label">Categories</label>
+                          <input id="w-categories" className="field-input" value={wCategoriesInput} onChange={(e) => setWCategoriesInput(e.target.value)} placeholder="e.g. AI, Productivity, Tooling" />
+                          <span className="field-hint">Comma-separated</span>
+                        </div>
+                        <div className="field-row">
+                          <label htmlFor="w-prizes" className="field-label">Prizes</label>
+                          <textarea id="w-prizes" className="field-input field-textarea" value={wPrizesText} onChange={(e) => setWPrizesText(e.target.value)} placeholder="Describe prizes and recognition..." rows={3} />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 4: Branding ── */}
+                  {wStep === 4 ? (
+                    <div className="wizard-fields">
+                      <div className="field-group">
+                        <p className="field-group-label">Colours</p>
+                        <div className="field-row">
+                          <label htmlFor="w-accent" className="field-label">Accent colour</label>
+                          <div className="color-picker-row">
+                            <input
+                              id="w-accent"
+                              type="color"
+                              className="color-swatch-input"
+                              value={wAccentColor}
+                              onChange={(e) => setWAccentColor(e.target.value)}
+                              aria-label="Pick accent colour"
+                            />
+                            <input
+                              type="text"
+                              className="field-input color-hex-input"
+                              value={wAccentColor}
+                              onChange={(e) => setWAccentColor(e.target.value)}
+                              placeholder="#0f766e"
+                            />
+                            <span className="color-live-preview" style={{ background: wAccentColor }} aria-hidden />
+                          </div>
+                          <div className="color-presets" role="group" aria-label="Preset colours">
+                            {['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#8b5cf6', '#ec4899'].map((hex) => (
+                              <button
+                                key={hex}
+                                type="button"
+                                className={`color-preset-btn${wAccentColor === hex ? ' color-preset-active' : ''}`}
+                                style={{ background: hex }}
+                                onClick={() => setWAccentColor(hex)}
+                                aria-label={`Set colour to ${hex}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Messaging</p>
+                        <div className="field-row">
+                          <label htmlFor="w-banner-msg" className="field-label">Banner message</label>
+                          <input id="w-banner-msg" className="field-input" value={wBannerMessage} onChange={(e) => setWBannerMessage(e.target.value)} placeholder="Optional announcement banner" />
+                        </div>
+                        <div className="field-row">
+                          <label htmlFor="w-banner-img" className="field-label">Banner image URL</label>
+                          <input id="w-banner-img" className="field-input" value={wBannerImageUrl} onChange={(e) => setWBannerImageUrl(e.target.value)} placeholder="https://..." />
+                        </div>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Appearance</p>
+                        <div className="field-row">
+                          <label htmlFor="w-theme" className="field-label">Theme preference</label>
+                          <select id="w-theme" className="field-input" value={wThemePreference} onChange={(e) => setWThemePreference(e.target.value as ThemePreference)}>
+                            <option value="system">System default</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 5: Review & Create ── */}
+                  {wStep === 5 ? (
+                    <div className="wizard-fields">
+                      <div className="review-block">
+                        <p className="review-block-title">Basic Info</p>
+                        <div className="review-kv-grid">
+                          <span className="review-k">Name</span>
+                          <span className="review-v">{wEventIcon} {wEventName || <em>Not set</em>}</span>
+                          {wEventTagline ? (
+                            <><span className="review-k">Tagline</span><span className="review-v">{wEventTagline}</span></>
+                          ) : null}
+                          {wPrimaryAdminEmail ? (
+                            <><span className="review-k">Admin</span><span className="review-v">{wPrimaryAdminEmail}</span></>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="review-block">
+                        <p className="review-block-title">Schedule</p>
+                        <div className="review-kv-grid">
+                          <span className="review-k">Timezone</span>
+                          <span className="review-v">{wScheduleOutput?.timezone || wTimezone}</span>
+                          {(wScheduleOutput?.hackingStartsAt || wHackingStartsAt) ? (
+                            <>
+                              <span className="review-k">Hacking starts</span>
+                              <span className="review-v">
+                                {wScheduleOutput?.hackingStartsAt
+                                  ? new Intl.DateTimeFormat('en-GB', { timeZone: wScheduleOutput.timezone || wTimezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(wScheduleOutput.hackingStartsAt))
+                                  : wHackingStartsAt}
+                              </span>
+                            </>
+                          ) : null}
+                          {(wScheduleOutput?.submissionDeadlineAt || wSubmissionDeadlineAt) ? (
+                            <>
+                              <span className="review-k">Deadline</span>
+                              <span className="review-v">
+                                {wScheduleOutput?.submissionDeadlineAt
+                                  ? new Intl.DateTimeFormat('en-GB', { timeZone: wScheduleOutput.timezone || wTimezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(wScheduleOutput.submissionDeadlineAt))
+                                  : wSubmissionDeadlineAt}
+                              </span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="review-block">
+                        <p className="review-block-title">Rules</p>
+                        <div className="review-kv-grid">
+                          <span className="review-k">Team size</span>
+                          <span className="review-v">{wMinTeamSize}–{wMaxTeamSize} people</span>
+                          <span className="review-k">Judging</span>
+                          <span className="review-v">
+                            {wJudgingModel === 'popular_vote' ? 'Popular vote' : wJudgingModel === 'panel' ? 'Panel' : 'Hybrid'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="review-block">
+                        <p className="review-block-title">Branding</p>
+                        <div className="review-kv-grid">
+                          <span className="review-k">Accent</span>
+                          <span className="review-v review-v-color">
+                            <span className="review-color-chip" style={{ background: wAccentColor }} aria-hidden />
+                            {wAccentColor}
+                          </span>
+                          <span className="review-k">Theme</span>
+                          <span className="review-v">{wThemePreference}</span>
+                        </div>
+                      </div>
+                      <div className="launch-mode-toggle" role="group" aria-label="Launch mode">
+                        <label className={`launch-mode-option${wLaunchMode === 'draft' ? ' launch-mode-selected' : ''}`}>
+                          <input
+                            type="radio"
+                            name="wLaunchMode"
+                            value="draft"
+                            checked={wLaunchMode === 'draft'}
+                            onChange={() => setWLaunchMode('draft')}
+                          />
+                          <span className="launch-mode-icon">📋</span>
+                          <span className="launch-mode-text">
+                            <span className="launch-mode-title">Save as draft</span>
+                            <span className="launch-mode-desc">Review and publish from the admin panel later</span>
+                          </span>
+                        </label>
+                        <label className={`launch-mode-option${wLaunchMode === 'go_live' ? ' launch-mode-selected' : ''}`}>
+                          <input
+                            type="radio"
+                            name="wLaunchMode"
+                            value="go_live"
+                            checked={wLaunchMode === 'go_live'}
+                            onChange={() => setWLaunchMode('go_live')}
+                          />
+                          <span className="launch-mode-icon">🚀</span>
+                          <span className="launch-mode-text">
+                            <span className="launch-mode-title">Go live immediately</span>
+                            <span className="launch-mode-desc">Open for registration as soon as it's created</span>
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+
+                </div>{/* /wizard-card-body */}
+
+                {/* Card footer: nav */}
+                <div className="wizard-card-foot">
+                  {wStep > 1 ? (
+                    <button type="button" className="btn btn-ghost" onClick={() => { setActionError(''); setWStep((s) => (s - 1) as WizardStep); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
+                      ← Back
+                    </button>
+                  ) : (
+                    <button type="button" className="btn btn-ghost" onClick={() => { resetWizard(); setView('hackdays'); }}>
+                      Cancel
+                    </button>
+                  )}
+                  {wStep < 5 ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        const err = getWizardValidationError(wStep);
+                        if (err) { setActionError(err); return; }
+                        setActionError('');
+                        setWStep((s) => (s + 1) as WizardStep);
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                      }}
+                    >
+                      Next →
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-create"
+                      disabled={saving}
+                      onClick={() => void handleCreateHackDay()}
+                    >
+                      {saving ? 'Creating…' : '🚀 Create HackDay'}
+                    </button>
+                  )}
+                </div>
+              </article>
+            </section>
+          ) : null}
+
+          {view === 'profile' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Profile</h1>
+                  <p className="subtitle">Your account and mentor settings</p>
+                </div>
+              </section>
+              <article className="card">
+                <div className="profile-header-row">
+                  <span className="profile-avatar" aria-hidden>{profileInitial}</span>
+                  <div>
+                    <h2>Account</h2>
+                    <p className="meta">{bootstrap.viewer.accountId}</p>
+                  </div>
+                </div>
+                <div className="profile-actions">
+                  <button type="button" className="btn btn-primary" onClick={() => setModalView('mentor_profile')}>
+                    Update Mentor Profile
+                  </button>
+                </div>
+              </article>
+            </section>
+          ) : null}
+
+          {view === 'search' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Search</h1>
+                  <p className="subtitle">{globalSearch.trim() ? `Results for "${globalSearch.trim()}"` : 'Search hacks, people, and projects'}</p>
+                </div>
+              </section>
+              {globalSearch.trim() ? (
+                <>
+                  <section>
+                    <h2 className="list-title">Hacks ({globalSearchResults.hacks.length})</h2>
+                    {globalSearchResults.hacks.length > 0 ? (
+                      <div className="grid hacks-grid">
+                        {globalSearchResults.hacks.map((hack) => (
+                          <HackCard key={hack.id} item={hack} />
+                        ))}
+                      </div>
+                    ) : <p className="empty-copy">No hacks match.</p>}
+                  </section>
+                  <section>
+                    <h2 className="list-title">People ({globalSearchResults.people.length})</h2>
+                    {globalSearchResults.people.length > 0 ? (
+                      <div className="grid people-grid">
+                        {globalSearchResults.people.map((person) => (
+                          <PersonCard key={person.id} item={person} />
+                        ))}
+                      </div>
+                    ) : <p className="empty-copy">No people match.</p>}
+                  </section>
+                  <section>
+                    <h2 className="list-title">Projects ({globalSearchResults.projects.length})</h2>
+                    {globalSearchResults.projects.length > 0 ? (
+                      <div className="grid hacks-grid">
+                        {globalSearchResults.projects.map((project) => (
+                          <ProjectCard key={project.id} item={project} />
+                        ))}
+                      </div>
+                    ) : <p className="empty-copy">No projects match.</p>}
+                  </section>
+                </>
+              ) : (
+                <p className="empty-copy">Type in the header search and press Enter to search.</p>
+              )}
+            </section>
+          ) : null}
+
+          {view === 'projects' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Projects</h1>
+                  <p className="subtitle">Recent projects</p>
+                </div>
+              </section>
+              {allProjects.length > 0 ? (
+                <section className="grid hacks-grid">
+                  {allProjects.map((project) => (
+                    <ProjectCard key={project.id} item={project} />
+                  ))}
+                </section>
+              ) : (
+                <p className="empty-copy">No projects yet.</p>
+              )}
+            </section>
+          ) : null}
+
+          {view === 'onboarding' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Get started</h1>
+                  <p className="subtitle">Choose a path to start using AI hacks in your work.</p>
+                </div>
+              </section>
+              <div className="grid onboarding-grid">
+                <article className="card onboarding-card" role="button" tabIndex={0} onClick={() => { setView('hacks'); setHackTab('completed'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('hacks'); setHackTab('completed'); } }}>
+                  <h2 className="onboarding-card-title">AI Experiment Starter template</h2>
+                  <p className="onboarding-card-copy">Start a new AI experiment with proper structure and risk assessment. Find it in Featured Hacks.</p>
+                  <span className="onboarding-card-cta">Open Featured Hacks →</span>
+                </article>
+                <article className="card onboarding-card" role="button" tabIndex={0} onClick={() => { setView('hacks'); setHackTab('completed'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('hacks'); setHackTab('completed'); } }}>
+                  <h2 className="onboarding-card-title">Copilot prompt pack for your role</h2>
+                  <p className="onboarding-card-copy">Curated prompts, skills, and apps by use case: code review, meeting notes, docs, and more.</p>
+                  <span className="onboarding-card-cta">Browse Featured Hacks →</span>
+                </article>
+                <article className="card onboarding-card" role="button" tabIndex={0} onClick={() => { setView('hacks'); setHackTab('completed'); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('hacks'); setHackTab('completed'); } }}>
+                  <h2 className="onboarding-card-title">Reuse a Featured Hacks item</h2>
+                  <p className="onboarding-card-copy">Copy first, create later. Start by reusing a verified prompt, skill, or app from Completed Hacks.</p>
+                  <span className="onboarding-card-cta">Explore Completed Hacks →</span>
+                </article>
+              </div>
+              <article className="card onboarding-guide-card">
+                <h2 className="onboarding-guide-title">AI 101 micro-guide</h2>
+                <p className="onboarding-guide-copy">New to AI hacks? Learn what they are, how to reuse them, and how to contribute.</p>
+                <button type="button" className="btn btn-primary" onClick={() => setView('guide')}>
+                  Open Guide
+                </button>
+              </article>
+            </section>
+          ) : null}
+
+          {view === 'guide' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <button type="button" className="btn btn-ghost" onClick={() => setView('dashboard')}>
+                  ← Back to Dashboard
+                </button>
+              </section>
+              <section className="title-row">
+                <div>
+                  <h1>AI 101 micro-guide</h1>
+                  <p className="subtitle">A short intro to AI hacks and how to use HackDay Central.</p>
+                </div>
+              </section>
+              <article className="card guide-content">
+                <h2>What are AI hacks?</h2>
+                <p>AI hacks are reusable building blocks for AI-assisted work: prompts, skills, and apps. They live in <strong>Completed Hacks</strong> and can be attached to <strong>Hacks In Progress</strong> so your team reuses what works.</p>
+                <h2>How do I reuse a hack?</h2>
+                <p>Go to Completed Hacks and open Featured Hacks for curated, verified hacks. Use &quot;I used this&quot; to record that you copied or referenced it.</p>
+                <h2>How do I contribute?</h2>
+                <p>Submit a new hack from Completed Hacks. Start as In progress, then mark it verified when it&apos;s ready. Attach hacks to Hacks In Progress so your work is visible on the Dashboard.</p>
+                <h2>Where to go next</h2>
+                <ul>
+                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('completed'); }}>Completed Hacks</button> — Browse and submit AI hacks</li>
+                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('completed'); }}>Featured Hacks</button> — Curated, high-trust hacks</li>
+                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('in_progress'); }}>Hacks In Progress</button> — Create projects and attach hacks</li>
+                  <li><button type="button" className="link-btn" onClick={() => setView('onboarding')}>Get started</button> — All onboarding paths</li>
+                </ul>
+                <div className="guide-actions">
+                  <button type="button" className="btn btn-primary" onClick={() => setView('dashboard')}>
+                    Back to Dashboard
+                  </button>
+                </div>
+              </article>
+            </section>
+          ) : null}
+
+          {view === 'notifications' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Notifications</h1>
+                  <p className="subtitle">Mentor request updates and other activity.</p>
+                </div>
+              </section>
+              <article className="card">
+                <p className="empty-copy">No notifications yet. When mentor requests are accepted or completed, they&apos;ll appear here.</p>
+              </article>
+            </section>
+          ) : null}
 
       {modalView !== 'none' ? (
         <div className="modal-backdrop" role="presentation" onClick={closeModal}>
@@ -1823,6 +2702,6 @@ export function App(): JSX.Element {
           </section>
         </div>
       ) : null}
-    </div>
+    </Layout>
   );
 }

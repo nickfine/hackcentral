@@ -11,6 +11,7 @@ import type {
   WizardStep,
 } from './types';
 import { DEFAULT_TIMEZONE } from './types';
+import { ScheduleBuilder, type ScheduleBuilderOutput } from './ScheduleBuilder';
 import {
   buildConfluencePagePath,
   buildSwitcherSections,
@@ -125,6 +126,15 @@ function formatLifecycle(status: EventRegistryItem['lifecycleStatus']): string {
     .join(' ');
 }
 
+const LIFECYCLE_NEXT_LABEL: Partial<Record<EventRegistryItem['lifecycleStatus'], string>> = {
+  draft: '🚀 Launch → Open for Registration',
+  registration: 'Advance → Team Formation',
+  team_formation: 'Advance → Hacking',
+  hacking: 'Advance → Voting',
+  voting: 'Advance → Results',
+  results: 'Complete',
+};
+
 /** Map lifecycle to design-system status class: complete=emerald, pending=amber, blocked=red */
 function getLifecycleStatusClass(
   status: EventRegistryItem['lifecycleStatus']
@@ -180,6 +190,7 @@ export function App(): JSX.Element {
   const [pendingCreateRequestId, setPendingCreateRequestId] = useState<string | null>(null);
   const [createDraftTimedOut, setCreateDraftTimedOut] = useState(false);
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
+  const [scheduleOutput, setScheduleOutput] = useState<ScheduleBuilderOutput | null>(null);
   const [registrationOpensAt, setRegistrationOpensAt] = useState('');
   const [registrationClosesAt, setRegistrationClosesAt] = useState('');
   const [teamFormationStartsAt, setTeamFormationStartsAt] = useState('');
@@ -422,6 +433,7 @@ export function App(): JSX.Element {
       setPrimaryAdminEmail('');
       setCoAdminsInput('');
       setTimezone(DEFAULT_TIMEZONE);
+      setScheduleOutput(null);
       setRegistrationOpensAt('');
       setRegistrationClosesAt('');
       setTeamFormationStartsAt('');
@@ -660,16 +672,16 @@ export function App(): JSX.Element {
           coAdminEmails: coAdminEmails.length > 0 ? coAdminEmails : undefined,
         },
         schedule: {
-          timezone,
-          registrationOpensAt: registrationOpensAt || undefined,
-          registrationClosesAt: registrationClosesAt || undefined,
-          teamFormationStartsAt: teamFormationStartsAt || undefined,
-          teamFormationEndsAt: teamFormationEndsAt || undefined,
-          hackingStartsAt: hackingStartsAt || undefined,
-          submissionDeadlineAt: submissionDeadlineAt || undefined,
-          votingStartsAt: votingStartsAt || undefined,
-          votingEndsAt: votingEndsAt || undefined,
-          resultsAnnounceAt: resultsAnnounceAt || undefined,
+          timezone: scheduleOutput?.timezone || timezone,
+          registrationOpensAt: scheduleOutput?.registrationOpensAt || registrationOpensAt || undefined,
+          registrationClosesAt: scheduleOutput?.registrationClosesAt || registrationClosesAt || undefined,
+          teamFormationStartsAt: scheduleOutput?.teamFormationStartsAt || teamFormationStartsAt || undefined,
+          teamFormationEndsAt: scheduleOutput?.teamFormationEndsAt || teamFormationEndsAt || undefined,
+          hackingStartsAt: scheduleOutput?.hackingStartsAt || hackingStartsAt || undefined,
+          submissionDeadlineAt: scheduleOutput?.submissionDeadlineAt || submissionDeadlineAt || undefined,
+          votingStartsAt: scheduleOutput?.votingStartsAt || votingStartsAt || undefined,
+          votingEndsAt: scheduleOutput?.votingEndsAt || votingEndsAt || undefined,
+          resultsAnnounceAt: scheduleOutput?.resultsAnnounceAt || resultsAnnounceAt || undefined,
         },
         rules: {
           allowCrossTeamMentoring,
@@ -851,10 +863,6 @@ export function App(): JSX.Element {
   const handleLaunch = useCallback(async () => {
     if (!context?.event) {
       setError('No instance selected for lifecycle update.');
-      return;
-    }
-    if (context.event.runtimeType === 'hackday_template') {
-      setError('This template instance is managed in HackDay. Lifecycle actions are disabled in HackDay Central.');
       return;
     }
     if (context.event.lifecycleStatus === 'completed' || context.event.lifecycleStatus === 'archived') {
@@ -1152,25 +1160,137 @@ export function App(): JSX.Element {
         <section className="grid">
           <article className="card">
             <h2>Create a HackDay</h2>
-            <p>
-              Create new HackDays in the HackCentral app. You&apos;ll set the event name, schedule, rules, and branding there, then the new event will appear in the Registry below and in the app switcher.
-            </p>
-            {context.createAppUrl ? (
-              <p>
-                <a
-                  href={`${context.createAppUrl.replace(/\/$/, '')}/hackdays/create`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="create-app-link"
-                >
-                  Open Create HackDay in app →
-                </a>
-              </p>
-            ) : (
-              <p className="meta">
-                To enable the link, set <strong>HACKDAY_CREATE_APP_URL</strong> (your HackCentral web app base URL) in the Forge app environment variables.
-              </p>
-            )}
+            <p>Use the 5-step wizard to create a new HackDay event. A child Confluence page will be created automatically.</p>
+
+            <div className="wizard-steps">
+              {(['Basic', 'Schedule', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => (
+                <span key={label} className={`wizard-step${wizardStep === idx + 1 ? ' wizard-step-active' : wizardStep > idx + 1 ? ' wizard-step-done' : ''}`}>
+                  {idx + 1}. {label}
+                </span>
+              ))}
+            </div>
+
+            {eventNameError ? <p className="note error">{eventNameError}</p> : null}
+
+            {wizardStep === 1 ? (
+              <div className="wizard-fields">
+                <label htmlFor="m-name">Event name *</label>
+                <input id="m-name" value={eventName} onChange={(e) => setEventName(e.target.value)} placeholder="e.g. Spring HackDay 2026" />
+                <label htmlFor="m-icon">Icon (emoji)</label>
+                <input id="m-icon" value={eventIcon} onChange={(e) => setEventIcon(e.target.value)} placeholder="🚀" maxLength={4} />
+                <label htmlFor="m-tagline">Tagline</label>
+                <input id="m-tagline" value={eventTagline} onChange={(e) => setEventTagline(e.target.value)} placeholder="Optional short description" />
+                <label htmlFor="m-admin">Primary admin email</label>
+                <input id="m-admin" type="email" value={primaryAdminEmail} onChange={(e) => setPrimaryAdminEmail(e.target.value)} placeholder="you@adaptavist.com" />
+                <label htmlFor="m-co">Co-admin emails (comma-separated)</label>
+                <input id="m-co" value={coAdminsInput} onChange={(e) => setCoAdminsInput(e.target.value)} placeholder="co@adaptavist.com" />
+              </div>
+            ) : null}
+
+            {wizardStep === 2 ? (
+              <div className="wizard-fields">
+                <label htmlFor="m-tz">Timezone</label>
+                <select id="m-tz" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                  <option value="Europe/London">Europe/London</option>
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="America/Chicago">America/Chicago</option>
+                  <option value="America/Denver">America/Denver</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                  <option value="Asia/Kolkata">Asia/Kolkata</option>
+                  <option value="Asia/Singapore">Asia/Singapore</option>
+                  <option value="Asia/Tokyo">Asia/Tokyo</option>
+                  <option value="Australia/Sydney">Australia/Sydney</option>
+                  <option value="UTC">UTC</option>
+                </select>
+                <ScheduleBuilder timezone={timezone} onChange={setScheduleOutput} />
+              </div>
+            ) : null}
+
+            {wizardStep === 3 ? (
+              <div className="wizard-fields">
+                <label htmlFor="m-min-team">Min team size</label>
+                <input id="m-min-team" type="number" min="1" value={minTeamSize} onChange={(e) => setMinTeamSize(e.target.value)} />
+                <label htmlFor="m-max-team">Max team size</label>
+                <input id="m-max-team" type="number" min="1" value={maxTeamSize} onChange={(e) => setMaxTeamSize(e.target.value)} />
+                <label htmlFor="m-judging">Judging model</label>
+                <select id="m-judging" value={judgingModel} onChange={(e) => setJudgingModel(e.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="panel">Panel</option>
+                  <option value="popular_vote">Popular vote</option>
+                </select>
+                <div className="checkbox-row">
+                  <input id="m-cross" type="checkbox" checked={allowCrossTeamMentoring} onChange={(e) => setAllowCrossTeamMentoring(e.target.checked)} />
+                  <label htmlFor="m-cross">Allow cross-team mentoring</label>
+                </div>
+                <div className="checkbox-row">
+                  <input id="m-demo" type="checkbox" checked={requireDemoLink} onChange={(e) => setRequireDemoLink(e.target.checked)} />
+                  <label htmlFor="m-demo">Require demo link</label>
+                </div>
+                <label htmlFor="m-cats">Categories (comma-separated)</label>
+                <input id="m-cats" value={categoriesInput} onChange={(e) => setCategoriesInput(e.target.value)} placeholder="e.g. AI, Productivity" />
+                <label htmlFor="m-prizes">Prizes</label>
+                <textarea id="m-prizes" value={prizesText} onChange={(e) => setPrizesText(e.target.value)} rows={3} placeholder="Describe prizes..." />
+              </div>
+            ) : null}
+
+            {wizardStep === 4 ? (
+              <div className="wizard-fields">
+                <label htmlFor="m-accent">Accent colour</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input id="m-accent" type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} style={{ width: '48px', height: '38px', padding: '2px', cursor: 'pointer' }} />
+                  <input type="text" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} placeholder="#0f766e" />
+                </div>
+                <label htmlFor="m-banner">Banner message</label>
+                <input id="m-banner" value={bannerMessage} onChange={(e) => setBannerMessage(e.target.value)} placeholder="Optional banner text" />
+                <label htmlFor="m-banner-img">Banner image URL</label>
+                <input id="m-banner-img" value={bannerImageUrl} onChange={(e) => setBannerImageUrl(e.target.value)} placeholder="https://..." />
+                <label htmlFor="m-theme">Theme</label>
+                <select id="m-theme" value={themePreference} onChange={(e) => setThemePreference(e.target.value as 'system' | 'light' | 'dark')}>
+                  <option value="system">System</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+            ) : null}
+
+            {wizardStep === 5 ? (
+              <div className="wizard-fields">
+                <h3 style={{ margin: '0 0 8px', fontWeight: 700 }}>Review</h3>
+                <p><strong>Name:</strong> {eventIcon} {eventName || <em>Not set</em>}</p>
+                {eventTagline ? <p><strong>Tagline:</strong> {eventTagline}</p> : null}
+                {primaryAdminEmail ? <p><strong>Admin:</strong> {primaryAdminEmail}</p> : null}
+                <p><strong>Timezone:</strong> {timezone}</p>
+                {(scheduleOutput?.hackingStartsAt || hackingStartsAt) ? (
+                  <p><strong>Hacking starts:</strong> {scheduleOutput?.hackingStartsAt
+                    ? new Intl.DateTimeFormat('en-GB', { timeZone: scheduleOutput.timezone || timezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(scheduleOutput.hackingStartsAt))
+                    : hackingStartsAt}</p>
+                ) : null}
+                {(scheduleOutput?.submissionDeadlineAt || submissionDeadlineAt) ? (
+                  <p><strong>Deadline:</strong> {scheduleOutput?.submissionDeadlineAt
+                    ? new Intl.DateTimeFormat('en-GB', { timeZone: scheduleOutput.timezone || timezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(scheduleOutput.submissionDeadlineAt))
+                    : submissionDeadlineAt}</p>
+                ) : null}
+                <p><strong>Team size:</strong> {minTeamSize}–{maxTeamSize} · Judging: {judgingModel}</p>
+                <p><strong>Accent:</strong> <span style={{ background: accentColor, padding: '2px 8px', borderRadius: '4px', color: '#fff', fontSize: '0.85em' }}>{accentColor}</span></p>
+                <p className="meta">Will be created as a draft child page under this parent page.</p>
+                {createDraftTimedOut ? <p className="note error">Creation timed out. Click &quot;Create HackDay&quot; to retry with the same request ID.</p> : null}
+              </div>
+            ) : null}
+
+            <div className="wizard-nav" style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {wizardStep > 1 ? (
+                <button type="button" className="button-muted" onClick={goToPreviousStep}>← Back</button>
+              ) : (
+                <span />
+              )}
+              {wizardStep < 5 ? (
+                <button type="button" className="button-primary" onClick={goToNextStep}>Next →</button>
+              ) : (
+                <button type="button" className="button-primary" disabled={saving} onClick={() => void handleCreateDraft()}>
+                  {saving ? 'Creating…' : 'Create HackDay'}
+                </button>
+              )}
+            </div>
           </article>
 
           <article className="card">
@@ -1280,15 +1400,16 @@ export function App(): JSX.Element {
             </p>
             {context.syncState ? <p>Error category: {formatSyncErrorCategory(context.syncState.syncErrorCategory)}</p> : null}
             {context.syncState?.retryGuidance ? <p>Guidance: {context.syncState.retryGuidance}</p> : null}
-            {isTemplateRuntime ? null : (
+            {canAdminInstance ? (
               <>
                 {instanceAdminActionState.globalHint ? <p className="meta">{instanceAdminActionState.globalHint}</p> : null}
                 <button
+                  className={context?.event?.lifecycleStatus === 'draft' ? 'btn btn-primary' : undefined}
                   disabled={instanceAdminActionState.advanceLifecycle.disabled}
                   title={instanceAdminActionState.advanceLifecycle.reason ?? undefined}
                   onClick={() => void handleLaunch()}
                 >
-                  {saving ? 'Updating…' : 'Advance Lifecycle'}
+                  {saving ? 'Updating…' : (LIFECYCLE_NEXT_LABEL[context?.event?.lifecycleStatus ?? 'draft'] ?? 'Advance Lifecycle')}
                 </button>
                 <button
                   disabled={instanceAdminActionState.completeSync.disabled}
@@ -1313,7 +1434,7 @@ export function App(): JSX.Element {
                   {saving ? 'Deleting…' : 'Delete Draft'}
                 </button>
               </>
-            )}
+            ) : null}
           </article>
         </section>
       ) : null}

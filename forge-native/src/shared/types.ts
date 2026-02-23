@@ -80,6 +80,12 @@ export interface BootstrapData {
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];
   registry: EventRegistryItem[];
+  /** Base URL of HackCentral web app for "Create HackDay" link. Set HACKDAY_CREATE_APP_URL in Forge env. */
+  createAppUrl?: string | null;
+  /** Full URL to Confluence parent page (macro with create wizard). Set in Forge env for "Create in Confluence" link. */
+  parentPageUrl?: string | null;
+  /** Confluence page ID of the HackDay Central parent page. Set CONFLUENCE_HDC_PARENT_PAGE_ID in Forge env. */
+  parentPageId?: string | null;
 }
 
 export interface CreateHackInput {
@@ -245,7 +251,7 @@ export interface HdcContextResponse {
   registry: EventRegistryItem[];
   syncState: EventSyncState | null;
   derivedProfile?: DerivedProfileSnapshot | null;
-  /** Base URL of the HackCentral web app for "Create in app" link (e.g. https://yourapp.vercel.app). Set HACKDAY_CREATE_APP_URL in Forge env. */
+  /** Base URL of the HackCentral app for "Create in app" link. Set HACKDAY_CREATE_APP_URL in Forge env. */
   createAppUrl?: string | null;
   permissions: {
     canCreateInstances: boolean;

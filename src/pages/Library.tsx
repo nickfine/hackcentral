@@ -206,10 +206,10 @@ function SubmitAssetModal({ onClose, onSubmitSuccess, createAsset }: SubmitAsset
                 value={demoUrl}
                 onChange={(e) => setDemoUrl(e.target.value)}
                 className="input w-full"
-                placeholder="https://my-app.vercel.app"
+                placeholder="https://my-app.example.com"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Where your app is hosted for demoing (e.g. Vercel, Netlify).
+                Where your app is hosted for demoing.
               </p>
             </div>
           )}
