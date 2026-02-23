@@ -21,6 +21,24 @@ const STEPS = [
 
 const DEFAULT_TIMEZONE = 'Europe/London';
 
+/** Map known server errors to user-friendly messages and optional step to fix. */
+function getUserFriendlyCreateError(message: string): { message: string; step?: number } {
+  const m = message.toLowerCase();
+  if (m.includes('go live requires') && (m.includes('hacking start') || m.includes('submission deadline'))) {
+    return {
+      message: 'To go live, you need to set Hacking start and Submission deadline. Please fill those in the Schedule step (step 2).',
+      step: 2,
+    };
+  }
+  if (m.includes('must have an email') || m.includes('primary admin email')) {
+    return {
+      message: 'We need an email to create the HackDay. Sign in with an account that has an email, or enter a Primary Admin Email in the Basic info step (step 1).',
+      step: 1,
+    };
+  }
+  return { message };
+}
+
 export default function CreateHackDay() {
   const navigate = useNavigate();
   const createFromWeb = useAction(api.hackdays.createHackDayFromWeb);
@@ -122,7 +140,10 @@ export default function CreateHackDay() {
       }
       navigate('/hackdays', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create HackDay');
+      const raw = err instanceof Error ? err.message : 'Failed to create HackDay';
+      const { message: friendly, step: suggestStep } = getUserFriendlyCreateError(raw);
+      setError(friendly);
+      if (suggestStep !== undefined) setStep(suggestStep);
     } finally {
       setSaving(false);
     }
@@ -144,23 +165,25 @@ export default function CreateHackDay() {
         description="Set up a new HackDay event. It will run on its own Confluence page."
       />
 
-      {/* Stepper */}
+      {/* Stepper - design system phase stepper: text-xs, active teal, no pill */}
       <div className="flex items-center gap-2 flex-wrap">
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setStep(s.id)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium ${
+              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium min-h-0 ${
                 step === s.id
-                  ? 'bg-primary text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  ? 'bg-primary text-primary-foreground hover:opacity-90'
+                  : step > s.id
+                    ? 'text-gray-500 dark:text-gray-300 bg-transparent'
+                    : 'text-gray-400 bg-transparent'
               }`}
             >
-              {step > s.id ? <Check className="h-3.5 w-3.5" /> : s.id}
+              {step > s.id ? <Check className="h-3 w-3" /> : s.id}
               <span>{s.label}</span>
             </button>
-            {i < STEPS.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            {i < STEPS.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" />}
           </div>
         ))}
       </div>
@@ -476,9 +499,9 @@ export default function CreateHackDay() {
           type="button"
           onClick={() => setStep((s) => Math.max(1, s - 1))}
           disabled={step === 1}
-          className="btn btn-outline inline-flex items-center gap-2"
+          className="btn btn-sm btn-outline inline-flex items-center gap-2"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5" />
           Back
         </button>
         {step < 5 ? (
@@ -486,20 +509,20 @@ export default function CreateHackDay() {
             type="button"
             onClick={() => setStep((s) => s + 1)}
             disabled={step === 1 && !canProceedStep1}
-            className="btn btn-primary inline-flex items-center gap-2"
+            className="btn btn-sm btn-primary inline-flex items-center gap-2"
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleSubmit}
             disabled={saving || !canProceedStep1}
-            className="btn btn-primary inline-flex items-center gap-2"
+            className="btn btn-sm btn-primary inline-flex items-center gap-2"
           >
             {saving ? 'Creating…' : 'Create HackDay'}
-            <Rocket className="h-4 w-4" />
+            <Rocket className="h-3.5 w-3.5" />
           </button>
         )}
       </div>

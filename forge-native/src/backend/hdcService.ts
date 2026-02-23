@@ -386,12 +386,14 @@ export class HdcService {
     if (!event) {
       const registry = await this.repository.listEventsByParentPageId(pageId);
       logContextRegistryNavigability('parent', pageId, registry);
+      const createAppUrl = process.env.HACKDAY_CREATE_APP_URL?.trim() || null;
       return {
         pageType: 'parent',
         pageId,
         event: null,
         registry,
         syncState: null,
+        createAppUrl,
         permissions: {
           canCreateInstances: true,
           isPrimaryAdmin: false,
@@ -422,6 +424,7 @@ export class HdcService {
 
     const derivedProfile = await this.getDerivedProfile(viewerUser.id);
 
+    const createAppUrl = process.env.HACKDAY_CREATE_APP_URL?.trim() || null;
     return {
       pageType: 'instance',
       pageId,
@@ -445,6 +448,7 @@ export class HdcService {
       registry,
       syncState,
       derivedProfile,
+      createAppUrl,
       permissions: {
         canCreateInstances: true,
         isPrimaryAdmin,

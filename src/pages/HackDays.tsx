@@ -1,6 +1,6 @@
 /**
- * HackDays Page — Phase 1 hub
- * Lists all HackDay instances (from Supabase) and provides "Create HackDay" deep-link to Confluence.
+ * HackDays Page
+ * Lists all HackDay instances (from Supabase). Create new HackDays via "Create in app".
  */
 
 import { useState, useEffect } from 'react';
@@ -40,10 +40,8 @@ function formatDate(iso: string | null): string {
 
 export default function HackDays() {
   const listEvents = useAction(api.hackdays.listHackDayEvents);
-  const getParentUrl = useAction(api.hackdays.getConfluenceParentPageUrl);
 
   const [events, setEvents] = useState<HackDayEventItem[]>([]);
-  const [parentPageUrl, setParentPageUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,11 +50,10 @@ export default function HackDays() {
     setLoading(true);
     setError(null);
 
-    Promise.all([listEvents(), getParentUrl()])
-      .then(([eventList, parentUrl]) => {
+    listEvents()
+      .then((eventList) => {
         if (cancelled) return;
         setEvents(eventList);
-        setParentPageUrl(parentUrl ?? '');
       })
       .catch((err) => {
         if (cancelled) return;
@@ -70,7 +67,7 @@ export default function HackDays() {
     return () => {
       cancelled = true;
     };
-  }, [listEvents, getParentUrl]);
+  }, [listEvents]);
 
   return (
     <div className="min-w-0 space-y-6">
@@ -82,39 +79,22 @@ export default function HackDays() {
       <div className="flex flex-wrap items-center gap-2">
         <Link
           to="/hackdays/create"
-          className="btn btn-primary inline-flex items-center gap-2"
+          className="btn btn-sm btn-primary inline-flex items-center gap-2"
         >
-          <Plus className="h-4 w-4" />
-          Create in app
+          <Plus className="h-3.5 w-3.5" />
+          Create HackDay
         </Link>
-        {parentPageUrl && (
-          <a
-            href={parentPageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-outline btn-sm inline-flex items-center gap-1 text-muted-foreground"
-          >
-            Or create from Confluence
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
       </div>
 
       {error && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
           {error}
-          {!parentPageUrl && events.length === 0 && (
+          {events.length === 0 && (
             <p className="mt-2 text-xs">
-              Ensure Convex env vars are set: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and optionally CONFLUENCE_HDC_PARENT_PAGE_URL for the Create button.
+              Ensure Convex env vars are set: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
             </p>
           )}
         </div>
-      )}
-
-      {!parentPageUrl && !error && (
-        <p className="text-sm text-muted-foreground">
-          Set CONFLUENCE_HDC_PARENT_PAGE_URL in Convex to show the &quot;Create HackDay&quot; button.
-        </p>
       )}
 
       {loading ? (
@@ -136,9 +116,7 @@ export default function HackDays() {
           <Rocket className="mx-auto h-10 w-10 opacity-50" />
           <p className="mt-2 font-medium">No HackDays yet</p>
           <p className="mt-1 text-sm">
-            {parentPageUrl
-              ? 'Click "Create HackDay" to open Confluence and create your first event.'
-              : 'Set CONFLUENCE_HDC_PARENT_PAGE_URL and open that page in Confluence to create a HackDay.'}
+            Click &quot;Create HackDay&quot; above to create your first event.
           </p>
         </div>
       ) : (

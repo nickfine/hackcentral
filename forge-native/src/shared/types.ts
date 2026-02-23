@@ -245,6 +245,8 @@ export interface HdcContextResponse {
   registry: EventRegistryItem[];
   syncState: EventSyncState | null;
   derivedProfile?: DerivedProfileSnapshot | null;
+  /** Base URL of the HackCentral web app for "Create in app" link (e.g. https://yourapp.vercel.app). Set HACKDAY_CREATE_APP_URL in Forge env. */
+  createAppUrl?: string | null;
   permissions: {
     canCreateInstances: boolean;
     isPrimaryAdmin: boolean;

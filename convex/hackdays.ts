@@ -244,9 +244,13 @@ export const createHackDayFromWeb = action({
     if (!identity) {
       throw new Error("You must be signed in to create a HackDay.");
     }
-    const email = identity.email?.trim?.();
+    const authEmail = identity.email?.trim?.();
+    const payloadEmail = args.payload.basicInfo?.primaryAdminEmail?.trim?.();
+    const email = authEmail || payloadEmail;
     if (!email) {
-      throw new Error("Your account must have an email to create a HackDay.");
+      throw new Error(
+        "Your account must have an email to create a HackDay. Sign in with an account that has an email, or enter a Primary Admin Email in the form."
+      );
     }
 
     const triggerUrl = process.env?.FORGE_HACKDAY_CREATE_WEB_TRIGGER_URL?.replace(/\/$/, "");

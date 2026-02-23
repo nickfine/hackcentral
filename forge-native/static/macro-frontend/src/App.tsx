@@ -1151,340 +1151,64 @@ export function App(): JSX.Element {
       {context.pageType === 'parent' ? (
         <section className="grid">
           <article className="card">
-            <h2>Create HackDay template instance</h2>
-            <div className="wizard-steps" role="list" aria-label="Create instance steps">
-              {[
-                ['1', 'Basic'],
-                ['2', 'Schedule'],
-                ['3', 'Rules'],
-                ['4', 'Branding'],
-                ['5', 'Review'],
-              ].map(([step, label]) => (
-                <span
-                  key={step}
-                  className={`wizard-step ${Number(step) === wizardStep ? 'active' : ''} ${
-                    Number(step) < wizardStep ? 'done' : ''
-                  }`}
-                  role="listitem"
+            <h2>Create a HackDay</h2>
+            <p>
+              Create new HackDays in the HackCentral app. You&apos;ll set the event name, schedule, rules, and branding there, then the new event will appear in the Registry below and in the app switcher.
+            </p>
+            {context.createAppUrl ? (
+              <p>
+                <a
+                  href={`${context.createAppUrl.replace(/\/$/, '')}/hackdays/create`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="create-app-link"
                 >
-                  {step}. {label}
-                </span>
-              ))}
-            </div>
-
-            <p className="meta">Step {wizardStep} of 5 {wizardLoaded ? '' : '· loading saved draft…'}</p>
-
-            {wizardStep === 1 ? (
-              <>
-                <label>
-                  Event Name
-                  <input
-                    className={eventNameError ? 'input-error' : ''}
-                    value={eventName}
-                    onChange={(event) => {
-                      setEventName(event.target.value);
-                      if (eventNameError) {
-                        setEventNameError('');
-                      }
-                    }}
-                    placeholder="Winter 2026 Innovation Sprint"
-                  />
-                </label>
-                {eventNameError ? <p className="field-error">{eventNameError}</p> : null}
-                <label>
-                  Event Icon
-                  <input value={eventIcon} onChange={(event) => setEventIcon(event.target.value)} placeholder="🚀" />
-                </label>
-                <label>
-                  Primary Admin Email
-                  <input
-                    type="email"
-                    value={primaryAdminEmail}
-                    onChange={(event) => setPrimaryAdminEmail(event.target.value)}
-                    placeholder="Defaults to current @adaptavist.com user"
-                  />
-                </label>
-                <label>
-                  Co-Admin Emails
-                  <input
-                    value={coAdminsInput}
-                    onChange={(event) => setCoAdminsInput(event.target.value)}
-                    placeholder="Comma-separated @adaptavist.com emails"
-                  />
-                </label>
-                <label>
-                  Tagline
-                  <input
-                    value={eventTagline}
-                    onChange={(event) => setEventTagline(event.target.value)}
-                    placeholder="Optional mission statement"
-                  />
-                </label>
-              </>
-            ) : null}
-
-            {wizardStep === 2 ? (
-              <>
-                <label>
-                  Timezone
-                  <input value={timezone} onChange={(event) => setTimezone(event.target.value)} />
-                </label>
-                <label>
-                  Registration Opens
-                  <input
-                    type="datetime-local"
-                    value={registrationOpensAt}
-                    onChange={(event) => setRegistrationOpensAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Registration Closes
-                  <input
-                    type="datetime-local"
-                    value={registrationClosesAt}
-                    onChange={(event) => setRegistrationClosesAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Team Formation Start
-                  <input
-                    type="datetime-local"
-                    value={teamFormationStartsAt}
-                    onChange={(event) => setTeamFormationStartsAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Team Formation End
-                  <input
-                    type="datetime-local"
-                    value={teamFormationEndsAt}
-                    onChange={(event) => setTeamFormationEndsAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Hacking Period Start
-                  <input
-                    type="datetime-local"
-                    value={hackingStartsAt}
-                    onChange={(event) => setHackingStartsAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Submission Deadline
-                  <input
-                    type="datetime-local"
-                    value={submissionDeadlineAt}
-                    onChange={(event) => setSubmissionDeadlineAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Voting Starts
-                  <input
-                    type="datetime-local"
-                    value={votingStartsAt}
-                    onChange={(event) => setVotingStartsAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Voting Ends
-                  <input
-                    type="datetime-local"
-                    value={votingEndsAt}
-                    onChange={(event) => setVotingEndsAt(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Results Announcement
-                  <input
-                    type="datetime-local"
-                    value={resultsAnnounceAt}
-                    onChange={(event) => setResultsAnnounceAt(event.target.value)}
-                  />
-                </label>
-              </>
-            ) : null}
-
-            {wizardStep === 3 ? (
-              <>
-                <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={allowCrossTeamMentoring}
-                    onChange={(event) => setAllowCrossTeamMentoring(event.target.checked)}
-                  />
-                  Allow cross-team mentoring during hack week
-                </label>
-                <label>
-                  Min Team Size
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={minTeamSize}
-                    onChange={(event) => setMinTeamSize(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Max Team Size
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={maxTeamSize}
-                    onChange={(event) => setMaxTeamSize(event.target.value)}
-                  />
-                </label>
-                <label className="checkbox-row">
-                  <input type="checkbox" checked={requireDemoLink} onChange={(event) => setRequireDemoLink(event.target.checked)} />
-                  Require demo link on final submission
-                </label>
-                <fieldset>
-                  <legend>Submission Requirements</legend>
-                  {SUBMISSION_REQUIREMENT_OPTIONS.map((requirement) => {
-                    const checked = submissionRequirements.includes(requirement);
-                    return (
-                      <label key={requirement} className="checkbox-row">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => {
-                            setSubmissionRequirements((current) => {
-                              if (event.target.checked) {
-                                if (current.includes(requirement)) return current;
-                                return [...current, requirement];
-                              }
-                              return current.filter((item) => item !== requirement);
-                            });
-                          }}
-                        />
-                        {formatSubmissionRequirement(requirement)}
-                      </label>
-                    );
-                  })}
-                </fieldset>
-                <label>
-                  Judging Model
-                  <select value={judgingModel} onChange={(event) => setJudgingModel(event.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
-                    <option value="panel">Panel judges</option>
-                    <option value="popular_vote">Popular vote</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </label>
-                <label>
-                  Categories / Tracks
-                  <input
-                    value={categoriesInput}
-                    onChange={(event) => setCategoriesInput(event.target.value)}
-                    placeholder="Innovation, Technical Excellence, Business Impact"
-                  />
-                </label>
-                <label>
-                  Prizes / Recognition
-                  <textarea
-                    value={prizesText}
-                    onChange={(event) => setPrizesText(event.target.value)}
-                    placeholder="Optional details about prizes and recognition."
-                  />
-                </label>
-              </>
-            ) : null}
-
-            {wizardStep === 4 ? (
-              <>
-                <label>
-                  Accent Color (optional)
-                  <input value={accentColor} onChange={(event) => setAccentColor(event.target.value)} placeholder="#0f766e" />
-                </label>
-                <p className="meta">
-                  Full branding (banner, theme, banner image) can be set after creation in the child page&apos;s Admin Panel → Branding tab.
-                </p>
-              </>
-            ) : null}
-
-            {wizardStep === 5 ? (
-              <section className="review">
-                <p>Confirm the draft setup before creating the child page.</p>
-                <p><strong>Name:</strong> {eventName || '—'}</p>
-                <p><strong>Tagline:</strong> {eventTagline || '—'}</p>
-                <p><strong>Admins:</strong> {primaryAdminEmail || 'current user'} {coAdminsInput ? `+ ${coAdminsInput}` : ''}</p>
-                <p><strong>Schedule:</strong> timezone {timezone}</p>
-                <p>
-                  <strong>Registration:</strong> {registrationOpensAt || 'TBD'} → {registrationClosesAt || 'TBD'}
-                </p>
-                <p>
-                  <strong>Team formation:</strong> {teamFormationStartsAt || 'TBD'} → {teamFormationEndsAt || 'TBD'}
-                </p>
-                <p><strong>Hacking:</strong> {hackingStartsAt || 'TBD'} → {submissionDeadlineAt || 'TBD'}</p>
-                <p><strong>Voting:</strong> {votingStartsAt || 'TBD'} → {votingEndsAt || 'TBD'}</p>
-                <p><strong>Results:</strong> {resultsAnnounceAt || 'TBD'}</p>
-                <p>
-                  <strong>Rules:</strong> team size {Math.max(1, Math.floor(Number(minTeamSize) || 1))}-
-                  {Math.max(Math.max(1, Math.floor(Number(minTeamSize) || 1)), Math.floor(Number(maxTeamSize) || 1))},{' '}
-                  {allowCrossTeamMentoring ? 'cross-team mentoring on' : 'cross-team mentoring off'}, judging: {judgingModel}
-                </p>
-                <p>
-                  <strong>Requirements:</strong>{' '}
-                  {submissionRequirements.length > 0
-                    ? submissionRequirements.map((item) => formatSubmissionRequirement(item)).join(', ')
-                    : 'none'}
-                </p>
-                <p><strong>Categories:</strong> {categoriesInput || '—'}</p>
-                <p><strong>Prizes:</strong> {prizesText || '—'}</p>
-                <p>
-                  <strong>Branding:</strong> accent {accentColor || 'default'} · Set banner/theme in child Admin Panel after creation.
-                </p>
-              </section>
-            ) : null}
-
-            <div className="wizard-actions">
-              <button type="button" className="button-muted" disabled={wizardStep === 1 || saving} onClick={goToPreviousStep}>
-                Back
-              </button>
-              <button type="button" className="button-muted" disabled={saving} onClick={() => resetWizard(true)}>
-                Reset
-              </button>
-              <button
-                type="button"
-                disabled={saving || !context.permissions.canCreateInstances}
-                onClick={() => void handleCreateDraft()}
-              >
-                {wizardStep === 5
-                  ? saving
-                    ? 'Creating…'
-                    : createDraftTimedOut
-                      ? 'Retry Create Instance'
-                      : 'Create Instance'
-                  : saving
-                    ? 'Saving…'
-                    : createDraftTimedOut
-                      ? 'Retry Save Draft'
-                      : 'Save Draft'}
-              </button>
-              {wizardStep < 5 ? (
-                <button type="button" disabled={saving} onClick={goToNextStep}>
-                  Next
-                </button>
-              ) : null}
-            </div>
-            {pendingCreateRequestId ? <p className="meta">Request ID: {pendingCreateRequestId}</p> : null}
+                  Open Create HackDay in app →
+                </a>
+              </p>
+            ) : (
+              <p className="meta">
+                To enable the link, set <strong>HACKDAY_CREATE_APP_URL</strong> (your HackCentral web app base URL) in the Forge app environment variables.
+              </p>
+            )}
           </article>
 
           <article className="card">
             <h2>Registry</h2>
+            {sortedRegistry.length > 0 ? (
+              <p className="meta">Click a row to open that HackDay.</p>
+            ) : null}
             {sortedRegistry.length === 0 ? (
               <p>No instances yet.</p>
             ) : (
               <ul className="registry">
-                {sortedRegistry.map((item) => (
-                  <li key={item.id}>
-                    <strong>
-                      {item.icon} {item.eventName}
-                    </strong>
-                    <span className={getLifecycleStatusClass(item.lifecycleStatus)}>
-                      {formatLifecycle(item.lifecycleStatus)}
-                    </span>
-                  </li>
-                ))}
+                {sortedRegistry.map((item) => {
+                  const navigable = isNavigableRegistryItem(item);
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className={`registry-row ${!navigable ? 'registry-row--disabled' : ''}`}
+                        disabled={!navigable}
+                        title={navigable ? `Open ${item.eventName}` : 'Page not provisioned yet'}
+                        onClick={() => {
+                          if (navigable) {
+                            runSwitcherNavigation(item, (targetPageId) => {
+                              void navigateToPageId(targetPageId);
+                            });
+                          }
+                        }}
+                      >
+                        <strong>
+                          {item.icon} {item.eventName}
+                        </strong>
+                        <span className={getLifecycleStatusClass(item.lifecycleStatus)}>
+                          {formatLifecycle(item.lifecycleStatus)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </article>

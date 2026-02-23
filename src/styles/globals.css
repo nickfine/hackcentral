@@ -330,7 +330,7 @@
     border-color: #e5e7eb;
   }
 
-  /* Button base - doc: primary rounded-lg */
+  /* Button base - design system: rounded-lg, text-sm, consistent size */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -339,6 +339,9 @@
     border-radius: var(--radius-lg);
     font-size: 0.875rem;
     font-weight: 500;
+    min-height: 2.25rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
     transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms;
     outline: none;
   }
