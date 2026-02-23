@@ -58,7 +58,7 @@ export function SectionHeader({
           {titleSuffix != null && titleSuffix}
         </div>
         {description != null && description !== '' && (
-          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+          <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
             {description}
           </p>
         )}

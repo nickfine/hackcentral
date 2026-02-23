@@ -10,16 +10,16 @@ Purpose: active cross-repo continuity notes only.
 4. `/Users/nickster/Downloads/HackCentral/docs/HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`
 
 ## Current status snapshot (authoritative)
-- Latest checkpoint time: 2026-02-22 ~21:00 UTC.
+- Latest checkpoint time: 2026-02-23 UTC.
 - Spinout migration/cutover workstream: complete.
 - Runtime mode: page-scoped context resolution in production.
 - Legacy dependency: singleton `isCurrent` fallback removed from HD26 resolver flow.
-- Current HackCentral versions: root `0.6.23`, forge-native `0.1.4`.
-- Current HackCentral Forge app: `4.16.0`.
+- Current HackCentral versions: root `0.6.29`, forge-native `0.1.8`.
+- Current HackCentral Forge app: `4.25.0` (prod deploy 2026-02-23; custom-ui built then deploy; hackdaytemp up-to-date).
 - Current HD26Forge versions: root `7.5.76`, frontend `1.2.50`.
 - Current HD26Forge Forge app: `5.77.0`.
 - Latest code anchor on HD26Forge: `6f364c7` on `main`.
-- Latest code anchor on HackCentral: `91f60c3` on `main`.
+- Latest code anchor on HackCentral: `139fa65` on `main`.
 
 ## Latest retained checkpoints (active window)
 1. 2026-02-21 13:55 UTC: dark-mode rollover fix + production promotion.
@@ -27,6 +27,7 @@ Purpose: active cross-repo continuity notes only.
 3. 2026-02-21 14:24 UTC: Team Detail pill contrast remediation + deploy.
 4. 2026-02-22: HD26Forge code integrity audit – backend fixes (user.id bug, UUID IDs, magic numbers, error handling), frontend fixes (CSS tokenization, font mismatch, a11y, dead code), event-scoped theming. Deployed as `5.77.0`.
 5. 2026-02-22: HackCentral code integrity audit – schema cleanup (dead indexes, dead table, draft status removal), shared constants (email domain, timezone), frontend consolidation (icon maps, filter buttons, preview limits). Deployed as `4.16.0`.
+6. 2026-02-23: HackCentral Forge: built static UIs (`npm run custom-ui:build`), deployed to production `4.25.0`; `forge install --upgrade` on hackdaytemp.atlassian.net — site at latest. (Create wizard/Schedule step live in web app; deploy web app separately if needed.)
 
 ## Validation state (latest retained checkpoint)
 - `npm --prefix /Users/nickster/Downloads/HD26Forge/static/frontend run build` passed.

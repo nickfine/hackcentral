@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import { I18nProvider } from 'react-aria-components'
 import { Analytics } from '@vercel/analytics/react'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { Layout } from '@/components/shared/Layout'
@@ -41,10 +42,11 @@ function PageFallback() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthGuard>
-        <Routes>
-          <Route path="/" element={<Layout />}>
+    <I18nProvider locale={typeof navigator !== 'undefined' ? navigator.language : 'en-US'}>
+      <BrowserRouter>
+        <AuthGuard>
+          <Routes>
+            <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route
               path="dashboard"
@@ -171,11 +173,12 @@ function App() {
             />
             {/* Catch-all route */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Route>
-        </Routes>
-      </AuthGuard>
-      <Analytics />
-    </BrowserRouter>
+            </Route>
+          </Routes>
+        </AuthGuard>
+        <Analytics />
+      </BrowserRouter>
+    </I18nProvider>
   )
 }
 

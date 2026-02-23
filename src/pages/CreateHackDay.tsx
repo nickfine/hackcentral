@@ -10,6 +10,8 @@ import { ChevronLeft, ChevronRight, Rocket, Check } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import type { CreateHackDayWizardPayload } from '../../convex/hackdays';
 import { SectionHeader } from '@/components/shared';
+import { ScheduleStep } from '@/components/create/ScheduleStep';
+import type { Schedule } from '@/components/create/types';
 
 const STEPS = [
   { id: 1, label: 'Basic' },
@@ -53,16 +55,7 @@ export default function CreateHackDay() {
   const [primaryAdminEmail, setPrimaryAdminEmail] = useState('');
   const [coAdminEmails, setCoAdminEmails] = useState('');
 
-  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
-  const [registrationOpensAt, setRegistrationOpensAt] = useState('');
-  const [registrationClosesAt, setRegistrationClosesAt] = useState('');
-  const [teamFormationStartsAt, setTeamFormationStartsAt] = useState('');
-  const [teamFormationEndsAt, setTeamFormationEndsAt] = useState('');
-  const [hackingStartsAt, setHackingStartsAt] = useState('');
-  const [submissionDeadlineAt, setSubmissionDeadlineAt] = useState('');
-  const [votingStartsAt, setVotingStartsAt] = useState('');
-  const [votingEndsAt, setVotingEndsAt] = useState('');
-  const [resultsAnnounceAt, setResultsAnnounceAt] = useState('');
+  const [schedule, setSchedule] = useState<Schedule>({ timezone: DEFAULT_TIMEZONE });
 
   const [minTeamSize, setMinTeamSize] = useState(1);
   const [maxTeamSize, setMaxTeamSize] = useState(6);
@@ -94,16 +87,16 @@ export default function CreateHackDay() {
         coAdminEmails: coAdminList.length > 0 ? coAdminList : undefined,
       },
       schedule: {
-        timezone: timezone || DEFAULT_TIMEZONE,
-        registrationOpensAt: registrationOpensAt.trim() || undefined,
-        registrationClosesAt: registrationClosesAt.trim() || undefined,
-        teamFormationStartsAt: teamFormationStartsAt.trim() || undefined,
-        teamFormationEndsAt: teamFormationEndsAt.trim() || undefined,
-        hackingStartsAt: hackingStartsAt.trim() || undefined,
-        submissionDeadlineAt: submissionDeadlineAt.trim() || undefined,
-        votingStartsAt: votingStartsAt.trim() || undefined,
-        votingEndsAt: votingEndsAt.trim() || undefined,
-        resultsAnnounceAt: resultsAnnounceAt.trim() || undefined,
+        timezone: schedule.timezone || DEFAULT_TIMEZONE,
+        registrationOpensAt: schedule.registrationOpensAt?.trim() || undefined,
+        registrationClosesAt: schedule.registrationClosesAt?.trim() || undefined,
+        teamFormationStartsAt: schedule.teamFormationStartsAt?.trim() || undefined,
+        teamFormationEndsAt: schedule.teamFormationEndsAt?.trim() || undefined,
+        hackingStartsAt: schedule.hackingStartsAt?.trim() || undefined,
+        submissionDeadlineAt: schedule.submissionDeadlineAt?.trim() || undefined,
+        votingStartsAt: schedule.votingStartsAt?.trim() || undefined,
+        votingEndsAt: schedule.votingEndsAt?.trim() || undefined,
+        resultsAnnounceAt: schedule.resultsAnnounceAt?.trim() || undefined,
       },
       rules: {
         allowCrossTeamMentoring,
@@ -176,14 +169,14 @@ export default function CreateHackDay() {
                 step === s.id
                   ? 'bg-primary text-primary-foreground hover:opacity-90'
                   : step > s.id
-                    ? 'text-gray-500 dark:text-gray-300 bg-transparent'
-                    : 'text-gray-400 bg-transparent'
+                    ? 'text-gray-600 dark:text-gray-300 bg-transparent'
+                    : 'text-gray-600 dark:text-gray-400 bg-transparent'
               }`}
             >
               {step > s.id ? <Check className="h-3 w-3" /> : s.id}
               <span>{s.label}</span>
             </button>
-            {i < STEPS.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" />}
+            {i < STEPS.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" />}
           </div>
         ))}
       </div>
@@ -269,41 +262,23 @@ export default function CreateHackDay() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Schedule</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
                   Timezone
                 </label>
                 <input
                   type="text"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
+                  value={schedule.timezone ?? DEFAULT_TIMEZONE}
+                  onChange={(e) =>
+                    setSchedule((prev) => ({ ...prev, timezone: e.target.value || DEFAULT_TIMEZONE }))
+                  }
                   className="input w-full"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: 'Registration opens', value: registrationOpensAt, set: setRegistrationOpensAt },
-                  { label: 'Registration closes', value: registrationClosesAt, set: setRegistrationClosesAt },
-                  { label: 'Team formation starts', value: teamFormationStartsAt, set: setTeamFormationStartsAt },
-                  { label: 'Team formation ends', value: teamFormationEndsAt, set: setTeamFormationEndsAt },
-                  { label: 'Hacking starts', value: hackingStartsAt, set: setHackingStartsAt },
-                  { label: 'Submission deadline', value: submissionDeadlineAt, set: setSubmissionDeadlineAt },
-                  { label: 'Voting starts', value: votingStartsAt, set: setVotingStartsAt },
-                  { label: 'Voting ends', value: votingEndsAt, set: setVotingEndsAt },
-                  { label: 'Results announce', value: resultsAnnounceAt, set: setResultsAnnounceAt },
-                ].map(({ label, value, set }) => (
-                  <div key={label}>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                      {label}
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={value}
-                      onChange={(e) => set(e.target.value)}
-                      className="input w-full"
-                    />
-                  </div>
-                ))}
-              </div>
+              <ScheduleStep
+                timezone={schedule.timezone ?? DEFAULT_TIMEZONE}
+                schedule={schedule}
+                onScheduleChange={setSchedule}
+              />
             </div>
           </>
         )}
