@@ -2,7 +2,11 @@
 
 An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-**Current version:** `0.6.23` / forge-native `0.1.4` / Forge app `4.16.0`
+**Current version:** `0.6.29` / forge-native `0.1.4` / Forge app `4.16.0`
+
+## 🤖 New Claude Code Session?
+
+Start with: `Read .claude/instructions.md` to get full project context, tech stack, and development patterns.
 
 ## Tech Stack
 
