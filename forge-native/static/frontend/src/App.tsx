@@ -32,11 +32,12 @@ import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { getInitials } from './utils/format';
 import { ScheduleBuilder, type ScheduleBuilderOutput } from './components/create/ScheduleBuilder';
+import { ScheduleBuilderV2 } from './components/schedule-builder-v2';
 import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.3.0';
+const HACKCENTRAL_UI_VERSION = '0.5.0';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -2064,58 +2065,14 @@ export function App(): JSX.Element {
                   {/* ── Step 2: Schedule ── */}
                   {wStep === 2 ? (
                     <div className="wizard-fields">
-                      <div className="field-group">
-                        <div className="field-row">
-                          <label htmlFor="w-tz" className="field-label">Timezone</label>
-                          <select id="w-tz" className="field-input" value={wTimezone} onChange={(e) => setWTimezone(e.target.value)}>
-                            <option value="Europe/London">Europe/London</option>
-                            <option value="America/New_York">America/New_York</option>
-                            <option value="America/Chicago">America/Chicago</option>
-                            <option value="America/Denver">America/Denver</option>
-                            <option value="America/Los_Angeles">America/Los_Angeles</option>
-                            <option value="Asia/Kolkata">Asia/Kolkata</option>
-                            <option value="Asia/Singapore">Asia/Singapore</option>
-                            <option value="Asia/Tokyo">Asia/Tokyo</option>
-                            <option value="Australia/Sydney">Australia/Sydney</option>
-                            <option value="UTC">UTC</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Event Duration Selector */}
-                      <div className="field-group">
-                        <div className="field-row">
-                          <label className="field-label">Event Duration</label>
-                          <p className="field-hint">How many days will your HackDay run?</p>
-                        </div>
-                        <div className="duration-selector">
-                          {([1, 2, 3] as EventDuration[]).map(days => (
-                            <button
-                              key={days}
-                              type="button"
-                              className={`duration-option ${wEventDuration === days ? 'selected' : ''}`}
-                              onClick={() => setWEventDuration(days)}
-                            >
-                              <span className="duration-number">{days}</span>
-                              <span className="duration-label">{days === 1 ? 'Day' : 'Days'}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Schedule Event Selection */}
-                      <div className="field-group">
-                        <div className="field-row">
-                          <label className="field-label">Schedule Events</label>
-                          <p className="field-hint">Select which events to include in your schedule</p>
-                        </div>
-                        <EventSelectionPanel
-                          selectedEvents={wSelectedEvents}
-                          onChange={setWSelectedEvents}
-                        />
-                      </div>
-
-                      <ScheduleBuilder timezone={wTimezone} onChange={setWScheduleOutput} />
+                      <ScheduleBuilderV2
+                        timezone={wTimezone}
+                        onChange={(output) => {
+                          setWScheduleOutput(output);
+                          if (output.timezone) setWTimezone(output.timezone);
+                          if (output.duration) setWEventDuration(output.duration);
+                        }}
+                      />
                     </div>
                   ) : null}
 

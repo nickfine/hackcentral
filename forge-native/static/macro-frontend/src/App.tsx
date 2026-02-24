@@ -14,6 +14,7 @@ import type {
 } from './types';
 import { DEFAULT_TIMEZONE } from './types';
 import { ScheduleBuilder, type ScheduleBuilderOutput } from './ScheduleBuilder';
+import { ScheduleBuilderV2 } from './components/schedule-builder-v2';
 import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './scheduleEvents';
 import {
@@ -29,6 +30,12 @@ import {
   writeSwitcherRegistryCache,
 } from './appSwitcher';
 import { getInstanceAdminActionState } from './instanceAdminActions';
+
+/** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
+const HACKCENTRAL_MACRO_VERSION = '0.5.0';
+if (typeof console !== 'undefined' && console.log) {
+  console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
+}
 
 const LOCAL_PREVIEW = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
@@ -1198,54 +1205,15 @@ export function App(): JSX.Element {
 
             {wizardStep === 2 ? (
               <div className="wizard-fields">
-                <label htmlFor="m-tz">Timezone</label>
-                <select id="m-tz" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-                  <option value="Europe/London">Europe/London</option>
-                  <option value="America/New_York">America/New_York</option>
-                  <option value="America/Chicago">America/Chicago</option>
-                  <option value="America/Denver">America/Denver</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles</option>
-                  <option value="Asia/Kolkata">Asia/Kolkata</option>
-                  <option value="Asia/Singapore">Asia/Singapore</option>
-                  <option value="Asia/Tokyo">Asia/Tokyo</option>
-                  <option value="Australia/Sydney">Australia/Sydney</option>
-                  <option value="UTC">UTC</option>
-                </select>
-
-                {/* Event Duration Selector */}
-                <div className="field-group" style={{ marginTop: '1.5rem' }}>
-                  <label className="field-label">Event Duration</label>
-                  <p className="field-hint" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    How many days will your HackDay run?
-                  </p>
-                  <div className="duration-selector">
-                    {([1, 2, 3] as EventDuration[]).map(days => (
-                      <button
-                        key={days}
-                        type="button"
-                        className={`duration-option ${eventDuration === days ? 'selected' : ''}`}
-                        onClick={() => setEventDuration(days)}
-                      >
-                        <span className="duration-number">{days}</span>
-                        <span className="duration-label">{days === 1 ? 'Day' : 'Days'}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Schedule Event Selection */}
-                <div className="field-group" style={{ marginTop: '1.5rem' }}>
-                  <label className="field-label">Schedule Events</label>
-                  <p className="field-hint" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    Select which events to include in your schedule
-                  </p>
-                  <EventSelectionPanel
-                    selectedEvents={selectedEvents}
-                    onChange={setSelectedEvents}
-                  />
-                </div>
-
-                <ScheduleBuilder timezone={timezone} onChange={setScheduleOutput} />
+                <ScheduleBuilderV2
+                  timezone={timezone}
+                  onChange={(output) => {
+                    setScheduleOutput(output);
+                    // Sync timezone and duration from V2 output
+                    if (output.timezone) setTimezone(output.timezone);
+                    if (output.duration) setEventDuration(output.duration);
+                  }}
+                />
               </div>
             ) : null}
 

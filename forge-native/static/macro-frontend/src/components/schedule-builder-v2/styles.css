@@ -1,0 +1,702 @@
+/**
+ * Schedule Builder V2 Styles
+ *
+ * Phase-based schedule builder with signal colors and tabbed navigation.
+ */
+
+/* ── Config Strip ─────────────────────────────────────────────────── */
+
+.sb2-config-strip {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #f0fdfa;
+  border: 1.5px solid rgba(20, 184, 166, 0.12);
+  border-radius: 16px;
+}
+
+.sb2-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb2-config-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0d9488;
+  margin: 0;
+}
+
+.sb2-config-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(20, 184, 166, 0.12);
+  flex-shrink: 0;
+}
+
+/* Duration selector */
+.sb2-duration-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.sb2-duration-btn {
+  width: 52px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.sb2-duration-btn:hover:not(.sb2-duration-btn--active) {
+  border-color: #14b8a6;
+  color: #14b8a6;
+}
+
+.sb2-duration-btn--active {
+  border-color: #14b8a6;
+  background: #14b8a6;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 184, 166, 0.35);
+}
+
+/* Anchor date/time inputs */
+.sb2-anchor-inputs {
+  display: flex;
+  gap: 6px;
+}
+
+.sb2-anchor-input {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(20, 184, 166, 0.2);
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  width: auto;
+  margin: 0;
+}
+
+.sb2-anchor-input:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+/* Timezone selector */
+.sb2-timezone-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(20, 184, 166, 0.2);
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  min-width: 160px;
+  margin: 0;
+  width: auto;
+}
+
+.sb2-timezone-select:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+/* ── Phase Tab Bar ─────────────────────────────────────────────────── */
+
+.sb2-phase-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.sb2-phase-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.sb2-phase-tab:hover:not(.sb2-phase-tab--active) {
+  background: rgba(20, 184, 166, 0.05);
+  color: #6b7280;
+}
+
+.sb2-phase-tab--active {
+  border-color: #14b8a6;
+  background: #f0fdfa;
+  color: #0d9488;
+  font-weight: 600;
+}
+
+.sb2-phase-tab--pre.sb2-phase-tab--active {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+}
+
+.sb2-phase-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: #14b8a6;
+  flex-shrink: 0;
+}
+
+/* ── Phase Content ─────────────────────────────────────────────────── */
+
+.sb2-phase-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sb2-phase-header {
+  margin-bottom: 4px;
+}
+
+.sb2-phase-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.sb2-phase-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.sb2-phase-date {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.sb2-phase-description {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+/* ── Event Card ─────────────────────────────────────────────────── */
+
+.sb2-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sb2-event-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--signal-bg, #ffffff);
+  border: 1.5px solid var(--signal-border, #e5e7eb);
+  border-left-width: 3px;
+  border-left-color: var(--signal-accent, #e5e7eb);
+  transition: all 0.15s ease;
+}
+
+.sb2-event-card--disabled {
+  opacity: 0.45;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  border-left-color: #e5e7eb;
+  border-left-width: 1.5px;
+}
+
+.sb2-event-card--neutral {
+  border-left-width: 1.5px;
+}
+
+/* Toggle checkbox */
+.sb2-event-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid #d1d5db;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  padding: 0;
+  margin: 0;
+}
+
+.sb2-event-toggle:hover {
+  border-color: #14b8a6;
+}
+
+.sb2-event-toggle--checked {
+  border-color: #14b8a6;
+  background: #14b8a6;
+}
+
+.sb2-event-toggle-check {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Event info */
+.sb2-event-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb2-event-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.sb2-event-card--disabled .sb2-event-name {
+  color: #6b7280;
+}
+
+.sb2-event-description {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.3;
+}
+
+/* Event controls */
+.sb2-event-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Offset input for pre-event */
+.sb2-offset-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 4px 4px 4px 10px;
+}
+
+.sb2-offset-input {
+  width: 36px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+  outline: none;
+  background: transparent;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  padding: 0;
+  margin: 0;
+}
+
+.sb2-offset-input::-webkit-inner-spin-button,
+.sb2-offset-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.sb2-offset-unit {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  padding-right: 6px;
+}
+
+/* Calculated date display */
+.sb2-calculated-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.sb2-calculated-date-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  font-family: 'SF Mono', ui-monospace, monospace;
+}
+
+.sb2-calculated-date-label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Time input for hack day */
+.sb2-time-input {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--signal-accent, #14b8a6);
+  background: #ffffff;
+  outline: none;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  width: auto;
+  margin: 0;
+}
+
+.sb2-time-input:focus {
+  border-color: var(--signal-accent, #14b8a6);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.1);
+}
+
+/* ── Add Custom Event Button ─────────────────────────────────────── */
+
+.sb2-add-custom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 4px;
+  border-radius: 14px;
+  border: 1.5px dashed #d1d5db;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sb2-add-custom-btn:hover {
+  border-color: #14b8a6;
+  color: #14b8a6;
+}
+
+.sb2-add-custom-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ── Timeline Minimap (Footer) ─────────────────────────────────────── */
+
+.sb2-footer {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 0;
+  margin-top: 20px;
+}
+
+.sb2-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Timeline bar */
+.sb2-timeline-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.sb2-timeline-segment {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.sb2-timeline-segment--hack {
+  flex: 2;
+}
+
+.sb2-timeline-segment-bar {
+  height: 6px;
+  border-radius: 3px;
+  flex: 1;
+  cursor: pointer;
+  background: #e5e7eb;
+  transition: all 0.15s ease;
+}
+
+.sb2-timeline-segment-bar:hover {
+  background: #ccfbf1;
+}
+
+.sb2-timeline-segment-bar--active {
+  background: #14b8a6;
+}
+
+.sb2-timeline-segment-bar--hack {
+  background: #ccfbf1;
+}
+
+.sb2-timeline-segment-bar--hack:hover {
+  background: #99f6e4;
+}
+
+.sb2-timeline-segment-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Navigation row */
+.sb2-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sb2-nav-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin: 0;
+}
+
+.sb2-nav-btn:hover:not(:disabled) {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.sb2-nav-btn:disabled {
+  color: #d1d5db;
+  cursor: default;
+}
+
+.sb2-nav-btn--primary {
+  border: none;
+  background: #14b8a6;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 184, 166, 0.35);
+}
+
+.sb2-nav-btn--primary:hover:not(:disabled) {
+  background: #0d9488;
+}
+
+.sb2-nav-status {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ── Main Container ─────────────────────────────────────────────────── */
+
+.sb2-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sb2-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .sb2-config-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .sb2-config-divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .sb2-anchor-inputs {
+    flex-direction: column;
+  }
+
+  .sb2-anchor-input {
+    width: 100%;
+  }
+
+  .sb2-timezone-select {
+    width: 100%;
+  }
+
+  .sb2-event-card {
+    flex-wrap: wrap;
+  }
+
+  .sb2-event-controls {
+    width: 100%;
+    margin-top: 8px;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Dark Mode ─────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  .sb2-config-strip {
+    background: rgba(20, 184, 166, 0.08);
+    border-color: rgba(20, 184, 166, 0.2);
+  }
+
+  .sb2-duration-btn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+  }
+
+  .sb2-duration-btn--active {
+    background: #14b8a6;
+    border-color: #14b8a6;
+    color: #ffffff;
+  }
+
+  .sb2-anchor-input,
+  .sb2-timezone-select {
+    background: #1f2937;
+    border-color: rgba(20, 184, 166, 0.3);
+    color: #e5e7eb;
+  }
+
+  .sb2-phase-tab {
+    color: #6b7280;
+  }
+
+  .sb2-phase-tab--active {
+    background: rgba(20, 184, 166, 0.15);
+    border-color: #14b8a6;
+    color: #14b8a6;
+  }
+
+  .sb2-phase-tab--pre.sb2-phase-tab--active {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .sb2-phase-title {
+    color: #f9fafb;
+  }
+
+  .sb2-event-card {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .sb2-event-card--disabled {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .sb2-event-name {
+    color: #f9fafb;
+  }
+
+  .sb2-event-card--disabled .sb2-event-name {
+    color: #6b7280;
+  }
+
+  .sb2-event-toggle {
+    background: #1f2937;
+    border-color: #4b5563;
+  }
+
+  .sb2-offset-control,
+  .sb2-time-input {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .sb2-offset-input {
+    color: #e5e7eb;
+  }
+
+  .sb2-calculated-date-value {
+    color: #e5e7eb;
+  }
+
+  .sb2-add-custom-btn {
+    border-color: #374151;
+    color: #6b7280;
+  }
+
+  .sb2-add-custom-btn:hover {
+    border-color: #14b8a6;
+    color: #14b8a6;
+  }
+
+  .sb2-footer {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .sb2-nav-btn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+  }
+
+  .sb2-nav-btn:hover:not(:disabled) {
+    background: #374151;
+  }
+
+  .sb2-timeline-segment-bar {
+    background: #374151;
+  }
+
+  .sb2-timeline-segment-bar--hack {
+    background: rgba(20, 184, 166, 0.2);
+  }
+
+  .sb2-timeline-segment-dot {
+    background: #374151;
+  }
+}
