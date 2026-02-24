@@ -3,8 +3,10 @@ import { invoke, router, view } from '@forge/bridge';
 import type {
   CreateInstanceDraftInput,
   Defs,
+  EventDuration,
   EventRegistryItem,
   HdcContextResponse,
+  ScheduleEventType,
   SubmissionRequirement,
   SyncResult,
   ThemePreference,
@@ -12,6 +14,8 @@ import type {
 } from './types';
 import { DEFAULT_TIMEZONE } from './types';
 import { ScheduleBuilder, type ScheduleBuilderOutput } from './ScheduleBuilder';
+import { EventSelectionPanel } from './components/EventSelectionPanel';
+import { getDefaultSelections } from './scheduleEvents';
 import {
   buildConfluencePagePath,
   buildSwitcherSections,
@@ -212,6 +216,8 @@ export function App(): JSX.Element {
   const [accentColor, setAccentColor] = useState('#0f766e');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
+  const [eventDuration, setEventDuration] = useState<EventDuration>(2);
+  const [selectedEvents, setSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
   const [hackTitle, setHackTitle] = useState('');
   const [hackDescription, setHackDescription] = useState('');
@@ -673,6 +679,9 @@ export function App(): JSX.Element {
         },
         schedule: {
           timezone: scheduleOutput?.timezone || timezone,
+          duration: eventDuration,
+          selectedEvents: selectedEvents,
+          ...(scheduleOutput || {}),
           registrationOpensAt: scheduleOutput?.registrationOpensAt || registrationOpensAt || undefined,
           registrationClosesAt: scheduleOutput?.registrationClosesAt || registrationClosesAt || undefined,
           teamFormationStartsAt: scheduleOutput?.teamFormationStartsAt || teamFormationStartsAt || undefined,
@@ -1202,6 +1211,40 @@ export function App(): JSX.Element {
                   <option value="Australia/Sydney">Australia/Sydney</option>
                   <option value="UTC">UTC</option>
                 </select>
+
+                {/* Event Duration Selector */}
+                <div className="field-group" style={{ marginTop: '1.5rem' }}>
+                  <label className="field-label">Event Duration</label>
+                  <p className="field-hint" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    How many days will your HackDay run?
+                  </p>
+                  <div className="duration-selector">
+                    {([1, 2, 3] as EventDuration[]).map(days => (
+                      <button
+                        key={days}
+                        type="button"
+                        className={`duration-option ${eventDuration === days ? 'selected' : ''}`}
+                        onClick={() => setEventDuration(days)}
+                      >
+                        <span className="duration-number">{days}</span>
+                        <span className="duration-label">{days === 1 ? 'Day' : 'Days'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Schedule Event Selection */}
+                <div className="field-group" style={{ marginTop: '1.5rem' }}>
+                  <label className="field-label">Schedule Events</label>
+                  <p className="field-hint" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Select which events to include in your schedule
+                  </p>
+                  <EventSelectionPanel
+                    selectedEvents={selectedEvents}
+                    onChange={setSelectedEvents}
+                  />
+                </div>
+
                 <ScheduleBuilder timezone={timezone} onChange={setScheduleOutput} />
               </div>
             ) : null}
