@@ -140,6 +140,44 @@ export type SubmissionRequirement = 'video_demo' | 'working_prototype' | 'docume
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type WizardStep = 1 | 2 | 3 | 4 | 5;
 
+// Event duration in days
+export type EventDuration = 1 | 2 | 3;
+
+// Predefined schedule event types
+export type ScheduleEventType =
+  | 'registrationOpens'
+  | 'registrationCloses'
+  | 'teamFormationStarts'
+  | 'teamFormationEnds'
+  | 'openingCeremony'
+  | 'hackingStarts'
+  | 'lunchBreak'
+  | 'afternoonCheckin'
+  | 'dinnerBreak'
+  | 'eveningCheckin'
+  | 'submissionDeadline'
+  | 'presentations'
+  | 'votingStarts'
+  | 'votingEnds'
+  | 'judgingStarts'
+  | 'resultsAnnounce';
+
+// Schedule event selection state
+export interface ScheduleEventSelection {
+  [key: string]: boolean;
+}
+
+// Default event metadata
+export interface ScheduleEventDefinition {
+  id: ScheduleEventType;
+  label: string;
+  description: string;
+  category: 'pre-event' | 'core' | 'activities' | 'closing';
+  phase: string;
+  icon: string;
+  defaultIncluded: boolean;
+}
+
 export interface EventRules {
   allowCrossTeamMentoring: boolean;
   maxTeamSize: number;
@@ -160,14 +198,32 @@ export interface EventBranding {
 
 export interface EventSchedule {
   timezone?: string;
+  duration?: EventDuration;
+  selectedEvents?: ScheduleEventType[];
+
+  // Existing timestamp fields (now optional based on selection)
   registrationOpensAt?: string;
   registrationClosesAt?: string;
   teamFormationStartsAt?: string;
   teamFormationEndsAt?: string;
+  openingCeremonyAt?: string;
   hackingStartsAt?: string;
+  lunchBreakDay1At?: string;
+  afternoonCheckinDay1At?: string;
+  dinnerBreakDay1At?: string;
+  eveningCheckinDay1At?: string;
+  lunchBreakDay2At?: string;
+  afternoonCheckinDay2At?: string;
+  dinnerBreakDay2At?: string;
+  eveningCheckinDay2At?: string;
+  lunchBreakDay3At?: string;
+  afternoonCheckinDay3At?: string;
+  dinnerBreakDay3At?: string;
   submissionDeadlineAt?: string;
+  presentationsAt?: string;
   votingStartsAt?: string;
   votingEndsAt?: string;
+  judgingStartsAt?: string;
   resultsAnnounceAt?: string;
 }
 

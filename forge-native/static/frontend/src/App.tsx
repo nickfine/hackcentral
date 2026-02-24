@@ -6,9 +6,11 @@ import type {
   CreateHackInput,
   CreateInstanceDraftInput,
   CreateProjectInput,
+  EventDuration,
   FeaturedHack,
   PersonSnapshot,
   ProjectSnapshot,
+  ScheduleEventType,
   ThemePreference,
   UpdateMentorProfileInput,
   WizardStep,
@@ -30,6 +32,8 @@ import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { getInitials } from './utils/format';
 import { ScheduleBuilder, type ScheduleBuilderOutput } from './components/create/ScheduleBuilder';
+import { EventSelectionPanel } from './components/EventSelectionPanel';
+import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
 const HACKCENTRAL_UI_VERSION = '0.2.0';
@@ -795,6 +799,8 @@ export function App(): JSX.Element {
   const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
   const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderOutput | null>(null);
+  const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
+  const [wSelectedEvents, setWSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
   const isLocalPreview =
     typeof window !== 'undefined' && LOCAL_PREVIEW_HOSTS.has(window.location.hostname);
@@ -1251,6 +1257,9 @@ export function App(): JSX.Element {
       },
       schedule: {
         timezone: wScheduleOutput?.timezone || wTimezone,
+        duration: wEventDuration,
+        selectedEvents: wSelectedEvents,
+        ...(wScheduleOutput || {}),
         registrationOpensAt: wScheduleOutput?.registrationOpensAt || wRegistrationOpensAt || undefined,
         registrationClosesAt: wScheduleOutput?.registrationClosesAt || wRegistrationClosesAt || undefined,
         teamFormationStartsAt: wScheduleOutput?.teamFormationStartsAt || wTeamFormationStartsAt || undefined,
@@ -2072,6 +2081,40 @@ export function App(): JSX.Element {
                           </select>
                         </div>
                       </div>
+
+                      {/* Event Duration Selector */}
+                      <div className="field-group">
+                        <div className="field-row">
+                          <label className="field-label">Event Duration</label>
+                          <p className="field-hint">How many days will your HackDay run?</p>
+                        </div>
+                        <div className="duration-selector">
+                          {([1, 2, 3] as EventDuration[]).map(days => (
+                            <button
+                              key={days}
+                              type="button"
+                              className={`duration-option ${wEventDuration === days ? 'selected' : ''}`}
+                              onClick={() => setWEventDuration(days)}
+                            >
+                              <span className="duration-number">{days}</span>
+                              <span className="duration-label">{days === 1 ? 'Day' : 'Days'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Schedule Event Selection */}
+                      <div className="field-group">
+                        <div className="field-row">
+                          <label className="field-label">Schedule Events</label>
+                          <p className="field-hint">Select which events to include in your schedule</p>
+                        </div>
+                        <EventSelectionPanel
+                          selectedEvents={wSelectedEvents}
+                          onChange={setWSelectedEvents}
+                        />
+                      </div>
+
                       <ScheduleBuilder timezone={wTimezone} onChange={setWScheduleOutput} />
                     </div>
                   ) : null}
