@@ -73,32 +73,11 @@ export function TimelineMinimap({
           })}
         </div>
 
-        {/* Navigation row */}
+        {/* Status only */}
         <div className="sb2-nav-row">
-          {/* Prev button */}
-          <button
-            type="button"
-            className="sb2-nav-btn"
-            onClick={onPrevPhase}
-            disabled={!canGoPrev}
-          >
-            ← {prevPhaseLabel || 'Back'}
-          </button>
-
-          {/* Status */}
           <span className="sb2-nav-status">
             {enabledEventCount} events · {currentIndex + 1} of {phases.length} phases
           </span>
-
-          {/* Next phase button */}
-          <button
-            type="button"
-            className={`sb2-nav-btn ${canGoNext ? 'sb2-nav-btn--primary' : ''}`}
-            onClick={onNextPhase}
-            disabled={!canGoNext}
-          >
-            {canGoNext ? `${nextPhaseLabel} →` : 'All phases configured'}
-          </button>
         </div>
       </div>
     </div>
