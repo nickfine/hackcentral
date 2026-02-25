@@ -164,12 +164,16 @@ export interface EventBranding {
 
 export interface EventSchedule {
   timezone?: string;
+  duration?: number; // 1, 2, or 3 days
   registrationOpensAt?: string;
   registrationClosesAt?: string;
   teamFormationStartsAt?: string;
   teamFormationEndsAt?: string;
+  openingCeremonyAt?: string;
   hackingStartsAt?: string;
   submissionDeadlineAt?: string;
+  presentationsAt?: string;
+  judgingStartsAt?: string;
   votingStartsAt?: string;
   votingEndsAt?: string;
   resultsAnnounceAt?: string;

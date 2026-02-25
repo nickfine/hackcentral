@@ -90,8 +90,11 @@ function normalizeEventSchedule(
   input: CreateInstanceDraftInput['schedule'] | EventSchedule | null | undefined,
   fallback?: { timezone?: string | null; hackingStartsAt?: string | null; submissionDeadlineAt?: string | null }
 ): EventSchedule {
+  // Extract duration from input (may come from ScheduleBuilderOutput)
+  const inputDuration = (input as EventSchedule | undefined)?.duration;
   return {
     timezone: normalizeOptionalString(input?.timezone) || normalizeOptionalString(fallback?.timezone) || DEFAULT_TIMEZONE,
+    duration: typeof inputDuration === 'number' ? inputDuration : undefined,
     registrationOpensAt: normalizeOptionalString(input?.registrationOpensAt),
     registrationClosesAt: normalizeOptionalString(input?.registrationClosesAt),
     teamFormationStartsAt: normalizeOptionalString(input?.teamFormationStartsAt),
@@ -232,6 +235,35 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       endTime: null,
       location: null,
     });
+
+    // For multi-day events, create "Hacking Continues" milestones for intermediate days
+    const duration = schedule.duration || 1;
+    if (duration > 1) {
+      const hackStartDate = new Date(schedule.hackingStartsAt);
+      // Extract the time portion (e.g., "09:30:00")
+      const hackStartTime = schedule.hackingStartsAt.includes('T')
+        ? schedule.hackingStartsAt.split('T')[1]
+        : '09:00:00.000Z';
+
+      // Create milestones for days 2 through (duration - 1)
+      // Last day has its own events (Code Freeze, etc.)
+      for (let dayIndex = 1; dayIndex < duration - 1; dayIndex++) {
+        const intermediateDate = new Date(hackStartDate);
+        intermediateDate.setDate(intermediateDate.getDate() + dayIndex);
+        const dateStr = intermediateDate.toISOString().split('T')[0];
+        const timestamp = `${dateStr}T${hackStartTime}`;
+
+        milestones.push({
+          eventId,
+          title: `Day ${dayIndex + 1} - Hacking Continues`,
+          description: 'Teams continue building their projects',
+          phase: 'HACKING',
+          startTime: timestamp,
+          endTime: null,
+          location: null,
+        });
+      }
+    }
   }
 
   // Code Freeze / Submission Deadline
