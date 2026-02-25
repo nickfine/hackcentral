@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** February 24, 2026
+**Last Updated:** February 25, 2026
 
 ## Project Overview
 
@@ -20,7 +20,7 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.29
+**Version:** 0.3.1 (forge-native)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
 
 **Deployment:**
@@ -139,6 +139,60 @@ See DEPLOY.md for exact copy-paste steps.
 | `convex/schema.ts` | Database schema |
 | `convex/hackdays.ts` | HackDay creation wizard logic |
 | `forge-native/CONTINUATION_HANDOFF.md` | Forge integration notes |
+| `forge-native/src/backend/hdcService.ts` | Backend: normalizeEventSchedule, createMilestonesFromSchedule |
+| HD26Forge `static/frontend/src/components/Schedule.jsx` | Schedule page rendering and milestone grouping |
+
+## Schedule Builder V2 & Milestone System (Feb 25, 2026)
+
+### Data Flow: Wizard → Backend → HD26Forge Schedule Page
+
+```
+Schedule Builder V2 (frontend)
+  ↓ generates ScheduleBuilderOutput with timestamps
+hdcCreateInstanceDraft (backend)
+  ↓ calls normalizeEventSchedule() to extract fields
+  ↓ calls createMilestonesFromSchedule() to create Milestone records
+Supabase Milestone table
+  ↓ HD26Forge reads milestones via getSchedule resolver
+HD26Forge Schedule.jsx renders milestones
+```
+
+### Key Backend Functions (hdcService.ts)
+
+**`normalizeEventSchedule(input)`** - Extracts schedule fields from wizard output:
+- Must include ALL fields the frontend sends (openingCeremonyAt, presentationsAt, judgingStartsAt, etc.)
+- Missing fields here = milestones won't be created = won't show on Schedule page
+- Now includes `duration` field for multi-day event support
+
+**`createMilestonesFromSchedule(eventId, schedule)`** - Creates Milestone records:
+- Pre-event: registrationOpensAt, teamFormationStartsAt, registrationClosesAt
+- Hack day: openingCeremonyAt, hackingStartsAt, submissionDeadlineAt, presentationsAt, judgingStartsAt, resultsAnnounceAt
+- Multi-day: Creates "Day N - Hacking Continues" for intermediate days when duration > 1
+
+### HD26Forge Schedule Display (static/frontend/src/components/Schedule.jsx)
+
+**Milestone Grouping Logic:**
+- Pre-event phases (REGISTRATION, TEAM_FORMATION) → grouped into single "Pre-Event" column
+- Hack day phases (HACKING, SUBMISSION, JUDGING, RESULTS) → grouped by date into "Day 1", "Day 2", etc.
+
+**Bug Fixed:** Original code grouped ALL milestones by date, showing pre-event milestones as separate day columns.
+
+### Multi-Day Event Handling
+
+For 3-day events:
+- Day 1: Opening Ceremony, Hacking Begins
+- Day 2: "Day 2 - Hacking Continues" (auto-generated when duration=3)
+- Day 3: Code Freeze, Presentations, Judging, Results
+
+The `duration` field in EventSchedule enables this - without it, intermediate days have no milestones.
+
+### Common Issues
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Missing events on Schedule page | `normalizeEventSchedule` not including field | Add field to normalizeEventSchedule return |
+| Pre-events shown as separate day columns | HD26Forge grouping by date instead of phase | Group by phase in Schedule.jsx |
+| Missing Day 2 on 3-day events | No milestones for intermediate days | Add duration field + generate intermediate milestones |
 
 ## Critical Reminders
 
