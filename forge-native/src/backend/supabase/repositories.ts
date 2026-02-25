@@ -36,6 +36,7 @@ const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
 const HACKDAY_TEMPLATE_SEED_TABLE = 'HackdayTemplateSeed';
+const MILESTONE_TABLE = 'Milestone';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
 const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
 
@@ -1602,6 +1603,33 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     });
   }
 
+  async createMilestones(milestones: Array<{
+    eventId: string;
+    title: string;
+    description: string | null;
+    phase: string;
+    startTime: string;
+    endTime: string | null;
+    location: string | null;
+  }>): Promise<void> {
+    if (milestones.length === 0) return;
+
+    // Match HD26Forge's field naming - Milestone table uses camelCase columns
+    // This is different from Event table which uses snake_case
+    for (const m of milestones) {
+      await this.client.insert(MILESTONE_TABLE, {
+        id: randomUUID(),
+        eventId: m.eventId,
+        title: m.title,
+        description: m.description,
+        phase: m.phase,
+        startTime: m.startTime,
+        endTime: m.endTime,
+        location: m.location,
+      });
+    }
+  }
+
   async createHackdayTemplateSeed(input: {
     confluencePageId: string;
     confluenceParentPageId: string;
@@ -1910,6 +1938,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       }
     }
 
+    await this.client.deleteMany(MILESTONE_TABLE, [{ field: 'eventId', op: 'eq', value: eventId }]);
     await this.client.deleteMany(EVENT_ADMIN_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
     await this.client.deleteMany(EVENT_SYNC_STATE_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);
     await this.client.deleteMany(EVENT_AUDIT_LOG_TABLE, [{ field: 'event_id', op: 'eq', value: eventId }]);

@@ -32,7 +32,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.0';
+const HACKCENTRAL_MACRO_VERSION = '0.6.2';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }

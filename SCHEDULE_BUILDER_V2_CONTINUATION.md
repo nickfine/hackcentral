@@ -1,10 +1,38 @@
 # Schedule Builder V2 - Continuation File
 
-**Last Updated:** 2026-02-24
-**Last Commit:** b0b4ac6
-**UI Version:** 0.6.0
+**Last Updated:** 2026-02-25
+**UI Version:** 0.6.2
+**Status:** Debug logging removed, deployed, but user seeing cached version
 
-## What Was Done
+## URGENT: Console Log Spam Issue
+
+### Problem
+User was seeing massive console.log spam from `[ScheduleBuilderV2]` logs firing on every render. These logs were in the `buildOutputPayload` function which runs on every state change via useEffect.
+
+### What Was Done
+1. **Removed all debug console.log statements** from:
+   - `static/frontend/src/components/schedule-builder-v2/index.tsx`
+   - `static/macro-frontend/src/components/schedule-builder-v2/index.tsx`
+
+2. **Verified built bundles contain ZERO `ScheduleBuilderV2` log strings**
+
+3. **Deployed version 0.6.2** with clean bundles
+
+### The Remaining Issue
+User is still seeing spam because **browser/CDN is serving cached bundles**. The new bundles are:
+- Frontend: `index-DxTN3BXY.js`
+- Macro: `index-CXO6lhGb.js`
+
+### To Fix (User Action Required)
+1. **Open incognito/private browser window** - bypasses all cache
+2. OR clear browser cache completely
+3. OR wait for CDN cache to expire
+
+If user still sees old bundle hash (like `index-D1qzAkCI.js`), they're on cached version.
+
+---
+
+## What Was Done Previously
 
 ### Phase 1 Complete: Core Schedule Builder V2
 
@@ -57,15 +85,10 @@ src/components/schedule-builder-v2/
 
 ## Current State
 
-- **Production deployed:** Version 0.6.0
+- **Production deployed:** Version 0.6.2
 - **Working:** Phase tabs, event toggles, offset/time inputs, signal colors
-- **Removed:** Duplicate navigation buttons from footer
-
-## Architecture Decisions
-
-1. **Plain objects** instead of Map for `eventStates` (better serialization)
-2. **Inline sub-components** in ConfigStrip (no separate files for Duration/Anchor/Timezone)
-3. **Footer navigation removed** - Wizard handles step progression, phase tabs handle phase navigation
+- **Fixed:** Removed debug logging spam
+- **Caveat:** User may need incognito window to see latest version
 
 ## What's NOT Done (Phase 2 & 3)
 
@@ -96,18 +119,10 @@ src/components/schedule-builder-v2/
    ```bash
    cd forge-native
    npm run custom-ui:build
-   forge deploy --environment production --no-verify
-   forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
+   forge deploy --no-verify
    ```
 
 4. **Local Testing** - Localhost doesn't work well because Forge requires Confluence context. Use `forge tunnel` for local development.
-
-## Reference Files
-
-- `SCHEDULE_BUILDER_V2_PLAN.md` - Original implementation plan
-- `SCHEDULE-BUILDER-PROMPT.md` - Requirements and guidance
-- `schedule-builder-v5.jsx` - Prototype reference (not production code)
-- `.claude/instructions.md` - Project context and deployment notes
 
 ## Quick Start for Next Session
 

@@ -17,6 +17,8 @@ import type {
 import {
   buildPhaseDefinitions,
   initializeEventStates,
+  ensureEventStatesForDuration,
+  getEventStateKey,
   EVENT_TO_OUTPUT_FIELD,
   PRE_EVENT_MILESTONES,
   HACK_DAY_EVENTS,
@@ -75,21 +77,41 @@ function buildOutputPayload(
     }
   });
 
-  // Process hack day events (using the anchor date + day index for multi-day)
-  HACK_DAY_EVENTS.forEach((event) => {
-    const state = eventStates[event.id];
-    if (state?.enabled && state.time) {
-      const outputField = EVENT_TO_OUTPUT_FIELD[event.id];
-      if (outputField) {
-        // For lastDayOnly events, use the last day; otherwise use first day
-        // (This is simplified - in full implementation, we'd track per-day state)
-        const dayOffset = event.lastDayOnly ? duration - 1 : 0;
-        const eventDate = calculateDateFromOffset(dayOffset);
-        timestamps[outputField] = toISOTimestamp(eventDate, state.time);
-        selectedEvents.push(event.id);
+  // Process hack day events - iterate through each day with composite keys
+  for (let dayIndex = 0; dayIndex < duration; dayIndex++) {
+    const isLastDay = dayIndex === duration - 1;
+    const phaseKey = `hack-${dayIndex}`;
+
+    HACK_DAY_EVENTS.forEach((event) => {
+      // Skip lastDayOnly events on non-last days
+      if (event.lastDayOnly && !isLastDay) return;
+
+      // Try composite key first, fall back to flat key for backwards compatibility
+      const compositeKey = `${phaseKey}:${event.id}`;
+      const state = eventStates[compositeKey] ?? eventStates[event.id];
+
+      // Use state if available, otherwise default to enabled with default time
+      const enabled = state?.enabled ?? true;
+      const time = state?.time ?? event.defaultTime;
+
+      if (enabled && time) {
+        const outputField = EVENT_TO_OUTPUT_FIELD[event.id];
+        if (outputField) {
+          const eventDate = calculateDateFromOffset(dayIndex);
+          // For multi-day events, we use the event from its specific day
+          // Opening ceremony: Day 1 time goes to openingCeremonyAt
+          // Hacking begins: Day 1 time goes to hackingStartsAt
+          // lastDayOnly events always use the last day
+          if (event.lastDayOnly || dayIndex === 0) {
+            // For first day (or lastDayOnly on last day), use standard field
+            timestamps[outputField] = toISOTimestamp(eventDate, time);
+          }
+          // Note: For multi-day, we could add Day2/Day3 specific fields later if needed
+          selectedEvents.push(event.id);
+        }
       }
-    }
-  });
+    });
+  }
 
   // Process custom events
   let customEventOutput: ScheduleBuilderOutput['customEvents'];
@@ -141,7 +163,7 @@ export function ScheduleBuilderV2({
   const [timezone, setTimezone] = useState(initialState?.timezone ?? initialTimezone);
   const [activePhase, setActivePhase] = useState<PhaseKey>(initialState?.activePhase ?? 'pre');
   const [eventStates, setEventStates] = useState<Record<string, EventState>>(
-    initialState?.eventStates ?? initializeEventStates()
+    initialState?.eventStates ?? initializeEventStates(initialState?.duration ?? 2)
   );
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(initialState?.customEvents ?? []);
 
@@ -172,8 +194,11 @@ export function ScheduleBuilderV2({
       if (phaseKey === 'pre') {
         return PRE_EVENT_MILESTONES.some((e) => eventStates[e.id]?.enabled);
       }
-      // For hack days, check the hack day events
-      return HACK_DAY_EVENTS.some((e) => eventStates[e.id]?.enabled);
+      // For hack days, check events using composite keys (e.g., "hack-0:opening")
+      return HACK_DAY_EVENTS.some((e) => {
+        const stateKey = getEventStateKey(phaseKey, e.id);
+        return eventStates[stateKey]?.enabled;
+      });
     },
     [eventStates]
   );
@@ -182,6 +207,8 @@ export function ScheduleBuilderV2({
   const handleDurationChange = useCallback(
     (newDuration: EventDuration) => {
       setDuration(newDuration);
+      // Ensure event states exist for the new duration (adds missing day states)
+      setEventStates((prev) => ensureEventStatesForDuration(prev, newDuration));
       // If current phase is beyond new duration, reset to last valid hack day
       if (activePhase.startsWith('hack-')) {
         const dayIndex = parseInt(activePhase.split('-')[1], 10);
@@ -237,7 +264,6 @@ export function ScheduleBuilderV2({
 
   const handleAddCustomEvent = useCallback(() => {
     // TODO: Implement custom event creation in Phase 2
-    console.log('Add custom event - to be implemented in Phase 2');
   }, []);
 
   // Emit output on state changes

@@ -13,7 +13,7 @@ import type {
   EventState,
   PhaseDefinition,
 } from '../../types/scheduleBuilderV2';
-import { getEventsForPhase } from '../../schedule-builder-v2/scheduleEvents';
+import { getEventsForPhase, getEventStateKey } from '../../schedule-builder-v2/scheduleEvents';
 import { EventCard } from './EventCard';
 
 interface PhaseContentProps {
@@ -105,7 +105,10 @@ export function PhaseContent({
       {/* Event list */}
       <div className="sb2-event-list">
         {events.map((event) => {
-          const state = eventStates[event.id] || {
+          // Use composite keys for hack day events (e.g., "hack-0:opening")
+          // Pre-event milestones use flat keys (e.g., "registration-opens")
+          const stateKey = getEventStateKey(phase.key, event.id);
+          const state = eventStates[stateKey] || {
             enabled: true,
             offsetDays: event.defaultOffsetDays,
             time: event.defaultTime,
@@ -113,16 +116,16 @@ export function PhaseContent({
 
           return (
             <EventCard
-              key={event.id}
+              key={stateKey}
               event={event}
               enabled={state.enabled}
-              onToggle={() => onEventToggle(event.id)}
+              onToggle={() => onEventToggle(stateKey)}
               phaseType={phaseType}
               anchorDate={anchorDate}
               offsetDays={state.offsetDays}
-              onOffsetChange={(days) => onEventOffsetChange(event.id, days)}
+              onOffsetChange={(days) => onEventOffsetChange(stateKey, days)}
               time={state.time}
-              onTimeChange={(time) => onEventTimeChange(event.id, time)}
+              onTimeChange={(time) => onEventTimeChange(stateKey, time)}
             />
           );
         })}

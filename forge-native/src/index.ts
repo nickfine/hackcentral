@@ -160,4 +160,14 @@ resolver.define(
   }
 );
 
+resolver.define(
+  'hdcBulkCleanupTestEvents',
+  async (request: {
+    context?: RawResolverContext;
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.bulkCleanupTestEvents(viewer);
+  }
+);
+
 export const handler = resolver.getDefinitions();

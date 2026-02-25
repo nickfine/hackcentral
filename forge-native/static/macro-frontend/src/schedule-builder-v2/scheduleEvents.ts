@@ -164,14 +164,33 @@ export function buildPhaseDefinitions(duration: EventDuration): PhaseDefinition[
 }
 
 /**
+ * Build a composite key for hack day events.
+ * Pre-event milestones use flat keys (e.g., "registration-opens").
+ * Hack day events use composite keys (e.g., "hack-0:opening", "hack-1:opening").
+ *
+ * @param phaseKey - The phase key (e.g., "pre", "hack-0", "hack-1")
+ * @param eventId - The event ID (e.g., "opening", "hacking-begins")
+ * @returns The state key to use
+ */
+export function getEventStateKey(phaseKey: PhaseKey, eventId: string): string {
+  if (phaseKey === 'pre') {
+    return eventId;
+  }
+  return `${phaseKey}:${eventId}`;
+}
+
+/**
  * Initialize default event states for all events.
  *
+ * @param duration - Number of hack days (1, 2, or 3)
  * @returns Record of event states with defaults
  */
-export function initializeEventStates(): Record<string, { enabled: boolean; offsetDays?: number; time?: string }> {
+export function initializeEventStates(
+  duration: EventDuration = 2
+): Record<string, { enabled: boolean; offsetDays?: number; time?: string }> {
   const states: Record<string, { enabled: boolean; offsetDays?: number; time?: string }> = {};
 
-  // Pre-event milestones - enabled by default with default offsets
+  // Pre-event milestones - enabled by default with default offsets (flat keys)
   PRE_EVENT_MILESTONES.forEach((event) => {
     states[event.id] = {
       enabled: true,
@@ -179,13 +198,58 @@ export function initializeEventStates(): Record<string, { enabled: boolean; offs
     };
   });
 
-  // Hack day events - enabled by default with default times
-  HACK_DAY_EVENTS.forEach((event) => {
-    states[event.id] = {
-      enabled: true,
-      time: event.defaultTime,
-    };
-  });
+  // Hack day events - create per-day states with composite keys
+  for (let dayIndex = 0; dayIndex < duration; dayIndex++) {
+    const isLastDay = dayIndex === duration - 1;
+    const phaseKey = `hack-${dayIndex}` as PhaseKey;
+
+    HACK_DAY_EVENTS.forEach((event) => {
+      // Skip lastDayOnly events on non-last days
+      if (event.lastDayOnly && !isLastDay) return;
+
+      const stateKey = getEventStateKey(phaseKey, event.id);
+      states[stateKey] = {
+        enabled: true,
+        time: event.defaultTime,
+      };
+    });
+  }
+
+  return states;
+}
+
+/**
+ * Ensure event states exist for a given duration.
+ * Called when duration changes to add missing states for new days.
+ *
+ * @param existingStates - Current event states
+ * @param duration - New duration
+ * @returns Updated event states with any missing day states added
+ */
+export function ensureEventStatesForDuration(
+  existingStates: Record<string, { enabled: boolean; offsetDays?: number; time?: string }>,
+  duration: EventDuration
+): Record<string, { enabled: boolean; offsetDays?: number; time?: string }> {
+  const states = { ...existingStates };
+
+  for (let dayIndex = 0; dayIndex < duration; dayIndex++) {
+    const isLastDay = dayIndex === duration - 1;
+    const phaseKey = `hack-${dayIndex}` as PhaseKey;
+
+    HACK_DAY_EVENTS.forEach((event) => {
+      // Skip lastDayOnly events on non-last days
+      if (event.lastDayOnly && !isLastDay) return;
+
+      const stateKey = getEventStateKey(phaseKey, event.id);
+      // Only add if missing
+      if (!(stateKey in states)) {
+        states[stateKey] = {
+          enabled: true,
+          time: event.defaultTime,
+        };
+      }
+    });
+  }
 
   return states;
 }
