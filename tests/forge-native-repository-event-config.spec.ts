@@ -364,4 +364,88 @@ describe('SupabaseRepository.createEvent event config persistence', () => {
     );
     warnSpy.mockRestore();
   });
+
+  it('preserves modern schedule metadata when reading event_schedule JSON', async () => {
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const selectMany = vi.fn().mockResolvedValue([
+      {
+        id: 'event-schedule-v2',
+        name: 'Event Schedule V2',
+        icon: '🚀',
+        tagline: 'Schedule metadata test',
+        timezone: 'Europe/London',
+        lifecycle_status: 'draft',
+        confluence_page_id: 'child-schedule-v2',
+        confluence_page_url: null,
+        confluence_parent_page_id: 'parent-schedule-v2',
+        hacking_starts_at: '2026-03-01T09:30:00.000Z',
+        submission_deadline_at: '2026-03-03T14:00:00.000Z',
+        creation_request_id: 'req-schedule-v2',
+        created_by_user_id: 'user-schedule-v2',
+        event_rules: null,
+        event_branding: null,
+        runtime_type: 'hackday_template',
+        template_target: 'hackday',
+        event_schedule: {
+          timezone: 'Europe/London',
+          duration: 3,
+          selectedEvents: ['opening', 'presentations', 'judging', '   '],
+          registrationOpensAt: '2026-02-20T09:00:00.000Z',
+          openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+          lunchBreakDay1At: '2026-03-01T12:00:00.000Z',
+          presentationsAt: '2026-03-03T15:00:00.000Z',
+          judgingStartsAt: '2026-03-03T16:30:00.000Z',
+          customEvents: [
+            {
+              name: ' Mentor Office Hours ',
+              description: ' Optional coaching ',
+              timestamp: '2026-03-02T10:00:00.000Z',
+              signal: 'neutral',
+            },
+            {
+              name: '',
+              timestamp: '2026-03-02T11:00:00.000Z',
+              signal: 'neutral',
+            },
+            {
+              name: 'Bad Signal',
+              timestamp: '2026-03-02T12:00:00.000Z',
+              signal: 'not-a-signal',
+            },
+          ],
+        },
+      },
+    ]);
+    const patchMany = vi.fn().mockResolvedValue([]);
+
+    const repo = new SupabaseRepository({ selectMany, patchMany } as never);
+    const result = await repo.listEventsByParentPageId('parent-schedule-v2');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'event-schedule-v2',
+      runtimeType: 'hackday_template',
+      templateTarget: 'hackday',
+    });
+    expect(result[0]?.schedule).toEqual(
+      expect.objectContaining({
+        timezone: 'Europe/London',
+        duration: 3,
+        selectedEvents: ['opening', 'presentations', 'judging'],
+        openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+        lunchBreakDay1At: '2026-03-01T12:00:00.000Z',
+        presentationsAt: '2026-03-03T15:00:00.000Z',
+        judgingStartsAt: '2026-03-03T16:30:00.000Z',
+        customEvents: [
+          {
+            name: 'Mentor Office Hours',
+            description: 'Optional coaching',
+            timestamp: '2026-03-02T10:00:00.000Z',
+            signal: 'neutral',
+          },
+        ],
+      })
+    );
+    telemetrySpy.mockRestore();
+  });
 });

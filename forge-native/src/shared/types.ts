@@ -143,6 +143,14 @@ export type TemplateProvisionStatus = "provisioned" | "initialized" | "failed";
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
 export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type ScheduleEventSignal = "start" | "deadline" | "ceremony" | "presentation" | "judging" | "neutral";
+
+export interface ScheduleCustomEvent {
+  name: string;
+  description?: string;
+  timestamp: string;
+  signal: ScheduleEventSignal;
+}
 
 export interface EventRules {
   allowCrossTeamMentoring: boolean;
@@ -165,12 +173,25 @@ export interface EventBranding {
 export interface EventSchedule {
   timezone?: string;
   duration?: number; // 1, 2, or 3 days
+  selectedEvents?: string[];
+  customEvents?: ScheduleCustomEvent[];
   registrationOpensAt?: string;
   registrationClosesAt?: string;
   teamFormationStartsAt?: string;
   teamFormationEndsAt?: string;
   openingCeremonyAt?: string;
   hackingStartsAt?: string;
+  lunchBreakDay1At?: string;
+  afternoonCheckinDay1At?: string;
+  dinnerBreakDay1At?: string;
+  eveningCheckinDay1At?: string;
+  lunchBreakDay2At?: string;
+  afternoonCheckinDay2At?: string;
+  dinnerBreakDay2At?: string;
+  eveningCheckinDay2At?: string;
+  lunchBreakDay3At?: string;
+  afternoonCheckinDay3At?: string;
+  dinnerBreakDay3At?: string;
   submissionDeadlineAt?: string;
   presentationsAt?: string;
   judgingStartsAt?: string;

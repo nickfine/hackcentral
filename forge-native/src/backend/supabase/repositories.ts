@@ -11,6 +11,8 @@ import type {
   EventRegistryItem,
   EventRules,
   EventSchedule,
+  ScheduleCustomEvent,
+  ScheduleEventSignal,
   EventSyncState,
   InstanceRuntime,
   LifecycleStatus,
@@ -807,6 +809,55 @@ function sanitizeScheduleDatetime(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+const SCHEDULE_EVENT_SIGNALS = new Set<ScheduleEventSignal>([
+  'start',
+  'deadline',
+  'ceremony',
+  'presentation',
+  'judging',
+  'neutral',
+]);
+
+function sanitizeScheduleDuration(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return Math.max(1, Math.min(3, Math.floor(value)));
+}
+
+function sanitizeScheduleStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((item) => item.length > 0);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function sanitizeScheduleCustomEvents(value: unknown): ScheduleCustomEvent[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const normalized: ScheduleCustomEvent[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const candidate = item as Partial<ScheduleCustomEvent>;
+    const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+    const timestamp = typeof candidate.timestamp === 'string' ? candidate.timestamp.trim() : '';
+    const signal =
+      typeof candidate.signal === 'string' && SCHEDULE_EVENT_SIGNALS.has(candidate.signal as ScheduleEventSignal)
+        ? (candidate.signal as ScheduleEventSignal)
+        : null;
+    if (!name || !timestamp || !signal) continue;
+    const description =
+      typeof candidate.description === 'string' && candidate.description.trim()
+        ? candidate.description.trim()
+        : undefined;
+    normalized.push({
+      name,
+      timestamp,
+      signal,
+      ...(description ? { description } : {}),
+    });
+  }
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 function asEventSchedule(
   value: unknown,
   fallback: { timezone: string | null; hackingStartsAt: string | null; submissionDeadlineAt: string | null }
@@ -817,13 +868,30 @@ function asEventSchedule(
       (typeof schedule.timezone === 'string' && schedule.timezone.trim() ? schedule.timezone.trim() : null) ||
       fallback.timezone ||
       DEFAULT_TIMEZONE,
+    duration: sanitizeScheduleDuration(schedule.duration),
+    selectedEvents: sanitizeScheduleStringList((schedule as EventSchedule).selectedEvents),
+    customEvents: sanitizeScheduleCustomEvents((schedule as EventSchedule).customEvents),
     registrationOpensAt: sanitizeScheduleDatetime(schedule.registrationOpensAt),
     registrationClosesAt: sanitizeScheduleDatetime(schedule.registrationClosesAt),
     teamFormationStartsAt: sanitizeScheduleDatetime(schedule.teamFormationStartsAt),
     teamFormationEndsAt: sanitizeScheduleDatetime(schedule.teamFormationEndsAt),
+    openingCeremonyAt: sanitizeScheduleDatetime(schedule.openingCeremonyAt),
     hackingStartsAt: sanitizeScheduleDatetime(schedule.hackingStartsAt) || fallback.hackingStartsAt || undefined,
+    lunchBreakDay1At: sanitizeScheduleDatetime((schedule as EventSchedule).lunchBreakDay1At),
+    afternoonCheckinDay1At: sanitizeScheduleDatetime((schedule as EventSchedule).afternoonCheckinDay1At),
+    dinnerBreakDay1At: sanitizeScheduleDatetime((schedule as EventSchedule).dinnerBreakDay1At),
+    eveningCheckinDay1At: sanitizeScheduleDatetime((schedule as EventSchedule).eveningCheckinDay1At),
+    lunchBreakDay2At: sanitizeScheduleDatetime((schedule as EventSchedule).lunchBreakDay2At),
+    afternoonCheckinDay2At: sanitizeScheduleDatetime((schedule as EventSchedule).afternoonCheckinDay2At),
+    dinnerBreakDay2At: sanitizeScheduleDatetime((schedule as EventSchedule).dinnerBreakDay2At),
+    eveningCheckinDay2At: sanitizeScheduleDatetime((schedule as EventSchedule).eveningCheckinDay2At),
+    lunchBreakDay3At: sanitizeScheduleDatetime((schedule as EventSchedule).lunchBreakDay3At),
+    afternoonCheckinDay3At: sanitizeScheduleDatetime((schedule as EventSchedule).afternoonCheckinDay3At),
+    dinnerBreakDay3At: sanitizeScheduleDatetime((schedule as EventSchedule).dinnerBreakDay3At),
     submissionDeadlineAt:
       sanitizeScheduleDatetime(schedule.submissionDeadlineAt) || fallback.submissionDeadlineAt || undefined,
+    presentationsAt: sanitizeScheduleDatetime(schedule.presentationsAt),
+    judgingStartsAt: sanitizeScheduleDatetime(schedule.judgingStartsAt),
     votingStartsAt: sanitizeScheduleDatetime(schedule.votingStartsAt),
     votingEndsAt: sanitizeScheduleDatetime(schedule.votingEndsAt),
     resultsAnnounceAt: sanitizeScheduleDatetime(schedule.resultsAnnounceAt),

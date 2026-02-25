@@ -153,14 +153,36 @@ export type CreateHackDayWizardPayload = {
   };
   schedule: {
     timezone?: string;
+    duration?: number;
+    selectedEvents?: string[];
+    customEvents?: Array<{
+      name: string;
+      description?: string;
+      timestamp: string;
+      signal: "start" | "deadline" | "ceremony" | "presentation" | "judging" | "neutral";
+    }>;
     registrationOpensAt?: string;
     registrationClosesAt?: string;
     teamFormationStartsAt?: string;
     teamFormationEndsAt?: string;
+    openingCeremonyAt?: string;
     hackingStartsAt?: string;
+    lunchBreakDay1At?: string;
+    afternoonCheckinDay1At?: string;
+    dinnerBreakDay1At?: string;
+    eveningCheckinDay1At?: string;
+    lunchBreakDay2At?: string;
+    afternoonCheckinDay2At?: string;
+    dinnerBreakDay2At?: string;
+    eveningCheckinDay2At?: string;
+    lunchBreakDay3At?: string;
+    afternoonCheckinDay3At?: string;
+    dinnerBreakDay3At?: string;
     submissionDeadlineAt?: string;
+    presentationsAt?: string;
     votingStartsAt?: string;
     votingEndsAt?: string;
+    judgingStartsAt?: string;
     resultsAnnounceAt?: string;
   };
   rules?: {
@@ -204,14 +226,47 @@ const createHackDayPayloadValidator = v.object({
   }),
   schedule: v.object({
     timezone: v.optional(v.string()),
+    duration: v.optional(v.number()),
+    selectedEvents: v.optional(v.array(v.string())),
+    customEvents: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          description: v.optional(v.string()),
+          timestamp: v.string(),
+          signal: v.union(
+            v.literal("start"),
+            v.literal("deadline"),
+            v.literal("ceremony"),
+            v.literal("presentation"),
+            v.literal("judging"),
+            v.literal("neutral")
+          ),
+        })
+      )
+    ),
     registrationOpensAt: v.optional(v.string()),
     registrationClosesAt: v.optional(v.string()),
     teamFormationStartsAt: v.optional(v.string()),
     teamFormationEndsAt: v.optional(v.string()),
+    openingCeremonyAt: v.optional(v.string()),
     hackingStartsAt: v.optional(v.string()),
+    lunchBreakDay1At: v.optional(v.string()),
+    afternoonCheckinDay1At: v.optional(v.string()),
+    dinnerBreakDay1At: v.optional(v.string()),
+    eveningCheckinDay1At: v.optional(v.string()),
+    lunchBreakDay2At: v.optional(v.string()),
+    afternoonCheckinDay2At: v.optional(v.string()),
+    dinnerBreakDay2At: v.optional(v.string()),
+    eveningCheckinDay2At: v.optional(v.string()),
+    lunchBreakDay3At: v.optional(v.string()),
+    afternoonCheckinDay3At: v.optional(v.string()),
+    dinnerBreakDay3At: v.optional(v.string()),
     submissionDeadlineAt: v.optional(v.string()),
+    presentationsAt: v.optional(v.string()),
     votingStartsAt: v.optional(v.string()),
     votingEndsAt: v.optional(v.string()),
+    judgingStartsAt: v.optional(v.string()),
     resultsAnnounceAt: v.optional(v.string()),
   }),
   rules: v.optional(

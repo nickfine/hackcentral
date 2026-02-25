@@ -199,7 +199,13 @@ export interface EventBranding {
 export interface EventSchedule {
   timezone?: string;
   duration?: EventDuration;
-  selectedEvents?: ScheduleEventType[];
+  selectedEvents?: string[];
+  customEvents?: Array<{
+    name: string;
+    description?: string;
+    timestamp: string;
+    signal: 'start' | 'deadline' | 'ceremony' | 'presentation' | 'judging' | 'neutral';
+  }>;
 
   // Existing timestamp fields (now optional based on selection)
   registrationOpensAt?: string;
