@@ -36,6 +36,32 @@ function getDefaultAnchorDate(): string {
   return date.toISOString().split('T')[0];
 }
 
+function parseHackPhaseDayIndex(phaseKey: PhaseKey): number | null {
+  if (!phaseKey.startsWith('hack-')) {
+    return null;
+  }
+
+  const parsed = parseInt(phaseKey.split('-')[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isPhaseKeyWithinDuration(phaseKey: PhaseKey, duration: EventDuration): boolean {
+  if (phaseKey === 'pre') {
+    return true;
+  }
+
+  const dayIndex = parseHackPhaseDayIndex(phaseKey);
+  return dayIndex !== null && dayIndex >= 0 && dayIndex < duration;
+}
+
+function createCustomEventId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
  * Build the output payload from the current state.
  */
@@ -115,17 +141,16 @@ function buildOutputPayload(
 
   // Process custom events
   let customEventOutput: ScheduleBuilderOutput['customEvents'];
-  if (customEvents.length > 0) {
-    customEventOutput = customEvents.map((ce) => {
+  const activeCustomEvents = customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration));
+  if (activeCustomEvents.length > 0) {
+    customEventOutput = activeCustomEvents.map((ce) => {
       let timestamp: string;
       if (ce.phase === 'pre' && ce.offsetDays !== undefined) {
         const eventDate = calculateDateFromOffset(ce.offsetDays);
         timestamp = toISOTimestamp(eventDate, '09:00');
       } else if (ce.time) {
         // Extract day index from phase key (e.g., 'hack-1' -> 1)
-        const dayIndex = ce.phase.startsWith('hack-')
-          ? parseInt(ce.phase.split('-')[1], 10)
-          : 0;
+        const dayIndex = parseHackPhaseDayIndex(ce.phase) ?? 0;
         const eventDate = calculateDateFromOffset(dayIndex);
         timestamp = toISOTimestamp(eventDate, ce.time);
       } else {
@@ -166,6 +191,10 @@ export function ScheduleBuilderV2({
     initialState?.eventStates ?? initializeEventStates(initialState?.duration ?? 2)
   );
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(initialState?.customEvents ?? []);
+  const [pendingCustomEventFocusId, setPendingCustomEventFocusId] = useState<string | null>(null);
+  const [pendingCustomEventConfirmIds, setPendingCustomEventConfirmIds] = useState<Record<string, true>>(
+    {}
+  );
 
   // Build phase definitions based on duration
   const phases = useMemo(() => buildPhaseDefinitions(duration), [duration]);
@@ -185,22 +214,28 @@ export function ScheduleBuilderV2({
 
   // Count enabled events
   const enabledEventCount = useMemo(() => {
-    return Object.values(eventStates).filter((s) => s.enabled).length + customEvents.length;
-  }, [eventStates, customEvents]);
+    const validCustomEventCount = customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration)).length;
+    return Object.values(eventStates).filter((s) => s.enabled).length + validCustomEventCount;
+  }, [eventStates, customEvents, duration]);
 
   // Check if a phase has any enabled events
   const phaseHasEvents = useCallback(
     (phaseKey: PhaseKey): boolean => {
       if (phaseKey === 'pre') {
-        return PRE_EVENT_MILESTONES.some((e) => eventStates[e.id]?.enabled);
+        return (
+          PRE_EVENT_MILESTONES.some((e) => eventStates[e.id]?.enabled) ||
+          customEvents.some((ce) => ce.phase === 'pre')
+        );
       }
       // For hack days, check events using composite keys (e.g., "hack-0:opening")
-      return HACK_DAY_EVENTS.some((e) => {
-        const stateKey = getEventStateKey(phaseKey, e.id);
-        return eventStates[stateKey]?.enabled;
-      });
+      return (
+        HACK_DAY_EVENTS.some((e) => {
+          const stateKey = getEventStateKey(phaseKey, e.id);
+          return eventStates[stateKey]?.enabled;
+        }) || customEvents.some((ce) => ce.phase === phaseKey)
+      );
     },
-    [eventStates]
+    [eventStates, customEvents]
   );
 
   // Event handlers
@@ -263,7 +298,62 @@ export function ScheduleBuilderV2({
   }, [canGoNext, phases, currentIndex]);
 
   const handleAddCustomEvent = useCallback(() => {
-    // TODO: Implement custom event creation in Phase 2
+    setCustomEvents((prev) => {
+      const nextOrder =
+        prev
+          .filter((event) => event.phase === activePhase)
+          .reduce((maxOrder, event) => Math.max(maxOrder, event.order), -1) + 1;
+
+      const isPrePhase = activePhase === 'pre';
+      const nextIndexForPhase = prev.filter((event) => event.phase === activePhase).length + 1;
+
+      const newEvent: CustomEvent = {
+        id: createCustomEventId(),
+        name: `Custom Event ${nextIndexForPhase}`,
+        description: '',
+        signal: 'neutral',
+        phase: activePhase,
+        order: nextOrder,
+        ...(isPrePhase ? { offsetDays: -3 } : { time: '12:00' }),
+        isCustom: true,
+      };
+
+      setPendingCustomEventFocusId(newEvent.id);
+      setPendingCustomEventConfirmIds((prev) => ({ ...prev, [newEvent.id]: true }));
+      return [...prev, newEvent];
+    });
+  }, [activePhase]);
+
+  const handleCustomEventUpdate = useCallback(
+    (
+      customEventId: string,
+      updates: Partial<Pick<CustomEvent, 'name' | 'description' | 'signal' | 'offsetDays' | 'time'>>
+    ) => {
+      setCustomEvents((prev) =>
+        prev.map((event) => (event.id === customEventId ? { ...event, ...updates } : event))
+      );
+    },
+    []
+  );
+
+  const handleCustomEventDelete = useCallback((customEventId: string) => {
+    setCustomEvents((prev) => prev.filter((event) => event.id !== customEventId));
+    setPendingCustomEventConfirmIds((prev) => {
+      if (!(customEventId in prev)) return prev;
+      const next = { ...prev };
+      delete next[customEventId];
+      return next;
+    });
+    setPendingCustomEventFocusId((prev) => (prev === customEventId ? null : prev));
+  }, []);
+
+  const handleCustomEventConfirm = useCallback((customEventId: string) => {
+    setPendingCustomEventConfirmIds((prev) => {
+      if (!(customEventId in prev)) return prev;
+      const next = { ...prev };
+      delete next[customEventId];
+      return next;
+    });
   }, []);
 
   // Emit output on state changes
@@ -308,10 +398,17 @@ export function ScheduleBuilderV2({
           duration={duration}
           anchorDate={anchorDate}
           eventStates={eventStates}
+          customEvents={customEvents}
           onEventToggle={handleEventToggle}
           onEventOffsetChange={handleEventOffsetChange}
           onEventTimeChange={handleEventTimeChange}
           onAddCustomEvent={handleAddCustomEvent}
+          onCustomEventUpdate={handleCustomEventUpdate}
+          onCustomEventDelete={handleCustomEventDelete}
+          pendingCustomEventFocusId={pendingCustomEventFocusId}
+          onCustomEventFocusHandled={setPendingCustomEventFocusId}
+          pendingCustomEventConfirmIds={pendingCustomEventConfirmIds}
+          onCustomEventConfirm={handleCustomEventConfirm}
         />
       </div>
 
