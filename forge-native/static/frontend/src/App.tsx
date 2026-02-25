@@ -31,13 +31,13 @@ import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { getInitials } from './utils/format';
-import { ScheduleBuilder, type ScheduleBuilderOutput } from './components/create/ScheduleBuilder';
 import { ScheduleBuilderV2 } from './components/schedule-builder-v2';
+import type { ScheduleBuilderOutput as ScheduleBuilderV2Output } from './types/scheduleBuilderV2';
 import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.2';
+const HACKCENTRAL_UI_VERSION = '0.6.3';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -799,7 +799,7 @@ export function App(): JSX.Element {
   const [wBannerImageUrl, setWBannerImageUrl] = useState('');
   const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
-  const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderOutput | null>(null);
+  const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderV2Output | null>(null);
   const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
   const [wSelectedEvents, setWSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 

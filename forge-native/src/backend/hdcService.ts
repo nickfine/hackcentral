@@ -16,6 +16,8 @@ import type {
   HdcContextResponse,
   InstanceRuntime,
   LifecycleStatus,
+  ScheduleCustomEvent,
+  ScheduleEventSignal,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -61,6 +63,52 @@ function normalizeOptionalString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+const SCHEDULE_EVENT_SIGNALS = new Set<ScheduleEventSignal>([
+  'start',
+  'deadline',
+  'ceremony',
+  'presentation',
+  'judging',
+  'neutral',
+]);
+
+function normalizeOptionalStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((item) => item.length > 0);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeScheduleCustomEvents(value: unknown): ScheduleCustomEvent[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const normalized: ScheduleCustomEvent[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const candidate = item as Partial<ScheduleCustomEvent>;
+    const name = normalizeOptionalString(candidate.name);
+    const timestamp = normalizeOptionalString(candidate.timestamp);
+    const signal =
+      typeof candidate.signal === 'string' && SCHEDULE_EVENT_SIGNALS.has(candidate.signal as ScheduleEventSignal)
+        ? (candidate.signal as ScheduleEventSignal)
+        : null;
+    if (!name || !timestamp || !signal) continue;
+    const description = normalizeOptionalString(candidate.description);
+    normalized.push({
+      name,
+      timestamp,
+      signal,
+      ...(description ? { description } : {}),
+    });
+  }
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeScheduleDuration(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return Math.max(1, Math.min(3, Math.floor(value)));
+}
+
 function normalizeInstanceRuntime(runtime: CreateInstanceDraftInput['instanceRuntime']): InstanceRuntime {
   return runtime === 'hdc_native' ? 'hdc_native' : 'hackday_template';
 }
@@ -90,17 +138,28 @@ function normalizeEventSchedule(
   input: CreateInstanceDraftInput['schedule'] | EventSchedule | null | undefined,
   fallback?: { timezone?: string | null; hackingStartsAt?: string | null; submissionDeadlineAt?: string | null }
 ): EventSchedule {
-  // Extract duration from input (may come from ScheduleBuilderOutput)
-  const inputDuration = (input as EventSchedule | undefined)?.duration;
   return {
     timezone: normalizeOptionalString(input?.timezone) || normalizeOptionalString(fallback?.timezone) || DEFAULT_TIMEZONE,
-    duration: typeof inputDuration === 'number' ? inputDuration : undefined,
+    duration: normalizeScheduleDuration(input?.duration),
+    selectedEvents: normalizeOptionalStringList((input as EventSchedule | undefined)?.selectedEvents),
+    customEvents: normalizeScheduleCustomEvents((input as EventSchedule | undefined)?.customEvents),
     registrationOpensAt: normalizeOptionalString(input?.registrationOpensAt),
     registrationClosesAt: normalizeOptionalString(input?.registrationClosesAt),
     teamFormationStartsAt: normalizeOptionalString(input?.teamFormationStartsAt),
     teamFormationEndsAt: normalizeOptionalString(input?.teamFormationEndsAt),
     openingCeremonyAt: normalizeOptionalString(input?.openingCeremonyAt),
     hackingStartsAt: normalizeOptionalString(input?.hackingStartsAt) || normalizeOptionalString(fallback?.hackingStartsAt),
+    lunchBreakDay1At: normalizeOptionalString((input as EventSchedule | undefined)?.lunchBreakDay1At),
+    afternoonCheckinDay1At: normalizeOptionalString((input as EventSchedule | undefined)?.afternoonCheckinDay1At),
+    dinnerBreakDay1At: normalizeOptionalString((input as EventSchedule | undefined)?.dinnerBreakDay1At),
+    eveningCheckinDay1At: normalizeOptionalString((input as EventSchedule | undefined)?.eveningCheckinDay1At),
+    lunchBreakDay2At: normalizeOptionalString((input as EventSchedule | undefined)?.lunchBreakDay2At),
+    afternoonCheckinDay2At: normalizeOptionalString((input as EventSchedule | undefined)?.afternoonCheckinDay2At),
+    dinnerBreakDay2At: normalizeOptionalString((input as EventSchedule | undefined)?.dinnerBreakDay2At),
+    eveningCheckinDay2At: normalizeOptionalString((input as EventSchedule | undefined)?.eveningCheckinDay2At),
+    lunchBreakDay3At: normalizeOptionalString((input as EventSchedule | undefined)?.lunchBreakDay3At),
+    afternoonCheckinDay3At: normalizeOptionalString((input as EventSchedule | undefined)?.afternoonCheckinDay3At),
+    dinnerBreakDay3At: normalizeOptionalString((input as EventSchedule | undefined)?.dinnerBreakDay3At),
     submissionDeadlineAt:
       normalizeOptionalString(input?.submissionDeadlineAt) || normalizeOptionalString(fallback?.submissionDeadlineAt),
     presentationsAt: normalizeOptionalString(input?.presentationsAt),

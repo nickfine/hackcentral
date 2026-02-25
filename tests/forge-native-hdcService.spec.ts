@@ -22,6 +22,7 @@ type RepoMock = {
   listEventsByParentPageId: ReturnType<typeof vi.fn>;
   ensureUserByEmail: ReturnType<typeof vi.fn>;
   createEvent: ReturnType<typeof vi.fn>;
+  createMilestones: ReturnType<typeof vi.fn>;
   addEventAdmin: ReturnType<typeof vi.fn>;
   upsertSyncState: ReturnType<typeof vi.fn>;
   logAudit: ReturnType<typeof vi.fn>;
@@ -49,6 +50,7 @@ function createRepoMock(): RepoMock {
     listEventsByParentPageId: vi.fn(),
     ensureUserByEmail: vi.fn(),
     createEvent: vi.fn(),
+    createMilestones: vi.fn().mockResolvedValue(undefined),
     addEventAdmin: vi.fn(),
     upsertSyncState: vi.fn(),
     logAudit: vi.fn(),
@@ -266,6 +268,116 @@ describe('HdcService hardening behavior', () => {
         }),
       })
     );
+  });
+
+  it('preserves Schedule Builder V2 metadata in event, seed, and audit payloads without turning custom events into milestones', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-v2',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-v2',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-v2',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-v2',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-v2',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      schedule: {
+        timezone: 'Europe/London',
+        duration: 3,
+        selectedEvents: ['opening', 'hacking-begins', 'presentations'],
+        registrationOpensAt: '2026-02-20T09:00:00.000Z',
+        openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+        hackingStartsAt: '2026-03-01T09:30:00.000Z',
+        lunchBreakDay1At: '2026-03-01T12:00:00.000Z',
+        lunchBreakDay2At: '2026-03-02T12:00:00.000Z',
+        submissionDeadlineAt: '2026-03-03T14:00:00.000Z',
+        presentationsAt: '2026-03-03T15:00:00.000Z',
+        judgingStartsAt: '2026-03-03T16:30:00.000Z',
+        resultsAnnounceAt: '2026-03-03T18:00:00.000Z',
+        customEvents: [
+          {
+            name: 'Mentor Office Hours',
+            description: '  Optional coaching  ',
+            timestamp: '2026-03-02T10:00:00.000Z',
+            signal: 'neutral',
+          },
+        ],
+      },
+    });
+
+    const createEventArg = repo.createEvent.mock.calls[0]?.[0];
+    expect(createEventArg?.eventSchedule).toEqual(
+      expect.objectContaining({
+        duration: 3,
+        selectedEvents: ['opening', 'hacking-begins', 'presentations'],
+        openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+        presentationsAt: '2026-03-03T15:00:00.000Z',
+        judgingStartsAt: '2026-03-03T16:30:00.000Z',
+        lunchBreakDay1At: '2026-03-01T12:00:00.000Z',
+        lunchBreakDay2At: '2026-03-02T12:00:00.000Z',
+        customEvents: [
+          {
+            name: 'Mentor Office Hours',
+            description: 'Optional coaching',
+            timestamp: '2026-03-02T10:00:00.000Z',
+            signal: 'neutral',
+          },
+        ],
+      })
+    );
+
+    expect(repo.createHackdayTemplateSeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seedPayload: expect.objectContaining({
+          schedule: expect.objectContaining({
+            duration: 3,
+            selectedEvents: ['opening', 'hacking-begins', 'presentations'],
+            customEvents: [
+              {
+                name: 'Mentor Office Hours',
+                description: 'Optional coaching',
+                timestamp: '2026-03-02T10:00:00.000Z',
+                signal: 'neutral',
+              },
+            ],
+          }),
+        }),
+      })
+    );
+
+    expect(repo.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        newValue: expect.objectContaining({
+          schedule: expect.objectContaining({
+            duration: 3,
+            presentationsAt: '2026-03-03T15:00:00.000Z',
+            customEvents: [
+              expect.objectContaining({
+                name: 'Mentor Office Hours',
+                signal: 'neutral',
+              }),
+            ],
+          }),
+        }),
+      })
+    );
+
+    const milestoneTitles = (repo.createMilestones.mock.calls[0]?.[0] ?? []).map((m: { title: string }) => m.title);
+    expect(milestoneTitles).toContain('Opening Ceremony');
+    expect(milestoneTitles).toContain('Presentations');
+    expect(milestoneTitles).not.toContain('Mentor Office Hours');
   });
 
   it('rejects invalid schedule ordering before creating a child page', async () => {
