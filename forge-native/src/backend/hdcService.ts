@@ -96,9 +96,12 @@ function normalizeEventSchedule(
     registrationClosesAt: normalizeOptionalString(input?.registrationClosesAt),
     teamFormationStartsAt: normalizeOptionalString(input?.teamFormationStartsAt),
     teamFormationEndsAt: normalizeOptionalString(input?.teamFormationEndsAt),
+    openingCeremonyAt: normalizeOptionalString(input?.openingCeremonyAt),
     hackingStartsAt: normalizeOptionalString(input?.hackingStartsAt) || normalizeOptionalString(fallback?.hackingStartsAt),
     submissionDeadlineAt:
       normalizeOptionalString(input?.submissionDeadlineAt) || normalizeOptionalString(fallback?.submissionDeadlineAt),
+    presentationsAt: normalizeOptionalString(input?.presentationsAt),
+    judgingStartsAt: normalizeOptionalString(input?.judgingStartsAt),
     votingStartsAt: normalizeOptionalString(input?.votingStartsAt),
     votingEndsAt: normalizeOptionalString(input?.votingEndsAt),
     resultsAnnounceAt: normalizeOptionalString(input?.resultsAnnounceAt),
@@ -128,6 +131,162 @@ function validateSchedule(schedule: EventSchedule): void {
     'Submission deadline must be after the hacking start time.'
   );
   ensureDateOrder(schedule.votingStartsAt, schedule.votingEndsAt, 'Voting end must be after voting start.');
+}
+
+/**
+ * Transform EventSchedule data into Milestone records for HD26Forge Schedule page display
+ * Maps Schedule Builder V2 output fields to milestone records
+ */
+function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule): Array<{
+  eventId: string;
+  title: string;
+  description: string | null;
+  phase: string;
+  startTime: string;
+  endTime: string | null;
+  location: string | null;
+}> {
+  const milestones: Array<{
+    eventId: string;
+    title: string;
+    description: string | null;
+    phase: string;
+    startTime: string;
+    endTime: string | null;
+    location: string | null;
+  }> = [];
+
+  // PRE-EVENT MILESTONES
+  // - registrationOpensAt
+  // - teamFormationStartsAt
+  // - registrationClosesAt
+
+  // Registration Opens
+  if (schedule.registrationOpensAt) {
+    milestones.push({
+      eventId,
+      title: 'Registration Opens',
+      description: 'Portal opens for sign-ups',
+      phase: 'REGISTRATION',
+      startTime: schedule.registrationOpensAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Team Formation Opens
+  if (schedule.teamFormationStartsAt) {
+    milestones.push({
+      eventId,
+      title: 'Team Formation Opens',
+      description: 'Marketplace opens for team building',
+      phase: 'TEAM_FORMATION',
+      startTime: schedule.teamFormationStartsAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Registration Closes
+  if (schedule.registrationClosesAt) {
+    milestones.push({
+      eventId,
+      title: 'Registration Closes',
+      description: 'Final deadline to register',
+      phase: 'REGISTRATION',
+      startTime: schedule.registrationClosesAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // HACK DAY EVENTS
+  // - openingCeremonyAt
+  // - hackingStartsAt (anchor - always present)
+  // - submissionDeadlineAt (code freeze)
+  // - presentationsAt
+  // - judgingStartsAt
+  // - resultsAnnounceAt
+
+  // Opening Ceremony
+  if (schedule.openingCeremonyAt) {
+    milestones.push({
+      eventId,
+      title: 'Opening Ceremony',
+      description: 'Kickoff and announcements',
+      phase: 'HACKING',
+      startTime: schedule.openingCeremonyAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Hacking Begins (anchor event)
+  if (schedule.hackingStartsAt) {
+    milestones.push({
+      eventId,
+      title: 'Hacking Begins',
+      description: 'Teams start building',
+      phase: 'HACKING',
+      startTime: schedule.hackingStartsAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Code Freeze / Submission Deadline
+  if (schedule.submissionDeadlineAt) {
+    milestones.push({
+      eventId,
+      title: 'Code Freeze',
+      description: 'Final submissions due',
+      phase: 'SUBMISSION',
+      startTime: schedule.submissionDeadlineAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Presentations
+  if (schedule.presentationsAt) {
+    milestones.push({
+      eventId,
+      title: 'Presentations',
+      description: 'Teams present their projects',
+      phase: 'SUBMISSION',
+      startTime: schedule.presentationsAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Judging Period
+  if (schedule.judgingStartsAt) {
+    milestones.push({
+      eventId,
+      title: 'Judging Period',
+      description: 'Judges evaluate submissions',
+      phase: 'JUDGING',
+      startTime: schedule.judgingStartsAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  // Results Announcement
+  if (schedule.resultsAnnounceAt) {
+    milestones.push({
+      eventId,
+      title: 'Results Announced',
+      description: 'Winners announced and celebrated',
+      phase: 'RESULTS',
+      startTime: schedule.resultsAnnounceAt,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  return milestones;
 }
 
 function validateRulesInput(input: CreateInstanceDraftInput['rules'] | undefined): void {
@@ -589,6 +748,12 @@ export class HdcService {
         templateTarget,
       });
 
+      // Create Milestone records from schedule for HD26Forge Schedule page display
+      console.log('[createInstanceDraft] Creating milestones from schedule:', JSON.stringify(eventSchedule, null, 2));
+      const milestones = createMilestonesFromSchedule(event.id, eventSchedule);
+      console.log('[createInstanceDraft] Generated milestones:', JSON.stringify(milestones, null, 2));
+      await this.repository.createMilestones(milestones);
+
       const coAdminIds = [...coAdminUserIds].filter((id) => id !== primaryAdmin.id);
 
       await this.repository.addEventAdmin(event.id, primaryAdmin.id, 'primary');
@@ -745,6 +910,56 @@ export class HdcService {
     await this.repository.deleteEventCascade(eventId);
 
     return { deleted: true };
+  }
+
+  async bulkCleanupTestEvents(viewer: ViewerContext): Promise<{
+    deletedCount: number;
+    failedCount: number;
+    deletedPages: number;
+    failedPages: number;
+    errors: string[];
+  }> {
+    const user = await this.repository.ensureUser(viewer);
+
+    // Only allow admins to perform bulk cleanup
+    // Add your own authorization logic here
+
+    const allEvents = await this.repository.listAllEvents();
+    let deletedCount = 0;
+    let failedCount = 0;
+    let deletedPages = 0;
+    let failedPages = 0;
+    const errors: string[] = [];
+
+    for (const event of allEvents) {
+      try {
+        // Delete Confluence page
+        if (event.confluencePageId) {
+          try {
+            await deletePage(event.confluencePageId);
+            deletedPages++;
+          } catch (pageError) {
+            failedPages++;
+            errors.push(`Failed to delete Confluence page for ${event.eventName}: ${pageError instanceof Error ? pageError.message : String(pageError)}`);
+          }
+        }
+
+        // Delete event and all related records
+        await this.repository.deleteEventCascade(event.id);
+        deletedCount++;
+      } catch (error) {
+        failedCount++;
+        errors.push(`Failed to delete event ${event.eventName}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    return {
+      deletedCount,
+      failedCount,
+      deletedPages,
+      failedPages,
+      errors,
+    };
   }
 
   async submitHack(viewer: ViewerContext, payload: SubmitHackInput): Promise<SubmitHackResult> {
