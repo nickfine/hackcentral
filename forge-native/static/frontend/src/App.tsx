@@ -37,7 +37,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.3';
+const HACKCENTRAL_UI_VERSION = '0.6.4';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -55,6 +55,24 @@ function isAdaptavistEmail(email: string): boolean {
 
 function isDateRangeInvalid(start: string, end: string): boolean {
   return Boolean(start && end && start > end);
+}
+
+const ACTIVE_HACKDAY_LIFECYCLE_STATUSES = new Set([
+  'registration',
+  'team_formation',
+  'hacking',
+  'submission',
+  'voting',
+  'judging',
+  'results',
+]);
+
+function formatHackdayLifecycleStatus(status: string): string {
+  return status
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 interface BulletinPost {
@@ -1896,51 +1914,79 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>HackDays</h1>
+                  <p className="subtitle">Create and open HackDay events. Each runs on its own Confluence page.</p>
                 </div>
-                {bootstrap?.parentPageId ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => { resetWizard(); setView('create_hackday'); }}
-                  >
-                    + Create HackDay
-                  </button>
-                ) : null}
+              </section>
+
+              <section className="card hackdays-hero-card">
+                <div className="hackdays-hero-row">
+                  <div className="hackdays-hero-copy">
+                    <h2>Manage HackDay events</h2>
+                    <p>Create new HackDays and open each event on its Confluence page.</p>
+                  </div>
+                  {bootstrap?.parentPageId ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => { resetWizard(); setView('create_hackday'); }}
+                    >
+                      + Create HackDay
+                    </button>
+                  ) : null}
+                </div>
               </section>
 
               {registry.length > 0 ? (
                 <div className="grid hacks-grid">
                   {registry.map((event) => (
                     <article key={event.id} className="card hackday-card">
-                      <div className="hackday-card-header">
-                        <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
-                        <h3>{event.eventName}</h3>
+                      <div className="hackday-card-top">
+                        <div className="hackday-card-header">
+                          <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
+                          <div className="hackday-title-wrap">
+                            <h3>{event.eventName}</h3>
+                            {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+                          </div>
+                        </div>
+                        <span
+                          className={`hackday-status-pill${ACTIVE_HACKDAY_LIFECYCLE_STATUSES.has(event.lifecycleStatus) ? ' hackday-status-pill-active' : ''}`}
+                        >
+                          {formatHackdayLifecycleStatus(event.lifecycleStatus)}
+                        </span>
                       </div>
-                      {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+
                       <div className="hackday-meta">
-                        <span className="pill pill-outline">{event.lifecycleStatus.replace('_', ' ')}</span>
                         {event.hackingStartsAt ? (
-                          <span className="hackday-date">
-                            Hacking: {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'short' })}
-                          </span>
+                          <div className="hackday-meta-row">
+                            <span className="hackday-meta-label">Hacking starts</span>
+                            <span className="hackday-date">
+                              {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                            </span>
+                          </div>
                         ) : null}
                       </div>
-                      {event.isNavigable && event.confluencePageId ? (
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
-                        >
-                          Open
-                        </button>
-                      ) : (
-                        <span className="text-muted">Page not yet available</span>
-                      )}
+                      <div className="hackday-card-footer">
+                        {event.isNavigable && event.confluencePageId ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
+                          >
+                            Open
+                          </button>
+                        ) : (
+                          <span className="text-muted">Page not yet available</span>
+                        )}
+                      </div>
                     </article>
                   ))}
                 </div>
               ) : (
-                <p className="empty-copy">No HackDays yet — use the button above to create one.</p>
+                <section className="card hackdays-empty-card">
+                  <div className="hackdays-empty-icon" aria-hidden>🚀</div>
+                  <p className="hackdays-empty-title">No HackDays yet</p>
+                  <p className="empty-copy">Use “Create HackDay” above to create your first event.</p>
+                </section>
               )}
 
               {!bootstrap?.parentPageId ? (
