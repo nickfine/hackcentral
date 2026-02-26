@@ -1,5 +1,5 @@
 import { SupabaseRepository } from './backend/supabase/repositories';
-import { ensurePageFullWidthByDefault } from './backend/confluencePages';
+import { ensurePageFullWidthByDefault, stripInjectedChildPageIntroParagraph } from './backend/confluencePages';
 import { HdcService } from './backend/hdcService';
 
 interface WebTriggerRequest {
@@ -8,12 +8,121 @@ interface WebTriggerRequest {
 }
 
 interface DryRunPayload {
-  action?: 'dry_run' | 'seed_hack' | 'backfill_full_width' | 'resync_schedule_milestones';
+  action?:
+    | 'dry_run'
+    | 'seed_hack'
+    | 'backfill_full_width'
+    | 'resync_schedule_milestones'
+    | 'strip_child_page_intro';
   eventNameQuery?: string;
   eventId?: string;
   hackTitle?: string;
   hackDescription?: string;
   retryNoDelay?: boolean;
+}
+
+async function stripChildPageIntroForExistingHdcEvents(payload: DryRunPayload): Promise<{
+  generatedAtUtc: string;
+  eventNameQuery: string | null;
+  eventId: string | null;
+  candidateCount: number;
+  processedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  failureCount: number;
+  results: Array<{
+    eventId: string;
+    eventName: string;
+    confluencePageId: string | null;
+    status: 'updated' | 'skipped' | 'failed' | 'not_found';
+    reason?: string;
+  }>;
+}> {
+  const repository = new SupabaseRepository();
+  const explicitEventId = payload.eventId?.trim() || null;
+  const fallbackEventNameQuery = payload.eventNameQuery?.trim() || 'Midsummer';
+  const eventNameQuery = explicitEventId ? null : fallbackEventNameQuery;
+  const candidates: Array<{ id: string; name: string; confluence_page_id: string | null }> = explicitEventId
+    ? []
+    : await repository.listMigrationEventCandidatesByName(fallbackEventNameQuery);
+
+  const explicitEvent = explicitEventId ? await repository.getEventById(explicitEventId) : null;
+  const allCandidates = explicitEvent
+    ? [
+        {
+          id: explicitEvent.id,
+          name: explicitEvent.name,
+          confluence_page_id: explicitEvent.confluence_page_id,
+        },
+      ]
+    : candidates;
+
+  const results: Array<{
+    eventId: string;
+    eventName: string;
+    confluencePageId: string | null;
+    status: 'updated' | 'skipped' | 'failed' | 'not_found';
+    reason?: string;
+  }> = [];
+
+  if (explicitEventId && !explicitEvent) {
+    results.push({
+      eventId: explicitEventId,
+      eventName: '(unknown)',
+      confluencePageId: null,
+      status: 'not_found',
+      reason: 'event_not_found',
+    });
+  }
+
+  for (const event of allCandidates) {
+    const confluencePageId =
+      typeof event.confluence_page_id === 'string' && event.confluence_page_id.trim()
+        ? event.confluence_page_id.trim()
+        : null;
+
+    if (!confluencePageId) {
+      results.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId: null,
+        status: 'skipped',
+        reason: 'missing_confluence_page_id',
+      });
+      continue;
+    }
+
+    try {
+      const outcome = await stripInjectedChildPageIntroParagraph(confluencePageId);
+      results.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId,
+        status: outcome.updated ? 'updated' : 'skipped',
+        reason: outcome.updated ? undefined : outcome.reason,
+      });
+    } catch (error) {
+      results.push({
+        eventId: event.id,
+        eventName: event.name,
+        confluencePageId,
+        status: 'failed',
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    generatedAtUtc: new Date().toISOString(),
+    eventNameQuery,
+    eventId: explicitEventId,
+    candidateCount: allCandidates.length,
+    processedCount: results.filter((r) => r.status !== 'not_found').length,
+    updatedCount: results.filter((r) => r.status === 'updated').length,
+    skippedCount: results.filter((r) => r.status === 'skipped').length,
+    failureCount: results.filter((r) => r.status === 'failed').length,
+    results,
+  };
 }
 
 interface EventMigrationCheck {
@@ -445,6 +554,15 @@ export async function handler(request: WebTriggerRequest): Promise<{
 
     if (action === 'resync_schedule_milestones') {
       const report = await resyncScheduleMilestonesForExistingHdcEvents(payload);
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': ['application/json'] },
+        body: JSON.stringify(report),
+      };
+    }
+
+    if (action === 'strip_child_page_intro') {
+      const report = await stripChildPageIntroForExistingHdcEvents(payload);
       return {
         statusCode: 200,
         headers: { 'Content-Type': ['application/json'] },

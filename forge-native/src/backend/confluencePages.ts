@@ -13,7 +13,20 @@ interface ForgeResponse {
 
 interface ConfluencePage {
   id: string;
+  status?: string;
+  title?: string;
   spaceId?: string | number;
+  parentId?: string | number;
+  version?: {
+    number?: number;
+    message?: string;
+  };
+  body?: {
+    storage?: {
+      value?: string;
+      representation?: string;
+    };
+  };
   _links?: {
     base?: string;
     webui?: string;
@@ -369,6 +382,96 @@ export async function ensurePageFullWidthByDefault(pageId: string): Promise<void
   }
 }
 
+async function fetchPageContent(pageId: string, requester: Requester): Promise<ConfluencePage> {
+  const response = await confluenceClient(requester).requestConfluence(
+    route`/wiki/api/v2/pages/${pageId}?body-format=storage`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    }
+  );
+  await assertOk(response, `Fetching page content for ${pageId}`);
+  return parseJson<ConfluencePage>(response);
+}
+
+async function updatePageContentStorage(
+  page: ConfluencePage,
+  bodyStorageValue: string,
+  requester: Requester
+): Promise<void> {
+  const pageId = page.id;
+  const title = page.title?.trim();
+  if (!pageId || !title) {
+    throw new Error('Missing page id/title for page content update.');
+  }
+  const nextVersion = Number(page.version?.number || 0) + 1;
+  const response = await confluenceClient(requester).requestConfluence(route`/wiki/api/v2/pages/${pageId}`, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: pageId,
+      status: page.status || 'current',
+      title,
+      ...(page.spaceId ? { spaceId: String(page.spaceId) } : {}),
+      ...(page.parentId ? { parentId: String(page.parentId) } : {}),
+      version: {
+        number: nextVersion,
+        message: 'Remove injected child page intro paragraph',
+      },
+      body: {
+        representation: 'storage',
+        value: bodyStorageValue,
+      },
+    }),
+  });
+  await assertOk(response, `Updating page content for ${pageId}`);
+}
+
+export async function stripInjectedChildPageIntroParagraph(pageId: string): Promise<{
+  updated: boolean;
+  reason?: string;
+}> {
+  let page: ConfluencePage | null = null;
+  const failures: string[] = [];
+  let successfulRequester: Requester | null = null;
+
+  for (const requester of ['app', 'user'] as const) {
+    try {
+      page = await fetchPageContent(pageId, requester);
+      successfulRequester = requester;
+      break;
+    } catch (error) {
+      failures.push(`${requester}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (!page || !successfulRequester) {
+    throw new Error(`Unable to fetch page ${pageId}. ${failures.join(' | ') || 'unknown error'}`);
+  }
+
+  const original = page.body?.storage?.value || '';
+  if (!original.trim()) {
+    return { updated: false, reason: 'empty_body' };
+  }
+
+  if (!extractMacroExtensionBlock(original)) {
+    return { updated: false, reason: 'no_macro_extension_block' };
+  }
+
+  const stripped = original.replace(/^\s*<p>[\s\S]*?<\/p>\s*(?=<ac:adf-extension>)/i, '');
+  if (stripped === original) {
+    return { updated: false, reason: 'no_leading_paragraph_before_macro' };
+  }
+
+  await updatePageContentStorage(page, stripped, successfulRequester);
+  return { updated: true };
+}
+
 export async function createChildPageUnderParent(input: {
   parentPageId: string;
   title: string;
@@ -407,8 +510,6 @@ export async function createChildPageUnderParent(input: {
       generatedMacroSnippet: compactStorageSnippet(macroSnippet),
     })
   );
-  const tagline = escapeStorageText(input.tagline || 'HackDay instance page');
-
   let payload: ConfluencePage | null = null;
   let lastFailure = '';
   for (const requester of ['app', 'user'] as const) {
@@ -418,18 +519,19 @@ export async function createChildPageUnderParent(input: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        status: 'current',
-        title: input.title,
-        spaceId: parentMetadata.spaceId,
-        parentId: input.parentPageId,
-        body: {
-          storage: {
-            representation: 'storage',
-            value: `<p>${tagline}</p>${macroSnippet}`,
+        body: JSON.stringify({
+          status: 'current',
+          title: input.title,
+          spaceId: parentMetadata.spaceId,
+          parentId: input.parentPageId,
+          body: {
+            storage: {
+              representation: 'storage',
+              // Keep child pages visually clean; the macro renders the real event hero/title.
+              value: macroSnippet,
+            },
           },
-        },
-      }),
+        }),
     });
     if (!response.ok) {
       lastFailure = `${requester}/v2 ${response.status}: ${await response.text()}`;
