@@ -375,3 +375,105 @@ When "Schedule page doesn't reflect config":
 3. Confirm runtime scope (`hdc_native` vs `hackday_template`)
 4. Confirm whether existing page needs milestone resync
 5. Only then investigate deploy/cache issues
+
+---
+
+## Learnings (Feb 26, 2026) - Dedicated Schedule Review Step (Wizard UX + Preview Accuracy)
+
+### 1) Schedule editing and schedule validation should be separate wizard modes
+
+Putting the full generated timeline preview at the bottom of the Schedule editor made the page too tall and encouraged users to miss validation details.
+
+What worked better:
+- Step 2 = **Schedule editing**
+- Step 3 = **Schedule Review** (read-only preview + back-to-edit loop)
+
+This reduced context switching and made schedule verification explicit before moving on to Rules/Branding.
+
+### 2) Preview accuracy must come from live builder state, not serialized output only
+
+The original dedicated preview implementation undercounted multi-day events because serialized `ScheduleBuilderOutput` flattens some schedule timestamps and does not preserve every day-specific standard event instance.
+
+Fix:
+- Render Step 3 preview from live `ScheduleBuilderV2` state:
+  - `eventStates`
+  - `customEvents`
+  - `duration`
+  - `anchorDate`
+  - `timezone`
+
+Result:
+- Repeated Day 2/Day 3 events (e.g. `Morning Kickoff`, `Hacking Begins`) now render correctly in the preview.
+
+### 3) Parent wizard state is required for reliable back-to-edit UX
+
+To support Step 3 review + Step 2 edit round-trips without losing configuration, the parent wizard must store the full Schedule Builder V2 state snapshot.
+
+Implementation pattern:
+- `ScheduleBuilderV2` exposes:
+  - `onStateChange`
+  - `showInlinePreview`
+- Parent stores `ScheduleBuilderState`
+- Step 2 passes `initialState` when returning from review
+- Step 3 renders `ScheduleBuilderV2Preview` from parent-held state
+
+Macro-specific note:
+- Persisting `scheduleBuilderState` in local draft storage prevents losing the dedicated review preview after reloads.
+- Older drafts without this field must be treated as valid and simply show the “open Schedule step first” fallback.
+
+### 4) Wizard step-count changes require metadata compatibility updates
+
+Adding a dedicated Schedule Review step changed wizard flow from 5 to 6 steps.
+
+Required compatibility changes:
+- `WizardStep` union updated to include `6`
+- `completedStep` backend validation upper bound expanded from `5` to `6`
+- Default `completedStep` values for seed creation updated to `6`
+
+Important:
+- This is metadata/telemetry compatibility only
+- `wizardSchemaVersion` remained `2`
+- No seed payload schema changes were needed
+
+### 5) Preserve scope boundaries: HackCentral wizard UX can change without touching HD26Forge
+
+This work intentionally stayed in `forge-native` (HackCentral creation wizard only).
+
+Did **not** change:
+- `HD26Forge` repo
+- child-page Schedule rendering (`Schedule.jsx`)
+- shared schedule/customEvents payload schema
+- milestone generation behavior
+
+This was safe because the feature is a wizard UX and preview presentation improvement, not a data-contract change.
+
+### 6) ECD UX lesson: avoid card-within-card depth inside a wizard step
+
+The first Schedule Review implementation introduced too much visible depth:
+- page shell
+- step card
+- inner bordered preview panel
+
+This created visual noise and double padding.
+
+Fix that worked:
+- Add a flat/embedded preview surface mode for Step 3 review
+- Keep only the day columns as subtle content containers
+- Move instructional text under the Step 3 headline
+- Replace preview pseudo-title with a simple timezone label
+
+Result:
+- The step reads as **two levels maximum** (page chrome + step card), consistent with HackDay design language.
+
+### 7) Release/deploy continuity for this shipped work
+
+Shipped state:
+- Forge UI cache-buster version: `0.6.14`
+- Forge production deploy timestamp: `2026-02-26T13:15:31.715Z`
+- Commit: `24fc6f5` (`Add dedicated schedule review step and flatten preview`)
+- Tag: `v0.6.14-ui`
+
+Deployment reminders reinforced:
+- Build both UIs: `npm run custom-ui:build`
+- Deploy explicitly to production: `forge deploy --environment production --no-verify`
+- Verify console bundle versions in incognito/private window after hard refresh
