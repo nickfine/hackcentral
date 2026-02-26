@@ -1080,8 +1080,8 @@ button {
   gap: 10px;
 }
 
-.filter-row input,
-.filter-row select,
+.filter-row > input,
+.filter-row > select,
 .modal-form input,
 .modal-form select,
 .modal-form textarea {
@@ -1092,13 +1092,13 @@ button {
   color: var(--text);
 }
 
-.filter-row input {
+.filter-row > input {
   min-width: 320px;
   flex: 1 1 360px;
   height: 42px;
 }
 
-.filter-row select {
+.filter-row > select {
   height: 42px;
   min-width: 170px;
 }
@@ -1121,6 +1121,9 @@ button {
 .check-label input {
   width: 16px;
   height: 16px;
+  flex: 0 0 auto;
+  min-width: 16px;
+  padding: 0;
 }
 
 .tab-row {
@@ -2600,8 +2603,8 @@ button {
     overflow-x: auto;
   }
 
-  .filter-row input,
-  .filter-row select {
+  .filter-row > input,
+  .filter-row > select {
     min-width: 100%;
     width: 100%;
   }
