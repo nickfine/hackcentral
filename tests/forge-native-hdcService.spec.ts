@@ -23,6 +23,7 @@ type RepoMock = {
   ensureUserByEmail: ReturnType<typeof vi.fn>;
   createEvent: ReturnType<typeof vi.fn>;
   createMilestones: ReturnType<typeof vi.fn>;
+  deleteMilestonesByEventId: ReturnType<typeof vi.fn>;
   addEventAdmin: ReturnType<typeof vi.fn>;
   upsertSyncState: ReturnType<typeof vi.fn>;
   logAudit: ReturnType<typeof vi.fn>;
@@ -51,6 +52,7 @@ function createRepoMock(): RepoMock {
     ensureUserByEmail: vi.fn(),
     createEvent: vi.fn(),
     createMilestones: vi.fn().mockResolvedValue(undefined),
+    deleteMilestonesByEventId: vi.fn().mockResolvedValue(0),
     addEventAdmin: vi.fn(),
     upsertSyncState: vi.fn(),
     logAudit: vi.fn(),
@@ -539,6 +541,91 @@ describe('HdcService hardening behavior', () => {
     );
 
     warnSpy.mockRestore();
+  });
+
+  it('rebuilds schedule milestones for existing hdc_native events with custom events and skips template runtimes', async () => {
+    const repo = createRepoMock();
+    const service = new ServiceClass(repo as never);
+
+    repo.getEventById
+      .mockResolvedValueOnce({
+        id: 'event-existing-hdc',
+        name: 'Existing HDC Event',
+        timezone: 'Europe/London',
+        hacking_starts_at: '2026-03-01T09:30:00.000Z',
+        submission_deadline_at: '2026-03-02T14:00:00.000Z',
+        event_schedule: {
+          timezone: 'Europe/London',
+          hackingStartsAt: '2026-03-01T09:30:00.000Z',
+          openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+          submissionDeadlineAt: '2026-03-02T14:00:00.000Z',
+          customEvents: [
+            {
+              name: 'Sponsor AMA',
+              timestamp: '2026-03-01T11:00:00.000Z',
+              signal: 'ceremony',
+            },
+          ],
+        },
+        runtime_type: 'hdc_native',
+      })
+      .mockResolvedValueOnce({
+        id: 'event-template',
+        name: 'Template Event',
+        timezone: 'Europe/London',
+        hacking_starts_at: '2026-03-01T09:30:00.000Z',
+        submission_deadline_at: '2026-03-02T14:00:00.000Z',
+        event_schedule: {
+          timezone: 'Europe/London',
+          customEvents: [
+            {
+              name: 'Should Stay Preserve Only',
+              timestamp: '2026-03-01T11:00:00.000Z',
+              signal: 'neutral',
+            },
+          ],
+        },
+        runtime_type: 'hackday_template',
+      });
+
+    repo.deleteMilestonesByEventId.mockResolvedValue(4);
+
+    const rebuilt = await service.rebuildScheduleMilestonesForExistingEvent('event-existing-hdc');
+
+    expect(rebuilt).toMatchObject({
+      eventId: 'event-existing-hdc',
+      runtimeType: 'hdc_native',
+      deletedCount: 4,
+      customEventCount: 1,
+      skipped: false,
+    });
+    expect(repo.deleteMilestonesByEventId).toHaveBeenCalledWith('event-existing-hdc');
+
+    const rebuiltMilestones = repo.createMilestones.mock.calls[0]?.[0] ?? [];
+    const rebuiltTitles = rebuiltMilestones.map((m: { title: string }) => m.title);
+    expect(rebuiltTitles).toContain('Opening Ceremony');
+    expect(rebuiltTitles).toContain('Hacking Begins');
+    expect(rebuiltTitles).toContain('Code Freeze');
+    expect(rebuiltTitles).toContain('Sponsor AMA');
+
+    const sponsorAma = rebuiltMilestones.find((m: { title: string }) => m.title === 'Sponsor AMA');
+    expect(sponsorAma).toMatchObject({
+      phase: 'HACKING',
+      startTime: '2026-03-01T11:00:00.000Z',
+    });
+
+    repo.createMilestones.mockClear();
+    repo.deleteMilestonesByEventId.mockClear();
+
+    const templateResult = await service.rebuildScheduleMilestonesForExistingEvent('event-template');
+    expect(templateResult).toMatchObject({
+      eventId: 'event-template',
+      runtimeType: 'hackday_template',
+      skipped: true,
+      reason: 'runtime_not_hdc_native',
+    });
+    expect(repo.deleteMilestonesByEventId).not.toHaveBeenCalled();
+    expect(repo.createMilestones).not.toHaveBeenCalled();
   });
 
   it('rejects invalid schedule ordering before creating a child page', async () => {

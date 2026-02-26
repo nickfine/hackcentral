@@ -1698,6 +1698,13 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     }
   }
 
+  async deleteMilestonesByEventId(eventId: string): Promise<number> {
+    const deleted = await this.client.deleteMany<Record<string, unknown>>(MILESTONE_TABLE, [
+      { field: 'eventId', op: 'eq', value: eventId },
+    ]);
+    return deleted.length;
+  }
+
   async createHackdayTemplateSeed(input: {
     confluencePageId: string;
     confluenceParentPageId: string;

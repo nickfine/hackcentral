@@ -262,6 +262,16 @@ function createCustomMilestonesFromSchedule(eventId: string, schedule: EventSche
   return milestones;
 }
 
+function buildScheduleMilestonesForRuntime(
+  eventId: string,
+  schedule: EventSchedule,
+  runtimeType: InstanceRuntime
+): MilestoneInsert[] {
+  const standardMilestones = createMilestonesFromSchedule(eventId, schedule);
+  const customMilestones = runtimeType === 'hdc_native' ? createCustomMilestonesFromSchedule(eventId, schedule) : [];
+  return [...standardMilestones, ...customMilestones];
+}
+
 /**
  * Transform EventSchedule data into Milestone records for HD26Forge Schedule page display
  * Maps Schedule Builder V2 output fields to milestone records
@@ -758,6 +768,65 @@ export class HdcService {
     };
   }
 
+  async rebuildScheduleMilestonesForExistingEvent(eventId: string): Promise<{
+    eventId: string;
+    runtimeType: InstanceRuntime;
+    deletedCount: number;
+    createdCount: number;
+    customEventCount: number;
+    skipped: boolean;
+    reason?: string;
+  }> {
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error(`Event ${eventId} not found.`);
+    }
+
+    const runtimeType = event.runtime_type ?? 'hdc_native';
+    if (runtimeType !== 'hdc_native') {
+      return {
+        eventId,
+        runtimeType,
+        deletedCount: 0,
+        createdCount: 0,
+        customEventCount: 0,
+        skipped: true,
+        reason: 'runtime_not_hdc_native',
+      };
+    }
+
+    const schedule = normalizeEventSchedule(event.event_schedule, {
+      timezone: event.timezone,
+      hackingStartsAt: event.hacking_starts_at,
+      submissionDeadlineAt: event.submission_deadline_at,
+    });
+    const customEventCount = schedule.customEvents?.length ?? 0;
+    if (customEventCount === 0) {
+      return {
+        eventId,
+        runtimeType,
+        deletedCount: 0,
+        createdCount: 0,
+        customEventCount,
+        skipped: true,
+        reason: 'no_custom_events',
+      };
+    }
+
+    const milestones = buildScheduleMilestonesForRuntime(eventId, schedule, runtimeType);
+    const deletedCount = await this.repository.deleteMilestonesByEventId(eventId);
+    await this.repository.createMilestones(milestones);
+
+    return {
+      eventId,
+      runtimeType,
+      deletedCount,
+      createdCount: milestones.length,
+      customEventCount,
+      skipped: false,
+    };
+  }
+
   /**
    * Options for creation when invoked from the web (Phase 3). When set, the creator
    * is resolved by email instead of Atlassian viewer context.
@@ -892,10 +961,7 @@ export class HdcService {
 
       // Create Milestone records from schedule for HD26Forge Schedule page display
       console.log('[createInstanceDraft] Creating milestones from schedule:', JSON.stringify(eventSchedule, null, 2));
-      const standardMilestones = createMilestonesFromSchedule(event.id, eventSchedule);
-      const customMilestones =
-        runtimeType === 'hdc_native' ? createCustomMilestonesFromSchedule(event.id, eventSchedule) : [];
-      const milestones = [...standardMilestones, ...customMilestones];
+      const milestones = buildScheduleMilestonesForRuntime(event.id, eventSchedule, runtimeType);
       console.log('[createInstanceDraft] Generated milestones:', JSON.stringify(milestones, null, 2));
       await this.repository.createMilestones(milestones);
 

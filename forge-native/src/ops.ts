@@ -1,5 +1,6 @@
 import { SupabaseRepository } from './backend/supabase/repositories';
 import { ensurePageFullWidthByDefault } from './backend/confluencePages';
+import { HdcService } from './backend/hdcService';
 
 interface WebTriggerRequest {
   method: string;
@@ -7,7 +8,7 @@ interface WebTriggerRequest {
 }
 
 interface DryRunPayload {
-  action?: 'dry_run' | 'seed_hack' | 'backfill_full_width';
+  action?: 'dry_run' | 'seed_hack' | 'backfill_full_width' | 'resync_schedule_milestones';
   eventNameQuery?: string;
   eventId?: string;
   hackTitle?: string;
@@ -318,6 +319,95 @@ async function backfillFullWidthByEventQuery(eventNameQuery: string): Promise<{
   };
 }
 
+async function resyncScheduleMilestonesForExistingHdcEvents(payload: DryRunPayload): Promise<{
+  generatedAtUtc: string;
+  eventNameQuery: string | null;
+  eventId: string | null;
+  candidateCount: number;
+  processedCount: number;
+  successCount: number;
+  skippedCount: number;
+  failureCount: number;
+  results: Array<{
+    eventId: string;
+    eventName?: string;
+    runtimeType?: string | null;
+    status: 'resynced' | 'skipped' | 'failed' | 'not_found';
+    deletedCount?: number;
+    createdCount?: number;
+    customEventCount?: number;
+    reason?: string;
+    error?: string;
+  }>;
+}> {
+  const repository = new SupabaseRepository();
+  const service = new HdcService(repository);
+  const explicitEventId = payload.eventId?.trim() || null;
+  const searchEventNameQuery = payload.eventNameQuery?.trim() || 'HDC';
+  const eventNameQuery = explicitEventId ? null : searchEventNameQuery;
+
+  const candidates = explicitEventId
+    ? [{ id: explicitEventId, name: '(explicit eventId)' }]
+    : await repository.listMigrationEventCandidatesByName(searchEventNameQuery);
+
+  const results: Array<{
+    eventId: string;
+    eventName?: string;
+    runtimeType?: string | null;
+    status: 'resynced' | 'skipped' | 'failed' | 'not_found';
+    deletedCount?: number;
+    createdCount?: number;
+    customEventCount?: number;
+    reason?: string;
+    error?: string;
+  }> = [];
+
+  for (const candidate of candidates) {
+    try {
+      const event = await repository.getEventById(candidate.id);
+      if (!event) {
+        results.push({
+          eventId: candidate.id,
+          eventName: candidate.name,
+          status: 'not_found',
+        });
+        continue;
+      }
+
+      const rebuild = await service.rebuildScheduleMilestonesForExistingEvent(event.id);
+      results.push({
+        eventId: event.id,
+        eventName: event.name,
+        runtimeType: event.runtime_type ?? 'hdc_native',
+        status: rebuild.skipped ? 'skipped' : 'resynced',
+        deletedCount: rebuild.deletedCount,
+        createdCount: rebuild.createdCount,
+        customEventCount: rebuild.customEventCount,
+        ...(rebuild.reason ? { reason: rebuild.reason } : {}),
+      });
+    } catch (error) {
+      results.push({
+        eventId: candidate.id,
+        eventName: candidate.name,
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    generatedAtUtc: new Date().toISOString(),
+    eventNameQuery,
+    eventId: explicitEventId,
+    candidateCount: candidates.length,
+    processedCount: results.filter((result) => result.status !== 'not_found').length,
+    successCount: results.filter((result) => result.status === 'resynced').length,
+    skippedCount: results.filter((result) => result.status === 'skipped').length,
+    failureCount: results.filter((result) => result.status === 'failed').length,
+    results,
+  };
+}
+
 export async function handler(request: WebTriggerRequest): Promise<{
   statusCode: number;
   headers: Record<string, string[]>;
@@ -350,6 +440,15 @@ export async function handler(request: WebTriggerRequest): Promise<{
         statusCode: 200,
         headers: { 'Content-Type': ['application/json'] },
         body: JSON.stringify(backfillReport),
+      };
+    }
+
+    if (action === 'resync_schedule_milestones') {
+      const report = await resyncScheduleMilestonesForExistingHdcEvents(payload);
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': ['application/json'] },
+        body: JSON.stringify(report),
       };
     }
 
