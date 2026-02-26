@@ -371,7 +371,7 @@ describe('HdcService hardening behavior', () => {
     });
   });
 
-  it('preserves Schedule Builder V2 metadata in event, seed, and audit payloads without turning custom events into milestones for hackday_template instances', async () => {
+  it('preserves Schedule Builder V2 metadata in event, seed, and audit payloads and creates custom-event milestones for hackday_template instances', async () => {
     const repo = createRepoMock();
     repo.getEventByCreationRequestId.mockResolvedValue(null);
     repo.getEventNameConflicts.mockResolvedValue([]);
@@ -479,7 +479,16 @@ describe('HdcService hardening behavior', () => {
     const milestoneTitles = (repo.createMilestones.mock.calls[0]?.[0] ?? []).map((m: { title: string }) => m.title);
     expect(milestoneTitles).toContain('Opening Ceremony');
     expect(milestoneTitles).toContain('Presentations');
-    expect(milestoneTitles).not.toContain('Mentor Office Hours');
+    expect(milestoneTitles).toContain('Mentor Office Hours');
+
+    const mentorMilestone = (repo.createMilestones.mock.calls[0]?.[0] ?? []).find(
+      (m: { title: string }) => m.title === 'Mentor Office Hours'
+    );
+    expect(mentorMilestone).toMatchObject({
+      phase: 'HACKING',
+      startTime: '2026-03-02T10:00:00.000Z',
+      description: 'Optional coaching',
+    });
   });
 
   it('skips invalid custom-event timestamps for hdc_native milestones without failing createInstanceDraft', async () => {
@@ -543,7 +552,7 @@ describe('HdcService hardening behavior', () => {
     warnSpy.mockRestore();
   });
 
-  it('rebuilds schedule milestones for existing hdc_native events with custom events and skips template runtimes', async () => {
+  it('rebuilds schedule milestones for existing hdc_native and hackday_template events with custom events', async () => {
     const repo = createRepoMock();
     const service = new ServiceClass(repo as never);
 
@@ -588,7 +597,7 @@ describe('HdcService hardening behavior', () => {
         runtime_type: 'hackday_template',
       });
 
-    repo.deleteMilestonesByEventId.mockResolvedValue(4);
+    repo.deleteMilestonesByEventId.mockResolvedValueOnce(4).mockResolvedValueOnce(3);
 
     const rebuilt = await service.rebuildScheduleMilestonesForExistingEvent('event-existing-hdc');
 
@@ -614,18 +623,19 @@ describe('HdcService hardening behavior', () => {
       startTime: '2026-03-01T11:00:00.000Z',
     });
 
-    repo.createMilestones.mockClear();
-    repo.deleteMilestonesByEventId.mockClear();
-
     const templateResult = await service.rebuildScheduleMilestonesForExistingEvent('event-template');
     expect(templateResult).toMatchObject({
       eventId: 'event-template',
       runtimeType: 'hackday_template',
-      skipped: true,
-      reason: 'runtime_not_hdc_native',
+      deletedCount: 3,
+      customEventCount: 1,
+      skipped: false,
     });
-    expect(repo.deleteMilestonesByEventId).not.toHaveBeenCalled();
-    expect(repo.createMilestones).not.toHaveBeenCalled();
+    expect(repo.deleteMilestonesByEventId).toHaveBeenNthCalledWith(2, 'event-template');
+
+    const templateMilestones = repo.createMilestones.mock.calls[1]?.[0] ?? [];
+    const templateTitles = templateMilestones.map((m: { title: string }) => m.title);
+    expect(templateTitles).toContain('Should Stay Preserve Only');
   });
 
   it('rejects invalid schedule ordering before creating a child page', async () => {

@@ -268,7 +268,8 @@ function buildScheduleMilestonesForRuntime(
   runtimeType: InstanceRuntime
 ): MilestoneInsert[] {
   const standardMilestones = createMilestonesFromSchedule(eventId, schedule);
-  const customMilestones = runtimeType === 'hdc_native' ? createCustomMilestonesFromSchedule(eventId, schedule) : [];
+  const includeCustomMilestones = runtimeType === 'hdc_native' || runtimeType === 'hackday_template';
+  const customMilestones = includeCustomMilestones ? createCustomMilestonesFromSchedule(eventId, schedule) : [];
   return [...standardMilestones, ...customMilestones];
 }
 
@@ -783,18 +784,6 @@ export class HdcService {
     }
 
     const runtimeType = event.runtime_type ?? 'hdc_native';
-    if (runtimeType !== 'hdc_native') {
-      return {
-        eventId,
-        runtimeType,
-        deletedCount: 0,
-        createdCount: 0,
-        customEventCount: 0,
-        skipped: true,
-        reason: 'runtime_not_hdc_native',
-      };
-    }
-
     const schedule = normalizeEventSchedule(event.event_schedule, {
       timezone: event.timezone,
       hackingStartsAt: event.hacking_starts_at,
