@@ -13,7 +13,7 @@
 ```bash
 cd /Users/nickster/Downloads/HackCentral/forge-native
 npm run custom-ui:build
-forge deploy -e production --non-interactive
+forge deploy --environment production --no-verify
 forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
@@ -28,7 +28,7 @@ Staging has no CDN cache, so you see the bundle you just deployed.
 ```bash
 cd /Users/nickster/Downloads/HackCentral/forge-native
 npm run custom-ui:build
-forge deploy -e staging --non-interactive
+forge deploy --environment staging --no-verify
 forge install -e staging --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
@@ -50,4 +50,4 @@ https://hackdaytemp.atlassian.net/forge-apps/a/f828e0d4-e9d0-451d-b818-533bc3e95
 
 | Directory       | Build step                | Deploy command                                          |
 |-----------------|---------------------------|---------------------------------------------------------|
-| `forge-native/` | `npm run custom-ui:build` | `forge deploy -e production` then `forge install ...`   |
+| `forge-native/` | `npm run custom-ui:build` | `forge deploy --environment production --no-verify` then `forge install ...`   |

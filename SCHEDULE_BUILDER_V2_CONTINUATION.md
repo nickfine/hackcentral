@@ -1,8 +1,8 @@
 # Schedule Builder V2 - Continuation File
 
-**Last Updated:** 2026-02-25
-**UI Version:** 0.6.2
-**Status:** Debug logging removed, deployed, but user seeing cached version
+**Last Updated:** 2026-02-26
+**UI Version:** 0.6.8
+**Status:** Phase 1 + Phase 2 shipped; child-page custom-event milestone generation + resync shipped; Phase 3 preview page and exact signal-color parity remain
 
 ## URGENT: Console Log Spam Issue
 
@@ -85,16 +85,20 @@ src/components/schedule-builder-v2/
 
 ## Current State
 
-- **Production deployed:** Version 0.6.2
+- **Production deployed:** UI cache-busters `0.6.8` (frontend + macro)
 - **Working:** Phase tabs, event toggles, offset/time inputs, signal colors
 - **Fixed:** Removed debug logging spam
+- **Completed (Phase 2 UI):** Custom event create / edit / delete shipped in both frontends
+- **Completed (child Schedule rendering path):**
+  - `customEvents` preserved in `Event.event_schedule` and `HackdayTemplateSeed.seed_payload.schedule`
+  - custom events converted to milestones during child-page creation for both HackCentral runtimes (`hdc_native`, `hackday_template`)
+  - existing-page backfill/resync action added (`resync_schedule_milestones`)
+- **Remaining caveat:** exact signal-color parity on the child Schedule page is not implemented yet (colors are phase-mapped)
 - **Caveat:** User may need incognito window to see latest version
 
-## What's NOT Done (Phase 2 & 3)
+## Remaining Work (Phase 3 + Follow-up Polish)
 
-### Phase 2: Custom Events & Timeline Polish
-- [ ] Custom event creation (button exists, handler is stubbed)
-- [ ] Custom event editing/deletion
+### Phase 2 Follow-ups (Optional / Nice-to-have)
 - [ ] Drag-to-reorder (cut from MVP - may not be needed)
 - [ ] Timeline minimap visual improvements
 
@@ -119,8 +123,12 @@ src/components/schedule-builder-v2/
    ```bash
    cd forge-native
    npm run custom-ui:build
-   forge deploy --no-verify
+   forge deploy --environment production --no-verify
    ```
+
+4. **Prod-only workflow** - Keep Forge deploys simple and explicit:
+   - Use production only (`--environment production`)
+   - Do not rely on the active/default Forge environment
 
 4. **Local Testing** - Localhost doesn't work well because Forge requires Confluence context. Use `forge tunnel` for local development.
 
@@ -135,3 +143,83 @@ Then tell me what to work on:
 - "Continue with Phase 2 - custom events"
 - "Build the Preview page (Phase 3)"
 - "Fix [specific issue]"
+
+---
+
+## Update (Feb 26, 2026) - Phase 2 UI + Child Schedule Rendering
+
+### Phase 2 (Custom Events UI) - Shipped
+
+Implemented in **both** HackCentral frontends:
+- `forge-native/static/frontend/.../schedule-builder-v2/`
+- `forge-native/static/macro-frontend/.../schedule-builder-v2/`
+
+What shipped:
+- Custom event create / edit / delete
+- Explicit confirm flow for new custom events
+- Confirmed custom events collapse into inline rows
+- Inline ordering by phase timepoint (pre-event offset / hack-day time)
+
+### Backend Milestone Generation for Custom Events - Shipped
+
+Custom events now generate Schedule-page milestones in HackCentral backend during child-page creation:
+- File: `forge-native/src/backend/hdcService.ts`
+
+Important scope update:
+- Initial implementation was `hdc_native`-only
+- **Current production behavior includes BOTH HackCentral child runtimes:**
+  - `hdc_native`
+  - `hackday_template`
+
+This still does **not** modify original HD26Forge code directly; it changes HackCentral's milestone generation before child pages render.
+
+### Existing Child Pages (Retroactive Fix) - Resync Action Added
+
+Existing already-created child pages do not update automatically. A production ops webtrigger action was added to rebuild milestones from stored `event_schedule`:
+- Ops file: `forge-native/src/ops.ts`
+- Action: `resync_schedule_milestones`
+- Webtrigger key: `phase5-migration-wt`
+
+Resync behavior:
+- Deletes existing milestones for the event
+- Recreates milestones from the saved schedule (standard + custom events)
+- Skips events with no custom events
+
+Example usage (production):
+
+```bash
+cd forge-native
+forge webtrigger create -f phase5-migration-wt -e production -p Confluence -s <site>.atlassian.net
+
+curl -X POST "<WEBTRIGGER_URL>" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"resync_schedule_milestones","eventId":"<hdc_event_id>"}'
+```
+
+### Signal Colors on Child Schedule Page (Important Caveat)
+
+Custom event **signal colors are not transferred exactly** to the child Schedule page yet.
+
+Current behavior:
+- HackCentral custom event `signal` is mapped to a milestone `phase`
+- Child Schedule page colors cards by `phase` (not original `signal`)
+
+So users get:
+- Correct time placement ✅
+- Correct phase grouping ✅
+- Approximate color semantics via phase mapping ✅
+- Exact signal color parity (ceremony/presentation/judging palette) ❌
+
+This requires a separate "proper fix" (persist signal metadata + child Schedule renderer support).
+
+### Current Production Status (Feb 26)
+
+- Phase 2 custom events UI: deployed
+- Custom-event milestone generation on child pages: deployed
+- Existing-page milestone resync action: deployed
+
+### Next Recommended Work
+
+1. Plan proper signal-color parity fix (child Schedule page)
+2. Decide metadata path (`signal` on milestone or milestone metadata)
+3. Implement renderer fallback behavior (`signal` -> style, else `phase`)

@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** February 25, 2026
+**Last Updated:** February 26, 2026
 
 ## Project Overview
 
@@ -20,7 +20,8 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.3.1 (forge-native)
+**Version:** 0.6.34 (root app)
+**Forge UI Cache-Busters:** 0.6.8 (`HACKCENTRAL_UI_VERSION` / `HACKCENTRAL_MACRO_VERSION`)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
 
 **Deployment:**
@@ -111,7 +112,7 @@ npm run convex:deploy  # Deploy to production
 ```bash
 cd forge-native
 npm run custom-ui:build
-forge deploy -e production --non-interactive
+forge deploy --environment production --no-verify
 forge install -e production --upgrade --non-interactive \
   --site hackdaytemp.atlassian.net --product confluence
 ```
@@ -121,7 +122,55 @@ See DEPLOY.md for exact copy-paste steps.
 ## Known Issues & TODOs
 
 - None identified in recent work
-- Refer to learnings.md for specific feature/component notes
+- `LEARNINGS.md` is the primary HackCentral continuity log for session summaries, deploy notes, and recent changes
+- `learnings.md` contains additional project-specific continuity notes (including HD26Forge integration details)
+
+## Session Update - Schedule Builder V2 Payload Hardening (Feb 25, 2026)
+
+### Completed and Deployed
+
+- Hardened Schedule Builder V2 payload consistency across HackCentral web create path:
+  - Convex payload validator (`convex/hackdays.ts`)
+  - Forge backend shared types and normalization (`forge-native/src/shared/types.ts`, `forge-native/src/backend/hdcService.ts`)
+  - Forge repository schedule parsing/round-trip (`forge-native/src/backend/supabase/repositories.ts`)
+  - Forge frontend API types and wizard typing (`forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`)
+- Added preserve-only support for `customEvents` and preserved `selectedEvents`.
+- Preserved `duration`, `openingCeremonyAt`, `presentationsAt`, `judgingStartsAt` end-to-end.
+- `customEvents` are intentionally:
+  - stored in `Event.event_schedule`
+  - stored in `HackdayTemplateSeed.seed_payload.schedule`
+  - **NOT rendered yet** on child Schedule page at this Feb 25 checkpoint
+  - **NOT converted to milestones yet** at this Feb 25 checkpoint (superseded by Feb 26 update below)
+
+### Validation Completed
+
+- `forge-native` typecheck passed
+- Targeted regression tests added/passed:
+  - `forge-native-createFromWeb.spec.ts`
+  - `forge-native-hdcService.spec.ts`
+  - `forge-native-repository-event-config.spec.ts`
+- Full root test suite passed (`95/95`) after fixing localStorage test shim in `tests/setup.ts`
+- Production smoke test (post-deploy) confirmed:
+  - preserved schedule fields in `event_schedule` and `seed_payload.schedule`
+  - no custom-event milestones (expected)
+
+### Deployment Rule (Important)
+
+- Use a **single Forge deploy target: production**
+- Always deploy with:
+  - `forge deploy --environment production --no-verify`
+- Do not rely on default/active Forge environment selection
+
+### Commit
+
+- `b9d500c` - `Harden Schedule Builder V2 payload preservation`
+
+### What's Next (Schedule Builder V2)
+
+- Historical note (Feb 25): Phase 2 UI + Phase 3 preview were still pending at this checkpoint
+- Current remaining work (see Feb 26 updates below):
+  - Phase 3 UI work: Schedule preview page
+  - Exact custom-event signal-color parity on child Schedule page (currently phase-mapped)
 
 ## Next Session Quick Start
 
@@ -141,6 +190,58 @@ See DEPLOY.md for exact copy-paste steps.
 | `forge-native/CONTINUATION_HANDOFF.md` | Forge integration notes |
 | `forge-native/src/backend/hdcService.ts` | Backend: normalizeEventSchedule, createMilestonesFromSchedule |
 | HD26Forge `static/frontend/src/components/Schedule.jsx` | Schedule page rendering and milestone grouping |
+
+## Session Update - Forge UI Restyles, Font Parity, and Deploy Debugging (Feb 26, 2026)
+
+### Completed and Deployed
+
+- Restyled Forge **HackDays** page (`forge-native/static/frontend`) to match the main-app Schedule Builder / PhaseCard visual language (teal accent cards, stronger hierarchy, restyled empty/loading/error states).
+- Restyled Forge **dashboard/front page** and refreshed shared **`HackCard`** visuals globally in `static/frontend` (dashboard hero, metric cards, section framing, quick-actions shell/FAB styling alignment).
+- Aligned Forge frontend base font stack to original HackDay (`IBM Plex Sans`, `Segoe UI`, `sans-serif`) and then fixed title font parity by bundling IBM Plex Sans in the frontend bundle.
+- Fixed Hacks page filter-row regression (`Show Deprecated` checkbox blown out by text-input styles).
+
+### Font Parity - What Actually Fixed It
+
+- Title typography metrics were already correct (weight/tracking), but the face still looked wrong when `IBM Plex Sans` was not installed locally.
+- **Stack-only change was insufficient**.
+- Exact parity required explicit font loading in Forge frontend:
+  - Added `@fontsource/ibm-plex-sans` to `forge-native/static/frontend/package.json`
+  - Imported weights `400/500/600/700` in `forge-native/static/frontend/src/main.tsx`
+- Result: Forge frontend bundle now ships IBM Plex font assets, so title rendering no longer depends on local machine fonts.
+
+### Hacks Page Regression - Root Cause / Fix
+
+**Symptom:** Hacks filters/layout broke and the `Show Deprecated` checkbox was stretched like a full-width filter control.
+
+**Root cause:** Over-broad CSS selector in `forge-native/static/frontend/src/styles.css`:
+- `.filter-row input` matched nested checkbox inputs inside `.check-label`
+
+**Fix:**
+- Scoped filter controls to direct children only:
+  - `.filter-row > input`
+  - `.filter-row > select`
+- Added defensive `.check-label input` sizing rules (`flex: 0 0 auto`, compact width/padding)
+
+### Forge Deploy / Cache-Busting Lessons (Important)
+
+- `forge deploy` does **not** build `static/frontend` or `static/macro-frontend` source automatically.
+- Always run:
+  1. `npm run custom-ui:build`
+  2. `forge deploy --environment production --no-verify`
+- `forge environments list` confirms deploy timestamp, but browser console version logs confirm which UI bundle loaded:
+  - `[HackCentral Confluence UI] loaded <version>`
+  - `[HackCentral Macro UI] loaded <version>`
+- Atlassian host-page warnings (CSP report-only `unsafe-eval`, FeatureGateClients duplicates, deprecated platform APIs) are usually unrelated to HackCentral UI changes.
+
+### Versions / Commits (This Session)
+
+- Root app version bumped to `0.6.34`
+- Forge UI cache-buster versions reached `0.6.8` (`HACKCENTRAL_UI_VERSION` and `HACKCENTRAL_MACRO_VERSION`)
+- Relevant commits:
+  - `06dd8cb` - Restyle Forge dashboard and shared HackCard visuals
+  - `868ffc6` - Align Forge frontend font stack with HackDay (stack-only attempt)
+  - `64c2bc6` - Fix Hacks filter layout regression
+  - `722ff08` - Bundle IBM Plex Sans for Forge frontend (final title font parity fix)
 
 ## Schedule Builder V2 & Milestone System (Feb 25, 2026)
 
@@ -214,3 +315,63 @@ The `duration` field in EventSchedule enables this - without it, intermediate da
 ---
 
 **Next time:** Read instructions.md to get oriented, then tell me what you'd like to work on!
+
+---
+
+## Learnings (Feb 26, 2026) - Schedule Builder V2 Custom Events to Child Schedule Page
+
+### 1) Wizard UI success does not prove child Schedule page success
+
+The HackCentral Schedule Builder V2 wizard and the created child Hackday Schedule page are different systems:
+- Wizard UI works from `event_schedule`
+- Child Schedule page renders from **Milestone** rows
+
+Implication:
+- If custom events are preserved in `event_schedule` but not converted to milestones, they will **not** show on the child Schedule page.
+
+### 2) This was initially a scope/runtime issue, not a deploy/cache issue
+
+We correctly deployed the UI changes, but the child Schedule page still didn't reflect custom events because milestone generation was initially scoped to `hdc_native` only.
+
+Later requirement clarified:
+- HackCentral-created child pages should reflect Schedule config for both runtimes used by HackCentral creation flows:
+  - `hdc_native`
+  - `hackday_template`
+
+### 3) Child Schedule page coloring is phase-based, not signal-based
+
+Important distinction:
+- Schedule Builder V2 custom events have `signal` (`start`, `deadline`, `ceremony`, `presentation`, `judging`, `neutral`)
+- Child Schedule page milestone rendering currently uses milestone `phase` for card coloring/styling
+
+Current result:
+- Signal influences color **indirectly** via `signal -> phase` mapping
+- Exact signal color parity is **not** preserved yet
+
+This explains why "slot color transferred?" can look partially correct while signal-specific palette parity is still missing.
+
+### 4) Add a resync/backfill path when changing milestone generation
+
+New milestone-generation behavior only affects newly created child pages unless you backfill existing milestones.
+
+Added production ops action:
+- `resync_schedule_milestones` (webtrigger handler in `forge-native/src/ops.ts`)
+- Rebuilds milestones from stored `event_schedule`
+- Useful for validating new milestone mapping on already-created test pages
+
+### 5) Keep runtime-specific assertions in tests (or consciously broaden them)
+
+A preserve-only test for `hackday_template` blocked/obscured the product expectation change.
+
+Lesson:
+- When behavior depends on runtime, tests should explicitly name and assert the intended runtime scope
+- If product scope changes, update the runtime-specific assertions first so failures are informative
+
+### 6) Practical debugging order for Schedule Builder V2 issues
+
+When "Schedule page doesn't reflect config":
+1. Confirm wizard output / `event_schedule` contains expected data
+2. Confirm milestone generation path includes the fields (`hdcService.ts`)
+3. Confirm runtime scope (`hdc_native` vs `hackday_template`)
+4. Confirm whether existing page needs milestone resync
+5. Only then investigate deploy/cache issues
