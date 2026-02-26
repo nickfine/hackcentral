@@ -19,14 +19,14 @@ const METRIC_ITEMS: Array<{ key: string; label: string; icon: string; getValue: 
  */
 export function StatCards({ summary }: StatCardsProps): JSX.Element {
   return (
-    <section className="grid metric-grid" aria-label="Summary metrics">
+    <section className="grid metric-grid dashboard-metric-grid" aria-label="Summary metrics">
       {METRIC_ITEMS.map(({ key, label, icon, getValue }) => (
-        <article key={key} className="card metric-tile">
-          <div className="metric-tile-head">
+        <article key={key} className="card metric-tile dashboard-metric-card">
+          <div className="metric-tile-head dashboard-metric-head">
             <span className="metric-icon" aria-hidden>{icon}</span>
-            <h3>{label}</h3>
+            <h3 className="dashboard-metric-label">{label}</h3>
           </div>
-          <p className="metric-value">{getValue(summary)}</p>
+          <p className="metric-value dashboard-metric-value">{getValue(summary)}</p>
         </article>
       ))}
     </section>

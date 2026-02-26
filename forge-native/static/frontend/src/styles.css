@@ -481,6 +481,45 @@ button {
   line-height: 1.3;
 }
 
+.dashboard-hero-card {
+  padding: 20px;
+  border-left: 2px solid #14b8a6;
+  background: color-mix(in srgb, var(--brand) 4%, var(--surface));
+}
+
+.dashboard-hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dashboard-hero-copy {
+  min-width: 0;
+}
+
+.dashboard-hero-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 3.5vw, 2.6rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.dashboard-hero-sub {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: var(--tier3-size);
+  line-height: 1.4;
+}
+
+.dashboard-hero-actions {
+  display: flex;
+  align-items: center;
+}
+
 .section-head-row {
   display: flex;
   justify-content: space-between;
@@ -511,6 +550,22 @@ button {
   color: var(--text-soft);
   font-size: var(--tier3-size);
   font-weight: 400;
+}
+
+.dashboard-section-head {
+  padding: 16px 18px;
+  border-left: 2px solid #14b8a6;
+  align-items: center;
+  background: color-mix(in srgb, var(--brand) 2.5%, var(--surface));
+}
+
+.dashboard-section-head .text-link {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.dashboard-section-head .text-link:hover {
+  text-decoration: underline;
 }
 
 .text-link {
@@ -605,6 +660,70 @@ button {
   align-items: center;
 }
 
+.hack-card {
+  border-left: 2px solid #14b8a6;
+  display: grid;
+  gap: 12px;
+  transition: box-shadow 0.15s ease;
+}
+
+.hack-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.hack-card-head {
+  gap: 12px;
+  min-width: 0;
+}
+
+.hack-card-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.hack-card-title-wrap h3 {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.hack-card-copy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hack-card-foot {
+  margin-top: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hack-card .pill {
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hack-card-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+.hack-card .verified-dot {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  box-shadow: 0 0 0 2px #e8f8f0;
+}
+
 /* Tier 4 - Meta/timestamp */
 .meta {
   color: var(--text-meta);
@@ -693,6 +812,26 @@ button {
   color: var(--text-meta);
 }
 
+.dashboard-quote-card,
+.dashboard-recognition-card {
+  border-left: 2px solid #14b8a6;
+  background: color-mix(in srgb, var(--brand) 2%, var(--surface));
+}
+
+.dashboard-quote-card .quote-body {
+  font-size: clamp(1rem, 1.6vw, 1.125rem);
+  line-height: 1.4;
+}
+
+.dashboard-recognition-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dashboard-recognition-card p {
+  line-height: 1.4;
+}
+
 .badge-wrap {
   margin-top: 12px;
   display: flex;
@@ -746,6 +885,43 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.dashboard-metric-grid {
+  gap: 14px;
+}
+
+.dashboard-metric-card {
+  border-left: 2px solid #14b8a6;
+  background: color-mix(in srgb, var(--brand) 2%, var(--surface));
+  transition: box-shadow 0.15s ease;
+}
+
+.dashboard-metric-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-metric-head {
+  gap: 10px;
+}
+
+.dashboard-metric-card .metric-icon {
+  color: #0f766e;
+  opacity: 1;
+}
+
+.dashboard-metric-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-meta);
+}
+
+.dashboard-metric-value {
+  margin-top: 10px;
+  font-size: clamp(1.65rem, 2.5vw, 2.1rem);
+  line-height: 1.1;
 }
 
 .hackdays-hero-card {
@@ -2137,6 +2313,11 @@ button {
   z-index: 35;
 }
 
+.dashboard-fab {
+  border: 1px solid rgba(20, 184, 166, 0.35);
+  box-shadow: 0 10px 20px rgba(15, 118, 110, 0.22), 0 0 0 4px rgba(20, 184, 166, 0.08);
+}
+
 .quick-actions {
   position: fixed;
   right: 24px;
@@ -2146,6 +2327,23 @@ button {
   gap: 8px;
   padding: 14px;
   z-index: 35;
+}
+
+.dashboard-quick-actions {
+  padding: 16px;
+  border-left: 2px solid #14b8a6;
+  box-shadow: var(--shadow-md);
+  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+}
+
+.dashboard-quick-actions h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dashboard-quick-actions .btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .quick-actions h3 {
@@ -2388,6 +2586,14 @@ button {
   .modal-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .dashboard-hero-actions {
+    width: 100%;
+  }
+
+  .dashboard-hero-actions .btn {
+    width: 100%;
   }
 
   .tab-row {

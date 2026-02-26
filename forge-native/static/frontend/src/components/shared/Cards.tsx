@@ -5,13 +5,17 @@ export function HackCard({ item }: { item: FeaturedHack }): JSX.Element {
   return (
     <article className="card hack-card">
       <div className="hack-card-head">
-        <h3>{item.title}</h3>
-        {item.status === 'verified' ? <span className="verified-dot" aria-label="Verified" /> : null}
+        <div className="hack-card-title-wrap">
+          <h3>{item.title}</h3>
+        </div>
+        {item.status === 'verified' ? (
+          <span className="verified-dot hack-card-verified-dot" aria-label="Verified" />
+        ) : null}
       </div>
       <p className="hack-card-copy">{item.description || 'No description provided.'}</p>
       <div className="hack-card-foot">
-        <span className={`pill pill-${item.assetType}`}>{formatLabel(item.assetType)}s</span>
-        <span className="meta">{item.reuseCount} reuses</span>
+        <span className={`pill pill-${item.assetType} hack-card-type-pill`}>{formatLabel(item.assetType)}s</span>
+        <span className="meta hack-card-meta">{item.reuseCount} reuses</span>
       </div>
     </article>
   );

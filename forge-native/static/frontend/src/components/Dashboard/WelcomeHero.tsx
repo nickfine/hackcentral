@@ -8,14 +8,18 @@ export interface WelcomeHeroProps {
 
 export function WelcomeHero({ onSubmitHack }: WelcomeHeroProps): JSX.Element {
   return (
-    <section className="dash-intro" aria-label="HackDay Central">
-      <div>
-        <h1 className="dash-intro-title">HackDay Central</h1>
-        <p className="dash-intro-sub">Your AI hacking community</p>
+    <section className="card dashboard-hero-card" aria-label="HackDay Central">
+      <div className="dashboard-hero-row">
+        <div className="dashboard-hero-copy">
+          <h1 className="dashboard-hero-title">HackDay Central</h1>
+          <p className="dashboard-hero-sub">Your AI hacking community</p>
+        </div>
+        <div className="dashboard-hero-actions">
+          <button type="button" className="btn btn-primary" onClick={onSubmitHack}>
+            Submit a Hack
+          </button>
+        </div>
       </div>
-      <button type="button" className="btn btn-primary" onClick={onSubmitHack}>
-        Submit a Hack
-      </button>
     </section>
   );
 }

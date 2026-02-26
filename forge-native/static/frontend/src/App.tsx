@@ -37,7 +37,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.4';
+const HACKCENTRAL_UI_VERSION = '0.6.5';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -1473,7 +1473,7 @@ export function App(): JSX.Element {
               <WelcomeHero onSubmitHack={() => setModalView('submit_hack')} />
               <StatCards summary={bootstrap.summary} />
 
-              <section className="section-head-row">
+              <section className="card section-head-row dashboard-section-head">
                 <div>
                   <h2>Latest Hacks</h2>
                   <p>Built by us, for us</p>
@@ -1497,13 +1497,13 @@ export function App(): JSX.Element {
               </section>
 
               <section className="grid dashboard-pods">
-                <article className="card quote-card">
+                <article className="card quote-card dashboard-quote-card">
                   <p className="quote-mark">❞</p>
                   <p className="quote-body">"The Jira Epic Breakdown prompt alone saved our whole team a full planning day."</p>
                   <p className="quote-meta">Priya S. · Product Manager</p>
                 </article>
 
-                <article className="card recognition-card">
+                <article className="card recognition-card dashboard-recognition-card">
                   <h3>Your recognition</h3>
                   <p>Complete mentor sessions, verify hacks, or get reuses to earn badges.</p>
                   <div className="badge-wrap">
@@ -1517,17 +1517,17 @@ export function App(): JSX.Element {
                 </article>
               </section>
 
-              <button
-                type="button"
-                className="fab"
-                aria-label={quickActionsOpen ? 'Close quick actions' : 'Open quick actions'}
-                onClick={() => setQuickActionsOpen((open) => !open)}
-              >
+                <button
+                  type="button"
+                  className="fab dashboard-fab"
+                  aria-label={quickActionsOpen ? 'Close quick actions' : 'Open quick actions'}
+                  onClick={() => setQuickActionsOpen((open) => !open)}
+                >
                 {quickActionsOpen ? '×' : '+'}
               </button>
 
               {quickActionsOpen ? (
-                <section className="card quick-actions">
+                <section className="card quick-actions dashboard-quick-actions">
                   <h3>Quick Actions</h3>
                   <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
                     Submit your first hack
