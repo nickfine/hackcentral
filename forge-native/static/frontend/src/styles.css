@@ -43,7 +43,7 @@ body,
 
 body {
   color: var(--text);
-  font-family: 'Avenir Next', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   background: var(--bg);
 }
 
