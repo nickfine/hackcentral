@@ -195,11 +195,7 @@ function validateSchedule(schedule: EventSchedule): void {
   ensureDateOrder(schedule.votingStartsAt, schedule.votingEndsAt, 'Voting end must be after voting start.');
 }
 
-/**
- * Transform EventSchedule data into Milestone records for HD26Forge Schedule page display
- * Maps Schedule Builder V2 output fields to milestone records
- */
-function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule): Array<{
+type MilestoneInsert = {
   eventId: string;
   title: string;
   description: string | null;
@@ -207,16 +203,71 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
   startTime: string;
   endTime: string | null;
   location: string | null;
-}> {
-  const milestones: Array<{
-    eventId: string;
-    title: string;
-    description: string | null;
-    phase: string;
-    startTime: string;
-    endTime: string | null;
-    location: string | null;
-  }> = [];
+};
+
+function parseScheduleTimestampMs(value: string | undefined): number | null {
+  if (!value) return null;
+  const timestampMs = Date.parse(value);
+  return Number.isFinite(timestampMs) ? timestampMs : null;
+}
+
+function mapHackdayCustomEventSignalToPhase(signal: ScheduleEventSignal): string {
+  switch (signal) {
+    case 'deadline':
+      return 'SUBMISSION';
+    case 'presentation':
+      return 'SUBMISSION';
+    case 'judging':
+      return 'JUDGING';
+    case 'start':
+    case 'neutral':
+    case 'ceremony':
+    default:
+      return 'HACKING';
+  }
+}
+
+function createCustomMilestonesFromSchedule(eventId: string, schedule: EventSchedule): MilestoneInsert[] {
+  if (!schedule.customEvents || schedule.customEvents.length === 0) {
+    return [];
+  }
+
+  const milestones: MilestoneInsert[] = [];
+  const hackingStartMs = parseScheduleTimestampMs(schedule.hackingStartsAt);
+
+  for (const customEvent of schedule.customEvents) {
+    const eventTimestampMs = parseScheduleTimestampMs(customEvent.timestamp);
+    if (eventTimestampMs === null) {
+      console.warn(
+        '[createInstanceDraft] Skipping custom schedule event milestone due to invalid timestamp',
+        JSON.stringify({ name: customEvent.name, timestamp: customEvent.timestamp })
+      );
+      continue;
+    }
+
+    const isPreEvent = hackingStartMs !== null && eventTimestampMs < hackingStartMs;
+    const phase = isPreEvent ? 'REGISTRATION' : mapHackdayCustomEventSignalToPhase(customEvent.signal);
+
+    milestones.push({
+      eventId,
+      title: customEvent.name,
+      description: customEvent.description ?? null,
+      phase,
+      startTime: customEvent.timestamp,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  return milestones;
+}
+
+/**
+ * Transform EventSchedule data into Milestone records for HD26Forge Schedule page display
+ * Maps Schedule Builder V2 output fields to milestone records
+ */
+function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule): MilestoneInsert[] {
+  const milestones: MilestoneInsert[] = [];
 
   // PRE-EVENT MILESTONES
   // - registrationOpensAt
@@ -841,7 +892,10 @@ export class HdcService {
 
       // Create Milestone records from schedule for HD26Forge Schedule page display
       console.log('[createInstanceDraft] Creating milestones from schedule:', JSON.stringify(eventSchedule, null, 2));
-      const milestones = createMilestonesFromSchedule(event.id, eventSchedule);
+      const standardMilestones = createMilestonesFromSchedule(event.id, eventSchedule);
+      const customMilestones =
+        runtimeType === 'hdc_native' ? createCustomMilestonesFromSchedule(event.id, eventSchedule) : [];
+      const milestones = [...standardMilestones, ...customMilestones];
       console.log('[createInstanceDraft] Generated milestones:', JSON.stringify(milestones, null, 2));
       await this.repository.createMilestones(milestones);
 

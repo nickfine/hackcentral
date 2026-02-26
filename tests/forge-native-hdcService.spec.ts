@@ -270,7 +270,106 @@ describe('HdcService hardening behavior', () => {
     );
   });
 
-  it('preserves Schedule Builder V2 metadata in event, seed, and audit payloads without turning custom events into milestones', async () => {
+  it('creates custom-event milestones for hdc_native instances while preserving schedule metadata', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-hdc-native',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-native',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-native',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-native',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-native',
+    });
+
+    const service = new ServiceClass(repo as never);
+    const result = await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      instanceRuntime: 'hdc_native',
+      schedule: {
+        timezone: 'Europe/London',
+        duration: 2,
+        registrationOpensAt: '2026-02-20T09:00:00.000Z',
+        openingCeremonyAt: '2026-03-01T09:00:00.000Z',
+        hackingStartsAt: '2026-03-01T09:30:00.000Z',
+        submissionDeadlineAt: '2026-03-02T14:00:00.000Z',
+        judgingStartsAt: '2026-03-02T16:30:00.000Z',
+        presentationsAt: '2026-03-02T15:00:00.000Z',
+        customEvents: [
+          {
+            name: 'Mentor Office Hours',
+            description: 'Optional coaching',
+            timestamp: '2026-02-28T10:00:00.000Z',
+            signal: 'neutral',
+          },
+          {
+            name: 'API Freeze Checkpoint',
+            timestamp: '2026-03-02T13:00:00.000Z',
+            signal: 'deadline',
+          },
+          {
+            name: 'Judge Q&A',
+            timestamp: '2026-03-02T16:00:00.000Z',
+            signal: 'judging',
+          },
+          {
+            name: 'Team Lunch',
+            timestamp: '2026-03-01T12:00:00.000Z',
+            signal: 'ceremony',
+          },
+        ],
+      },
+    });
+
+    expect(result.templateProvisionStatus).toBeNull();
+    expect(repo.createHackdayTemplateSeed).not.toHaveBeenCalled();
+
+    expect(repo.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeType: 'hdc_native',
+        eventSchedule: expect.objectContaining({
+          customEvents: expect.arrayContaining([
+            expect.objectContaining({ name: 'Mentor Office Hours', signal: 'neutral' }),
+            expect.objectContaining({ name: 'API Freeze Checkpoint', signal: 'deadline' }),
+          ]),
+        }),
+      })
+    );
+
+    const insertedMilestones = repo.createMilestones.mock.calls[0]?.[0] ?? [];
+    const byTitle = new Map(insertedMilestones.map((m: { title: string }) => [m.title, m]));
+
+    expect(byTitle.get('Opening Ceremony')).toBeDefined();
+    expect(byTitle.get('Presentations')).toBeDefined();
+
+    expect(byTitle.get('Mentor Office Hours')).toMatchObject({
+      phase: 'REGISTRATION',
+      startTime: '2026-02-28T10:00:00.000Z',
+      description: 'Optional coaching',
+    });
+    expect(byTitle.get('API Freeze Checkpoint')).toMatchObject({
+      phase: 'SUBMISSION',
+      startTime: '2026-03-02T13:00:00.000Z',
+    });
+    expect(byTitle.get('Judge Q&A')).toMatchObject({
+      phase: 'JUDGING',
+      startTime: '2026-03-02T16:00:00.000Z',
+    });
+    expect(byTitle.get('Team Lunch')).toMatchObject({
+      phase: 'HACKING',
+      startTime: '2026-03-01T12:00:00.000Z',
+    });
+  });
+
+  it('preserves Schedule Builder V2 metadata in event, seed, and audit payloads without turning custom events into milestones for hackday_template instances', async () => {
     const repo = createRepoMock();
     repo.getEventByCreationRequestId.mockResolvedValue(null);
     repo.getEventNameConflicts.mockResolvedValue([]);
@@ -293,6 +392,7 @@ describe('HdcService hardening behavior', () => {
     const service = new ServiceClass(repo as never);
     await service.createInstanceDraft(viewer, {
       ...baseCreateInput,
+      instanceRuntime: 'hackday_template',
       schedule: {
         timezone: 'Europe/London',
         duration: 3,
@@ -378,6 +478,67 @@ describe('HdcService hardening behavior', () => {
     expect(milestoneTitles).toContain('Opening Ceremony');
     expect(milestoneTitles).toContain('Presentations');
     expect(milestoneTitles).not.toContain('Mentor Office Hours');
+  });
+
+  it('skips invalid custom-event timestamps for hdc_native milestones without failing createInstanceDraft', async () => {
+    const repo = createRepoMock();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-invalid-custom-ts',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-invalid-ts',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-invalid-ts',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-invalid-ts',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-invalid-ts',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await expect(
+      service.createInstanceDraft(viewer, {
+        ...baseCreateInput,
+        instanceRuntime: 'hdc_native',
+        schedule: {
+          timezone: 'Europe/London',
+          hackingStartsAt: '2026-03-01T09:30:00.000Z',
+          customEvents: [
+            {
+              name: 'Broken Timestamp Event',
+              timestamp: 'not-a-real-date',
+              signal: 'neutral',
+            },
+            {
+              name: 'Valid Custom Event',
+              timestamp: '2026-03-01T12:00:00.000Z',
+              signal: 'start',
+            },
+          ],
+        },
+      })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        eventId: 'event-invalid-custom-ts',
+        childPageId: 'child-invalid-ts',
+      })
+    );
+
+    const milestoneTitles = (repo.createMilestones.mock.calls[0]?.[0] ?? []).map((m: { title: string }) => m.title);
+    expect(milestoneTitles).toContain('Valid Custom Event');
+    expect(milestoneTitles).not.toContain('Broken Timestamp Event');
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[createInstanceDraft] Skipping custom schedule event milestone due to invalid timestamp',
+      expect.stringContaining('Broken Timestamp Event')
+    );
+
+    warnSpy.mockRestore();
   });
 
   it('rejects invalid schedule ordering before creating a child page', async () => {
