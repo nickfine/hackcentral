@@ -56,7 +56,7 @@ function buildInput(raw: Record<string, unknown>, parentPageId: string): CreateI
         ? raw.creationRequestId.trim()
         : crypto.randomUUID(),
     wizardSchemaVersion: 2,
-    completedStep: 5,
+    completedStep: 6,
     launchMode: raw.launchMode === 'go_live' ? 'go_live' : 'draft',
     instanceRuntime: 'hackday_template',
     templateTarget: 'hackday',

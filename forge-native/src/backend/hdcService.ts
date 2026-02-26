@@ -474,7 +474,7 @@ function validateWizardMetadata(input: CreateInstanceDraftInput): void {
   if (typeof input.wizardSchemaVersion !== 'undefined' && input.wizardSchemaVersion !== 2) {
     throw new Error('Unsupported wizard schema version.');
   }
-  if (typeof input.completedStep !== 'undefined' && (input.completedStep < 1 || input.completedStep > 5)) {
+  if (typeof input.completedStep !== 'undefined' && (input.completedStep < 1 || input.completedStep > 6)) {
     throw new Error('Invalid wizard step value.');
   }
 }
@@ -987,7 +987,7 @@ export class HdcService {
             createdAt: new Date().toISOString(),
             launchMode,
             wizardSchemaVersion: input.wizardSchemaVersion ?? 2,
-            completedStep: input.completedStep ?? 5,
+            completedStep: input.completedStep ?? 6,
             basicInfo: {
               eventName: input.basicInfo.eventName,
               eventIcon: input.basicInfo.eventIcon || '🚀',

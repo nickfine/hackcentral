@@ -9,7 +9,9 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import type {
   EventDuration,
   EventState,
+  EventSignal,
   PhaseKey,
+  ScheduleBuilderState,
   ScheduleBuilderOutput,
   ScheduleBuilderV2Props,
   CustomEvent,
@@ -19,10 +21,12 @@ import {
   initializeEventStates,
   ensureEventStatesForDuration,
   getEventStateKey,
+  getEventsForPhase,
   EVENT_TO_OUTPUT_FIELD,
   PRE_EVENT_MILESTONES,
   HACK_DAY_EVENTS,
 } from '../../schedule-builder-v2/scheduleEvents';
+import { getSignalStyle, hasAccentBorder } from '../../schedule-builder-v2/signalStyles';
 import { ConfigStrip } from './ConfigStrip';
 import { PhaseTabBar } from './PhaseTabBar';
 import { PhaseContent } from './PhaseContent';
@@ -176,10 +180,260 @@ function buildOutputPayload(
   } as ScheduleBuilderOutput;
 }
 
+type PreviewSignal = EventSignal;
+
+type PreviewEvent = {
+  id: string;
+  title: string;
+  description?: string;
+  timestamp: string;
+  signal: PreviewSignal;
+  section: 'pre' | 'hack';
+};
+
+type PreviewColumn = {
+  id: string;
+  label: string;
+  dateLabel: string;
+  events: PreviewEvent[];
+};
+
+function formatPreviewDate(value: string, timezone: string, options: Intl.DateTimeFormatOptions): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, ...options }).format(new Date(value));
+  } catch {
+    return new Intl.DateTimeFormat('en-GB', options).format(new Date(value));
+  }
+}
+
+function buildPreviewColumnsFromState(
+  duration: EventDuration,
+  anchorDate: string,
+  timezone: string,
+  eventStates: Record<string, EventState>,
+  customEvents: CustomEvent[]
+): PreviewColumn[] {
+  const toISOTimestamp = (date: string, time: string): string => new Date(`${date}T${time}:00`).toISOString();
+  const calculateDateFromOffset = (offsetDays: number): string => {
+    const date = new Date(anchorDate);
+    date.setDate(date.getDate() + offsetDays);
+    return date.toISOString().split('T')[0];
+  };
+
+  const events: PreviewEvent[] = [];
+  const phases = buildPhaseDefinitions(duration);
+
+  for (const phase of phases) {
+    const phaseEvents = getEventsForPhase(phase, duration);
+
+    for (const event of phaseEvents) {
+      const stateKey = getEventStateKey(phase.key, event.id);
+      const state = eventStates[stateKey];
+      const enabled = state?.enabled ?? true;
+      if (!enabled) continue;
+
+      let timestamp: string | null = null;
+      if (phase.type === 'pre-event') {
+        const offsetDays = state?.offsetDays ?? event.defaultOffsetDays ?? 0;
+        timestamp = toISOTimestamp(calculateDateFromOffset(offsetDays), '09:00');
+      } else {
+        const time = state?.time ?? event.defaultTime;
+        if (!time) continue;
+        const dayIndex = phase.dayIndex ?? 0;
+        timestamp = toISOTimestamp(calculateDateFromOffset(dayIndex), time);
+      }
+
+      events.push({
+        id: `${phase.key}:${event.id}`,
+        title: event.name,
+        description: event.description,
+        timestamp,
+        signal: event.signal,
+        section: phase.type === 'pre-event' ? 'pre' : 'hack',
+      });
+    }
+  }
+
+  for (const customEvent of customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration))) {
+    let timestamp: string;
+    if (customEvent.phase === 'pre') {
+      timestamp = toISOTimestamp(calculateDateFromOffset(customEvent.offsetDays ?? -3), '09:00');
+    } else {
+      const dayIndex = parseHackPhaseDayIndex(customEvent.phase) ?? 0;
+      timestamp = toISOTimestamp(calculateDateFromOffset(dayIndex), customEvent.time ?? '12:00');
+    }
+
+    events.push({
+      id: customEvent.id,
+      title: customEvent.name,
+      description: customEvent.description,
+      timestamp,
+      signal: customEvent.signal,
+      section: customEvent.phase === 'pre' ? 'pre' : 'hack',
+    });
+  }
+
+  events.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+
+  const preEventEvents = events.filter((event) => event.section === 'pre');
+  const hackEvents = events.filter((event) => event.section === 'hack');
+  const columns: PreviewColumn[] = [];
+  if (preEventEvents.length > 0) {
+    const first = preEventEvents[0].timestamp;
+    const last = preEventEvents[preEventEvents.length - 1].timestamp;
+    const firstLabel = formatPreviewDate(first, timezone, { month: 'short', day: 'numeric' });
+    const lastLabel = formatPreviewDate(last, timezone, { month: 'short', day: 'numeric' });
+
+    columns.push({
+      id: 'pre',
+      label: 'Pre-Event',
+      dateLabel: firstLabel === lastLabel ? firstLabel : `${firstLabel} - ${lastLabel}`,
+      events: preEventEvents,
+    });
+  }
+
+  const groupedHackEvents = new Map<string, PreviewEvent[]>();
+  for (const event of hackEvents) {
+    const dayKey = event.timestamp.split('T')[0];
+    const bucket = groupedHackEvents.get(dayKey) ?? [];
+    bucket.push(event);
+    groupedHackEvents.set(dayKey, bucket);
+  }
+
+  Array.from(groupedHackEvents.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([dayKey, dayEvents], index) => {
+      columns.push({
+        id: `day-${index + 1}`,
+        label: groupedHackEvents.size === 1 ? 'Hack Day' : `Day ${index + 1}`,
+        dateLabel: formatPreviewDate(dayKey, timezone, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        events: dayEvents.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)),
+      });
+    });
+
+  return columns;
+}
+
+export function ScheduleBuilderV2Preview({
+  duration,
+  anchorDate,
+  timezone,
+  eventStates,
+  customEvents,
+  showHeaderText = true,
+  surfaceVariant = 'card',
+}: {
+  duration: EventDuration;
+  anchorDate: string;
+  timezone: string;
+  eventStates: Record<string, EventState>;
+  customEvents: CustomEvent[];
+  showHeaderText?: boolean;
+  surfaceVariant?: 'card' | 'flat';
+}) {
+  const columns = useMemo(
+    () => buildPreviewColumnsFromState(duration, anchorDate, timezone, eventStates, customEvents),
+    [duration, anchorDate, timezone, eventStates, customEvents]
+  );
+  const previewTimezone = timezone || 'UTC';
+  const visibleCustomCount = useMemo(
+    () => customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration)).length,
+    [customEvents, duration]
+  );
+
+  return (
+    <section
+      className={`sb2-preview${surfaceVariant === 'flat' ? ' sb2-preview--flat' : ''}`}
+      aria-label="Schedule preview"
+    >
+      <div className="sb2-preview-head">
+        {showHeaderText ? (
+          <div>
+            <p className="sb2-preview-kicker">Preview</p>
+            <h3 className="sb2-preview-title">Generated Schedule Timeline</h3>
+            <p className="sb2-preview-subtitle">
+              This is the timeline that will be created from the current builder settings ({previewTimezone}).
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="sb2-preview-subtitle">
+              Timezone: {previewTimezone}
+            </p>
+          </div>
+        )}
+        <div className="sb2-preview-stats" aria-label="Preview summary">
+          <span>{columns.reduce((sum, column) => sum + column.events.length, 0)} events</span>
+          <span>{visibleCustomCount} custom</span>
+          <span>{duration} day{duration === 1 ? '' : 's'}</span>
+        </div>
+      </div>
+
+      {columns.length === 0 ? (
+        <div className="sb2-preview-empty">No events enabled yet. Toggle events on to preview the generated schedule.</div>
+      ) : (
+        <div className="sb2-preview-columns">
+          {columns.map((column) => (
+            <div key={column.id} className="sb2-preview-column">
+              <div className="sb2-preview-column-head">
+                <p className="sb2-preview-column-label">{column.label}</p>
+                <p className="sb2-preview-column-date">{column.dateLabel}</p>
+              </div>
+              <div className="sb2-preview-event-list">
+                {column.events.map((event) => {
+                  const signalStyle = getSignalStyle(event.signal);
+                  const showAccent = hasAccentBorder(event.signal);
+                  const cardStyle = {
+                    '--signal-bg': signalStyle.bg,
+                    '--signal-border': signalStyle.border,
+                    '--signal-accent': signalStyle.accent,
+                    '--signal-text': signalStyle.text,
+                    '--signal-icon-bg': signalStyle.iconBg,
+                  } as React.CSSProperties;
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={`sb2-preview-event ${showAccent ? '' : 'sb2-preview-event--neutral'}`}
+                      style={cardStyle}
+                    >
+                        <div className="sb2-preview-event-time">
+                        {formatPreviewDate(event.timestamp, previewTimezone, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                        })}
+                      </div>
+                      <div className="sb2-preview-event-content">
+                        <p className="sb2-preview-event-title">{event.title}</p>
+                        {event.description ? (
+                          <p className="sb2-preview-event-description">{event.description}</p>
+                        ) : null}
+                      </div>
+                      <span className="sb2-preview-event-signal">{signalStyle.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ScheduleBuilderV2({
   timezone: initialTimezone,
   onChange,
+  onStateChange,
   initialState,
+  showInlinePreview = true,
 }: ScheduleBuilderV2Props) {
   // Core state
   const [duration, setDuration] = useState<EventDuration>(initialState?.duration ?? 2);
@@ -194,6 +448,11 @@ export function ScheduleBuilderV2({
   const [pendingCustomEventFocusId, setPendingCustomEventFocusId] = useState<string | null>(null);
   const [pendingCustomEventConfirmIds, setPendingCustomEventConfirmIds] = useState<Record<string, true>>(
     {}
+  );
+
+  const outputPreview = useMemo(
+    () => buildOutputPayload(duration, anchorDate, anchorTime, timezone, eventStates, customEvents),
+    [duration, anchorDate, anchorTime, timezone, eventStates, customEvents]
   );
 
   // Build phase definitions based on duration
@@ -358,16 +617,21 @@ export function ScheduleBuilderV2({
 
   // Emit output on state changes
   useEffect(() => {
-    const output = buildOutputPayload(
+    onChange(outputPreview);
+  }, [outputPreview, onChange]);
+
+  useEffect(() => {
+    if (!onStateChange) return;
+    onStateChange({
       duration,
       anchorDate,
       anchorTime,
       timezone,
+      activePhase,
       eventStates,
-      customEvents
-    );
-    onChange(output);
-  }, [duration, anchorDate, anchorTime, timezone, eventStates, customEvents, onChange]);
+      customEvents,
+    } satisfies ScheduleBuilderState);
+  }, [duration, anchorDate, anchorTime, timezone, activePhase, eventStates, customEvents, onStateChange]);
 
   return (
     <div className="sb2-container">
@@ -411,6 +675,16 @@ export function ScheduleBuilderV2({
           onCustomEventConfirm={handleCustomEventConfirm}
         />
       </div>
+
+      {showInlinePreview ? (
+        <ScheduleBuilderV2Preview
+          duration={duration}
+          anchorDate={anchorDate}
+          timezone={timezone}
+          eventStates={eventStates}
+          customEvents={customEvents}
+        />
+      ) : null}
 
       {/* Footer with timeline and navigation */}
       <TimelineMinimap

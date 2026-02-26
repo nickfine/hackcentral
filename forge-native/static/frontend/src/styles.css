@@ -1679,6 +1679,14 @@ button {
   color: var(--text);
 }
 
+.wizard-card-subtitle {
+  margin: 8px 0 0;
+  max-width: 72ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .wizard-error {
   margin: 12px 0 0;
   padding: 10px 14px;

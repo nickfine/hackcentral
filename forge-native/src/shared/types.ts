@@ -142,7 +142,7 @@ export type TemplateProvisionStatus = "provisioned" | "initialized" | "failed";
 
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
-export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 export type ScheduleEventSignal = "start" | "deadline" | "ceremony" | "presentation" | "judging" | "neutral";
 
 export interface ScheduleCustomEvent {

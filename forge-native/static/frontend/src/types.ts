@@ -138,7 +138,7 @@ export type SyncStatus = 'not_started' | 'in_progress' | 'partial' | 'failed' | 
 export type SyncErrorCategory = 'none' | 'permission' | 'validation' | 'transient' | 'partial_failure' | 'unknown';
 export type SubmissionRequirement = 'video_demo' | 'working_prototype' | 'documentation';
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 // Event duration in days
 export type EventDuration = 1 | 2 | 3;

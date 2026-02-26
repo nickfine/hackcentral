@@ -178,6 +178,10 @@ export interface ScheduleBuilderV2Props {
   timezone: string;
   /** Callback when schedule changes */
   onChange: (output: ScheduleBuilderOutput) => void;
+  /** Callback with full internal builder state for accurate external review/restore */
+  onStateChange?: (state: ScheduleBuilderState) => void;
   /** Initial state for hydration (e.g., from draft) */
   initialState?: Partial<ScheduleBuilderState>;
+  /** Whether to render the built-in preview inline below the editor */
+  showInlinePreview?: boolean;
 }

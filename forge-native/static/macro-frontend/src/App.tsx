@@ -14,7 +14,8 @@ import type {
 } from './types';
 import { DEFAULT_TIMEZONE } from './types';
 import { ScheduleBuilder, type ScheduleBuilderOutput } from './ScheduleBuilder';
-import { ScheduleBuilderV2 } from './components/schedule-builder-v2';
+import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
+import type { ScheduleBuilderState as ScheduleBuilderV2State } from './types/scheduleBuilderV2';
 import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './scheduleEvents';
 import {
@@ -32,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.8';
+const HACKCENTRAL_MACRO_VERSION = '0.6.14';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -71,10 +72,26 @@ interface WizardDraftState {
   accentColor: string;
   bannerImageUrl: string;
   themePreference: ThemePreference;
+  scheduleBuilderState?: ScheduleBuilderV2State | null;
 }
 
 function wizardStorageKey(pageId: string): string {
   return `${WIZARD_STORAGE_KEY_PREFIX}${pageId}`;
+}
+
+function isScheduleBuilderStateDraft(value: unknown): value is ScheduleBuilderV2State {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  if (!(candidate.duration === 1 || candidate.duration === 2 || candidate.duration === 3)) return false;
+  if (typeof candidate.anchorDate !== 'string') return false;
+  if (typeof candidate.anchorTime !== 'string') return false;
+  if (typeof candidate.timezone !== 'string') return false;
+  if (typeof candidate.activePhase !== 'string') return false;
+  if (!candidate.eventStates || typeof candidate.eventStates !== 'object' || Array.isArray(candidate.eventStates)) {
+    return false;
+  }
+  if (!Array.isArray(candidate.customEvents)) return false;
+  return true;
 }
 
 const LOCAL_CONTEXT: HdcContextResponse = {
@@ -202,6 +219,7 @@ export function App(): JSX.Element {
   const [createDraftTimedOut, setCreateDraftTimedOut] = useState(false);
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [scheduleOutput, setScheduleOutput] = useState<ScheduleBuilderOutput | null>(null);
+  const [scheduleBuilderState, setScheduleBuilderState] = useState<ScheduleBuilderV2State | null>(null);
   const [registrationOpensAt, setRegistrationOpensAt] = useState('');
   const [registrationClosesAt, setRegistrationClosesAt] = useState('');
   const [teamFormationStartsAt, setTeamFormationStartsAt] = useState('');
@@ -404,6 +422,7 @@ export function App(): JSX.Element {
       accentColor,
       bannerImageUrl,
       themePreference,
+      scheduleBuilderState,
     }),
     [
       accentColor,
@@ -433,6 +452,7 @@ export function App(): JSX.Element {
       timezone,
       votingEndsAt,
       votingStartsAt,
+      scheduleBuilderState,
     ]
   );
 
@@ -468,6 +488,7 @@ export function App(): JSX.Element {
       setAccentColor('#0f766e');
       setBannerImageUrl('');
       setThemePreference('system');
+      setScheduleBuilderState(null);
       setPendingCreateRequestId(null);
       setCreateDraftTimedOut(false);
 
@@ -535,6 +556,9 @@ export function App(): JSX.Element {
       if (parsed.themePreference === 'system' || parsed.themePreference === 'light' || parsed.themePreference === 'dark') {
         setThemePreference(parsed.themePreference);
       }
+      if (isScheduleBuilderStateDraft(parsed.scheduleBuilderState)) {
+        setScheduleBuilderState(parsed.scheduleBuilderState);
+      }
     } catch {
       window.localStorage.removeItem(wizardStorageKey(context.pageId));
     } finally {
@@ -585,7 +609,7 @@ export function App(): JSX.Element {
         }
       }
 
-      if (step >= 3) {
+      if (step >= 4) {
         const minTeam = Math.max(1, Math.floor(Number(minTeamSize) || 1));
         const maxTeam = Math.max(1, Math.floor(Number(maxTeamSize) || 1));
         if (minTeam > maxTeam) {
@@ -621,7 +645,7 @@ export function App(): JSX.Element {
       return;
     }
 
-    setWizardStep((step) => (step < 5 ? ((step + 1) as WizardStep) : step));
+    setWizardStep((step) => (step < 6 ? ((step + 1) as WizardStep) : step));
   }, [getValidationErrorForStep, wizardStep]);
 
   const goToPreviousStep = useCallback(() => {
@@ -1176,10 +1200,10 @@ export function App(): JSX.Element {
         <section className="grid">
           <article className="card">
             <h2>Create a HackDay</h2>
-            <p>Use the 5-step wizard to create a new HackDay event. A child Confluence page will be created automatically.</p>
+            <p>Use the 6-step wizard to create a new HackDay event. A child Confluence page will be created automatically.</p>
 
             <div className="wizard-steps">
-              {(['Basic', 'Schedule', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => (
+              {(['Basic', 'Schedule', 'Schedule Review', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => (
                 <span key={label} className={`wizard-step${wizardStep === idx + 1 ? ' wizard-step-active' : wizardStep > idx + 1 ? ' wizard-step-done' : ''}`}>
                   {idx + 1}. {label}
                 </span>
@@ -1207,17 +1231,43 @@ export function App(): JSX.Element {
               <div className="wizard-fields">
                 <ScheduleBuilderV2
                   timezone={timezone}
+                  initialState={scheduleBuilderState ?? undefined}
                   onChange={(output) => {
                     setScheduleOutput(output);
                     // Sync timezone and duration from V2 output
                     if (output.timezone) setTimezone(output.timezone);
                     if (output.duration) setEventDuration(output.duration);
                   }}
+                  onStateChange={setScheduleBuilderState}
+                  showInlinePreview={false}
                 />
               </div>
             ) : null}
 
             {wizardStep === 3 ? (
+              <div className="wizard-fields">
+                <p className="meta" style={{ marginTop: 0 }}>
+                  Review the generated timeline before continuing. If anything looks off, go back to Schedule and edit the timing, enabled events, or custom events.
+                </p>
+                {scheduleBuilderState ? (
+                  <ScheduleBuilderV2Preview
+                    duration={scheduleBuilderState.duration}
+                    anchorDate={scheduleBuilderState.anchorDate}
+                    timezone={scheduleBuilderState.timezone || timezone}
+                    eventStates={scheduleBuilderState.eventStates}
+                    customEvents={scheduleBuilderState.customEvents}
+                    showHeaderText={false}
+                    surfaceVariant="flat"
+                  />
+                ) : (
+                  <p className="note">
+                    Preview is unavailable until the Schedule step is opened in this session. Go back to Schedule to generate it.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            {wizardStep === 4 ? (
               <div className="wizard-fields">
                 <label htmlFor="m-min-team">Min team size</label>
                 <input id="m-min-team" type="number" min="1" value={minTeamSize} onChange={(e) => setMinTeamSize(e.target.value)} />
@@ -1244,7 +1294,7 @@ export function App(): JSX.Element {
               </div>
             ) : null}
 
-            {wizardStep === 4 ? (
+            {wizardStep === 5 ? (
               <div className="wizard-fields">
                 <label htmlFor="m-accent">Accent colour</label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1264,7 +1314,7 @@ export function App(): JSX.Element {
               </div>
             ) : null}
 
-            {wizardStep === 5 ? (
+            {wizardStep === 6 ? (
               <div className="wizard-fields">
                 <h3 style={{ margin: '0 0 8px', fontWeight: 700 }}>Review</h3>
                 <p><strong>Name:</strong> {eventIcon} {eventName || <em>Not set</em>}</p>
@@ -1290,12 +1340,16 @@ export function App(): JSX.Element {
 
             <div className="wizard-nav" style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               {wizardStep > 1 ? (
-                <button type="button" className="button-muted" onClick={goToPreviousStep}>← Back</button>
+                <button type="button" className="button-muted" onClick={goToPreviousStep}>
+                  {wizardStep === 3 ? '← Back to Schedule' : '← Back'}
+                </button>
               ) : (
                 <span />
               )}
-              {wizardStep < 5 ? (
-                <button type="button" className="button-primary" onClick={goToNextStep}>Next →</button>
+              {wizardStep < 6 ? (
+                <button type="button" className="button-primary" onClick={goToNextStep}>
+                  {wizardStep === 3 ? 'Continue to Rules →' : 'Next →'}
+                </button>
               ) : (
                 <button type="button" className="button-primary" disabled={saving} onClick={() => void handleCreateDraft()}>
                   {saving ? 'Creating…' : 'Create HackDay'}

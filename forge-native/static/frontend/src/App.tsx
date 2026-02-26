@@ -31,13 +31,16 @@ import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { getInitials } from './utils/format';
-import { ScheduleBuilderV2 } from './components/schedule-builder-v2';
-import type { ScheduleBuilderOutput as ScheduleBuilderV2Output } from './types/scheduleBuilderV2';
+import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
+import type {
+  ScheduleBuilderOutput as ScheduleBuilderV2Output,
+  ScheduleBuilderState as ScheduleBuilderV2State,
+} from './types/scheduleBuilderV2';
 import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.8';
+const HACKCENTRAL_UI_VERSION = '0.6.14';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -818,6 +821,7 @@ export function App(): JSX.Element {
   const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
   const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderV2Output | null>(null);
+  const [wScheduleBuilderState, setWScheduleBuilderState] = useState<ScheduleBuilderV2State | null>(null);
   const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
   const [wSelectedEvents, setWSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
@@ -1194,6 +1198,7 @@ export function App(): JSX.Element {
     setWThemePreference('system');
     setWLaunchMode('draft');
     setWScheduleOutput(null);
+    setWScheduleBuilderState(null);
   }, []);
 
   const getWizardValidationError = useCallback((step: WizardStep): string | null => {
@@ -1219,7 +1224,7 @@ export function App(): JSX.Element {
       if (isDateRangeInvalid(wHackingStartsAt, wSubmissionDeadlineAt)) return 'Submission deadline must be after hacking start.';
       if (isDateRangeInvalid(wVotingStartsAt, wVotingEndsAt)) return 'Voting end must be after start.';
     }
-    if (step >= 3) {
+    if (step >= 4) {
       const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
       const maxT = Math.max(1, Math.floor(Number(wMaxTeamSize) || 1));
       if (minT > maxT) return 'Minimum team size must be ≤ maximum team size.';
@@ -1999,12 +2004,12 @@ export function App(): JSX.Element {
             <section className="wizard-page">
               <section className="wizard-page-head">
                 <h1>Create HackDay</h1>
-                <p className="subtitle">Set up your event in 5 steps</p>
+                <p className="subtitle">Set up your event in 6 steps</p>
               </section>
 
               {/* Numbered progress stepper */}
               <div className="wizard-stepper" role="list" aria-label="Wizard progress">
-                {(['Basic Info', 'Schedule', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
+                {(['Basic Info', 'Schedule', 'Schedule Review', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
                   const stepNum = idx + 1;
                   const isDone = wStep > stepNum;
                   const isActive = wStep === stepNum;
@@ -2018,7 +2023,7 @@ export function App(): JSX.Element {
                         <div className="ws-circle">{isDone ? '✓' : stepNum}</div>
                         <span className="ws-label">{label}</span>
                       </div>
-                      {idx < 4 && (
+                      {idx < 5 && (
                         <div className={`ws-line${isDone ? ' ws-line-done' : ''}`} aria-hidden />
                       )}
                     </div>
@@ -2029,10 +2034,26 @@ export function App(): JSX.Element {
               {/* Wizard card: head / body / foot */}
               <article className="card wizard-card">
                 <div className="wizard-card-head">
-                  <p className="wizard-card-step-eyebrow">Step {wStep} of 5</p>
+                  <p className="wizard-card-step-eyebrow">Step {wStep} of 6</p>
                   <h2 className="wizard-card-title">
-                    {wStep === 1 ? 'Basic Info' : wStep === 2 ? 'Schedule' : wStep === 3 ? 'Rules' : wStep === 4 ? 'Branding' : 'Review & Create'}
+                    {wStep === 1
+                      ? 'Basic Info'
+                      : wStep === 2
+                        ? 'Schedule'
+                        : wStep === 3
+                          ? 'Schedule Review'
+                          : wStep === 4
+                            ? 'Rules'
+                            : wStep === 5
+                              ? 'Branding'
+                              : 'Review & Create'}
                   </h2>
+                  {wStep === 3 ? (
+                    <p className="wizard-card-subtitle">
+                      Review the generated timeline. If anything looks off, go back to Schedule to edit timings,
+                      enabled events, or custom events.
+                    </p>
+                  ) : null}
                   {(wEventNameError || actionError) ? (
                     <p className="wizard-error" role="alert">{wEventNameError || actionError}</p>
                   ) : null}
@@ -2113,17 +2134,42 @@ export function App(): JSX.Element {
                     <div className="wizard-fields">
                       <ScheduleBuilderV2
                         timezone={wTimezone}
+                        initialState={wScheduleBuilderState ?? undefined}
                         onChange={(output) => {
                           setWScheduleOutput(output);
                           if (output.timezone) setWTimezone(output.timezone);
                           if (output.duration) setWEventDuration(output.duration);
                         }}
+                        onStateChange={setWScheduleBuilderState}
+                        showInlinePreview={false}
                       />
                     </div>
                   ) : null}
 
-                  {/* ── Step 3: Rules ── */}
+                  {/* ── Step 3: Schedule Review ── */}
                   {wStep === 3 ? (
+                    <div className="wizard-fields">
+                      {wScheduleBuilderState ? (
+                        <ScheduleBuilderV2Preview
+                          duration={wScheduleBuilderState.duration}
+                          anchorDate={wScheduleBuilderState.anchorDate}
+                          timezone={wScheduleBuilderState.timezone || wTimezone}
+                          eventStates={wScheduleBuilderState.eventStates}
+                          customEvents={wScheduleBuilderState.customEvents}
+                          showHeaderText={false}
+                          surfaceVariant="flat"
+                        />
+                      ) : (
+                        <p className="meta">
+                          Preview is unavailable until the Schedule step is opened in this session. Go back to
+                          Schedule to generate it.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 4: Rules ── */}
+                  {wStep === 4 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Team</p>
@@ -2178,8 +2224,8 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 4: Branding ── */}
-                  {wStep === 4 ? (
+                  {/* ── Step 5: Branding ── */}
+                  {wStep === 5 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Colours</p>
@@ -2242,8 +2288,8 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 5: Review & Create ── */}
-                  {wStep === 5 ? (
+                  {/* ── Step 6: Review & Create ── */}
+                  {wStep === 6 ? (
                     <div className="wizard-fields">
                       <div className="review-block">
                         <p className="review-block-title">Basic Info</p>
@@ -2347,14 +2393,14 @@ export function App(): JSX.Element {
                 <div className="wizard-card-foot">
                   {wStep > 1 ? (
                     <button type="button" className="btn btn-ghost" onClick={() => { setActionError(''); setWStep((s) => (s - 1) as WizardStep); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
-                      ← Back
+                      {wStep === 3 ? '← Back to Schedule' : '← Back'}
                     </button>
                   ) : (
                     <button type="button" className="btn btn-ghost" onClick={() => { resetWizard(); setView('hackdays'); }}>
                       Cancel
                     </button>
                   )}
-                  {wStep < 5 ? (
+                  {wStep < 6 ? (
                     <button
                       type="button"
                       className="btn btn-primary"
@@ -2366,7 +2412,7 @@ export function App(): JSX.Element {
                         window.scrollTo({ top: 0, behavior: 'instant' });
                       }}
                     >
-                      Next →
+                      {wStep === 3 ? 'Continue to Rules →' : 'Next →'}
                     </button>
                   ) : (
                     <button
