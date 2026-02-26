@@ -476,6 +476,18 @@ function extractMissingProjectColumn(error: unknown): string | null {
   return null;
 }
 
+function extractMissingMilestoneColumn(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  const normalized = normalizeSupabaseErrorMessage(error);
+  const quoted = normalized.match(/column\s+"Milestone"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (quoted) return quoted[1];
+  const plain = normalized.match(/column\s+Milestone\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  if (plain) return plain[1];
+  const pgrst = normalized.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Milestone' in the schema cache/i);
+  if (pgrst) return pgrst[1];
+  return null;
+}
+
 function extractProjectNotNullColumn(error: unknown): string | null {
   if (!(error instanceof Error)) return null;
   const normalized = normalizeSupabaseErrorMessage(error);
@@ -1676,6 +1688,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     title: string;
     description: string | null;
     phase: string;
+    signal?: ScheduleEventSignal | null;
     startTime: string;
     endTime: string | null;
     location: string | null;
@@ -1684,17 +1697,42 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
     // Match HD26Forge's field naming - Milestone table uses camelCase columns
     // This is different from Event table which uses snake_case
+    let omitSignalColumn = false;
+    let loggedMissingSignalColumn = false;
     for (const m of milestones) {
-      await this.client.insert(MILESTONE_TABLE, {
+      const payload: Record<string, unknown> = {
         id: randomUUID(),
         eventId: m.eventId,
         title: m.title,
         description: m.description,
         phase: m.phase,
+        signal: m.signal ?? null,
         startTime: m.startTime,
         endTime: m.endTime,
         location: m.location,
-      });
+      };
+      if (omitSignalColumn) {
+        delete payload.signal;
+      }
+
+      try {
+        await this.client.insert(MILESTONE_TABLE, payload);
+      } catch (error) {
+        const missingColumn = extractMissingMilestoneColumn(error);
+        if (missingColumn?.toLowerCase() === 'signal' && !omitSignalColumn) {
+          omitSignalColumn = true;
+          delete payload.signal;
+          if (!loggedMissingSignalColumn) {
+            loggedMissingSignalColumn = true;
+            console.warn(
+              '[SupabaseRepository.createMilestones] Milestone.signal column missing; continuing without signal persistence.'
+            );
+          }
+          await this.client.insert(MILESTONE_TABLE, payload);
+          continue;
+        }
+        throw error;
+      }
     }
   }
 

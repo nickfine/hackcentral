@@ -200,6 +200,7 @@ type MilestoneInsert = {
   title: string;
   description: string | null;
   phase: string;
+  signal?: ScheduleEventSignal | null;
   startTime: string;
   endTime: string | null;
   location: string | null;
@@ -253,6 +254,7 @@ function createCustomMilestonesFromSchedule(eventId: string, schedule: EventSche
       title: customEvent.name,
       description: customEvent.description ?? null,
       phase,
+      signal: customEvent.signal,
       startTime: customEvent.timestamp,
       endTime: null,
       location: null,
@@ -292,6 +294,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Registration Opens',
       description: 'Portal opens for sign-ups',
       phase: 'REGISTRATION',
+      signal: 'start',
       startTime: schedule.registrationOpensAt,
       endTime: null,
       location: null,
@@ -305,6 +308,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Team Formation Opens',
       description: 'Marketplace opens for team building',
       phase: 'TEAM_FORMATION',
+      signal: 'start',
       startTime: schedule.teamFormationStartsAt,
       endTime: null,
       location: null,
@@ -318,6 +322,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Registration Closes',
       description: 'Final deadline to register',
       phase: 'REGISTRATION',
+      signal: 'deadline',
       startTime: schedule.registrationClosesAt,
       endTime: null,
       location: null,
@@ -339,6 +344,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Opening Ceremony',
       description: 'Kickoff and announcements',
       phase: 'HACKING',
+      signal: 'ceremony',
       startTime: schedule.openingCeremonyAt,
       endTime: null,
       location: null,
@@ -352,6 +358,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Hacking Begins',
       description: 'Teams start building',
       phase: 'HACKING',
+      signal: 'start',
       startTime: schedule.hackingStartsAt,
       endTime: null,
       location: null,
@@ -379,6 +386,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
           title: `Day ${dayIndex + 1} - Hacking Continues`,
           description: 'Teams continue building their projects',
           phase: 'HACKING',
+          signal: 'neutral',
           startTime: timestamp,
           endTime: null,
           location: null,
@@ -394,6 +402,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Code Freeze',
       description: 'Final submissions due',
       phase: 'SUBMISSION',
+      signal: 'deadline',
       startTime: schedule.submissionDeadlineAt,
       endTime: null,
       location: null,
@@ -407,6 +416,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Presentations',
       description: 'Teams present their projects',
       phase: 'SUBMISSION',
+      signal: 'presentation',
       startTime: schedule.presentationsAt,
       endTime: null,
       location: null,
@@ -420,6 +430,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Judging Period',
       description: 'Judges evaluate submissions',
       phase: 'JUDGING',
+      signal: 'judging',
       startTime: schedule.judgingStartsAt,
       endTime: null,
       location: null,
@@ -433,6 +444,7 @@ function createMilestonesFromSchedule(eventId: string, schedule: EventSchedule):
       title: 'Results Announced',
       description: 'Winners announced and celebrated',
       phase: 'RESULTS',
+      signal: 'ceremony',
       startTime: schedule.resultsAnnounceAt,
       endTime: null,
       location: null,

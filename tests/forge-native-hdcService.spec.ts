@@ -305,6 +305,7 @@ describe('HdcService hardening behavior', () => {
         submissionDeadlineAt: '2026-03-02T14:00:00.000Z',
         judgingStartsAt: '2026-03-02T16:30:00.000Z',
         presentationsAt: '2026-03-02T15:00:00.000Z',
+        resultsAnnounceAt: '2026-03-02T18:00:00.000Z',
         customEvents: [
           {
             name: 'Mentor Office Hours',
@@ -351,22 +352,32 @@ describe('HdcService hardening behavior', () => {
 
     expect(byTitle.get('Opening Ceremony')).toBeDefined();
     expect(byTitle.get('Presentations')).toBeDefined();
+    expect(byTitle.get('Opening Ceremony')).toMatchObject({ signal: 'ceremony' });
+    expect(byTitle.get('Hacking Begins')).toMatchObject({ signal: 'start' });
+    expect(byTitle.get('Code Freeze')).toMatchObject({ signal: 'deadline' });
+    expect(byTitle.get('Presentations')).toMatchObject({ signal: 'presentation' });
+    expect(byTitle.get('Judging Period')).toMatchObject({ signal: 'judging' });
+    expect(byTitle.get('Results Announced')).toMatchObject({ signal: 'ceremony' });
 
     expect(byTitle.get('Mentor Office Hours')).toMatchObject({
       phase: 'REGISTRATION',
+      signal: 'neutral',
       startTime: '2026-02-28T10:00:00.000Z',
       description: 'Optional coaching',
     });
     expect(byTitle.get('API Freeze Checkpoint')).toMatchObject({
       phase: 'SUBMISSION',
+      signal: 'deadline',
       startTime: '2026-03-02T13:00:00.000Z',
     });
     expect(byTitle.get('Judge Q&A')).toMatchObject({
       phase: 'JUDGING',
+      signal: 'judging',
       startTime: '2026-03-02T16:00:00.000Z',
     });
     expect(byTitle.get('Team Lunch')).toMatchObject({
       phase: 'HACKING',
+      signal: 'ceremony',
       startTime: '2026-03-01T12:00:00.000Z',
     });
   });
@@ -486,6 +497,7 @@ describe('HdcService hardening behavior', () => {
     );
     expect(mentorMilestone).toMatchObject({
       phase: 'HACKING',
+      signal: 'neutral',
       startTime: '2026-03-02T10:00:00.000Z',
       description: 'Optional coaching',
     });
@@ -568,6 +580,7 @@ describe('HdcService hardening behavior', () => {
           hackingStartsAt: '2026-03-01T09:30:00.000Z',
           openingCeremonyAt: '2026-03-01T09:00:00.000Z',
           submissionDeadlineAt: '2026-03-02T14:00:00.000Z',
+          resultsAnnounceAt: '2026-03-02T18:00:00.000Z',
           customEvents: [
             {
               name: 'Sponsor AMA',
@@ -615,11 +628,23 @@ describe('HdcService hardening behavior', () => {
     expect(rebuiltTitles).toContain('Opening Ceremony');
     expect(rebuiltTitles).toContain('Hacking Begins');
     expect(rebuiltTitles).toContain('Code Freeze');
+    expect(rebuiltTitles).toContain('Results Announced');
     expect(rebuiltTitles).toContain('Sponsor AMA');
+
+    expect(rebuiltMilestones.find((m: { title: string }) => m.title === 'Opening Ceremony')).toMatchObject({
+      signal: 'ceremony',
+    });
+    expect(rebuiltMilestones.find((m: { title: string }) => m.title === 'Code Freeze')).toMatchObject({
+      signal: 'deadline',
+    });
+    expect(rebuiltMilestones.find((m: { title: string }) => m.title === 'Results Announced')).toMatchObject({
+      signal: 'ceremony',
+    });
 
     const sponsorAma = rebuiltMilestones.find((m: { title: string }) => m.title === 'Sponsor AMA');
     expect(sponsorAma).toMatchObject({
       phase: 'HACKING',
+      signal: 'ceremony',
       startTime: '2026-03-01T11:00:00.000Z',
     });
 
@@ -634,6 +659,13 @@ describe('HdcService hardening behavior', () => {
     expect(repo.deleteMilestonesByEventId).toHaveBeenNthCalledWith(2, 'event-template');
 
     const templateMilestones = repo.createMilestones.mock.calls[1]?.[0] ?? [];
+    const templateCustomMilestone = templateMilestones.find((m: { title: string }) => m.title === 'Should Stay Preserve Only');
+    expect(templateCustomMilestone).toMatchObject({
+      phase: 'HACKING',
+      signal: 'neutral',
+      startTime: '2026-03-01T11:00:00.000Z',
+    });
+
     const templateTitles = templateMilestones.map((m: { title: string }) => m.title);
     expect(templateTitles).toContain('Should Stay Preserve Only');
   });
