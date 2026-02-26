@@ -1,5 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { invoke, router, view } from '@forge/bridge';
+import { invoke, router, view } from './forgeBridge';
 import type {
   CreateInstanceDraftInput,
   Defs,

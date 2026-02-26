@@ -1,4 +1,4 @@
-import { invoke } from '@forge/bridge';
+import { invoke } from '../utils/forgeBridge';
 import type { Defs } from '../types';
 
 /**

@@ -1,5 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { router } from '@forge/bridge';
+import { router } from './utils/forgeBridge';
 import { DEFAULT_TIMEZONE } from './types';
 import type {
   BootstrapData,
