@@ -127,6 +127,8 @@ const resolvePageIdFromUrlLike = (value) => {
 };
 
 const APP_VIEW_NAV_TIMEOUT_MS = 2500;
+const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = String(import.meta.env.VITE_HDC_PERF_RUNTIME_BOOTSTRAP_V2 || '').trim().toLowerCase() === 'true';
+const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 
 const navigateTopWindow = (targetUrl, { allowLocalFallback = true } = {}) => {
   if (typeof window === 'undefined') return false;
@@ -187,6 +189,33 @@ const resolvePageIdFromContext = (ctx) => {
 const isAppModeContextBlocked = (instanceContext) => {
   const source = instanceContext?.runtimeSource;
   return source === 'app_mode_context_required';
+};
+
+const logRuntimeBootstrapTelemetry = ({
+  mode,
+  durationMs,
+  stageMs,
+  outcome,
+  warning = null,
+  eventId = null,
+  pageId = null,
+  runtimeSource = null,
+}) => {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'runtime_first_load',
+      source: 'runtime_frontend',
+      mode,
+      durationMs,
+      stageMs,
+      outcome,
+      warning,
+      eventId,
+      pageId,
+      runtimeSource,
+    })
+  );
 };
 
 // Check if we're running inside Forge
@@ -326,6 +355,7 @@ function App() {
   const [appModeContextError, setAppModeContextError] = useState(null);
   const [openAppViewError, setOpenAppViewError] = useState(null);
   const [openingAppView, setOpeningAppView] = useState(false);
+  const [loadingStageMessage, setLoadingStageMessage] = useState('Loading HackDay...');
   /** True only for HackDays created via HackCentral (template seed); original site uses VIBING logo. */
   const [useAdaptavistLogo, setUseAdaptavistLogo] = useState(false);
   const [configModeSnapshot, setConfigModeSnapshot] = useState(null);
@@ -351,8 +381,20 @@ function App() {
   // Load initial data
   useEffect(() => {
     const loadContext = async () => {
+      const bootstrapStartedAt = Date.now();
+      const stageMs = {};
+      const markStage = (stage, stageStartedAt) => {
+        stageMs[stage] = Math.max(0, Date.now() - stageStartedAt);
+      };
+      const setLoadingStage = (message) => {
+        if (HDC_PERF_LOADING_UX_V1) {
+          setLoadingStageMessage(message);
+        }
+      };
+
       // Check if running in Forge environment
       if (!isForgeEnvironment()) {
+        setLoadingStage('Loading local preview data...');
         setDevMode(true);
         setContext({ extension: { type: 'dev' } });
         setUser(MOCK_USER);
@@ -377,36 +419,99 @@ function App() {
         setUseAdaptavistLogo(devAdaptavist === '1' || devAdaptavist === 'true');
         setAppModeContextError(null);
         setOpenAppViewError(null);
+        logRuntimeBootstrapTelemetry({
+          mode: HDC_PERF_RUNTIME_BOOTSTRAP_V2 ? 'v2' : 'legacy',
+          durationMs: Math.max(0, Date.now() - bootstrapStartedAt),
+          stageMs,
+          outcome: 'preview_mode',
+          eventId: devEventId,
+          pageId: devPageId || null,
+          runtimeSource: 'dev_preview',
+        });
         setLoading(false);
         return;
       }
 
       try {
+        setLoadingStage('Connecting to Confluence context...');
         const { view, invoke } = await import('@forge/bridge');
+        const contextLookupStartedAt = Date.now();
         const ctx = await view.getContext();
+        markStage('get_context', contextLookupStartedAt);
         setContext(ctx);
 
         const appModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
         if (appModePageId) {
+          setLoadingStage('Preparing page context...');
+          const activationStartedAt = Date.now();
           try {
             await invoke('activateAppModeContext', { pageId: appModePageId });
           } catch (activationError) {
             console.warn('Failed to activate app-mode context:', activationError);
           }
+          markStage('activate_context', activationStartedAt);
         }
 
-        // Load real data from resolver. Use allSettled so one resolver failure
-        // doesn't silently force the UI into 3-item mock data.
         const eventPhasePayload = appModePageId
           ? { appMode: true, pageId: appModePageId }
           : { appMode: true };
-        const [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
-          invoke('getCurrentUser'),
-          invoke('getTeams'),
-          invoke('getEventPhase', eventPhasePayload),
-          invoke('getFreeAgents'),
-          invoke('getRegistrations'),
-        ]);
+        const toFulfilled = (value) => ({ status: 'fulfilled', value });
+        const toRejected = (reason) => ({ status: 'rejected', reason });
+        const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+        let userResult;
+        let teamsResult;
+        let eventResult;
+        let freeAgentsResult;
+        let registrationsResult;
+
+        if (HDC_PERF_RUNTIME_BOOTSTRAP_V2) {
+          setLoadingStage('Bootstrapping runtime context...');
+          const runtimeBootstrapStartedAt = Date.now();
+          try {
+            const runtimeBootstrap = await invoke('getRuntimeBootstrap', eventPhasePayload);
+            markStage('get_runtime_bootstrap', runtimeBootstrapStartedAt);
+
+            userResult = hasOwn(runtimeBootstrap, 'user')
+              ? toFulfilled(runtimeBootstrap.user)
+              : toRejected(new Error('Runtime bootstrap payload missing user.'));
+            teamsResult = hasOwn(runtimeBootstrap, 'teams')
+              ? toFulfilled(runtimeBootstrap.teams)
+              : toRejected(new Error('Runtime bootstrap payload missing teams.'));
+            eventResult = hasOwn(runtimeBootstrap, 'eventPhasePayload')
+              ? toFulfilled(runtimeBootstrap.eventPhasePayload)
+              : toRejected(new Error('Runtime bootstrap payload missing eventPhasePayload.'));
+            freeAgentsResult = hasOwn(runtimeBootstrap, 'freeAgents')
+              ? toFulfilled(runtimeBootstrap.freeAgents)
+              : toRejected(new Error('Runtime bootstrap payload missing freeAgents.'));
+            registrationsResult = hasOwn(runtimeBootstrap, 'registrations')
+              ? toFulfilled(runtimeBootstrap.registrations)
+              : toRejected(new Error('Runtime bootstrap payload missing registrations.'));
+          } catch (runtimeBootstrapError) {
+            markStage('get_runtime_bootstrap', runtimeBootstrapStartedAt);
+            console.warn('Failed to load runtime bootstrap payload; falling back to legacy startup path.', runtimeBootstrapError);
+            setLoadingStage('Retrying with compatibility startup...');
+            const legacyResolversStartedAt = Date.now();
+            [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
+              invoke('getCurrentUser'),
+              invoke('getTeams'),
+              invoke('getEventPhase', eventPhasePayload),
+              invoke('getFreeAgents'),
+              invoke('getRegistrations'),
+            ]);
+            markStage('legacy_parallel_resolvers', legacyResolversStartedAt);
+          }
+        } else {
+          setLoadingStage('Loading event, teams, and registrations...');
+          const legacyResolversStartedAt = Date.now();
+          [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
+            invoke('getCurrentUser'),
+            invoke('getTeams'),
+            invoke('getEventPhase', eventPhasePayload),
+            invoke('getFreeAgents'),
+            invoke('getRegistrations'),
+          ]);
+          markStage('legacy_parallel_resolvers', legacyResolversStartedAt);
+        }
 
         if (userResult.status === 'fulfilled') {
           setUser(userResult.value);
@@ -495,6 +600,21 @@ function App() {
         } else {
           setError(null);
         }
+
+        const eventInfoForTelemetry = eventResult.status === 'fulfilled' ? eventResult.value : null;
+        logRuntimeBootstrapTelemetry({
+          mode: HDC_PERF_RUNTIME_BOOTSTRAP_V2 ? 'v2' : 'legacy',
+          durationMs: Math.max(0, Date.now() - bootstrapStartedAt),
+          stageMs,
+          outcome: failures === 3 ? 'core_failure' : 'success',
+          warning:
+            failures > 0
+              ? `Resolver failures: ${failures}`
+              : null,
+          eventId: eventInfoForTelemetry?.eventId ?? null,
+          pageId: eventInfoForTelemetry?.instanceContext?.pageId ?? null,
+          runtimeSource: eventInfoForTelemetry?.instanceContext?.runtimeSource ?? null,
+        });
       } catch (err) {
         console.error('Failed to load Forge context:', err);
         // Preserve troubleshooting UX if Forge context fails to initialize.
@@ -506,6 +626,13 @@ function App() {
         setAllUsers([MOCK_USER]);
         setAppModeContextError(null);
         setError('Failed to initialize Forge context. Try refreshing the page.');
+        logRuntimeBootstrapTelemetry({
+          mode: HDC_PERF_RUNTIME_BOOTSTRAP_V2 ? 'v2' : 'legacy',
+          durationMs: Math.max(0, Date.now() - bootstrapStartedAt),
+          stageMs,
+          outcome: 'error',
+          warning: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         setLoading(false);
       }
@@ -1552,7 +1679,14 @@ function App() {
         <div className="flex items-center justify-center min-h-screen bg-arena-bg">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading HackDay...</p>
+            <p className="text-text-secondary">{loadingStageMessage}</p>
+            {HDC_PERF_LOADING_UX_V1 ? (
+              <div className="mt-6 mx-auto w-72 space-y-3 text-left">
+                <div className="h-3 rounded bg-arena-card border border-arena-border animate-pulse" />
+                <div className="h-3 rounded bg-arena-card border border-arena-border animate-pulse" />
+                <div className="h-3 rounded bg-arena-card border border-arena-border animate-pulse" />
+              </div>
+            ) : null}
           </div>
         </div>
         </ThemeStateProvider>
