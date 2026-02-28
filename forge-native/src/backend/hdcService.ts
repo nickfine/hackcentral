@@ -160,6 +160,24 @@ function normalizeSiteBaseUrl(value: string | null | undefined): string | null {
   return null;
 }
 
+function resolveForgeAppRouteId(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(trimmed)) {
+    return trimmed;
+  }
+
+  const ariMatch = trimmed.match(/\/app\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
+  if (ariMatch?.[1]) {
+    return ariMatch[1];
+  }
+
+  return null;
+}
+
 function buildHackdayTemplateAppViewUrl(
   siteUrl: string | null | undefined,
   pageId: string,
@@ -167,8 +185,10 @@ function buildHackdayTemplateAppViewUrl(
 ): string | null {
   const normalizedPageId = typeof pageId === 'string' ? pageId.trim() : '';
   if (!normalizedPageId) return null;
+  const routeAppId = resolveForgeAppRouteId(routeConfig.targetAppId);
+  if (!routeAppId) return null;
 
-  const path = `/wiki/apps/${routeConfig.targetAppId}/${routeConfig.targetEnvironmentId}/hackday-app?pageId=${encodeURIComponent(
+  const path = `/wiki/apps/${routeAppId}/${routeConfig.targetEnvironmentId}/hackday-app?pageId=${encodeURIComponent(
     normalizedPageId
   )}`;
   const siteBase = normalizeSiteBaseUrl(siteUrl);
