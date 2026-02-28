@@ -8,6 +8,7 @@ import type {
   CreateProjectInput,
   EventDuration,
   FeaturedHack,
+  LifecycleStatus,
   PersonSnapshot,
   ProjectSnapshot,
   ScheduleEventType,
@@ -75,17 +76,15 @@ function isDateRangeInvalid(start: string, end: string): boolean {
   return Boolean(start && end && start > end);
 }
 
-const ACTIVE_HACKDAY_LIFECYCLE_STATUSES = new Set([
+const ACTIVE_HACKDAY_LIFECYCLE_STATUSES = new Set<LifecycleStatus>([
   'registration',
   'team_formation',
   'hacking',
-  'submission',
   'voting',
-  'judging',
   'results',
 ]);
 
-function formatHackdayLifecycleStatus(status: string): string {
+function formatHackdayLifecycleStatus(status: LifecycleStatus): string {
   return status
     .split('_')
     .filter(Boolean)

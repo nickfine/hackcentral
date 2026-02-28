@@ -3,6 +3,7 @@ export const DEFAULT_TIMEZONE = 'Europe/London';
 
 export type InstanceRuntime = 'hdc_native' | 'hackday_template';
 export type TemplateTarget = 'hackday';
+export type TemplateProvisionStatus = 'provisioned' | 'initialized' | 'failed';
 
 export interface ViewerContext {
   accountId: string;
@@ -330,6 +331,7 @@ export interface CreateInstanceDraftResult {
   childPageUrl: string;
   /** HD26Forge app-shell URL for this event page (full-page runtime). */
   appViewUrl?: string | null;
+  templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
 export interface AppViewUrlResult {

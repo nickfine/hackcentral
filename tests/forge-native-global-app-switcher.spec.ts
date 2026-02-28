@@ -72,6 +72,48 @@ describe('global app switcher helpers', () => {
     expect(sections.recent.map((item) => item.id)).toEqual(['recent-a']);
   });
 
+  it('orders live and upcoming entries by recency, then numeric page id fallback', () => {
+    const now = new Date('2026-02-17T12:00:00.000Z');
+    const liveOld = makeEvent('live-old', 'hacking', {
+      schedule: { hackingStartsAt: '2026-02-01T10:00:00.000Z' },
+      confluencePageId: '101',
+    });
+    const liveNew = makeEvent('live-new', 'hacking', {
+      schedule: { hackingStartsAt: '2026-02-18T10:00:00.000Z' },
+      confluencePageId: '100',
+    });
+
+    const upcomingDateOld = makeEvent('upcoming-date-old', 'registration', {
+      schedule: { registrationOpensAt: '2026-03-01T09:00:00.000Z' },
+      confluencePageId: '999',
+    });
+    const upcomingDateNew = makeEvent('upcoming-date-new', 'registration', {
+      schedule: { registrationOpensAt: '2026-04-01T09:00:00.000Z' },
+      confluencePageId: '1',
+    });
+    const upcomingNoDateHighPage = makeEvent('upcoming-no-date-high-page', 'team_formation', {
+      confluencePageId: '200',
+      eventName: 'Zulu Event',
+    });
+    const upcomingNoDateLowPage = makeEvent('upcoming-no-date-low-page', 'team_formation', {
+      confluencePageId: '150',
+      eventName: 'Alpha Event',
+    });
+
+    const sections = buildSwitcherSections(
+      [upcomingNoDateLowPage, liveOld, upcomingDateOld, upcomingNoDateHighPage, liveNew, upcomingDateNew],
+      now
+    );
+
+    expect(sections.live.map((item) => item.id)).toEqual(['live-new', 'live-old']);
+    expect(sections.upcoming.map((item) => item.id)).toEqual([
+      'upcoming-date-new',
+      'upcoming-date-old',
+      'upcoming-no-date-high-page',
+      'upcoming-no-date-low-page',
+    ]);
+  });
+
   it('builds Confluence view-page path', () => {
     expect(buildConfluencePagePath('123')).toBe('/wiki/pages/viewpage.action?pageId=123');
     expect(buildConfluencePagePath('abc/1')).toBe('/wiki/pages/viewpage.action?pageId=abc%2F1');
