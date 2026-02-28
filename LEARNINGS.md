@@ -20,9 +20,38 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.34 (root app)
+**Version:** 0.6.41 (root app)
 **Forge UI Cache-Busters:** 0.6.21 (`HACKCENTRAL_UI_VERSION` / `HACKCENTRAL_MACRO_VERSION`)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
+**Forge Native Package:** 0.3.9
+
+## Session Update - Runtime Cutover + Existing Page Migration (Feb 28, 2026)
+
+### Completed
+
+- Production runtime owner switched to HackCentral:
+  - `HDC_RUNTIME_OWNER=hackcentral`
+- Forge production redeployed and install upgraded on `hackdaytemp.atlassian.net`.
+- Existing created-instance pages migrated from legacy HD26 macro target to HackCentral runtime macro target using:
+  - `scripts/migrate-hackday-runtime-macro.mjs`
+- Migration result:
+  - `totalCandidates: 28`
+  - `updated: 28`
+  - `skipped: 0`
+  - `errors: 0`
+- Rollback artifact written:
+  - `docs/runtime-migration/rollback-manifest-2026-02-28-104510.json`
+
+### Open App View Follow-up
+
+- Root cause found for launch failure:
+  - runtime frontend was navigating to old module key `hackday-global-nav`.
+  - fixed to `hackday-runtime-global-page` in:
+    - `forge-native/static/runtime-frontend/src/App.jsx`
+- Remaining UX inconsistency:
+  - CTA visibility and auto-open are still gated by `useAdaptavistLogo`, so some migrated pages hide the button even with valid page context.
+  - Current gate in runtime frontend:
+    - `showOpenAppViewCta={Boolean(isMacroHost && useAdaptavistLogo && eventPageId)}`
 
 ## Session Update - App Shell Full-Page Routing + Default Recency Sort (Feb 28, 2026)
 
@@ -186,7 +215,10 @@ See DEPLOY.md for exact copy-paste steps.
 
 ## Known Issues & TODOs
 
-- None identified in recent work
+- Open App View CTA/auto-open visibility is inconsistent on migrated pages due to `useAdaptavistLogo` gating in runtime frontend.
+- Decide and implement final rule:
+  - gate by page context only (`isMacroHost && eventPageId`) for all created instances, or
+  - keep logo-based segmentation intentionally.
 - `LEARNINGS.md` is the primary HackCentral continuity log for session summaries, deploy notes, and recent changes
 - `learnings.md` contains additional project-specific continuity notes (including HD26Forge integration details)
 

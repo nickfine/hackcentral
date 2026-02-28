@@ -120,6 +120,48 @@ const resolvePageIdFromSearch = (search = '') => {
   }
 };
 
+const resolvePageIdFromUrlLike = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const match = value.match(/[?&]pageId=(\d+)/i);
+  return match?.[1] || null;
+};
+
+const APP_VIEW_NAV_TIMEOUT_MS = 2500;
+
+const navigateTopWindow = (targetUrl, { allowLocalFallback = true } = {}) => {
+  if (typeof window === 'undefined') return false;
+  if (window.top && window.top !== window) {
+    // Best-effort attempt; in Forge iframe contexts this may be blocked/no-op.
+    try {
+      window.top.location.assign(targetUrl);
+    } catch {
+      // Ignore and continue to other launch strategies.
+    }
+    return false;
+  }
+  if (!allowLocalFallback) return false;
+  window.location.assign(targetUrl);
+  return true;
+};
+
+const openWithRouterTimeout = async (router, target) => {
+  if (!router?.open) return false;
+  let timeoutId;
+  try {
+    const outcome = await Promise.race([
+      router.open(target).then(() => 'opened'),
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+      }),
+    ]);
+    return outcome === 'opened';
+  } catch {
+    return false;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const normalizeConfluencePageId = (value) => {
   if (value == null) return null;
   const trimmed = String(value).trim();
@@ -132,6 +174,8 @@ const resolvePageIdFromContext = (ctx) => {
     ctx?.extension?.content?.id,
     ctx?.extension?.contentId,
     ctx?.extension?.pageId,
+    resolvePageIdFromUrlLike(ctx?.extension?.location),
+    resolvePageIdFromUrlLike(ctx?.location),
   ];
   for (const candidate of candidates) {
     const normalized = normalizeConfluencePageId(candidate);
@@ -201,6 +245,7 @@ const MOCK_TEAMS = [
 ];
 
 import { normalizeAdminMessage } from './lib/normalizeAdminMessage';
+import { shouldAutoOpenAppView, shouldShowOpenAppViewCta } from './lib/appViewGating';
 import { ThemeContext, ThemeStateProvider } from './contexts/ThemeContext';
 
 const DEFAULT_EVENT_META = Object.freeze({
@@ -341,7 +386,7 @@ function App() {
         const ctx = await view.getContext();
         setContext(ctx);
 
-        const appModePageId = resolvePageIdFromSearch(window.location.search);
+        const appModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
         if (appModePageId) {
           try {
             await invoke('activateAppModeContext', { pageId: appModePageId });
@@ -352,10 +397,13 @@ function App() {
 
         // Load real data from resolver. Use allSettled so one resolver failure
         // doesn't silently force the UI into 3-item mock data.
+        const eventPhasePayload = appModePageId
+          ? { appMode: true, pageId: appModePageId }
+          : { appMode: true };
         const [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
           invoke('getCurrentUser'),
           invoke('getTeams'),
-          invoke('getEventPhase', { appMode: true }),
+          invoke('getEventPhase', eventPhasePayload),
           invoke('getFreeAgents'),
           invoke('getRegistrations'),
         ]);
@@ -406,10 +454,7 @@ function App() {
           setEventPageId(eventInfo?.instanceContext?.pageId ?? null);
           setEventBranding(eventInfo?.branding && typeof eventInfo.branding === 'object' ? eventInfo.branding : {});
           setIsEventAdmin(Boolean(eventInfo?.isEventAdmin));
-          const src = instanceContext?.runtimeSource;
-          setUseAdaptavistLogo(
-            src === 'seed_mapping' || src === 'seed_hdc_event' || src === 'seed_bootstrap'
-          );
+          setUseAdaptavistLogo(Boolean(eventInfo?.isCreatedHackDay));
           if (isAppModeContextBlocked(instanceContext)) {
             setAppModeContextError({
               code: instanceContext?.contextError?.code || 'APP_MODE_CONTEXT_REQUIRED',
@@ -584,7 +629,14 @@ function App() {
     if (devMode) return;
     try {
       const { invoke } = await import('@forge/bridge');
-      const eventInfo = await invoke('getEventPhase', { appMode: true });
+      const pageIdHint =
+        normalizeConfluencePageId(eventPageId) ||
+        resolvePageIdFromContext(context) ||
+        resolvePageIdFromSearch(window.location.search);
+      const payload = pageIdHint
+        ? { appMode: true, pageId: pageIdHint }
+        : { appMode: true };
+      const eventInfo = await invoke('getEventPhase', payload);
       const instanceContext = eventInfo?.instanceContext;
       if (eventInfo?.phase) setEventPhase(eventInfo.phase);
       setEventId(eventInfo?.eventId || null);
@@ -598,10 +650,7 @@ function App() {
       if (eventInfo?.instanceContext?.pageId != null) setEventPageId(eventInfo.instanceContext.pageId);
       if (eventInfo?.branding && typeof eventInfo.branding === 'object') setEventBranding(eventInfo.branding);
       if (eventInfo?.isEventAdmin !== undefined) setIsEventAdmin(Boolean(eventInfo.isEventAdmin));
-      const src = instanceContext?.runtimeSource;
-      setUseAdaptavistLogo(
-        src === 'seed_mapping' || src === 'seed_hdc_event' || src === 'seed_bootstrap'
-      );
+      setUseAdaptavistLogo(Boolean(eventInfo?.isCreatedHackDay));
       if (isAppModeContextBlocked(instanceContext)) {
         setAppModeContextError({
           code: instanceContext?.contextError?.code || 'APP_MODE_CONTEXT_REQUIRED',
@@ -613,7 +662,7 @@ function App() {
     } catch (err) {
       console.error('Failed to refresh event phase:', err);
     }
-  }, [devMode]);
+  }, [context, devMode, eventPageId]);
 
   const handleOpenAppView = useCallback(async () => {
     if (devMode) {
@@ -639,15 +688,34 @@ function App() {
         throw new Error('Unable to activate HackDay context for App View.');
       }
 
+      let launchUrl = null;
+      try {
+        const launch = await bridge.invoke('getAppModeLaunchUrl');
+        launchUrl = typeof launch?.url === 'string' ? launch.url : null;
+      } catch (launchError) {
+        console.warn('Failed to resolve direct app-view launch URL; falling back to module navigation.', launchError);
+      }
+      if (launchUrl) {
+        if (navigateTopWindow(launchUrl, { allowLocalFallback: false })) {
+          return;
+        }
+        if (typeof window !== 'undefined') {
+          const popup = window.open(launchUrl, '_blank', 'noopener,noreferrer');
+          if (popup) return;
+        }
+        // Best-effort only; if URL-open is a no-op we'll continue to module fallback below.
+        await openWithRouterTimeout(bridge.router, launchUrl);
+      }
+
       const moduleLocation = {
         target: 'module',
-        moduleKey: 'hackday-global-nav',
+        moduleKey: 'hackday-runtime-global-page',
       };
 
-      if (bridge.router?.navigate) {
+      if (await openWithRouterTimeout(bridge.router, moduleLocation)) {
+        return;
+      } else if (bridge.router?.navigate) {
         await bridge.router.navigate(moduleLocation);
-      } else if (bridge.router?.open) {
-        await bridge.router.open(moduleLocation);
       } else {
         throw new Error('Forge navigation API unavailable.');
       }
@@ -660,17 +728,19 @@ function App() {
   }, [context, devMode, eventPageId]);
 
   useEffect(() => {
-    if (devMode) return;
-    if (!isMacroHost) return;
-    if (!useAdaptavistLogo) return;
-    if (!eventPageId) return;
-    if (appModeContextError) return;
-    if (openingAppView) return;
-    if (autoOpenAppViewAttemptedRef.current) return;
+    const shouldAutoOpen = shouldAutoOpenAppView({
+      devMode,
+      isMacroHost,
+      eventPageId,
+      appModeContextError,
+      openingAppView,
+      alreadyAttempted: autoOpenAppViewAttemptedRef.current,
+    });
+    if (!shouldAutoOpen) return;
 
     autoOpenAppViewAttemptedRef.current = true;
     void handleOpenAppView();
-  }, [appModeContextError, devMode, eventPageId, handleOpenAppView, isMacroHost, openingAppView, useAdaptavistLogo]);
+  }, [appModeContextError, devMode, eventPageId, handleOpenAppView, isMacroHost, openingAppView]);
 
   // Effective user role (with dev override)
   const effectiveUser = useMemo(() => {
@@ -1560,7 +1630,7 @@ function App() {
           showTeamContextInHeader={currentView !== 'team-detail'}
           isEventAdmin={isEventAdmin}
           useAdaptavistLogo={useAdaptavistLogo}
-          showOpenAppViewCta={Boolean(isMacroHost && useAdaptavistLogo && eventPageId)}
+          showOpenAppViewCta={shouldShowOpenAppViewCta({ isMacroHost, eventPageId })}
           onOpenAppView={handleOpenAppView}
           openingAppView={openingAppView}
           openAppViewError={openAppViewError}

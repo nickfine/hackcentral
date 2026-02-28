@@ -900,21 +900,22 @@ function Dashboard({
     () => configMode.getFieldValue('dashboard.motd.priority', eventAdminMessage?.priority || 'info') || 'info',
     [configMode, eventAdminMessage?.priority]
   );
+  const isCreatedHackDay = useAdaptavistLogo;
   const heroTitleFallback = useMemo(
     () => (
-      useAdaptavistLogo && eventMeta?.name?.trim()
+      isCreatedHackDay && eventMeta?.name?.trim()
         ? eventMeta.name.trim()
         : (missionContent.headline || 'Mission status')
     ),
-    [useAdaptavistLogo, eventMeta?.name, missionContent.headline]
+    [isCreatedHackDay, eventMeta?.name, missionContent.headline]
   );
   const heroSubtitlePrimaryFallback = useMemo(
     () => (
-      useAdaptavistLogo && eventMeta?.tagline?.trim()
+      isCreatedHackDay && eventMeta?.tagline?.trim()
         ? eventMeta.tagline.trim()
         : (resolvedStatus || '')
     ),
-    [useAdaptavistLogo, eventMeta?.tagline, resolvedStatus]
+    [isCreatedHackDay, eventMeta?.tagline, resolvedStatus]
   );
   const heroSubtitleSecondaryFallback = useMemo(
     () => resolvedContext || '',

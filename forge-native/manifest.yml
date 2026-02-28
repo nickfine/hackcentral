@@ -12,7 +12,7 @@ modules:
       resolver:
         function: app-resolver
     - key: hackday-runtime-global-page
-      title: HackDay App
+      title: HackCentral Runtime (Internal)
       route: hackday-app
       resource: runtime-ui-frontend
       resolver:
@@ -24,7 +24,7 @@ modules:
       resolver:
         function: app-resolver
     - key: hackday-runtime-macro
-      title: HackDay Runtime
+      title: HackCentral Runtime (Internal)
       resource: runtime-ui-frontend
       resolver:
         function: runtime-resolver

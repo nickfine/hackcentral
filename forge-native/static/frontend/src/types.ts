@@ -344,6 +344,13 @@ export interface AppViewUrlResult {
   routeVersion: AppRouteVersion;
 }
 
+export interface ActivateAppModeContextResult {
+  success: boolean;
+  pageId?: string | null;
+  eventId?: string | null;
+  reason?: string | null;
+}
+
 export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
@@ -379,6 +386,7 @@ export type Defs = {
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
   hdcGetAppViewUrl: (payload: { pageId: string }) => AppViewUrlResult;
+  hdcActivateAppModeContext: (payload: { pageId: string }) => ActivateAppModeContextResult;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;

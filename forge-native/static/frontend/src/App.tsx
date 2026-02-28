@@ -42,7 +42,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.21';
+const HACKCENTRAL_UI_VERSION = '0.6.22';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -52,20 +52,62 @@ const LOCAL_PREVIEW_HOSTS = new Set(['localhost', '127.0.0.1']);
 const HACKS_SCOPE_NOTE = '';
 const TEAM_PULSE_PLACEHOLDER_NOTE = '';
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
+const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
 
 function navigateTopWindow(targetUrl: string): boolean {
   if (typeof window === 'undefined') return false;
-  try {
-    if (window.top && window.top !== window) {
+  if (window.top && window.top !== window) {
+    // Best-effort attempt; in Forge iframe contexts this may be blocked/no-op.
+    try {
       window.top.location.assign(targetUrl);
-      return true;
+    } catch {
+      // Ignore and continue to other launch strategies.
     }
-  } catch {
-    // Cross-frame restrictions; fall through to local frame navigation.
+    return false;
   }
   window.location.assign(targetUrl);
   return true;
+}
+
+async function navigateWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const outcome = await Promise.race([
+      router.navigate(targetUrl).then(() => 'navigated' as const),
+      new Promise<'timeout'>((resolve) => {
+        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+      }),
+    ]);
+    return outcome === 'navigated';
+  } catch {
+    return false;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function openWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const outcome = await Promise.race([
+      router.open(targetUrl).then(() => 'opened' as const),
+      new Promise<'timeout'>((resolve) => {
+        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+      }),
+    ]);
+    return outcome === 'opened';
+  } catch {
+    return false;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function launchAppViewUrl(targetUrl: string): Promise<boolean> {
+  if (navigateTopWindow(targetUrl)) return true;
+  if (await navigateWithRouterTimeout(targetUrl)) return true;
+  return openWithRouterTimeout(targetUrl);
 }
 
 function isAdaptavistEmail(email: string): boolean {
@@ -1363,21 +1405,31 @@ export function App(): JSX.Element {
       resetWizard();
       await loadBootstrap();
       setView('hackdays');
-      const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
-      if (appViewUrl) {
-        setActionMessage('HackDay created. Opening full app view now...');
-        if (navigateTopWindow(appViewUrl)) {
-          return;
-        }
+      const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+
+      if (childPageId) {
         try {
-          await router.navigate(appViewUrl);
-          return;
-        } catch {
-          // Fall through to child-page navigation.
+          const activation = await invokeTyped('hdcActivateAppModeContext', { pageId: childPageId });
+          if (!activation?.success) {
+            console.warn('[HackCentral] hdcActivateAppModeContext returned non-success during create flow', activation);
+          }
+        } catch (activationErr) {
+          console.warn('[HackCentral] Failed to prime app mode context during create flow', activationErr);
         }
       }
 
-      const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+      const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      let appViewOpened = false;
+      if (appViewUrl) {
+        setActionMessage('HackDay created. Opening full app view now...');
+        appViewOpened = await launchAppViewUrl(appViewUrl);
+        if (appViewOpened) {
+          setActionMessage('HackDay created. App view opened.');
+          return;
+        }
+        setActionMessage('HackDay created. App view launch was blocked, opening child page instead.');
+      }
+
       const childPagePath = childPageId ? buildConfluencePagePath(childPageId) : '';
       const absoluteChildTarget =
         childPagePath && typeof window !== 'undefined'
@@ -1462,14 +1514,8 @@ export function App(): JSX.Element {
     }
 
     if (appViewUrl) {
-      if (navigateTopWindow(appViewUrl)) {
+      if (await launchAppViewUrl(appViewUrl)) {
         return;
-      }
-      try {
-        await router.navigate(appViewUrl);
-        return;
-      } catch {
-        // Fall through to page-route navigation.
       }
     }
 

@@ -208,6 +208,9 @@ export type CreateHackDayFromWebResult = {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
+  appViewUrl?: string | null;
+  appViewRuntimeOwner?: "hd26forge" | "hackcentral";
+  appViewRouteVersion?: "v1" | "v2";
   templateProvisionStatus: string | null;
 };
 

@@ -90,10 +90,10 @@ export default {
       // TYPOGRAPHY
       // =======================================================================
       fontFamily: {
-        heading: ['Sora', 'Manrope', 'system-ui', '-apple-system', 'sans-serif'],
-        sans: ['Manrope', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        heading: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'monospace'],
-        display: ['Sora', 'Manrope', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       
       fontSize: {

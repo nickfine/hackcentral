@@ -1,7 +1,13 @@
 import Resolver from '@forge/resolver';
+import { storage } from '@forge/api';
 import { createHack, createProject, getBootstrapData, updateMentorProfile } from './backend/hackcentral';
 import { HdcService } from './backend/hdcService';
-import type { CreateInstanceDraftInput, SubmitHackInput, ViewerContext } from './shared/types';
+import type {
+  ActivateAppModeContextResult,
+  CreateInstanceDraftInput,
+  SubmitHackInput,
+  ViewerContext,
+} from './shared/types';
 
 interface RawResolverContext {
   accountId?: string;
@@ -15,6 +21,20 @@ function getViewer(context: RawResolverContext | undefined): ViewerContext {
     siteUrl: context?.siteUrl || 'unknown-site',
     timezone: context?.timezone || 'UTC',
   };
+}
+
+const ACTIVE_APP_MODE_CONTEXT_STORAGE_KEY_PREFIX = 'activeAppModeContext:v1:';
+const APP_MODE_CONTEXT_SCHEMA_VERSION = 1;
+const APP_MODE_CONTEXT_TTL_MS = 12 * 60 * 60 * 1000;
+
+function normalizeConfluencePageId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return /^\d+$/.test(trimmed) ? trimmed : null;
+}
+
+function getActiveAppModeContextStorageKey(accountId: string): string {
+  return `${ACTIVE_APP_MODE_CONTEXT_STORAGE_KEY_PREFIX}${accountId}`;
 }
 
 const resolver = new Resolver();
@@ -96,6 +116,103 @@ resolver.define(
   }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return hdcService.getAppViewUrl(viewer, request.payload.pageId);
+  }
+);
+
+resolver.define(
+  'hdcActivateAppModeContext',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      pageId: string;
+    };
+  }): Promise<ActivateAppModeContextResult> => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    const pageId = normalizeConfluencePageId(request.payload?.pageId);
+    if (!pageId) {
+      throw new Error('A valid pageId is required to activate app mode context.');
+    }
+
+    const context = await hdcService.getContext(viewer, pageId);
+    if (context.pageType !== 'instance' || !context.event?.id) {
+      if (viewer.accountId && viewer.accountId !== 'unknown-atlassian-account') {
+        await storage.delete(getActiveAppModeContextStorageKey(viewer.accountId));
+      }
+      return {
+        success: false,
+        pageId,
+        eventId: null,
+        reason: 'context_not_found',
+      };
+    }
+
+    const activatedAt = new Date().toISOString();
+    const envelope = {
+      schemaVersion: APP_MODE_CONTEXT_SCHEMA_VERSION,
+      pageId,
+      eventId: context.event.id,
+      activatedAt,
+      expiresAt: new Date(Date.now() + APP_MODE_CONTEXT_TTL_MS).toISOString(),
+    };
+
+    if (viewer.accountId && viewer.accountId !== 'unknown-atlassian-account') {
+      await storage.set(getActiveAppModeContextStorageKey(viewer.accountId), envelope);
+    }
+
+    return {
+      success: true,
+      pageId,
+      eventId: context.event.id,
+    };
+  }
+);
+
+// Backwards-compatible alias for cached clients still invoking legacy key.
+resolver.define(
+  'activateAppModeContext',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      pageId: string;
+    };
+  }): Promise<ActivateAppModeContextResult> => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    const pageId = normalizeConfluencePageId(request.payload?.pageId);
+    if (!pageId) {
+      throw new Error('A valid pageId is required to activate app mode context.');
+    }
+
+    const context = await hdcService.getContext(viewer, pageId);
+    if (context.pageType !== 'instance' || !context.event?.id) {
+      if (viewer.accountId && viewer.accountId !== 'unknown-atlassian-account') {
+        await storage.delete(getActiveAppModeContextStorageKey(viewer.accountId));
+      }
+      return {
+        success: false,
+        pageId,
+        eventId: null,
+        reason: 'context_not_found',
+      };
+    }
+
+    const activatedAt = new Date().toISOString();
+    const envelope = {
+      schemaVersion: APP_MODE_CONTEXT_SCHEMA_VERSION,
+      pageId,
+      eventId: context.event.id,
+      activatedAt,
+      expiresAt: new Date(Date.now() + APP_MODE_CONTEXT_TTL_MS).toISOString(),
+    };
+
+    if (viewer.accountId && viewer.accountId !== 'unknown-atlassian-account') {
+      await storage.set(getActiveAppModeContextStorageKey(viewer.accountId), envelope);
+    }
+
+    return {
+      success: true,
+      pageId,
+      eventId: context.event.id,
+    };
   }
 );
 

@@ -22,6 +22,9 @@ describe('forge-native createFromWeb handler', () => {
       eventId: 'event-1',
       childPageId: 'child-1',
       childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-1',
+      appViewUrl: 'https://example.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=child-1',
+      appViewRuntimeOwner: 'hackcentral',
+      appViewRouteVersion: 'v2',
       templateProvisionStatus: 'provisioned',
     });
   });
@@ -94,5 +97,38 @@ describe('forge-native createFromWeb handler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(createInstanceDraftMock).not.toHaveBeenCalled();
+  });
+
+  it('fails fast when hackcentral runtime is enabled but appViewUrl is missing', async () => {
+    const previousOwner = process.env.HDC_RUNTIME_OWNER;
+    try {
+      process.env.HDC_RUNTIME_OWNER = 'hackcentral';
+      createInstanceDraftMock.mockResolvedValue({
+        eventId: 'event-2',
+        childPageId: 'child-2',
+        childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-2',
+        appViewUrl: null,
+        appViewRuntimeOwner: 'hackcentral',
+        appViewRouteVersion: 'v2',
+        templateProvisionStatus: 'provisioned',
+      });
+
+      const { handler } = await import('../forge-native/src/createFromWeb');
+      const response = await handler({
+        method: 'POST',
+        headers: {
+          'X-HackDay-Create-Secret': 'test-secret',
+        },
+        body: JSON.stringify({
+          creatorEmail: 'owner@adaptavist.com',
+          basicInfo: { eventName: 'HackDay Spring 2026' },
+        }),
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toContain('appViewUrl is missing');
+    } finally {
+      process.env.HDC_RUNTIME_OWNER = previousOwner;
+    }
   });
 });

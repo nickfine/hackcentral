@@ -314,6 +314,13 @@ export interface AppViewUrlResult {
   routeVersion: AppRouteVersion;
 }
 
+export interface ActivateAppModeContextResult {
+  success: boolean;
+  pageId?: string | null;
+  eventId?: string | null;
+  reason?: string | null;
+}
+
 export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }

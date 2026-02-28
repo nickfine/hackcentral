@@ -169,6 +169,17 @@ export async function handler(request: WebTriggerRequest): Promise<{
       input,
       { overrideCreatorEmail: creatorEmail }
     );
+
+    const runtimeOwner = String(result.appViewRuntimeOwner || '').trim().toLowerCase();
+    const preferredRuntimeOwner = String(process.env.HDC_RUNTIME_OWNER || '').trim().toLowerCase();
+    const expectsHackcentralRuntime = runtimeOwner === 'hackcentral' || preferredRuntimeOwner === 'hackcentral';
+    const appViewUrl = typeof result.appViewUrl === 'string' ? result.appViewUrl.trim() : '';
+    if (expectsHackcentralRuntime && !appViewUrl) {
+      throw new Error(
+        'HackCentral runtime is enabled but appViewUrl is missing. Verify HDC_RUNTIME_APP_ID, HDC_RUNTIME_ENVIRONMENT_ID, HDC_RUNTIME_MACRO_KEY, and FORGE_SITE_URL.'
+      );
+    }
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': ['application/json'] },

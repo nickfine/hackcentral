@@ -791,6 +791,12 @@ function getConfluencePageId(req, { allowPayloadFallback = true, preferPayload =
     return fromPage;
   }
 
+  // Global-page app-mode requests expose pageId via extension.location query.
+  const fromExtensionLocation = normalizeConfluencePageId(req?.context?.extension?.location);
+  if (fromExtensionLocation) {
+    return fromExtensionLocation;
+  }
+
   if (allowPayloadFallback) {
     const fromPayload = normalizeConfluencePageId(req?.payload?.pageId);
     if (fromPayload) {
@@ -835,6 +841,31 @@ function extractRuntimeRouteIdsFromLocalId(localIdValue) {
   };
 }
 
+function resolveForgeRouteId(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (isUuidLike(trimmed)) return trimmed;
+
+  const ariMatch = trimmed.match(
+    /(?:\/app\/|::app\/)([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
+  );
+  return ariMatch?.[1] || null;
+}
+
+function resolveRuntimeRouteIdsFromEnvironment() {
+  const appId = resolveForgeRouteId(process.env.HDC_RUNTIME_APP_ID || process.env.FORGE_APP_ID || "");
+  const environmentIdCandidate = String(process.env.HDC_RUNTIME_ENVIRONMENT_ID || process.env.FORGE_ENVIRONMENT_ID || "").trim();
+  const environmentId = isUuidLike(environmentIdCandidate) ? environmentIdCandidate : null;
+  if (!appId || !environmentId) {
+    return null;
+  }
+  return {
+    appId,
+    environmentId,
+  };
+}
+
 function buildAppModeLaunchUrlFromContext(req, pageId) {
   const normalizedPageId = normalizeConfluencePageId(pageId);
   if (!normalizedPageId) {
@@ -846,18 +877,23 @@ function buildAppModeLaunchUrlFromContext(req, pageId) {
     req?.context?.extension?.localId ||
     req?.context?.extensionContext?.localId ||
     null;
-  const routeIds = extractRuntimeRouteIdsFromLocalId(localIdValue);
+  const routeIdsFromLocalId = extractRuntimeRouteIdsFromLocalId(localIdValue);
+  const routeIds = routeIdsFromLocalId || resolveRuntimeRouteIdsFromEnvironment();
   if (!routeIds?.appId || !routeIds?.environmentId) {
-    throw new Error("Unable to resolve app route context from localId");
+    throw new Error(
+      "Unable to resolve app route context from localId or HDC_RUNTIME_APP_ID/HDC_RUNTIME_ENVIRONMENT_ID."
+    );
   }
 
   const path = `/wiki/apps/${routeIds.appId}/${routeIds.environmentId}/hackday-app?pageId=${encodeURIComponent(normalizedPageId)}`;
   const siteBaseUrl = normalizeSiteBaseUrl(req?.context?.siteUrl);
+  const routeContextSource = routeIdsFromLocalId ? "local_id" : "environment";
 
   return {
     pageId: normalizedPageId,
     appId: routeIds.appId,
     environmentId: routeIds.environmentId,
+    routeContextSource,
     path,
     url: siteBaseUrl ? `${siteBaseUrl}${path}` : path,
   };
@@ -1553,17 +1589,27 @@ async function resolveActiveAppModeContext(supabase, req) {
 async function getCurrentEventContext(supabase, req) {
   try {
     if (isAppModeRequest(req)) {
-      const activeContext = await resolveActiveAppModeContext(supabase, req);
-      if (activeContext?.event) {
-        return activeContext;
+      // 1) Always resolve trusted Confluence page context first.
+      const trustedContext = await resolveInstanceContext(supabase, req, {
+        allowPayloadPageId: false,
+      });
+      if (trustedContext?.event || trustedContext?.pageId) {
+        return trustedContext;
       }
 
-      const directContext = await resolveInstanceContext(supabase, req, {
+      // 2) If no trusted page context exists, honor explicit payload pageId.
+      const payloadContext = await resolveInstanceContext(supabase, req, {
         allowPayloadPageId: true,
         preferPayloadPageId: true,
       });
-      if (directContext?.event) {
-        return directContext;
+      if (payloadContext?.event || payloadContext?.pageId) {
+        return payloadContext;
+      }
+
+      // 3) Fallback to active app-mode context only for true global app mode.
+      const activeContext = await resolveActiveAppModeContext(supabase, req);
+      if (activeContext?.event) {
+        return activeContext;
       }
 
       return buildAppModeContextRequiredResult();
@@ -1619,7 +1665,9 @@ async function getCurrentEvent(supabase, req) {
 
 async function resolveConfigModeAccess(supabase, req) {
   const accountId = getCallerAccountId(req);
-  const instanceContext = await resolveInstanceContext(supabase, req, { allowPayloadPageId: false });
+  const instanceContext = isAppModeRequest(req)
+    ? await getCurrentEventContext(supabase, req)
+    : await resolveInstanceContext(supabase, req, { allowPayloadPageId: false });
   const event = instanceContext?.event;
 
   if (!instanceContext?.pageId) {
@@ -5098,6 +5146,7 @@ resolver.define("getEventPhase", async (req) => {
       maxVotesPerUser: 3,
       eventMeta: defaultEventMeta,
       branding: {},
+      isCreatedHackDay: false,
       contentOverridesMeta: { version: 0, updatedAt: null, hasOverrides: false },
       configModeCapabilities: {
         enabled: true,
@@ -5142,6 +5191,10 @@ resolver.define("getEventPhase", async (req) => {
       : {};
   const pageId = instanceContext?.pageId || getConfluencePageId(req);
   let seed = pageId ? await getTemplateSeedByPageId(supabase, pageId) : null;
+  const isCreatedHackDay = Boolean(
+    seed ||
+    (typeof event.runtime_type === "string" && event.runtime_type.trim().toLowerCase() === "hackday_template")
+  );
   const seedPayload = normalizeSeedPayload(seed);
   const seedBranding = seedPayload.branding && typeof seedPayload.branding === "object" ? seedPayload.branding : {};
   const branding = { ...eventBranding, ...seedBranding };
@@ -5220,6 +5273,7 @@ resolver.define("getEventPhase", async (req) => {
       schedule: eventSchedule,
     },
     branding,
+    isCreatedHackDay,
     isEventAdmin,
     contentOverridesMeta: {
       version: contentOverrides?.version || 0,

@@ -213,7 +213,7 @@ function resolveForgeAppRouteId(value: string | null | undefined): string | null
     return trimmed;
   }
 
-  const ariMatch = trimmed.match(/\/app\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
+  const ariMatch = trimmed.match(/(?:\/app\/|::app\/)([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
   if (ariMatch?.[1]) {
     return ariMatch[1];
   }
@@ -242,19 +242,22 @@ function buildRuntimeAppViewUrl(siteUrl: string | null | undefined, pageId: stri
   const preferredOwner = resolveHackdayTemplateRuntimeOwner();
   if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
     const runtimeRoute = getHackcentralRuntimeAppRouteConfig();
-    if (runtimeRoute) {
-      const url = buildHackdayTemplateAppViewUrl(siteUrl, pageId, runtimeRoute);
-      if (url) {
-        return {
-          url,
-          runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
-          routeVersion: 'v2',
-        };
-      }
+    if (!runtimeRoute) {
+      throw new Error(
+        'HackCentral runtime routing is enabled, but HDC_RUNTIME_APP_ID/FORGE_APP_ID or HDC_RUNTIME_ENVIRONMENT_ID/FORGE_ENVIRONMENT_ID is missing.'
+      );
     }
-    console.warn(
-      '[hdc-runtime-routing] HDC_RUNTIME_OWNER=hackcentral but route config is missing/invalid; falling back to hd26forge route.'
-    );
+    const url = buildHackdayTemplateAppViewUrl(siteUrl, pageId, runtimeRoute);
+    if (!url) {
+      throw new Error(
+        'HackCentral runtime routing is enabled, but app-view URL could not be built. Verify HDC_RUNTIME_APP_ID and HDC_RUNTIME_ENVIRONMENT_ID.'
+      );
+    }
+    return {
+      url,
+      runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
+      routeVersion: 'v2',
+    };
   }
 
   const legacyRoute = getHackdayTemplateAppRouteConfig();
@@ -275,16 +278,16 @@ function resolveRuntimeMacroConfigForHackdayTemplates(): {
   const preferredOwner = resolveHackdayTemplateRuntimeOwner();
   if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
     const runtimeMacroConfig = getHackcentralRuntimeMacroConfig();
-    if (runtimeMacroConfig) {
-      return {
-        ...runtimeMacroConfig,
-        runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
-        routeVersion: 'v2',
-      };
+    if (!runtimeMacroConfig) {
+      throw new Error(
+        'HackCentral runtime macro is enabled, but HDC_RUNTIME_APP_ID/FORGE_APP_ID, HDC_RUNTIME_ENVIRONMENT_ID/FORGE_ENVIRONMENT_ID, or HDC_RUNTIME_MACRO_KEY is missing.'
+      );
     }
-    console.warn(
-      '[hdc-runtime-routing] HDC_RUNTIME_OWNER=hackcentral but macro config is missing/invalid; falling back to hd26forge macro.'
-    );
+    return {
+      ...runtimeMacroConfig,
+      runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
+      routeVersion: 'v2',
+    };
   }
 
   const legacyMacroConfig = getHackdayTemplateMacroConfig();
@@ -1045,6 +1048,16 @@ export class HdcService {
       const existingAppView = existingByRequest.runtime_type === 'hackday_template'
         ? buildRuntimeAppViewUrl(viewer.siteUrl, existingByRequest.confluence_page_id)
         : { url: null, runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE, routeVersion: 'v1' as const };
+      console.info(
+        '[hdc-runtime-routing-create-existing]',
+        JSON.stringify({
+          eventId: existingByRequest.id,
+          pageId: existingByRequest.confluence_page_id,
+          runtimeOwner: existingAppView.runtimeOwner,
+          routeVersion: existingAppView.routeVersion,
+          appViewUrl: existingAppView.url,
+        })
+      );
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
@@ -1194,6 +1207,16 @@ export class HdcService {
       const appView = runtimeType === 'hackday_template'
         ? buildRuntimeAppViewUrl(viewer.siteUrl, childPage.pageId)
         : { url: null, runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE, routeVersion: 'v1' as const };
+      console.info(
+        '[hdc-runtime-routing-create-new]',
+        JSON.stringify({
+          eventId: event.id,
+          pageId: childPage.pageId,
+          runtimeOwner: appView.runtimeOwner,
+          routeVersion: appView.routeVersion,
+          appViewUrl: appView.url,
+        })
+      );
 
       await Promise.all([
         this.repository.upsertSyncState(event.id, {

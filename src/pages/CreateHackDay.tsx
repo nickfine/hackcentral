@@ -12,6 +12,7 @@ import type { CreateHackDayWizardPayload } from '../../convex/hackdays';
 import { SectionHeader } from '@/components/shared';
 import { ScheduleStep } from '@/components/create/ScheduleStep';
 import type { Schedule } from '@/components/create/types';
+import { resolveCreateHackDayLaunchUrl } from './createHackDayLaunch';
 
 const STEPS = [
   { id: 1, label: 'Basic' },
@@ -128,8 +129,9 @@ export default function CreateHackDay() {
     setSaving(true);
     try {
       const result = await createFromWeb({ payload: buildPayload() });
-      if (result.childPageUrl) {
-        window.open(result.childPageUrl, '_blank', 'noopener,noreferrer');
+      const launchUrl = resolveCreateHackDayLaunchUrl(result);
+      if (launchUrl) {
+        window.open(launchUrl, '_blank', 'noopener,noreferrer');
       }
       navigate('/hackdays', { replace: true });
     } catch (err) {

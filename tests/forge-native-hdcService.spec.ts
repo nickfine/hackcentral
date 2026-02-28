@@ -126,6 +126,9 @@ describe('HdcService hardening behavior', () => {
       eventId: 'event-1',
       childPageId: 'child-100',
       childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-100',
+      appViewUrl: null,
+      appViewRuntimeOwner: 'hd26forge',
+      appViewRouteVersion: 'v1',
       templateProvisionStatus: null,
     });
     expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
@@ -177,6 +180,9 @@ describe('HdcService hardening behavior', () => {
       eventId: 'event-created',
       childPageId: 'child-901',
       childPageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+      appViewUrl: expect.stringContaining('/wiki/apps/d2f1f15e-9202-43b2-99e5-83722dedc1b2/b003228b-aafa-414e-9ab8-9e1ab5aaf5ae/hackday-app?pageId=child-901'),
+      appViewRuntimeOwner: 'hd26forge',
+      appViewRouteVersion: 'v1',
       templateProvisionStatus: 'provisioned',
     });
     expect(repo.createEvent).toHaveBeenCalledWith(
@@ -1126,5 +1132,93 @@ describe('HdcService hardening behavior', () => {
 
     expect(result).toEqual({ lifecycleStatus: 'completed' });
     expect(repo.updateEventLifecycle).toHaveBeenCalledWith('event-103', 'completed');
+  });
+
+  it('fails fast when runtime owner is hackcentral and route config is missing', async () => {
+    const repo = createRepoMock();
+    const previousOwner = process.env.HDC_RUNTIME_OWNER;
+    const previousRuntimeAppId = process.env.HDC_RUNTIME_APP_ID;
+    const previousRuntimeEnvironmentId = process.env.HDC_RUNTIME_ENVIRONMENT_ID;
+    const previousForgeAppId = process.env.FORGE_APP_ID;
+    const previousForgeEnvironmentId = process.env.FORGE_ENVIRONMENT_ID;
+
+    try {
+      process.env.HDC_RUNTIME_OWNER = 'hackcentral';
+      delete process.env.HDC_RUNTIME_APP_ID;
+      delete process.env.HDC_RUNTIME_ENVIRONMENT_ID;
+      delete process.env.FORGE_APP_ID;
+      delete process.env.FORGE_ENVIRONMENT_ID;
+
+      const service = new ServiceClass(repo as never);
+      await expect(service.getAppViewUrl(viewer, '12345')).rejects.toThrow(
+        'HackCentral runtime routing is enabled'
+      );
+    } finally {
+      process.env.HDC_RUNTIME_OWNER = previousOwner;
+      process.env.HDC_RUNTIME_APP_ID = previousRuntimeAppId;
+      process.env.HDC_RUNTIME_ENVIRONMENT_ID = previousRuntimeEnvironmentId;
+      process.env.FORGE_APP_ID = previousForgeAppId;
+      process.env.FORGE_ENVIRONMENT_ID = previousForgeEnvironmentId;
+    }
+  });
+
+  it('builds hackcentral app-view URLs via wiki apps route', async () => {
+    const repo = createRepoMock();
+    const previousOwner = process.env.HDC_RUNTIME_OWNER;
+    const previousRuntimeAppId = process.env.HDC_RUNTIME_APP_ID;
+    const previousRuntimeEnvironmentId = process.env.HDC_RUNTIME_ENVIRONMENT_ID;
+
+    try {
+      process.env.HDC_RUNTIME_OWNER = 'hackcentral';
+      process.env.HDC_RUNTIME_APP_ID = 'ari:cloud:ecosystem::app/f828e0d4-e9d0-451d-b818-533bc3e95680';
+      process.env.HDC_RUNTIME_ENVIRONMENT_ID = '86632806-eb9b-42b5-ae6d-ee09339702b6';
+
+      const service = new ServiceClass(repo as never);
+      await expect(service.getAppViewUrl(viewer, '12345')).resolves.toEqual({
+        url: 'https://example.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=12345',
+        runtimeOwner: 'hackcentral',
+        routeVersion: 'v2',
+      });
+    } finally {
+      process.env.HDC_RUNTIME_OWNER = previousOwner;
+      process.env.HDC_RUNTIME_APP_ID = previousRuntimeAppId;
+      process.env.HDC_RUNTIME_ENVIRONMENT_ID = previousRuntimeEnvironmentId;
+    }
+  });
+
+  it('fails fast before child-page creation when runtime owner is hackcentral and macro config is missing', async () => {
+    const repo = createRepoMock();
+    const previousOwner = process.env.HDC_RUNTIME_OWNER;
+    const previousRuntimeAppId = process.env.HDC_RUNTIME_APP_ID;
+    const previousRuntimeEnvironmentId = process.env.HDC_RUNTIME_ENVIRONMENT_ID;
+    const previousRuntimeMacroKey = process.env.HDC_RUNTIME_MACRO_KEY;
+    const previousForgeAppId = process.env.FORGE_APP_ID;
+    const previousForgeEnvironmentId = process.env.FORGE_ENVIRONMENT_ID;
+
+    try {
+      process.env.HDC_RUNTIME_OWNER = 'hackcentral';
+      delete process.env.HDC_RUNTIME_APP_ID;
+      delete process.env.HDC_RUNTIME_ENVIRONMENT_ID;
+      delete process.env.HDC_RUNTIME_MACRO_KEY;
+      delete process.env.FORGE_APP_ID;
+      delete process.env.FORGE_ENVIRONMENT_ID;
+
+      repo.getEventByCreationRequestId.mockResolvedValue(null);
+      repo.getEventNameConflicts.mockResolvedValue([]);
+      getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+
+      const service = new ServiceClass(repo as never);
+      await expect(service.createInstanceDraft(viewer, baseCreateInput)).rejects.toThrow(
+        'HackCentral runtime macro is enabled'
+      );
+      expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
+    } finally {
+      process.env.HDC_RUNTIME_OWNER = previousOwner;
+      process.env.HDC_RUNTIME_APP_ID = previousRuntimeAppId;
+      process.env.HDC_RUNTIME_ENVIRONMENT_ID = previousRuntimeEnvironmentId;
+      process.env.HDC_RUNTIME_MACRO_KEY = previousRuntimeMacroKey;
+      process.env.FORGE_APP_ID = previousForgeAppId;
+      process.env.FORGE_ENVIRONMENT_ID = previousForgeEnvironmentId;
+    }
   });
 });
