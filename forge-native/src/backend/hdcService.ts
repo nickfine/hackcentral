@@ -125,6 +125,10 @@ function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
 const HDC_RUNTIME_OWNER_HACKCENTRAL = 'hackcentral' as const;
 const HDC_RUNTIME_OWNER_HD26FORGE = 'hd26forge' as const;
 const HDC_RUNTIME_MACRO_KEY_DEFAULT = 'hackday-runtime-macro';
+const HDC_PERF_CREATE_BACKEND_V1 = (() => {
+  const raw = String(process.env.HDC_PERF_CREATE_BACKEND_V1 || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes';
+})();
 type RuntimeConfigRouteSource =
   | 'hackcentral_runtime_route_env'
   | 'hackcentral_runtime_macro_env'
@@ -994,6 +998,25 @@ function logSyncExecutionTelemetry(input: {
   );
 }
 
+function logCreateInstanceDraftTelemetry(input: {
+  creationRequestId: string;
+  eventId?: string | null;
+  childPageId?: string | null;
+  durationMs: number;
+  outcome: 'success' | 'error' | 'idempotent_existing';
+  mode: 'legacy' | 'v1';
+  stageMs: Record<string, number>;
+  warning?: string | null;
+}): void {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'create_instance_draft',
+      ...input,
+    })
+  );
+}
+
 export class HdcService {
   private readonly repository: SupabaseRepository;
 
@@ -1195,6 +1218,13 @@ export class HdcService {
     input: CreateInstanceDraftInput,
     options?: { overrideCreatorEmail?: string }
   ): Promise<CreateInstanceDraftResult> {
+    const startedAt = Date.now();
+    const stageMs: Record<string, number> = {};
+    const mode: 'legacy' | 'v1' = HDC_PERF_CREATE_BACKEND_V1 ? 'v1' : 'legacy';
+    const markStage = (stage: string, stageStartedAt: number): void => {
+      stageMs[stage] = Math.max(0, Date.now() - stageStartedAt);
+    };
+
     if (!input.basicInfo.eventName.trim()) {
       throw new Error('Event name is required.');
     }
@@ -1209,13 +1239,17 @@ export class HdcService {
       throw new Error('Go live requires hacking start and submission deadline.');
     }
 
+    const existingLookupStartedAt = Date.now();
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
+    markStage('existing_lookup', existingLookupStartedAt);
     if (existingByRequest) {
+      const existingSeedLookupStartedAt = Date.now();
       const existingProvisionStatus =
         existingByRequest.runtime_type === 'hackday_template'
           ? (await this.repository.getHackdayTemplateSeedByConfluencePageId(existingByRequest.confluence_page_id))
               ?.provision_status ?? 'provisioned'
           : null;
+      markStage('existing_seed_lookup', existingSeedLookupStartedAt);
       const existingAppView = existingByRequest.runtime_type === 'hackday_template'
         ? buildRuntimeAppViewUrl(viewer.siteUrl, existingByRequest.confluence_page_id)
         : { url: null, runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE, routeVersion: 'v1' as const };
@@ -1229,6 +1263,15 @@ export class HdcService {
           appViewUrl: existingAppView.url,
         })
       );
+      logCreateInstanceDraftTelemetry({
+        creationRequestId: input.creationRequestId,
+        eventId: existingByRequest.id,
+        childPageId: existingByRequest.confluence_page_id,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        outcome: 'idempotent_existing',
+        mode,
+        stageMs,
+      });
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
@@ -1259,11 +1302,17 @@ export class HdcService {
       ensureAdaptavistEmail(email);
     }
 
-    const conflicts = await this.repository.getEventNameConflicts(
-      input.basicInfo.eventName,
-      input.parentPageId
-    );
-    if (conflicts.length > 0) {
+    const conflictCheckStartedAt = Date.now();
+    const hasConflict = HDC_PERF_CREATE_BACKEND_V1
+      ? await this.repository.hasEventNameConflictExact(input.basicInfo.eventName, input.parentPageId)
+      : (
+          await this.repository.getEventNameConflicts(
+            input.basicInfo.eventName,
+            input.parentPageId
+          )
+        ).length > 0;
+    markStage('name_conflict_check', conflictCheckStartedAt);
+    if (hasConflict) {
       throw new Error('Event name must be unique under this HackDay Central parent page.');
     }
 
@@ -1271,10 +1320,16 @@ export class HdcService {
     const templateTarget = resolveTemplateTarget(runtimeType);
     const templateMacroConfig = runtimeType === 'hackday_template' ? resolveRuntimeMacroConfigForHackdayTemplates() : null;
 
+    const childPageCreateStartedAt = Date.now();
     const childPage = await createChildPageUnderParent({
       parentPageId: input.parentPageId,
       title: input.basicInfo.eventName,
       tagline: input.basicInfo.eventTagline,
+      ...(HDC_PERF_CREATE_BACKEND_V1
+        ? {
+            nonBlockingFullWidth: true,
+          }
+        : {}),
       ...(templateMacroConfig
         ? {
             targetAppId: templateMacroConfig.targetAppId,
@@ -1284,8 +1339,10 @@ export class HdcService {
           }
         : {}),
     });
+    markStage('create_child_page', childPageCreateStartedAt);
 
     try {
+      const userResolutionStartedAt = Date.now();
       const creator = options?.overrideCreatorEmail
         ? await this.repository.ensureUserByEmail(normalizedViewerEmail)
         : await this.repository.ensureUser(viewer, normalizedViewerEmail);
@@ -1310,10 +1367,12 @@ export class HdcService {
       if (primaryAdmin.id !== creator.id) {
         coAdminUserIds.add(creator.id);
       }
+      markStage('user_resolution', userResolutionStartedAt);
 
       const eventRules = normalizeEventRules(input.rules);
       const eventBranding = normalizeEventBranding(input.branding);
 
+      const createEventStartedAt = Date.now();
       const event = await this.repository.createEvent({
         eventName: input.basicInfo.eventName,
         icon: input.basicInfo.eventIcon || '🚀',
@@ -1333,22 +1392,39 @@ export class HdcService {
         runtimeType,
         templateTarget,
       });
+      markStage('create_event', createEventStartedAt);
 
       // Create Milestone records from schedule for HD26Forge Schedule page display
       console.log('[createInstanceDraft] Creating milestones from schedule:', JSON.stringify(eventSchedule, null, 2));
       const milestones = buildScheduleMilestonesForRuntime(event.id, eventSchedule, runtimeType);
       console.log('[createInstanceDraft] Generated milestones:', JSON.stringify(milestones, null, 2));
-      await this.repository.createMilestones(milestones);
+      const createMilestonesStartedAt = Date.now();
+      if (HDC_PERF_CREATE_BACKEND_V1) {
+        await this.repository.createMilestones(milestones);
+      } else {
+        await this.repository.createMilestonesOneByOne(milestones);
+      }
+      markStage('create_milestones', createMilestonesStartedAt);
 
       const coAdminIds = [...coAdminUserIds].filter((id) => id !== primaryAdmin.id);
 
-      await this.repository.addEventAdmin(event.id, primaryAdmin.id, 'primary');
-      for (const userId of coAdminIds) {
-        await this.repository.addEventAdmin(event.id, userId, 'co_admin');
+      const createAdminsStartedAt = Date.now();
+      if (HDC_PERF_CREATE_BACKEND_V1) {
+        await this.repository.addEventAdminsBatch([
+          { eventId: event.id, userId: primaryAdmin.id, role: 'primary' },
+          ...coAdminIds.map((userId) => ({ eventId: event.id, userId, role: 'co_admin' as const })),
+        ]);
+      } else {
+        await this.repository.addEventAdmin(event.id, primaryAdmin.id, 'primary');
+        for (const userId of coAdminIds) {
+          await this.repository.addEventAdmin(event.id, userId, 'co_admin');
+        }
       }
+      markStage('create_admins', createAdminsStartedAt);
 
       let templateProvisionStatus: CreateInstanceDraftResult['templateProvisionStatus'] = null;
       if (runtimeType === 'hackday_template') {
+        const createSeedStartedAt = Date.now();
         const seed = await this.repository.createHackdayTemplateSeed({
           confluencePageId: childPage.pageId,
           confluenceParentPageId: input.parentPageId,
@@ -1374,6 +1450,7 @@ export class HdcService {
           provisionStatus: 'provisioned',
         });
         templateProvisionStatus = seed.provision_status;
+        markStage('create_seed', createSeedStartedAt);
       }
       const appView = runtimeType === 'hackday_template'
         ? buildRuntimeAppViewUrl(viewer.siteUrl, childPage.pageId)
@@ -1389,6 +1466,7 @@ export class HdcService {
         })
       );
 
+      const postCreateStartedAt = Date.now();
       await Promise.all([
         this.repository.upsertSyncState(event.id, {
           syncStatus: 'not_started',
@@ -1415,8 +1493,20 @@ export class HdcService {
             rules: eventRules,
             branding: eventBranding,
           },
+          enforceRetention: !HDC_PERF_CREATE_BACKEND_V1,
         }),
       ]);
+      markStage('post_create_state', postCreateStartedAt);
+
+      logCreateInstanceDraftTelemetry({
+        creationRequestId: input.creationRequestId,
+        eventId: event.id,
+        childPageId: childPage.pageId,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        outcome: 'success',
+        mode,
+        stageMs,
+      });
 
       return {
         eventId: event.id,
@@ -1428,6 +1518,16 @@ export class HdcService {
         templateProvisionStatus,
       };
     } catch (error) {
+      logCreateInstanceDraftTelemetry({
+        creationRequestId: input.creationRequestId,
+        eventId: null,
+        childPageId: childPage.pageId,
+        durationMs: Math.max(0, Date.now() - startedAt),
+        outcome: 'error',
+        mode,
+        stageMs,
+        warning: error instanceof Error ? error.message : String(error),
+      });
       await deletePage(childPage.pageId);
       throw error;
     }

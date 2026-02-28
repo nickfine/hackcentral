@@ -1683,6 +1683,21 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     });
   }
 
+  async addEventAdminsBatch(
+    entries: Array<{ eventId: string; userId: string; role: 'primary' | 'co_admin' }>
+  ): Promise<DbEventAdmin[]> {
+    if (!entries.length) return [];
+    return this.client.insertMany<DbEventAdmin>(
+      EVENT_ADMIN_TABLE,
+      entries.map((entry) => ({
+        event_id: entry.eventId,
+        user_id: entry.userId,
+        role: entry.role,
+        added_at: nowIso(),
+      }))
+    );
+  }
+
   async createMilestones(milestones: Array<{
     eventId: string;
     title: string;
@@ -1695,8 +1710,53 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   }>): Promise<void> {
     if (milestones.length === 0) return;
 
-    // Match HD26Forge's field naming - Milestone table uses camelCase columns
-    // This is different from Event table which uses snake_case
+    const buildPayload = (omitSignalColumn: boolean): Array<Record<string, unknown>> => {
+      return milestones.map((m) => {
+        const payload: Record<string, unknown> = {
+          id: randomUUID(),
+          eventId: m.eventId,
+          title: m.title,
+          description: m.description,
+          phase: m.phase,
+          signal: m.signal ?? null,
+          startTime: m.startTime,
+          endTime: m.endTime,
+          location: m.location,
+        };
+        if (omitSignalColumn) {
+          delete payload.signal;
+        }
+        return payload;
+      });
+    };
+
+    try {
+      await this.client.insertMany(MILESTONE_TABLE, buildPayload(false));
+      return;
+    } catch (error) {
+      const missingColumn = extractMissingMilestoneColumn(error);
+      if (missingColumn?.toLowerCase() !== 'signal') {
+        throw error;
+      }
+      console.warn(
+        '[SupabaseRepository.createMilestones] Milestone.signal column missing; continuing without signal persistence.'
+      );
+    }
+
+    await this.client.insertMany(MILESTONE_TABLE, buildPayload(true));
+  }
+
+  async createMilestonesOneByOne(milestones: Array<{
+    eventId: string;
+    title: string;
+    description: string | null;
+    phase: string;
+    signal?: ScheduleEventSignal | null;
+    startTime: string;
+    endTime: string | null;
+    location: string | null;
+  }>): Promise<void> {
+    if (milestones.length === 0) return;
     let omitSignalColumn = false;
     let loggedMissingSignalColumn = false;
     for (const m of milestones) {
@@ -1997,6 +2057,7 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     action: string;
     previousValue?: unknown;
     newValue?: unknown;
+    enforceRetention?: boolean;
   }): Promise<void> {
     await this.client.insert(EVENT_AUDIT_LOG_TABLE, {
       event_id: input.eventId,
@@ -2007,7 +2068,9 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       created_at: nowIso(),
     });
 
-    await this.enforceEventAuditRetention(input.eventId);
+    if (input.enforceRetention !== false) {
+      await this.enforceEventAuditRetention(input.eventId);
+    }
   }
 
   async countEventAuditLogs(eventId: string): Promise<number> {
@@ -2066,6 +2129,17 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
     const all = await this.listEventsByParentPageId(parentPageId);
     const normalized = eventName.trim().toLowerCase();
     return all.filter((event) => event.eventName.trim().toLowerCase() === normalized);
+  }
+
+  async hasEventNameConflictExact(eventName: string, parentPageId: string): Promise<boolean> {
+    const normalized = eventName.trim().toLowerCase();
+    if (!normalized) return false;
+
+    const rows = await this.client.selectMany<DbEventLegacyCore>(EVENT_TABLE, EVENT_SELECT_CORE, [
+      { field: 'confluence_parent_page_id', op: 'eq', value: parentPageId },
+      { field: 'name', op: 'ilike', value: eventName.trim() },
+    ]);
+    return rows.some((row) => row.name.trim().toLowerCase() === normalized);
   }
 
   async completeAndSync(eventId: string): Promise<SyncResult> {

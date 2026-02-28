@@ -150,6 +150,14 @@ export class SupabaseRestClient {
     return rows[0];
   }
 
+  async insertMany<T>(table: string, payload: Record<string, unknown>[]): Promise<T[]> {
+    if (!Array.isArray(payload) || payload.length === 0) return [];
+    return this.request<T[]>('POST', table, {
+      body: payload,
+      prefer: 'return=representation',
+    });
+  }
+
   async upsert<T>(table: string, payload: Record<string, unknown>, onConflict: string): Promise<T> {
     const params = new URLSearchParams();
     params.set('on_conflict', onConflict);
