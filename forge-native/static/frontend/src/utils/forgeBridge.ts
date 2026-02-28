@@ -13,7 +13,8 @@ async function loadBridge() {
 
 export async function invoke(name: string, payload?: unknown): Promise<unknown> {
   const bridge = await loadBridge();
-  return bridge.invoke(name, payload);
+  type BridgeInvokePayload = Parameters<typeof bridge.invoke>[1];
+  return bridge.invoke(name, payload as BridgeInvokePayload);
 }
 
 export const router = {
@@ -28,4 +29,3 @@ export const router = {
     await bridge.router.open(target);
   },
 };
-

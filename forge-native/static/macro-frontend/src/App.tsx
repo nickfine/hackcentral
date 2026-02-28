@@ -264,7 +264,13 @@ export function App(): JSX.Element {
         return;
       }
 
-      const bridgeContext = await view.getContext();
+      const bridgeContext = (await view.getContext()) as {
+        extension?: {
+          content?: { id?: string | number };
+          page?: { id?: string | number };
+          id?: string | number;
+        };
+      };
       const pageId = String(
         bridgeContext?.extension?.content?.id ??
           bridgeContext?.extension?.page?.id ??
