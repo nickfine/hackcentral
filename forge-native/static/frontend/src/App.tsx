@@ -40,7 +40,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.14';
+const HACKCENTRAL_UI_VERSION = '0.6.15';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -1320,12 +1320,15 @@ export function App(): JSX.Element {
         }),
       ]);
       clearTimeout(timeoutId);
-      setActionMessage(`HackDay created! Child page: ${result.childPageId}`);
+      setActionMessage(
+        `HackDay created! Child page: ${result.childPageId}. Open that page, then click "Open App View" for the full HackDay runtime.`
+      );
       setWPendingRequestId(null);
       resetWizard();
       await loadBootstrap();
       setView('hackdays');
       if (result.childPageUrl) {
+        setActionMessage('HackDay created. Opening child page now... Use "Open App View" from that page header.');
         try { await router.navigate(result.childPageUrl); } catch { /* ignore */ }
       }
     } catch (err) {
@@ -1919,7 +1922,7 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>HackDays</h1>
-                  <p className="subtitle">Create and open HackDay events. Each runs on its own Confluence page.</p>
+                  <p className="subtitle">Create HackDays from here, then use "Open App View" on the child page for the app-shell experience.</p>
                 </div>
               </section>
 
@@ -1927,7 +1930,7 @@ export function App(): JSX.Element {
                 <div className="hackdays-hero-row">
                   <div className="hackdays-hero-copy">
                     <h2>Manage HackDay events</h2>
-                    <p>Create new HackDays and open each event on its Confluence page.</p>
+                    <p>Create new HackDays, open the child page, then click "Open App View" to run in app shell.</p>
                   </div>
                   {bootstrap?.parentPageId ? (
                     <button

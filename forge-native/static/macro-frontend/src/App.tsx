@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.14';
+const HACKCENTRAL_MACRO_VERSION = '0.6.15';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -747,14 +747,14 @@ export function App(): JSX.Element {
         `Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds.`
       );
       setMessage(
-        `Draft created. Child page id: ${result.childPageId}. Template provision status: ${result.templateProvisionStatus ?? 'provisioned'}.`
+        `Draft created. Child page id: ${result.childPageId}. Template provision status: ${result.templateProvisionStatus ?? 'provisioned'}. Open that page and click "Open App View" for the full runtime.`
       );
       setCreateDraftTimedOut(false);
       resetWizard(true);
       invalidateSwitcherCaches(context);
 
       if (result.childPageUrl) {
-        setMessage('Draft created. Redirecting to the child page…');
+        setMessage('Draft created. Redirecting to the child page... then use "Open App View" in the page header.');
         try {
           await router.navigate(result.childPageUrl);
           return;
@@ -1200,7 +1200,7 @@ export function App(): JSX.Element {
         <section className="grid">
           <article className="card">
             <h2>Create a HackDay</h2>
-            <p>Use the 6-step wizard to create a new HackDay event. A child Confluence page will be created automatically.</p>
+            <p>Use the 6-step wizard to create a new HackDay event. A child Confluence page is created first, then use "Open App View" on that page for full app-shell mode.</p>
 
             <div className="wizard-steps">
               {(['Basic', 'Schedule', 'Schedule Review', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => (
@@ -1333,7 +1333,7 @@ export function App(): JSX.Element {
                 ) : null}
                 <p><strong>Team size:</strong> {minTeamSize}–{maxTeamSize} · Judging: {judgingModel}</p>
                 <p><strong>Accent:</strong> <span style={{ background: accentColor, padding: '2px 8px', borderRadius: '4px', color: '#fff', fontSize: '0.85em' }}>{accentColor}</span></p>
-                <p className="meta">Will be created as a draft child page under this parent page.</p>
+                <p className="meta">Will be created as a draft child page under this parent page. From the child page header, click "Open App View" for full runtime.</p>
                 {createDraftTimedOut ? <p className="note error">Creation timed out. Click &quot;Create HackDay&quot; to retry with the same request ID.</p> : null}
               </div>
             ) : null}
@@ -1361,7 +1361,7 @@ export function App(): JSX.Element {
           <article className="card">
             <h2>Registry</h2>
             {sortedRegistry.length > 0 ? (
-              <p className="meta">Click a row to open that HackDay.</p>
+              <p className="meta">Click a row to open that HackDay page, then click "Open App View".</p>
             ) : null}
             {sortedRegistry.length === 0 ? (
               <p>No instances yet.</p>
