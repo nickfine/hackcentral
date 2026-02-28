@@ -53,12 +53,17 @@ describe('runtime context precedence contract', () => {
 
     const builderStart = source.indexOf('function buildAppModeLaunchUrlFromContext(req, pageId) {');
     const localIdRouteIndex = source.indexOf('const routeIdsFromLocalId = extractRuntimeRouteIdsFromLocalId(localIdValue);', builderStart);
-    const envFallbackIndex = source.indexOf('const routeIds = routeIdsFromLocalId || resolveRuntimeRouteIdsFromEnvironment();', builderStart);
+    const envResolutionIndex = source.indexOf('const routeIdsFromEnvironment = resolveRuntimeRouteIdsFromEnvironment();', builderStart);
+    const envFallbackIndex = source.indexOf('const routeIds = routeIdsFromLocalId || routeIdsFromEnvironment;', builderStart);
 
     expect(builderStart).toBeGreaterThan(-1);
     expect(localIdRouteIndex).toBeGreaterThan(builderStart);
-    expect(envFallbackIndex).toBeGreaterThan(localIdRouteIndex);
+    expect(envResolutionIndex).toBeGreaterThan(localIdRouteIndex);
+    expect(envFallbackIndex).toBeGreaterThan(envResolutionIndex);
     expect(source).toContain('function resolveRuntimeRouteIdsFromEnvironment() {');
+    expect(source).toContain('HDC_RUNTIME_CONFIG_ERROR_CODE = "HDC_RUNTIME_CONFIG_INVALID"');
+    expect(source).toContain('throw createRuntimeConfigError(');
+    expect(source).toContain('routeSource: routeContextSource');
   });
 
   it('resolves pageId from trusted extension.location before payload fallback', async () => {

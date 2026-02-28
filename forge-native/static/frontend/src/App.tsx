@@ -42,7 +42,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.22';
+const HACKCENTRAL_UI_VERSION = '0.6.43';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -54,6 +54,42 @@ const TEAM_PULSE_PLACEHOLDER_NOTE = '';
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
+const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
+
+type RuntimeConfigErrorLike = {
+  code?: unknown;
+  message?: unknown;
+  diagnostics?: {
+    owner?: unknown;
+    routeSource?: unknown;
+    missingVars?: unknown;
+  };
+};
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return String(error);
+}
+
+function isRuntimeConfigError(error: unknown): boolean {
+  const maybeError = error as RuntimeConfigErrorLike;
+  const message = getErrorMessage(error);
+  return maybeError?.code === RUNTIME_CONFIG_ERROR_CODE || message.includes(RUNTIME_CONFIG_ERROR_CODE);
+}
+
+function getRuntimeConfigOperatorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+  const diagnostics = (error as RuntimeConfigErrorLike)?.diagnostics;
+  const routeSource = typeof diagnostics?.routeSource === 'string' ? diagnostics.routeSource : 'unknown';
+  const missingVars = Array.isArray(diagnostics?.missingVars)
+    ? diagnostics.missingVars.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  if (missingVars.length > 0) {
+    return `Runtime route configuration is invalid (${routeSource}). Missing vars: ${missingVars.join(', ')}.`;
+  }
+  return `Runtime route configuration is invalid (${routeSource}). ${message}`;
+}
 
 function navigateTopWindow(targetUrl: string): boolean {
   if (typeof window === 'undefined') return false;
@@ -1305,7 +1341,11 @@ export function App(): JSX.Element {
         );
       }
       return url || null;
-    } catch {
+    } catch (err) {
+      if (isRuntimeConfigError(err)) {
+        setActionError(getRuntimeConfigOperatorMessage(err));
+        throw err;
+      }
       return null;
     }
   }, [previewMode]);
@@ -1419,6 +1459,14 @@ export function App(): JSX.Element {
       }
 
       const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      const appViewRuntimeOwner = typeof result.appViewRuntimeOwner === 'string'
+        ? result.appViewRuntimeOwner.trim().toLowerCase()
+        : '';
+      if (appViewRuntimeOwner === 'hackcentral' && !appViewUrl) {
+        throw new Error(
+          `[${RUNTIME_CONFIG_ERROR_CODE}] HackCentral runtime owner returned no appViewUrl during create flow.`
+        );
+      }
       let appViewOpened = false;
       if (appViewUrl) {
         setActionMessage('HackDay created. Opening full app view now...');
@@ -1472,6 +1520,10 @@ export function App(): JSX.Element {
       }
     } catch (err) {
       clearTimeout(timeoutId);
+      if (isRuntimeConfigError(err)) {
+        setActionError(getRuntimeConfigOperatorMessage(err));
+        return;
+      }
       const msg = err instanceof Error ? err.message : 'Failed to create HackDay.';
       if (msg.includes('already exists')) {
         setWEventNameError('An instance with this name already exists under this parent page.');
@@ -1501,7 +1553,15 @@ export function App(): JSX.Element {
 
   const navigateToSwitcherPage = useCallback(async (targetPageId: string) => {
     if (!targetPageId) return;
-    const appViewUrl = await resolveAppViewUrlForPage(targetPageId);
+    let appViewUrl: string | null = null;
+    try {
+      appViewUrl = await resolveAppViewUrlForPage(targetPageId);
+    } catch (err) {
+      if (isRuntimeConfigError(err)) {
+        return;
+      }
+      appViewUrl = null;
+    }
     const targetPath = buildConfluencePagePath(targetPageId);
     const absoluteTarget =
       typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;

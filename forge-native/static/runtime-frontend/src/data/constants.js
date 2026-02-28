@@ -4,7 +4,7 @@
  */
 
 // Bump this when deploying to help bust Atlassian CDN cache (see LEARNINGS_CURSOR.md)
-export const APP_VERSION = '1.2.67';
+export const APP_VERSION = '1.2.68';
 
 // Demo event ID - shared with HD26AI for unified demo data
 export const DEMO_EVENT_ID = 'demo-event-2026';

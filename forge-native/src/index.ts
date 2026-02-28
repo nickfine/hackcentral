@@ -143,6 +143,7 @@ resolver.define(
         pageId,
         eventId: null,
         reason: 'context_not_found',
+        runtimeSource: null,
       };
     }
 
@@ -163,6 +164,7 @@ resolver.define(
       success: true,
       pageId,
       eventId: context.event.id,
+      runtimeSource: 'hdc_context',
     };
   }
 );
@@ -192,6 +194,7 @@ resolver.define(
         pageId,
         eventId: null,
         reason: 'context_not_found',
+        runtimeSource: null,
       };
     }
 
@@ -212,6 +215,7 @@ resolver.define(
       success: true,
       pageId,
       eventId: context.event.id,
+      runtimeSource: 'hdc_context',
     };
   }
 );

@@ -34,7 +34,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.22';
+const HACKCENTRAL_MACRO_VERSION = '0.6.43';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -45,6 +45,42 @@ const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay Central parent page.';
 const WIZARD_STORAGE_KEY_PREFIX = 'hdc-create-wizard:';
 const SUBMISSION_REQUIREMENT_OPTIONS: SubmissionRequirement[] = ['video_demo', 'working_prototype', 'documentation'];
+const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
+
+type RuntimeConfigErrorLike = {
+  code?: unknown;
+  message?: unknown;
+  diagnostics?: {
+    owner?: unknown;
+    routeSource?: unknown;
+    missingVars?: unknown;
+  };
+};
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return String(error);
+}
+
+function isRuntimeConfigError(error: unknown): boolean {
+  const maybeError = error as RuntimeConfigErrorLike;
+  const message = getErrorMessage(error);
+  return maybeError?.code === RUNTIME_CONFIG_ERROR_CODE || message.includes(RUNTIME_CONFIG_ERROR_CODE);
+}
+
+function getRuntimeConfigOperatorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+  const diagnostics = (error as RuntimeConfigErrorLike)?.diagnostics;
+  const routeSource = typeof diagnostics?.routeSource === 'string' ? diagnostics.routeSource : 'unknown';
+  const missingVars = Array.isArray(diagnostics?.missingVars)
+    ? diagnostics.missingVars.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  if (missingVars.length > 0) {
+    return `Runtime route configuration is invalid (${routeSource}). Missing vars: ${missingVars.join(', ')}.`;
+  }
+  return `Runtime route configuration is invalid (${routeSource}). ${message}`;
+}
 
 function navigateTopWindow(targetUrl: string): boolean {
   if (typeof window === 'undefined') return false;
@@ -733,7 +769,11 @@ export function App(): JSX.Element {
         );
       }
       return url || null;
-    } catch {
+    } catch (err) {
+      if (isRuntimeConfigError(err)) {
+        setError(getRuntimeConfigOperatorMessage(err));
+        throw err;
+      }
       return null;
     }
   }, []);
@@ -850,6 +890,14 @@ export function App(): JSX.Element {
       }
 
       const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      const appViewRuntimeOwner = typeof result.appViewRuntimeOwner === 'string'
+        ? result.appViewRuntimeOwner.trim().toLowerCase()
+        : '';
+      if (appViewRuntimeOwner === 'hackcentral' && !appViewUrl) {
+        throw new Error(
+          `[${RUNTIME_CONFIG_ERROR_CODE}] HackCentral runtime owner returned no appViewUrl during create flow.`
+        );
+      }
       let appViewOpened = false;
       if (appViewUrl) {
         setMessage('Draft created. Opening full app view now...');
@@ -904,6 +952,11 @@ export function App(): JSX.Element {
 
       await loadContext();
     } catch (err) {
+      if (isRuntimeConfigError(err)) {
+        setCreateDraftTimedOut(false);
+        setError(getRuntimeConfigOperatorMessage(err));
+        return;
+      }
       if (isRequestTimeoutError(err)) {
         setCreateDraftTimedOut(true);
         setMessage(
@@ -1125,7 +1178,15 @@ export function App(): JSX.Element {
         setSwitcherOpen(false);
         return;
       }
-      const appViewUrl = await resolveAppViewUrlForPage(targetPageId);
+      let appViewUrl: string | null = null;
+      try {
+        appViewUrl = await resolveAppViewUrlForPage(targetPageId);
+      } catch (err) {
+        if (isRuntimeConfigError(err)) {
+          return;
+        }
+        appViewUrl = null;
+      }
       const targetPath = buildConfluencePagePath(targetPageId);
       const absoluteTarget =
         typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;

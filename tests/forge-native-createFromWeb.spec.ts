@@ -126,7 +126,21 @@ describe('forge-native createFromWeb handler', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.body).toContain('appViewUrl is missing');
+      const body = JSON.parse(response.body);
+      expect(body.errorCode).toBe('HDC_RUNTIME_CONFIG_INVALID');
+      expect(body.error).toContain('appViewUrl is missing');
+      expect(body.owner).toBe('hackcentral');
+      expect(body.configValid).toBe(false);
+      expect(body.routeSource).toBe('create_from_web_result_guard');
+      expect(body.missingVars).toEqual(
+        expect.arrayContaining([
+          'HDC_RUNTIME_APP_ID',
+          'FORGE_APP_ID',
+          'HDC_RUNTIME_ENVIRONMENT_ID',
+          'FORGE_ENVIRONMENT_ID',
+          'HDC_RUNTIME_MACRO_KEY',
+        ])
+      );
     } finally {
       process.env.HDC_RUNTIME_OWNER = previousOwner;
     }

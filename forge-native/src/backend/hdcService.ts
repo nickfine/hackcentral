@@ -1,6 +1,7 @@
 import {
   ALLOWED_EMAIL_DOMAIN,
   DEFAULT_TIMEZONE,
+  HDC_RUNTIME_CONFIG_ERROR_CODE,
 } from '../shared/types';
 import type {
   AppRouteVersion,
@@ -124,6 +125,126 @@ function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
 const HDC_RUNTIME_OWNER_HACKCENTRAL = 'hackcentral' as const;
 const HDC_RUNTIME_OWNER_HD26FORGE = 'hd26forge' as const;
 const HDC_RUNTIME_MACRO_KEY_DEFAULT = 'hackday-runtime-macro';
+type RuntimeConfigRouteSource =
+  | 'hackcentral_runtime_route_env'
+  | 'hackcentral_runtime_macro_env'
+  | 'hackcentral_runtime_route_build'
+  | 'hd26forge_template_route_env';
+
+interface RuntimeConfigDiagnostics {
+  owner: AppRuntimeOwner;
+  configValid: boolean;
+  missingVars: string[];
+  routeSource: RuntimeConfigRouteSource;
+}
+
+type RuntimeConfigError = Error & {
+  code: string;
+  diagnostics: RuntimeConfigDiagnostics;
+};
+
+function normalizeEnvValue(value: string | undefined): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized ? normalized : null;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function getHackcentralRuntimeRouteResolution(): {
+  targetAppId: string | null;
+  targetEnvironmentId: string | null;
+  missingVars: string[];
+} {
+  const runtimeAppId = normalizeEnvValue(process.env.HDC_RUNTIME_APP_ID);
+  const forgeAppId = normalizeEnvValue(process.env.FORGE_APP_ID);
+  const runtimeEnvironmentId = normalizeEnvValue(process.env.HDC_RUNTIME_ENVIRONMENT_ID);
+  const forgeEnvironmentId = normalizeEnvValue(process.env.FORGE_ENVIRONMENT_ID);
+
+  const missingVars: string[] = [];
+  if (!runtimeAppId && !forgeAppId) {
+    missingVars.push('HDC_RUNTIME_APP_ID', 'FORGE_APP_ID');
+  }
+  if (!runtimeEnvironmentId && !forgeEnvironmentId) {
+    missingVars.push('HDC_RUNTIME_ENVIRONMENT_ID', 'FORGE_ENVIRONMENT_ID');
+  }
+
+  return {
+    targetAppId: runtimeAppId || forgeAppId,
+    targetEnvironmentId: runtimeEnvironmentId || forgeEnvironmentId,
+    missingVars: unique(missingVars),
+  };
+}
+
+function getHd26TemplateRouteResolution(): {
+  targetAppId: string | null;
+  targetEnvironmentId: string | null;
+  missingVars: string[];
+} {
+  const targetAppId = normalizeEnvValue(process.env.HACKDAY_TEMPLATE_APP_ID);
+  const targetEnvironmentId = normalizeEnvValue(process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID);
+  const missingVars: string[] = [];
+  if (!targetAppId) {
+    missingVars.push('HACKDAY_TEMPLATE_APP_ID');
+  }
+  if (!targetEnvironmentId) {
+    missingVars.push('HACKDAY_TEMPLATE_ENVIRONMENT_ID');
+  }
+  return {
+    targetAppId,
+    targetEnvironmentId,
+    missingVars,
+  };
+}
+
+function createRuntimeConfigDiagnostics(
+  owner: AppRuntimeOwner,
+  routeSource: RuntimeConfigRouteSource,
+  missingVars: string[] = []
+): RuntimeConfigDiagnostics {
+  return {
+    owner,
+    configValid: missingVars.length === 0,
+    missingVars: unique(missingVars),
+    routeSource,
+  };
+}
+
+function logRuntimeConfigFailure(message: string, diagnostics: RuntimeConfigDiagnostics): void {
+  console.error(
+    '[hdc-runtime-config]',
+    JSON.stringify({
+      errorCode: HDC_RUNTIME_CONFIG_ERROR_CODE,
+      message,
+      owner: diagnostics.owner,
+      configValid: diagnostics.configValid,
+      missingVars: diagnostics.missingVars,
+      routeSource: diagnostics.routeSource,
+    })
+  );
+}
+
+function createRuntimeConfigError(message: string, diagnostics: RuntimeConfigDiagnostics): RuntimeConfigError {
+  const error = new Error(`[${HDC_RUNTIME_CONFIG_ERROR_CODE}] ${message}`) as RuntimeConfigError;
+  error.code = HDC_RUNTIME_CONFIG_ERROR_CODE;
+  error.diagnostics = diagnostics;
+  logRuntimeConfigFailure(message, diagnostics);
+  return error;
+}
+
+function appendRuntimeDiagnosticsToRouteResult(
+  baseResult: AppViewUrlResult,
+  diagnostics: RuntimeConfigDiagnostics
+): AppViewUrlResult {
+  return {
+    ...baseResult,
+    owner: diagnostics.owner,
+    configValid: diagnostics.configValid,
+    missingVars: diagnostics.missingVars,
+    routeSource: diagnostics.routeSource,
+  };
+}
 
 function resolveHackdayTemplateRuntimeOwner(): AppRuntimeOwner {
   const normalized = (process.env.HDC_RUNTIME_OWNER || '').trim().toLowerCase();
@@ -136,8 +257,9 @@ function getHackdayTemplateAppRouteConfig(): {
   targetAppId: string;
   targetEnvironmentId: string;
 } | null {
-  const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
-  const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
+  const route = getHd26TemplateRouteResolution();
+  const targetAppId = route.targetAppId;
+  const targetEnvironmentId = route.targetEnvironmentId;
   if (!targetAppId || !targetEnvironmentId) {
     return null;
   }
@@ -148,8 +270,9 @@ function getHackcentralRuntimeAppRouteConfig(): {
   targetAppId: string;
   targetEnvironmentId: string;
 } | null {
-  const targetAppId = process.env.HDC_RUNTIME_APP_ID?.trim() || process.env.FORGE_APP_ID?.trim();
-  const targetEnvironmentId = process.env.HDC_RUNTIME_ENVIRONMENT_ID?.trim() || process.env.FORGE_ENVIRONMENT_ID?.trim();
+  const resolution = getHackcentralRuntimeRouteResolution();
+  const targetAppId = resolution.targetAppId;
+  const targetEnvironmentId = resolution.targetEnvironmentId;
   if (!targetAppId || !targetEnvironmentId) {
     return null;
   }
@@ -241,31 +364,57 @@ function buildHackdayTemplateAppViewUrl(
 function buildRuntimeAppViewUrl(siteUrl: string | null | undefined, pageId: string): AppViewUrlResult {
   const preferredOwner = resolveHackdayTemplateRuntimeOwner();
   if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
-    const runtimeRoute = getHackcentralRuntimeAppRouteConfig();
-    if (!runtimeRoute) {
-      throw new Error(
-        'HackCentral runtime routing is enabled, but HDC_RUNTIME_APP_ID/FORGE_APP_ID or HDC_RUNTIME_ENVIRONMENT_ID/FORGE_ENVIRONMENT_ID is missing.'
+    const runtimeRoute = getHackcentralRuntimeRouteResolution();
+    if (!runtimeRoute.targetAppId || !runtimeRoute.targetEnvironmentId) {
+      throw createRuntimeConfigError(
+        'HackCentral runtime routing is enabled, but required app-route variables are missing.',
+        createRuntimeConfigDiagnostics(
+          HDC_RUNTIME_OWNER_HACKCENTRAL,
+          'hackcentral_runtime_route_env',
+          runtimeRoute.missingVars
+        )
       );
     }
-    const url = buildHackdayTemplateAppViewUrl(siteUrl, pageId, runtimeRoute);
+    const url = buildHackdayTemplateAppViewUrl(siteUrl, pageId, {
+      targetAppId: runtimeRoute.targetAppId,
+      targetEnvironmentId: runtimeRoute.targetEnvironmentId,
+    });
     if (!url) {
-      throw new Error(
-        'HackCentral runtime routing is enabled, but app-view URL could not be built. Verify HDC_RUNTIME_APP_ID and HDC_RUNTIME_ENVIRONMENT_ID.'
+      throw createRuntimeConfigError(
+        'HackCentral runtime routing is enabled, but app-view URL could not be built from route config.',
+        createRuntimeConfigDiagnostics(HDC_RUNTIME_OWNER_HACKCENTRAL, 'hackcentral_runtime_route_build')
       );
     }
-    return {
-      url,
-      runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
-      routeVersion: 'v2',
-    };
+    return appendRuntimeDiagnosticsToRouteResult(
+      {
+        url,
+        runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
+        routeVersion: 'v2',
+      },
+      createRuntimeConfigDiagnostics(HDC_RUNTIME_OWNER_HACKCENTRAL, 'hackcentral_runtime_route_env')
+    );
   }
 
-  const legacyRoute = getHackdayTemplateAppRouteConfig();
-  return {
-    url: legacyRoute ? buildHackdayTemplateAppViewUrl(siteUrl, pageId, legacyRoute) : null,
-    runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE,
-    routeVersion: 'v1',
-  };
+  const legacyRoute = getHd26TemplateRouteResolution();
+  const diagnostics = createRuntimeConfigDiagnostics(
+    HDC_RUNTIME_OWNER_HD26FORGE,
+    'hd26forge_template_route_env',
+    legacyRoute.missingVars
+  );
+  return appendRuntimeDiagnosticsToRouteResult(
+    {
+      url:
+        legacyRoute.targetAppId && legacyRoute.targetEnvironmentId
+          ? buildHackdayTemplateAppViewUrl(siteUrl, pageId, {
+              targetAppId: legacyRoute.targetAppId,
+              targetEnvironmentId: legacyRoute.targetEnvironmentId,
+            })
+          : null,
+      runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE,
+      routeVersion: 'v1',
+    },
+    diagnostics
+  );
 }
 
 function resolveRuntimeMacroConfigForHackdayTemplates(): {
@@ -277,10 +426,22 @@ function resolveRuntimeMacroConfigForHackdayTemplates(): {
 } {
   const preferredOwner = resolveHackdayTemplateRuntimeOwner();
   if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
+    const runtimeRoute = getHackcentralRuntimeRouteResolution();
+    if (!runtimeRoute.targetAppId || !runtimeRoute.targetEnvironmentId) {
+      throw createRuntimeConfigError(
+        'HackCentral runtime macro is enabled, but required macro-route variables are missing.',
+        createRuntimeConfigDiagnostics(
+          HDC_RUNTIME_OWNER_HACKCENTRAL,
+          'hackcentral_runtime_macro_env',
+          runtimeRoute.missingVars
+        )
+      );
+    }
     const runtimeMacroConfig = getHackcentralRuntimeMacroConfig();
     if (!runtimeMacroConfig) {
-      throw new Error(
-        'HackCentral runtime macro is enabled, but HDC_RUNTIME_APP_ID/FORGE_APP_ID, HDC_RUNTIME_ENVIRONMENT_ID/FORGE_ENVIRONMENT_ID, or HDC_RUNTIME_MACRO_KEY is missing.'
+      throw createRuntimeConfigError(
+        'HackCentral runtime macro is enabled, but macro route configuration is invalid.',
+        createRuntimeConfigDiagnostics(HDC_RUNTIME_OWNER_HACKCENTRAL, 'hackcentral_runtime_macro_env')
       );
     }
     return {
@@ -949,11 +1110,18 @@ export class HdcService {
     const normalizedPageId = typeof pageId === 'string' ? pageId.trim() : '';
     if (!normalizedPageId) {
       const runtimeOwner = resolveHackdayTemplateRuntimeOwner();
-      return {
-        url: null,
-        runtimeOwner,
-        routeVersion: runtimeOwner === HDC_RUNTIME_OWNER_HACKCENTRAL ? 'v2' : 'v1',
-      };
+      const routeSource: RuntimeConfigRouteSource =
+        runtimeOwner === HDC_RUNTIME_OWNER_HACKCENTRAL
+          ? 'hackcentral_runtime_route_env'
+          : 'hd26forge_template_route_env';
+      return appendRuntimeDiagnosticsToRouteResult(
+        {
+          url: null,
+          runtimeOwner,
+          routeVersion: runtimeOwner === HDC_RUNTIME_OWNER_HACKCENTRAL ? 'v2' : 'v1',
+        },
+        createRuntimeConfigDiagnostics(runtimeOwner, routeSource)
+      );
     }
     const routeResult = buildRuntimeAppViewUrl(viewer.siteUrl, normalizedPageId);
     console.info(
@@ -962,6 +1130,9 @@ export class HdcService {
         pageId: normalizedPageId,
         runtimeOwner: routeResult.runtimeOwner,
         routeVersion: routeResult.routeVersion,
+        routeSource: routeResult.routeSource,
+        configValid: routeResult.configValid,
+        missingVars: routeResult.missingVars,
         hasUrl: Boolean(routeResult.url),
       })
     );

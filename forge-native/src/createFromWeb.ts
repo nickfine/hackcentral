@@ -4,7 +4,16 @@
  * Secured by shared secret (header or body).
  */
 
-import type { CreateInstanceDraftInput, CreateInstanceDraftResult, ViewerContext } from './shared/types';
+import {
+  HDC_RUNTIME_CONFIG_ERROR_CODE,
+} from './shared/types';
+import type {
+  AppRuntimeOwner,
+  CreateInstanceDraftInput,
+  CreateInstanceDraftResult,
+  RuntimeConfigDiagnostics,
+  ViewerContext,
+} from './shared/types';
 import { HdcService } from './backend/hdcService';
 
 const HEADER_SECRET = 'x-hackday-create-secret';
@@ -14,6 +23,11 @@ interface WebTriggerRequest {
   headers?: Record<string, string | string[] | undefined>;
   body?: string;
 }
+
+type RuntimeConfigError = Error & {
+  code: string;
+  diagnostics: RuntimeConfigDiagnostics;
+};
 
 function getSecret(request: WebTriggerRequest): string | null {
   const headers = request.headers ?? {};
@@ -35,6 +49,102 @@ function parseBody(body: string | undefined): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function normalizeEnvValue(value: string | undefined): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized ? normalized : null;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function resolveCreateFromWebRuntimeMissingVars(): string[] {
+  const runtimeAppId = normalizeEnvValue(process.env.HDC_RUNTIME_APP_ID);
+  const forgeAppId = normalizeEnvValue(process.env.FORGE_APP_ID);
+  const runtimeEnvironmentId = normalizeEnvValue(process.env.HDC_RUNTIME_ENVIRONMENT_ID);
+  const forgeEnvironmentId = normalizeEnvValue(process.env.FORGE_ENVIRONMENT_ID);
+  const runtimeMacroKey = normalizeEnvValue(process.env.HDC_RUNTIME_MACRO_KEY);
+  const forgeSiteUrl = normalizeEnvValue(process.env.FORGE_SITE_URL);
+  const missingVars: string[] = [];
+
+  if (!runtimeAppId && !forgeAppId) {
+    missingVars.push('HDC_RUNTIME_APP_ID', 'FORGE_APP_ID');
+  }
+  if (!runtimeEnvironmentId && !forgeEnvironmentId) {
+    missingVars.push('HDC_RUNTIME_ENVIRONMENT_ID', 'FORGE_ENVIRONMENT_ID');
+  }
+  if (!runtimeMacroKey) {
+    missingVars.push('HDC_RUNTIME_MACRO_KEY');
+  }
+  if (!forgeSiteUrl) {
+    missingVars.push('FORGE_SITE_URL');
+  }
+
+  return unique(missingVars);
+}
+
+function logRuntimeConfigFailure(message: string, diagnostics: RuntimeConfigDiagnostics): void {
+  console.error(
+    '[createFromWeb][runtime-config]',
+    JSON.stringify({
+      errorCode: HDC_RUNTIME_CONFIG_ERROR_CODE,
+      message,
+      owner: diagnostics.owner,
+      configValid: diagnostics.configValid,
+      missingVars: diagnostics.missingVars,
+      routeSource: diagnostics.routeSource,
+    })
+  );
+}
+
+function createRuntimeConfigError(message: string, diagnostics: RuntimeConfigDiagnostics): RuntimeConfigError {
+  const error = new Error(`[${HDC_RUNTIME_CONFIG_ERROR_CODE}] ${message}`) as RuntimeConfigError;
+  error.code = HDC_RUNTIME_CONFIG_ERROR_CODE;
+  error.diagnostics = diagnostics;
+  logRuntimeConfigFailure(message, diagnostics);
+  return error;
+}
+
+function normalizeRuntimeConfigDiagnostics(
+  diagnostics: Partial<RuntimeConfigDiagnostics> | null | undefined
+): RuntimeConfigDiagnostics {
+  const owner = diagnostics?.owner === 'hd26forge' ? 'hd26forge' : 'hackcentral';
+  const routeSource =
+    typeof diagnostics?.routeSource === 'string' && diagnostics.routeSource.trim()
+      ? diagnostics.routeSource
+      : 'create_from_web';
+  return {
+    owner,
+    configValid: Boolean(diagnostics?.configValid),
+    missingVars: Array.isArray(diagnostics?.missingVars)
+      ? diagnostics!.missingVars.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      : [],
+    routeSource,
+  };
+}
+
+function getRuntimeConfigErrorDetails(error: unknown): {
+  errorCode: string;
+  message: string;
+  diagnostics: RuntimeConfigDiagnostics;
+} | null {
+  if (!(error instanceof Error)) return null;
+  const message = error.message || 'Runtime config error.';
+  const code = (error as Partial<RuntimeConfigError>).code;
+  const prefixed = message.includes(HDC_RUNTIME_CONFIG_ERROR_CODE);
+  if (code !== HDC_RUNTIME_CONFIG_ERROR_CODE && !prefixed) {
+    return null;
+  }
+  const diagnostics = normalizeRuntimeConfigDiagnostics(
+    (error as Partial<RuntimeConfigError>).diagnostics
+  );
+  return {
+    errorCode: HDC_RUNTIME_CONFIG_ERROR_CODE,
+    message,
+    diagnostics,
+  };
 }
 
 function buildInput(raw: Record<string, unknown>, parentPageId: string): CreateInstanceDraftInput {
@@ -175,8 +285,15 @@ export async function handler(request: WebTriggerRequest): Promise<{
     const expectsHackcentralRuntime = runtimeOwner === 'hackcentral' || preferredRuntimeOwner === 'hackcentral';
     const appViewUrl = typeof result.appViewUrl === 'string' ? result.appViewUrl.trim() : '';
     if (expectsHackcentralRuntime && !appViewUrl) {
-      throw new Error(
-        'HackCentral runtime is enabled but appViewUrl is missing. Verify HDC_RUNTIME_APP_ID, HDC_RUNTIME_ENVIRONMENT_ID, HDC_RUNTIME_MACRO_KEY, and FORGE_SITE_URL.'
+      const diagnostics: RuntimeConfigDiagnostics = {
+        owner: 'hackcentral' as AppRuntimeOwner,
+        configValid: false,
+        missingVars: resolveCreateFromWebRuntimeMissingVars(),
+        routeSource: 'create_from_web_result_guard',
+      };
+      throw createRuntimeConfigError(
+        'HackCentral runtime is enabled but appViewUrl is missing after draft creation.',
+        diagnostics
       );
     }
 
@@ -186,6 +303,22 @@ export async function handler(request: WebTriggerRequest): Promise<{
       body: JSON.stringify(result),
     };
   } catch (err) {
+    const runtimeConfigError = getRuntimeConfigErrorDetails(err);
+    if (runtimeConfigError) {
+      const { diagnostics } = runtimeConfigError;
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': ['application/json'] },
+        body: JSON.stringify({
+          error: runtimeConfigError.message,
+          errorCode: runtimeConfigError.errorCode,
+          owner: diagnostics.owner,
+          configValid: diagnostics.configValid,
+          missingVars: diagnostics.missingVars,
+          routeSource: diagnostics.routeSource,
+        }),
+      };
+    }
     const message = err instanceof Error ? err.message : String(err);
     console.error('[createFromWeb]', message);
     return {

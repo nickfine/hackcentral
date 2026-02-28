@@ -1150,9 +1150,20 @@ describe('HdcService hardening behavior', () => {
       delete process.env.FORGE_ENVIRONMENT_ID;
 
       const service = new ServiceClass(repo as never);
-      await expect(service.getAppViewUrl(viewer, '12345')).rejects.toThrow(
-        'HackCentral runtime routing is enabled'
-      );
+      await expect(service.getAppViewUrl(viewer, '12345')).rejects.toMatchObject({
+        code: 'HDC_RUNTIME_CONFIG_INVALID',
+        diagnostics: {
+          owner: 'hackcentral',
+          configValid: false,
+          routeSource: 'hackcentral_runtime_route_env',
+          missingVars: expect.arrayContaining([
+            'HDC_RUNTIME_APP_ID',
+            'FORGE_APP_ID',
+            'HDC_RUNTIME_ENVIRONMENT_ID',
+            'FORGE_ENVIRONMENT_ID',
+          ]),
+        },
+      });
     } finally {
       process.env.HDC_RUNTIME_OWNER = previousOwner;
       process.env.HDC_RUNTIME_APP_ID = previousRuntimeAppId;
@@ -1178,6 +1189,10 @@ describe('HdcService hardening behavior', () => {
         url: 'https://example.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=12345',
         runtimeOwner: 'hackcentral',
         routeVersion: 'v2',
+        owner: 'hackcentral',
+        configValid: true,
+        missingVars: [],
+        routeSource: 'hackcentral_runtime_route_env',
       });
     } finally {
       process.env.HDC_RUNTIME_OWNER = previousOwner;
@@ -1208,9 +1223,20 @@ describe('HdcService hardening behavior', () => {
       getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
 
       const service = new ServiceClass(repo as never);
-      await expect(service.createInstanceDraft(viewer, baseCreateInput)).rejects.toThrow(
-        'HackCentral runtime macro is enabled'
-      );
+      await expect(service.createInstanceDraft(viewer, baseCreateInput)).rejects.toMatchObject({
+        code: 'HDC_RUNTIME_CONFIG_INVALID',
+        diagnostics: {
+          owner: 'hackcentral',
+          configValid: false,
+          routeSource: 'hackcentral_runtime_macro_env',
+          missingVars: expect.arrayContaining([
+            'HDC_RUNTIME_APP_ID',
+            'FORGE_APP_ID',
+            'HDC_RUNTIME_ENVIRONMENT_ID',
+            'FORGE_ENVIRONMENT_ID',
+          ]),
+        },
+      });
       expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
     } finally {
       process.env.HDC_RUNTIME_OWNER = previousOwner;

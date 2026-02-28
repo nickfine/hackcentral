@@ -6,6 +6,7 @@ export type TemplateTarget = 'hackday';
 export type TemplateProvisionStatus = 'provisioned' | 'initialized' | 'failed';
 export type AppRuntimeOwner = 'hd26forge' | 'hackcentral';
 export type AppRouteVersion = 'v1' | 'v2';
+export type RuntimeRouteSource = string;
 
 export interface ViewerContext {
   accountId: string;
@@ -342,6 +343,10 @@ export interface AppViewUrlResult {
   url: string | null;
   runtimeOwner: AppRuntimeOwner;
   routeVersion: AppRouteVersion;
+  owner?: AppRuntimeOwner;
+  configValid?: boolean;
+  missingVars?: string[];
+  routeSource?: RuntimeRouteSource;
 }
 
 export interface ActivateAppModeContextResult {
@@ -349,6 +354,7 @@ export interface ActivateAppModeContextResult {
   pageId?: string | null;
   eventId?: string | null;
   reason?: string | null;
+  runtimeSource?: string | null;
 }
 
 export interface EventLifecycleResult {

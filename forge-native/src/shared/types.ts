@@ -3,6 +3,7 @@ export const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
 
 /** Default timezone for events when none is supplied by the event record. */
 export const DEFAULT_TIMEZONE = 'Europe/London';
+export const HDC_RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 
 export interface ViewerContext {
   accountId: string;
@@ -141,6 +142,14 @@ export type TemplateTarget = "hackday";
 export type TemplateProvisionStatus = "provisioned" | "initialized" | "failed";
 export type AppRuntimeOwner = "hd26forge" | "hackcentral";
 export type AppRouteVersion = "v1" | "v2";
+export type RuntimeRouteSource = string;
+
+export interface RuntimeConfigDiagnostics {
+  owner: AppRuntimeOwner;
+  configValid: boolean;
+  missingVars: string[];
+  routeSource: RuntimeRouteSource;
+}
 
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
@@ -312,6 +321,10 @@ export interface AppViewUrlResult {
   url: string | null;
   runtimeOwner: AppRuntimeOwner;
   routeVersion: AppRouteVersion;
+  owner?: AppRuntimeOwner;
+  configValid?: boolean;
+  missingVars?: string[];
+  routeSource?: RuntimeRouteSource;
 }
 
 export interface ActivateAppModeContextResult {
@@ -319,6 +332,7 @@ export interface ActivateAppModeContextResult {
   pageId?: string | null;
   eventId?: string | null;
   reason?: string | null;
+  runtimeSource?: string | null;
 }
 
 export interface EventLifecycleResult {

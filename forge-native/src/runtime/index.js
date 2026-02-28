@@ -47,6 +47,8 @@ const APP_MODE_RUNTIME_SOURCES = Object.freeze({
 const RESET_SEED_PROFILE_BALANCED_V1 = "balanced_v1";
 const SEED_USER_EMAIL_PREFIX = "seed26.";
 const SUPPORTED_RESET_SEED_PROFILES = new Set([RESET_SEED_PROFILE_BALANCED_V1]);
+const HDC_RUNTIME_CONFIG_ERROR_CODE = "HDC_RUNTIME_CONFIG_INVALID";
+const HDC_RUNTIME_OWNER = "hackcentral";
 
 /**
  * API Contract: Team Size Field Naming
@@ -853,16 +855,65 @@ function resolveForgeRouteId(value) {
   return ariMatch?.[1] || null;
 }
 
+function uniqueStrings(values) {
+  return [...new Set(values)];
+}
+
+function createRuntimeConfigDiagnostics({ routeSource, missingVars = [] }) {
+  const normalizedMissingVars = uniqueStrings(
+    Array.isArray(missingVars)
+      ? missingVars.filter((item) => typeof item === "string" && item.trim())
+      : []
+  );
+  return {
+    owner: HDC_RUNTIME_OWNER,
+    configValid: normalizedMissingVars.length === 0,
+    missingVars: normalizedMissingVars,
+    routeSource,
+  };
+}
+
+function logRuntimeConfigFailure(message, diagnostics) {
+  console.error(
+    "[runtime-config]",
+    JSON.stringify({
+      errorCode: HDC_RUNTIME_CONFIG_ERROR_CODE,
+      message,
+      owner: diagnostics.owner,
+      configValid: diagnostics.configValid,
+      missingVars: diagnostics.missingVars,
+      routeSource: diagnostics.routeSource,
+    })
+  );
+}
+
+function createRuntimeConfigError(message, diagnostics) {
+  const error = new Error(`[${HDC_RUNTIME_CONFIG_ERROR_CODE}] ${message}`);
+  error.code = HDC_RUNTIME_CONFIG_ERROR_CODE;
+  error.diagnostics = diagnostics;
+  logRuntimeConfigFailure(message, diagnostics);
+  return error;
+}
+
 function resolveRuntimeRouteIdsFromEnvironment() {
-  const appId = resolveForgeRouteId(process.env.HDC_RUNTIME_APP_ID || process.env.FORGE_APP_ID || "");
-  const environmentIdCandidate = String(process.env.HDC_RUNTIME_ENVIRONMENT_ID || process.env.FORGE_ENVIRONMENT_ID || "").trim();
+  const runtimeAppId = String(process.env.HDC_RUNTIME_APP_ID || "").trim();
+  const forgeAppId = String(process.env.FORGE_APP_ID || "").trim();
+  const runtimeEnvironmentId = String(process.env.HDC_RUNTIME_ENVIRONMENT_ID || "").trim();
+  const forgeEnvironmentId = String(process.env.FORGE_ENVIRONMENT_ID || "").trim();
+  const appId = resolveForgeRouteId(runtimeAppId || forgeAppId);
+  const environmentIdCandidate = runtimeEnvironmentId || forgeEnvironmentId;
   const environmentId = isUuidLike(environmentIdCandidate) ? environmentIdCandidate : null;
-  if (!appId || !environmentId) {
-    return null;
+  const missingVars = [];
+  if (!runtimeAppId && !forgeAppId) {
+    missingVars.push("HDC_RUNTIME_APP_ID", "FORGE_APP_ID");
+  }
+  if (!runtimeEnvironmentId && !forgeEnvironmentId) {
+    missingVars.push("HDC_RUNTIME_ENVIRONMENT_ID", "FORGE_ENVIRONMENT_ID");
   }
   return {
     appId,
     environmentId,
+    missingVars: uniqueStrings(missingVars),
   };
 }
 
@@ -878,10 +929,15 @@ function buildAppModeLaunchUrlFromContext(req, pageId) {
     req?.context?.extensionContext?.localId ||
     null;
   const routeIdsFromLocalId = extractRuntimeRouteIdsFromLocalId(localIdValue);
-  const routeIds = routeIdsFromLocalId || resolveRuntimeRouteIdsFromEnvironment();
+  const routeIdsFromEnvironment = resolveRuntimeRouteIdsFromEnvironment();
+  const routeIds = routeIdsFromLocalId || routeIdsFromEnvironment;
   if (!routeIds?.appId || !routeIds?.environmentId) {
-    throw new Error(
-      "Unable to resolve app route context from localId or HDC_RUNTIME_APP_ID/HDC_RUNTIME_ENVIRONMENT_ID."
+    throw createRuntimeConfigError(
+      "Unable to resolve app route context from localId or HDC_RUNTIME_APP_ID/HDC_RUNTIME_ENVIRONMENT_ID.",
+      createRuntimeConfigDiagnostics({
+        routeSource: "runtime_launch_route_env",
+        missingVars: routeIdsFromEnvironment?.missingVars || [],
+      })
     );
   }
 
@@ -893,6 +949,10 @@ function buildAppModeLaunchUrlFromContext(req, pageId) {
     pageId: normalizedPageId,
     appId: routeIds.appId,
     environmentId: routeIds.environmentId,
+    owner: HDC_RUNTIME_OWNER,
+    configValid: true,
+    missingVars: [],
+    routeSource: routeContextSource,
     routeContextSource,
     path,
     url: siteBaseUrl ? `${siteBaseUrl}${path}` : path,
