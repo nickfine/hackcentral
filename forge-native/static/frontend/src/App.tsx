@@ -40,7 +40,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.15';
+const HACKCENTRAL_UI_VERSION = '0.6.16';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -1327,9 +1327,46 @@ export function App(): JSX.Element {
       resetWizard();
       await loadBootstrap();
       setView('hackdays');
+      const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+      const childPagePath = childPageId ? buildConfluencePagePath(childPageId) : '';
+      const absoluteChildTarget =
+        childPagePath && typeof window !== 'undefined'
+          ? `${window.location.origin}${childPagePath}`
+          : childPagePath;
+
+      if (childPagePath) {
+        setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        try {
+          await router.navigate(childPagePath);
+          return;
+        } catch {
+          // Fall through to broader navigation options.
+        }
+
+        if (absoluteChildTarget) {
+          try {
+            await router.open(absoluteChildTarget);
+            return;
+          } catch {
+            if (typeof window !== 'undefined') {
+              window.location.assign(absoluteChildTarget);
+              return;
+            }
+          }
+        }
+      }
+
       if (result.childPageUrl) {
-        setActionMessage('HackDay created. Opening child page now... Use "Open App View" from that page header.');
-        try { await router.navigate(result.childPageUrl); } catch { /* ignore */ }
+        setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        try {
+          await router.navigate(result.childPageUrl);
+          return;
+        } catch {
+          // Fall through to full-page navigation.
+        }
+        if (typeof window !== 'undefined') {
+          window.location.assign(result.childPageUrl);
+        }
       }
     } catch (err) {
       clearTimeout(timeoutId);

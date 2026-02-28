@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.15';
+const HACKCENTRAL_MACRO_VERSION = '0.6.16';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -759,14 +759,45 @@ export function App(): JSX.Element {
       resetWizard(true);
       invalidateSwitcherCaches(context);
 
+      const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+      const childPagePath = childPageId ? buildConfluencePagePath(childPageId) : '';
+      const absoluteChildTarget =
+        childPagePath && typeof window !== 'undefined'
+          ? `${window.location.origin}${childPagePath}`
+          : childPagePath;
+
+      if (childPagePath) {
+        setMessage('Draft created. Redirecting to the child page. Then use "Open App View" in the page header.');
+        try {
+          await router.navigate(childPagePath);
+          return;
+        } catch {
+          // Fall through to broader navigation options.
+        }
+
+        if (absoluteChildTarget) {
+          try {
+            await router.open(absoluteChildTarget);
+            return;
+          } catch {
+            if (typeof window !== 'undefined') {
+              window.location.assign(absoluteChildTarget);
+              return;
+            }
+          }
+        }
+      }
+
       if (result.childPageUrl) {
-        setMessage('Draft created. Redirecting to the child page... then use "Open App View" in the page header.');
+        setMessage('Draft created. Redirecting to the child page. Then use "Open App View" in the page header.');
         try {
           await router.navigate(result.childPageUrl);
           return;
         } catch {
-          window.location.assign(result.childPageUrl);
-          return;
+          if (typeof window !== 'undefined') {
+            window.location.assign(result.childPageUrl);
+            return;
+          }
         }
       }
 
