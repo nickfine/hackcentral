@@ -23,6 +23,14 @@ function parseIsoToMs(value: string | null | undefined): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
+function parseNumericId(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const num = Number(trimmed);
+  return Number.isFinite(num) ? num : null;
+}
+
 function completionReferenceMs(item: EventRegistryItem): number | null {
   return (
     parseIsoToMs(item.schedule.resultsAnnounceAt) ??
@@ -42,8 +50,31 @@ function isRecentCompleted(item: EventRegistryItem, nowMs: number): boolean {
   return ageMs >= 0 && ageMs <= RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 }
 
-function sortByName(items: EventRegistryItem[]): EventRegistryItem[] {
-  return items.sort((a, b) => a.eventName.localeCompare(b.eventName));
+function eventRecencyMs(item: EventRegistryItem): number | null {
+  return (
+    parseIsoToMs(item.schedule.resultsAnnounceAt) ??
+    parseIsoToMs(item.schedule.votingEndsAt) ??
+    parseIsoToMs(item.schedule.submissionDeadlineAt) ??
+    parseIsoToMs(item.submissionDeadlineAt) ??
+    parseIsoToMs(item.schedule.hackingStartsAt) ??
+    parseIsoToMs(item.hackingStartsAt) ??
+    parseIsoToMs(item.schedule.teamFormationStartsAt) ??
+    parseIsoToMs(item.schedule.registrationOpensAt)
+  );
+}
+
+export function sortByMostRecent(items: EventRegistryItem[]): EventRegistryItem[] {
+  return items.sort((a, b) => {
+    const aMs = eventRecencyMs(a);
+    const bMs = eventRecencyMs(b);
+    if (aMs !== bMs) return (bMs ?? Number.NEGATIVE_INFINITY) - (aMs ?? Number.NEGATIVE_INFINITY);
+
+    const aPageId = parseNumericId(a.confluencePageId);
+    const bPageId = parseNumericId(b.confluencePageId);
+    if (aPageId !== bPageId) return (bPageId ?? Number.NEGATIVE_INFINITY) - (aPageId ?? Number.NEGATIVE_INFINITY);
+
+    return a.eventName.localeCompare(b.eventName);
+  });
 }
 
 function sortRecent(items: EventRegistryItem[]): EventRegistryItem[] {
@@ -86,8 +117,8 @@ export function buildSwitcherSections(
   }
 
   return {
-    live: sortByName(live),
-    upcoming: sortByName(upcoming),
+    live: sortByMostRecent(live),
+    upcoming: sortByMostRecent(upcoming),
     recent: sortRecent(recent),
   };
 }

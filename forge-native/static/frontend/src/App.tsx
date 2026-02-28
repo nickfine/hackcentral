@@ -21,6 +21,7 @@ import {
   isNavigableRegistryItem,
   readSwitcherRegistryCache,
   runSwitcherNavigation,
+  sortByMostRecent,
   summarizeSwitcherNavigability,
   switcherRowMetaText,
   writeSwitcherRegistryCache,
@@ -40,7 +41,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.20';
+const HACKCENTRAL_UI_VERSION = '0.6.21';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -910,6 +911,7 @@ export function App(): JSX.Element {
   const allProjects = bootstrap?.recentProjects ?? [];
   const allPeople = bootstrap?.people ?? [];
   const registry = bootstrap?.registry ?? [];
+  const sortedRegistry = useMemo(() => sortByMostRecent([...registry]), [registry]);
   const switcherSections = useMemo(() => buildSwitcherSections(registry), [registry]);
   const hasNonNavigableSwitcherItems = useMemo(
     () => registry.some((item) => !isNavigableRegistryItem(item)),
@@ -2034,9 +2036,9 @@ export function App(): JSX.Element {
                 </div>
               </section>
 
-              {registry.length > 0 ? (
+              {sortedRegistry.length > 0 ? (
                 <div className="grid hacks-grid">
-                  {registry.map((event) => (
+                  {sortedRegistry.map((event) => (
                     <article key={event.id} className="card hackday-card">
                       <div className="hackday-card-top">
                         <div className="hackday-card-header">
