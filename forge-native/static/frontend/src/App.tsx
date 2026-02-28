@@ -40,7 +40,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.18';
+const HACKCENTRAL_UI_VERSION = '0.6.19';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -51,6 +51,20 @@ const HACKS_SCOPE_NOTE = '';
 const TEAM_PULSE_PLACEHOLDER_NOTE = '';
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
+
+function navigateTopWindow(targetUrl: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.top && window.top !== window) {
+      window.top.location.assign(targetUrl);
+      return true;
+    }
+  } catch {
+    // Cross-frame restrictions; fall through to local frame navigation.
+  }
+  window.location.assign(targetUrl);
+  return true;
+}
 
 function isAdaptavistEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
@@ -1329,8 +1343,7 @@ export function App(): JSX.Element {
       setView('hackdays');
       if (result.appViewUrl) {
         setActionMessage('HackDay created. Opening full app view now...');
-        if (typeof window !== 'undefined') {
-          window.location.assign(result.appViewUrl);
+        if (navigateTopWindow(result.appViewUrl)) {
           return;
         }
         try {

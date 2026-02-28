@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.18';
+const HACKCENTRAL_MACRO_VERSION = '0.6.19';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -43,6 +43,20 @@ const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay Central parent page.';
 const WIZARD_STORAGE_KEY_PREFIX = 'hdc-create-wizard:';
 const SUBMISSION_REQUIREMENT_OPTIONS: SubmissionRequirement[] = ['video_demo', 'working_prototype', 'documentation'];
+
+function navigateTopWindow(targetUrl: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.top && window.top !== window) {
+      window.top.location.assign(targetUrl);
+      return true;
+    }
+  } catch {
+    // Cross-frame restrictions; fall through to local frame navigation.
+  }
+  window.location.assign(targetUrl);
+  return true;
+}
 
 interface WizardDraftState {
   eventName: string;
@@ -761,8 +775,7 @@ export function App(): JSX.Element {
 
       if (result.appViewUrl) {
         setMessage('Draft created. Opening full app view now...');
-        if (typeof window !== 'undefined') {
-          window.location.assign(result.appViewUrl);
+        if (navigateTopWindow(result.appViewUrl)) {
           return;
         }
         try {
