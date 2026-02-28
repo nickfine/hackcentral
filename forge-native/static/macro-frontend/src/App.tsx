@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.16';
+const HACKCENTRAL_MACRO_VERSION = '0.6.17';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -758,6 +758,19 @@ export function App(): JSX.Element {
       setCreateDraftTimedOut(false);
       resetWizard(true);
       invalidateSwitcherCaches(context);
+
+      if (result.appViewUrl) {
+        setMessage('Draft created. Opening full app view now...');
+        try {
+          await router.navigate(result.appViewUrl);
+          return;
+        } catch {
+          if (typeof window !== 'undefined') {
+            window.location.assign(result.appViewUrl);
+            return;
+          }
+        }
+      }
 
       const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
       const childPagePath = childPageId ? buildConfluencePagePath(childPageId) : '';

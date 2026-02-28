@@ -118,13 +118,26 @@ function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
   return 'hackday';
 }
 
+function getHackdayTemplateAppRouteConfig(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+} | null {
+  const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
+  const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
+  if (!targetAppId || !targetEnvironmentId) {
+    return null;
+  }
+  return { targetAppId, targetEnvironmentId };
+}
+
 function getHackdayTemplateMacroConfig(): {
   targetAppId: string;
   targetEnvironmentId: string;
   targetMacroKey: string;
 } {
-  const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
-  const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
+  const routeConfig = getHackdayTemplateAppRouteConfig();
+  const targetAppId = routeConfig?.targetAppId;
+  const targetEnvironmentId = routeConfig?.targetEnvironmentId;
   const targetMacroKey = process.env.HACKDAY_TEMPLATE_MACRO_KEY?.trim();
   if (!targetAppId || !targetEnvironmentId || !targetMacroKey) {
     throw new Error(
@@ -132,6 +145,34 @@ function getHackdayTemplateMacroConfig(): {
     );
   }
   return { targetAppId, targetEnvironmentId, targetMacroKey };
+}
+
+function normalizeSiteBaseUrl(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/\/+$/, '');
+  }
+  if (/^[a-z0-9.-]+$/i.test(trimmed)) {
+    return `https://${trimmed}`.replace(/\/+$/, '');
+  }
+  return null;
+}
+
+function buildHackdayTemplateAppViewUrl(
+  siteUrl: string | null | undefined,
+  pageId: string,
+  routeConfig: { targetAppId: string; targetEnvironmentId: string }
+): string | null {
+  const normalizedPageId = typeof pageId === 'string' ? pageId.trim() : '';
+  if (!normalizedPageId) return null;
+
+  const path = `/wiki/apps/${routeConfig.targetAppId}/${routeConfig.targetEnvironmentId}/hackday-app?pageId=${encodeURIComponent(
+    normalizedPageId
+  )}`;
+  const siteBase = normalizeSiteBaseUrl(siteUrl);
+  return siteBase ? `${siteBase}${path}` : path;
 }
 
 function normalizeEventSchedule(
@@ -853,15 +894,21 @@ export class HdcService {
 
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
     if (existingByRequest) {
+      const existingAppRouteConfig = getHackdayTemplateAppRouteConfig();
       const existingProvisionStatus =
         existingByRequest.runtime_type === 'hackday_template'
           ? (await this.repository.getHackdayTemplateSeedByConfluencePageId(existingByRequest.confluence_page_id))
               ?.provision_status ?? 'provisioned'
           : null;
+      const existingAppViewUrl =
+        existingByRequest.runtime_type === 'hackday_template' && existingAppRouteConfig
+          ? buildHackdayTemplateAppViewUrl(viewer.siteUrl, existingByRequest.confluence_page_id, existingAppRouteConfig)
+          : null;
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
         childPageUrl: existingByRequest.confluence_page_url ?? '',
+        appViewUrl: existingAppViewUrl,
         templateProvisionStatus: existingProvisionStatus,
       };
     }
@@ -1001,6 +1048,10 @@ export class HdcService {
         });
         templateProvisionStatus = seed.provision_status;
       }
+      const appViewUrl =
+        runtimeType === 'hackday_template' && templateMacroConfig
+          ? buildHackdayTemplateAppViewUrl(viewer.siteUrl, childPage.pageId, templateMacroConfig)
+          : null;
 
       await Promise.all([
         this.repository.upsertSyncState(event.id, {
@@ -1035,6 +1086,7 @@ export class HdcService {
         eventId: event.id,
         childPageId: childPage.pageId,
         childPageUrl: childPage.pageUrl,
+        appViewUrl,
         templateProvisionStatus,
       };
     } catch (error) {

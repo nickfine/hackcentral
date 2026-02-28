@@ -299,6 +299,8 @@ export interface CreateInstanceDraftResult {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
+  /** HD26Forge app-shell URL for this new event page (full-page runtime). */
+  appViewUrl?: string | null;
   templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
