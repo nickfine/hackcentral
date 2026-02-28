@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.19';
+const HACKCENTRAL_MACRO_VERSION = '0.6.20';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -674,6 +674,17 @@ export function App(): JSX.Element {
     setWizardStep((step) => (step > 1 ? ((step - 1) as WizardStep) : step));
   }, []);
 
+  const resolveAppViewUrlForPage = useCallback(async (targetPageId: string): Promise<string | null> => {
+    if (LOCAL_PREVIEW || !targetPageId) return null;
+    try {
+      const result = await invokeTyped('hdcGetAppViewUrl', { pageId: targetPageId });
+      const url = typeof result?.url === 'string' ? result.url.trim() : '';
+      return url || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const handleCreateDraft = useCallback(async () => {
     if (!context) {
       setError('Event context is not loaded yet.');
@@ -773,13 +784,14 @@ export function App(): JSX.Element {
       resetWizard(true);
       invalidateSwitcherCaches(context);
 
-      if (result.appViewUrl) {
+      const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      if (appViewUrl) {
         setMessage('Draft created. Opening full app view now...');
-        if (navigateTopWindow(result.appViewUrl)) {
+        if (navigateTopWindow(appViewUrl)) {
           return;
         }
         try {
-          await router.navigate(result.appViewUrl);
+          await router.navigate(appViewUrl);
           return;
         } catch {
           // Fall through to child-page navigation.
@@ -961,7 +973,7 @@ export function App(): JSX.Element {
         setSaving(false);
       }
     },
-    [context, loadContext, invalidateSwitcherCaches]
+    [context, loadContext, invalidateSwitcherCaches, resolveAppViewUrlForPage]
   );
 
   const handleLaunch = useCallback(async () => {
@@ -1051,14 +1063,27 @@ export function App(): JSX.Element {
         setSwitcherOpen(false);
         return;
       }
+      const appViewUrl = await resolveAppViewUrlForPage(targetPageId);
       const targetPath = buildConfluencePagePath(targetPageId);
       const absoluteTarget =
         typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;
 
       setSwitcherOpen(false);
       if (LOCAL_PREVIEW) {
-        setMessage(`Local preview mode: would navigate to ${targetPath}`);
+        setMessage(`Local preview mode: would navigate to ${appViewUrl || targetPath}`);
         return;
+      }
+
+      if (appViewUrl) {
+        if (navigateTopWindow(appViewUrl)) {
+          return;
+        }
+        try {
+          await router.navigate(appViewUrl);
+          return;
+        } catch {
+          // Fall through to page-route navigation.
+        }
       }
 
       try {
@@ -1077,7 +1102,7 @@ export function App(): JSX.Element {
         }
       }
     },
-    [currentContextPageId]
+    [currentContextPageId, resolveAppViewUrlForPage]
   );
 
   const handleSwitcherMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {

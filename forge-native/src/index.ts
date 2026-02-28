@@ -87,6 +87,19 @@ resolver.define(
 );
 
 resolver.define(
+  'hdcGetAppViewUrl',
+  async (request: {
+    context?: RawResolverContext;
+    payload: {
+      pageId: string;
+    };
+  }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return hdcService.getAppViewUrl(viewer, request.payload.pageId);
+  }
+);
+
+resolver.define(
   'hdcCreateInstanceDraft',
   async (request: {
     context?: RawResolverContext;

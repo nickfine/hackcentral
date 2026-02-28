@@ -332,6 +332,10 @@ export interface CreateInstanceDraftResult {
   appViewUrl?: string | null;
 }
 
+export interface AppViewUrlResult {
+  url: string | null;
+}
+
 export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
@@ -366,6 +370,7 @@ export type Defs = {
   createProject: (payload: CreateProjectInput) => CreateProjectResult;
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
+  hdcGetAppViewUrl: (payload: { pageId: string }) => AppViewUrlResult;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;

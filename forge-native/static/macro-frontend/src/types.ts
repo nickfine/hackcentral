@@ -208,6 +208,10 @@ export interface CreateInstanceDraftResult {
   templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
+export interface AppViewUrlResult {
+  url: string | null;
+}
+
 export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
@@ -232,6 +236,7 @@ export interface SyncResult {
 
 export type Defs = {
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
+  hdcGetAppViewUrl: (payload: { pageId: string }) => AppViewUrlResult;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;

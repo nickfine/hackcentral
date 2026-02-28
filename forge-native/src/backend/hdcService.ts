@@ -842,6 +842,20 @@ export class HdcService {
     };
   }
 
+  async getAppViewUrl(viewer: ViewerContext, pageId: string): Promise<{ url: string | null }> {
+    const normalizedPageId = typeof pageId === 'string' ? pageId.trim() : '';
+    if (!normalizedPageId) {
+      return { url: null };
+    }
+    const routeConfig = getHackdayTemplateAppRouteConfig();
+    if (!routeConfig) {
+      return { url: null };
+    }
+    return {
+      url: buildHackdayTemplateAppViewUrl(viewer.siteUrl, normalizedPageId, routeConfig),
+    };
+  }
+
   async rebuildScheduleMilestonesForExistingEvent(eventId: string): Promise<{
     eventId: string;
     runtimeType: InstanceRuntime;

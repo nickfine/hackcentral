@@ -40,7 +40,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.19';
+const HACKCENTRAL_UI_VERSION = '0.6.20';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -1246,6 +1246,17 @@ export function App(): JSX.Element {
     return null;
   }, [wCoAdminsInput, wEventName, wHackingStartsAt, wMaxTeamSize, wMinTeamSize, wPrimaryAdminEmail, wRegistrationClosesAt, wRegistrationOpensAt, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wVotingEndsAt, wVotingStartsAt]);
 
+  const resolveAppViewUrlForPage = useCallback(async (targetPageId: string): Promise<string | null> => {
+    if (previewMode || !targetPageId) return null;
+    try {
+      const result = await invokeTyped('hdcGetAppViewUrl', { pageId: targetPageId });
+      const url = typeof result?.url === 'string' ? result.url.trim() : '';
+      return url || null;
+    } catch {
+      return null;
+    }
+  }, [previewMode]);
+
   const handleCreateHackDay = useCallback(async () => {
     const parentPageId = bootstrap?.parentPageId;
     if (!parentPageId) {
@@ -1341,13 +1352,14 @@ export function App(): JSX.Element {
       resetWizard();
       await loadBootstrap();
       setView('hackdays');
-      if (result.appViewUrl) {
+      const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      if (appViewUrl) {
         setActionMessage('HackDay created. Opening full app view now...');
-        if (navigateTopWindow(result.appViewUrl)) {
+        if (navigateTopWindow(appViewUrl)) {
           return;
         }
         try {
-          await router.navigate(result.appViewUrl);
+          await router.navigate(appViewUrl);
           return;
         } catch {
           // Fall through to child-page navigation.
@@ -1407,7 +1419,7 @@ export function App(): JSX.Element {
     } finally {
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, wAccentColor, wAllowCrossTeamMentoring, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
 
   const exportTeamPulse = (): void => {
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
@@ -1426,14 +1438,28 @@ export function App(): JSX.Element {
 
   const navigateToSwitcherPage = useCallback(async (targetPageId: string) => {
     if (!targetPageId) return;
+    const appViewUrl = await resolveAppViewUrlForPage(targetPageId);
     const targetPath = buildConfluencePagePath(targetPageId);
     const absoluteTarget =
       typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : targetPath;
     setSwitcherOpen(false);
 
     if (previewMode) {
-      setActionMessage(`Local preview mode: would navigate to ${targetPath}`);
+      const previewTarget = appViewUrl || targetPath;
+      setActionMessage(`Local preview mode: would navigate to ${previewTarget}`);
       return;
+    }
+
+    if (appViewUrl) {
+      if (navigateTopWindow(appViewUrl)) {
+        return;
+      }
+      try {
+        await router.navigate(appViewUrl);
+        return;
+      } catch {
+        // Fall through to page-route navigation.
+      }
     }
 
     try {
@@ -1451,7 +1477,7 @@ export function App(): JSX.Element {
         window.location.assign(absoluteTarget);
       }
     }
-  }, [previewMode]);
+  }, [previewMode, resolveAppViewUrlForPage]);
 
   const onSwitcherMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!switcherMenuRef.current) return;
