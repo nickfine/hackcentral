@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** February 26, 2026
+**Last Updated:** February 28, 2026
 
 ## Project Overview
 
@@ -21,8 +21,38 @@ When users create a HackDay in HackCentral:
 ## Current Project State
 
 **Version:** 0.6.34 (root app)
-**Forge UI Cache-Busters:** 0.6.8 (`HACKCENTRAL_UI_VERSION` / `HACKCENTRAL_MACRO_VERSION`)
+**Forge UI Cache-Busters:** 0.6.21 (`HACKCENTRAL_UI_VERSION` / `HACKCENTRAL_MACRO_VERSION`)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
+
+## Session Update - App Shell Full-Page Routing + Default Recency Sort (Feb 28, 2026)
+
+### Completed
+
+- Confirmed created HackDay instances can open in full app-shell route context using URL pattern:
+  - `/wiki/apps/<app-id>/<env-id>/hackday-app`
+- Verified this app-route path removes Confluence page chrome (header/sidebar/title region) compared with page-macro context.
+- Updated HackDay registry ordering to default to **most recent first** in both Forge UIs:
+  - Global page UI (`forge-native/static/frontend`)
+  - Macro UI (`forge-native/static/macro-frontend`)
+
+### Sorting Behavior (Most Recent First)
+
+- Default list/switcher ordering now prioritizes recency derived from schedule timestamps (`results`, `voting`, `submission`, `hacking`, then earlier anchors).
+- Tie-breaker fallback uses numeric Confluence page ID (descending), then event name.
+- This replaced older default alphabetical ordering for main registry experiences.
+
+### Deploy/Release Markers
+
+- Forge package version bumped to `0.3.9` (`forge-native/package.json`)
+- UI version markers bumped to `0.6.21` in both App.tsx files
+- Commit: `3045843` — `Sort hackdays by most recent by default`
+- Pushed to `origin/main` on February 28, 2026
+
+### Validation Notes
+
+- `npm run typecheck` passed in `forge-native`
+- `npm run custom-ui:build` passed for both bundles
+- Console warnings seen during testing (FeatureGateClients duplicates, CSP font blocks, deprecated platform APIs) were non-blocking and host/platform-originated
 
 **Deployment:**
 - Frontend: Vite dev server (localhost:5173)
@@ -124,6 +154,24 @@ See DEPLOY.md for exact copy-paste steps.
 - None identified in recent work
 - `LEARNINGS.md` is the primary HackCentral continuity log for session summaries, deploy notes, and recent changes
 - `learnings.md` contains additional project-specific continuity notes (including HD26Forge integration details)
+
+## Session Update - Created HackDay Chrome Parity Reminder (Feb 27, 2026)
+
+### Observation
+
+- Original HackDay app view can run in app-shell context without Confluence page title/byline in the primary content area.
+- Created HackDays are currently opened on Confluence child pages that render the HackDay macro, so Confluence page chrome remains visible.
+
+### Key Constraint
+
+- Forge macro cannot remove host Confluence page chrome from inside iframe content.
+- True parity requires app-route usage (`/wiki/apps/.../hackday-app`) for created instances.
+
+### Next Work Item (deferred to new chat)
+
+1. Add/confirm launch flow from HackCentral-created child pages into HD26Forge app route.
+2. Keep child pages as durable anchors/metadata sources.
+3. Preserve HD26Forge page-scoped context integrity and trusted page-id rules during routing changes.
 
 ## Session Update - Schedule Builder V2 Payload Hardening (Feb 25, 2026)
 
