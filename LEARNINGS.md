@@ -54,6 +54,41 @@ When users create a HackDay in HackCentral:
 - `npm run custom-ui:build` passed for both bundles
 - Console warnings seen during testing (FeatureGateClients duplicates, CSP font blocks, deprecated platform APIs) were non-blocking and host/platform-originated
 
+## Session Update - Runtime Consolidation Foundations (Feb 28, 2026)
+
+### Completed
+
+- Added HackCentral-hosted runtime modules in Forge manifest:
+  - Global page route: `hackday-app` (resource `runtime-ui-frontend`, resolver `runtime-resolver`)
+  - Runtime macro: `hackday-runtime-macro`
+  - Runtime function handler: `src/runtime/index.js` (ported from HD26Forge backend)
+- Added runtime frontend resource:
+  - `forge-native/static/runtime-frontend` (ported from HD26Forge frontend)
+- Added runtime selection feature flag and route metadata contract in `hdcGetAppViewUrl`:
+  - `HDC_RUNTIME_OWNER` (`hd26forge` default, `hackcentral` for cutover)
+  - Response now includes `runtimeOwner` and `routeVersion`
+- Added runtime-aware instance provisioning behavior:
+  - New child page macro target now selected by runtime owner
+  - Full-page `appViewUrl` now selected by runtime owner with fallback to legacy HD26 route
+- Added migration tooling for existing child pages:
+  - `scripts/migrate-hackday-runtime-macro.mjs` (supports `dryRun`, `tenant`, `batchSize`, `cursor`, `rollbackManifestPath`)
+  - `scripts/rollback-hackday-runtime-macro.mjs`
+  - Manifest includes page-level rollback metadata (pre-migration hash + updated version + previous storage body for rollback)
+
+### New Forge Env Variables
+
+- `HDC_RUNTIME_OWNER`
+- `HDC_RUNTIME_APP_ID`
+- `HDC_RUNTIME_ENVIRONMENT_ID`
+- `HDC_RUNTIME_MACRO_KEY`
+
+### Validation
+
+- `forge-native`: `npm run typecheck` ✅
+- `forge-native`: `npm run test:backend` ✅
+- `forge-native`: `npm run custom-ui:build` ✅ (frontend + macro + runtime frontend)
+- `forge-native`: `npm run lint` ✅ (1 non-blocking deprecation warning about fetch.backend permissions)
+
 **Deployment:**
 - Frontend: Vite dev server (localhost:5173)
 - Backend: Convex

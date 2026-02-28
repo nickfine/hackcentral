@@ -1,0 +1,78 @@
+<svg width="1400" height="900" viewBox="0 0 1400 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="80" x2="1320" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#060F22"/>
+      <stop offset="0.5" stop-color="#0B1632"/>
+      <stop offset="1" stop-color="#1F1233"/>
+    </linearGradient>
+    <radialGradient id="cyanGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(258 160) rotate(35) scale(360 280)">
+      <stop stop-color="#22D3EE" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orangeGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 660) rotate(138) scale(380 290)">
+      <stop stop-color="#FB923C" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FB923C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="desk" x1="154" y1="678" x2="1246" y2="816" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B2747"/>
+      <stop offset="1" stop-color="#2C1F4C"/>
+    </linearGradient>
+    <linearGradient id="screenA" x1="284" y1="224" x2="674" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#09152B"/>
+      <stop offset="1" stop-color="#14233F"/>
+    </linearGradient>
+    <linearGradient id="screenB" x1="716" y1="234" x2="1110" y2="510" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101932"/>
+      <stop offset="1" stop-color="#211746"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1400" height="900" rx="48" fill="url(#bg)"/>
+  <rect x="24" y="24" width="1352" height="852" rx="36" stroke="#334155" stroke-opacity="0.42"/>
+  <circle cx="258" cy="160" r="320" fill="url(#cyanGlow)"/>
+  <circle cx="1180" cy="660" r="320" fill="url(#orangeGlow)"/>
+
+  <rect x="150" y="694" width="1100" height="118" rx="22" fill="url(#desk)"/>
+
+  <rect x="262" y="190" width="438" height="332" rx="26" fill="#0F1932" stroke="#334155" stroke-opacity="0.68" stroke-width="3"/>
+  <rect x="290" y="222" width="382" height="258" rx="16" fill="url(#screenA)"/>
+
+  <rect x="736" y="202" width="438" height="332" rx="26" fill="#111A35" stroke="#334155" stroke-opacity="0.68" stroke-width="3"/>
+  <rect x="764" y="234" width="382" height="258" rx="16" fill="url(#screenB)"/>
+
+  <rect x="320" y="258" width="160" height="14" rx="7" fill="#22D3EE" fill-opacity="0.78"/>
+  <rect x="320" y="282" width="248" height="10" rx="5" fill="#93C5FD" fill-opacity="0.34"/>
+  <rect x="320" y="300" width="228" height="10" rx="5" fill="#93C5FD" fill-opacity="0.24"/>
+  <rect x="320" y="332" width="322" height="96" rx="12" fill="#0D1A34"/>
+  <circle cx="350" cy="366" r="9" fill="#22D3EE"/>
+  <circle cx="380" cy="366" r="9" fill="#A78BFA"/>
+  <circle cx="410" cy="366" r="9" fill="#FB923C"/>
+  <rect x="438" y="360" width="188" height="10" rx="5" fill="#E2E8F0" fill-opacity="0.3"/>
+  <rect x="438" y="378" width="164" height="9" rx="4.5" fill="#E2E8F0" fill-opacity="0.2"/>
+
+  <rect x="794" y="262" width="180" height="102" rx="12" fill="#221850" fill-opacity="0.92"/>
+  <rect x="816" y="286" width="90" height="11" rx="5.5" fill="#FB923C" fill-opacity="0.86"/>
+  <rect x="816" y="306" width="136" height="9" rx="4.5" fill="#C4B5FD" fill-opacity="0.38"/>
+  <rect x="816" y="322" width="118" height="9" rx="4.5" fill="#C4B5FD" fill-opacity="0.26"/>
+
+  <rect x="988" y="262" width="136" height="136" rx="12" fill="#0F1C35"/>
+  <path d="M1016 352L1046 322L1064 340L1092 308" stroke="#22D3EE" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1016" cy="352" r="6" fill="#22D3EE"/>
+  <circle cx="1046" cy="322" r="6" fill="#A78BFA"/>
+  <circle cx="1064" cy="340" r="6" fill="#FB923C"/>
+  <circle cx="1092" cy="308" r="6" fill="#22D3EE"/>
+
+  <path d="M604 684C620 624 684 594 748 608C822 624 880 696 896 762H560C566 734 582 708 604 684Z" fill="#0E1B35"/>
+  <circle cx="744" cy="582" r="46" fill="#121F3D"/>
+  <rect x="686" y="724" width="120" height="26" rx="13" fill="#121D38"/>
+
+  <rect x="538" y="708" width="342" height="62" rx="14" fill="#1A2546" stroke="#334155" stroke-opacity="0.6"/>
+  <rect x="564" y="730" width="294" height="18" rx="9" fill="#0E172E"/>
+
+  <rect x="178" y="106" width="230" height="44" rx="22" fill="#0A152D" stroke="#334155" stroke-opacity="0.58"/>
+  <circle cx="208" cy="128" r="8" fill="#22D3EE"/>
+  <text x="226" y="134" fill="#D1D5DB" font-family="Manrope, sans-serif" font-size="16" font-weight="700">INNOVATION LAB</text>
+
+  <rect x="1020" y="94" width="196" height="44" rx="22" fill="#0A152D" stroke="#334155" stroke-opacity="0.58"/>
+  <text x="1050" y="122" fill="#F59E0B" font-family="Manrope, sans-serif" font-size="15" font-weight="700">LIVE PROTOTYPE</text>
+</svg>

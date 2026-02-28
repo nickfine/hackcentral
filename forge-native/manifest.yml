@@ -11,16 +11,30 @@ modules:
       resource: custom-ui-frontend
       resolver:
         function: app-resolver
+    - key: hackday-runtime-global-page
+      title: HackDay App
+      route: hackday-app
+      resource: runtime-ui-frontend
+      resolver:
+        function: runtime-resolver
   macro:
     - key: hackday-central-macro
       title: HackDay Central
       resource: custom-ui-macro
       resolver:
         function: app-resolver
+    - key: hackday-runtime-macro
+      title: HackDay Runtime
+      resource: runtime-ui-frontend
+      resolver:
+        function: runtime-resolver
+      layout: block
 
   function:
     - key: app-resolver
       handler: index.handler
+    - key: runtime-resolver
+      handler: runtime/index.handler
     - key: phase5-migration-ops
       handler: ops.handler
     - key: create-from-web
@@ -40,15 +54,22 @@ resources:
     path: static/frontend/dist
   - key: custom-ui-macro
     path: static/macro-frontend/dist
+  - key: runtime-ui-frontend
+    path: static/runtime-frontend/dist
 
 permissions:
   scopes:
+    - read:confluence-user
     - read:page:confluence
     - write:page:confluence
     - delete:page:confluence
     - read:content.property:confluence
     - write:content.property:confluence
     - read:email-address:confluence
+    - storage:app
+  content:
+    styles:
+      - 'unsafe-inline'
   external:
     fetch:
       backend:
@@ -69,6 +90,10 @@ environment:
     - CONVEX_FORGE_UPDATE_MENTOR
     - FORGE_APP_ID
     - FORGE_MACRO_KEY
+    - HDC_RUNTIME_OWNER
+    - HDC_RUNTIME_APP_ID
+    - HDC_RUNTIME_ENVIRONMENT_ID
+    - HDC_RUNTIME_MACRO_KEY
     - HACKDAY_TEMPLATE_APP_ID
     - HACKDAY_TEMPLATE_ENVIRONMENT_ID
     - HACKDAY_TEMPLATE_MACRO_KEY

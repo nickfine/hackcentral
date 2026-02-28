@@ -1,0 +1,347 @@
+/* =============================================================================
+   DESIGN SYSTEM TOKENS - HD26 Forge Custom UI
+   VIBING HackDay palette with light/dark support
+   ============================================================================= */
+
+/* =============================================================================
+   LIGHT MODE TOKENS
+   ============================================================================= */
+:root {
+  /* Surface Tokens */
+  --surface-primary: #FFFFFF;
+  --surface-secondary: #F8FAFC;
+  --surface-elevated: #F9FAFB;
+  --surface-glass: rgba(255, 255, 255, 0.7);
+  --glass-card-bg: rgba(255, 255, 255, 0.65);
+  --glass-card-bg-soft: rgba(248, 250, 252, 0.7);
+  --glass-card-border: rgba(226, 232, 240, 0.8);
+  --glass-card-border-strong: rgba(203, 213, 225, 0.6);
+  --glass-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --glass-card-hover-border: rgba(249, 115, 22, 0.32);
+  --glass-card-hover-glow: inset 0 0 12px rgba(249, 115, 22, 0.1);
+  --glass-card-backdrop-blur: 12px;
+  --glass-card-backdrop-saturation: 150%;
+  --glass-item-bg: rgba(255, 255, 255, 0.74);
+  --glass-item-border: rgba(226, 232, 240, 0.86);
+  --glass-item-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  --glass-item-hover-border: rgba(249, 115, 22, 0.34);
+  --glass-item-hover-glow: inset 0 0 12px rgba(249, 115, 22, 0.1);
+  --glass-icon-bg: rgba(124, 58, 237, 0.12);
+  --glass-icon-border: rgba(148, 163, 184, 0.32);
+  --glass-icon-shadow: 0 0 14px rgba(124, 58, 237, 0.15);
+  --glass-icon-hover-shadow: 0 0 18px rgba(249, 115, 22, 0.22);
+  --status-success-text: #166534;
+  --status-warning-text: #92400E;
+  --status-danger-text: #9F1239;
+  --mission-particle-opacity: 0.3;
+  --mission-particle-cyan: rgba(6, 182, 212, 0.16);
+  --mission-particle-orange: rgba(249, 115, 22, 0.12);
+  --mission-particle-purple: rgba(124, 58, 237, 0.1);
+  --color-cyan-accent-bg: rgba(6, 182, 212, 0.12);
+  --color-orange-accent-bg: rgba(249, 115, 22, 0.12);
+  --color-purple-accent-bg: rgba(124, 58, 237, 0.12);
+  --border-cyan-subtle: rgba(6, 182, 212, 0.24);
+  --text-cyan-primary: #0E7490;
+  --text-orange-primary: #C2410C;
+  --text-purple-primary: #6D28D9;
+  --trend-up: #0E7490;
+  --trend-down: #BE123C;
+  --shadow-cyan-glow: 0 0 20px 4px rgba(6, 182, 212, 0.2);
+  --status-active-dot-color: #06B6D4;
+  --gradient-page-bg:
+    radial-gradient(1000px 420px at 8% -10%, rgba(124, 58, 237, 0.1), transparent 60%),
+    radial-gradient(800px 340px at 95% -10%, rgba(249, 115, 22, 0.12), transparent 55%),
+    linear-gradient(180deg, #FAFAFF 0%, #F8FAFC 100%);
+  --gradient-surface-subtle: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  --gradient-surface-elevated: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+
+  /* Legacy aliases */
+  --color-bg-primary: var(--surface-secondary);
+  --color-bg-card: var(--surface-primary);
+  --color-bg-elevated: var(--surface-elevated);
+
+  /* Border Tokens */
+  --border-default: #E2E8F0;
+  --border-subtle: #CBD5E1;
+  --color-border: var(--border-default);
+  --color-border-strong: #94A3B8;
+
+  /* Text Tokens */
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-disabled: #6B7280;
+  --color-text-primary: var(--text-primary);
+  --color-text-body: var(--text-secondary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-disabled);
+
+  /* Brand & Accent Tokens */
+  --accent-brand: #F97316;
+  --accent-brand-subtle: rgba(249, 115, 22, 0.15);
+  --accent-purple: #7C3AED;
+  --accent-magenta: #EC4899;
+  --accent-blue-deep: #0A1EB2;
+  --accent-cyan: #06B6D4;
+  --accent-orange: #EA580C;
+  --accent-warning: #FF3B5C;
+  --gradient-brand-wave: linear-gradient(90deg, #7C3AED, #EC4899, #06B6D4, #F97316);
+  --gradient-progress-active: linear-gradient(90deg, #7C3AED, #F97316);
+  --glow-purple: rgba(124, 58, 237, 0.22);
+  --glow-orange: rgba(249, 115, 22, 0.2);
+  --glow-cyan: rgba(6, 182, 212, 0.18);
+
+  /* Status Tokens */
+  --status-success: #06B6D4;
+  --status-success-subtle: rgba(6, 182, 212, 0.16);
+  --status-warning: #FF3B5C;
+  --status-warning-subtle: rgba(255, 59, 92, 0.14);
+  --status-danger: #FF3B5C;
+  --status-danger-subtle: rgba(255, 59, 92, 0.14);
+  --status-info: #7C3AED;
+  --status-info-subtle: rgba(124, 58, 237, 0.14);
+
+  /* Legacy status */
+  --color-success: var(--status-success);
+  --color-warning: var(--status-warning);
+  --color-error: var(--status-danger);
+  --color-info: var(--status-info);
+
+  /* Interactive Tokens */
+  --interactive-primary: #7C3AED;
+  --interactive-hover: #6D28D9;
+
+  /* Navigation highlight - Sign Up */
+  --nav-signup-text: #166534;
+  --nav-signup-bg: rgba(16, 185, 129, 0.12);
+  --nav-signup-hover-bg: rgba(16, 185, 129, 0.18);
+  --nav-signup-border: rgba(16, 185, 129, 0.42);
+  --nav-signup-outline: rgba(16, 185, 129, 0.18);
+  --nav-signup-inset-shadow: rgba(16, 185, 129, 0.30);
+
+  /* Highlight */
+  --highlight-yellow: #F2E6A8;
+
+  /* Neutral */
+  --color-neutral: #64748B;
+  --color-neutral-light: rgba(100, 116, 139, 0.14);
+
+  /* Typography */
+  --font-heading: 'Sora', 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-body: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-display: 'Sora', 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 6px -1px rgba(9, 17, 40, 0.12), 0 2px 4px -1px rgba(9, 17, 40, 0.08);
+  --shadow-md: 0 10px 15px -3px rgba(9, 17, 40, 0.16), 0 4px 6px -2px rgba(9, 17, 40, 0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(9, 17, 40, 0.2), 0 10px 10px -5px rgba(9, 17, 40, 0.12);
+  --shadow-xl: 0 24px 32px -10px rgba(9, 17, 40, 0.24), 0 12px 14px -8px rgba(9, 17, 40, 0.14);
+  --shadow-card-hover: var(--shadow-md);
+  --shadow-glow-purple: 0 0 20px 4px rgba(160, 32, 240, 0.35);
+  --shadow-glow-orange: 0 0 20px 4px rgba(255, 107, 0, 0.32);
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 400ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-card: 14px;
+  --radius-full: 9999px;
+
+  /* Z-Index */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-config-dock: 1032;
+  --z-config-drawer: 1036;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* Spacing */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* Dashboard card spacing (semantic: header vs body) */
+  --dashboard-card-padding-x: var(--space-5);
+  --dashboard-card-header-padding-top: var(--space-4);
+  --dashboard-card-header-padding-bottom: var(--space-2);
+  --dashboard-card-body-padding-bottom: var(--space-5);
+
+  /* Focus Ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: #00D4FF;
+  --focus-ring-shadow: 0 0 0 4px rgba(0, 212, 255, 0.22);
+}
+
+/* =============================================================================
+   DARK MODE TOKENS
+   ============================================================================= */
+[data-color-mode="dark"] {
+  --surface-primary: #121826;
+  --surface-secondary: #0A0E17;
+  --surface-elevated: #1A1F2E;
+  --surface-glass: rgba(20, 20, 50, 0.4);
+  --glass-card-bg: rgba(20, 20, 50, 0.4);
+  --glass-card-bg-soft: rgba(30, 30, 60, 0.35);
+  --glass-card-border: rgba(100, 100, 255, 0.12);
+  --glass-card-border-strong: rgba(255, 255, 255, 0.08);
+  --glass-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --glass-card-hover-border: rgba(147, 197, 253, 0.34);
+  --glass-card-hover-glow: inset 0 0 12px rgba(147, 197, 253, 0.15);
+  --glass-card-backdrop-blur: 12px;
+  --glass-card-backdrop-saturation: 180%;
+  --glass-item-bg: rgba(30, 30, 60, 0.35);
+  --glass-item-border: rgba(255, 255, 255, 0.08);
+  --glass-item-shadow: 0 8px 28px rgba(0, 0, 0, 0.26);
+  --glass-item-hover-border: rgba(147, 197, 253, 0.34);
+  --glass-item-hover-glow: inset 0 0 12px rgba(147, 197, 253, 0.15);
+  --glass-icon-bg: rgba(99, 102, 241, 0.18);
+  --glass-icon-border: rgba(255, 255, 255, 0.1);
+  --glass-icon-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+  --glass-icon-hover-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+  --status-success-text: #86EFAC;
+  --status-warning-text: #FDE68A;
+  --status-danger-text: #FDA4AF;
+  --mission-particle-opacity: 0.4;
+  --mission-particle-cyan: rgba(56, 189, 248, 0.14);
+  --mission-particle-orange: rgba(249, 115, 22, 0.14);
+  --mission-particle-purple: rgba(167, 139, 250, 0.12);
+  --color-cyan-accent-bg: rgba(0, 212, 255, 0.12);
+  --color-orange-accent-bg: rgba(255, 107, 0, 0.12);
+  --color-purple-accent-bg: rgba(160, 32, 240, 0.12);
+  --border-cyan-subtle: rgba(0, 212, 255, 0.2);
+  --text-cyan-primary: #00D4FF;
+  --text-orange-primary: #FF6B00;
+  --text-purple-primary: #B34DFF;
+  --trend-up: #00D4FF;
+  --trend-down: #FF3B5C;
+  --shadow-cyan-glow: 0 0 20px 4px rgba(0, 224, 255, 0.25);
+  --status-active-dot-color: #00D4FF;
+  --gradient-page-bg:
+    radial-gradient(1200px 500px at 10% -10%, rgba(160, 32, 240, 0.14), transparent 60%),
+    radial-gradient(900px 420px at 95% -10%, rgba(255, 107, 0, 0.12), transparent 55%),
+    linear-gradient(180deg, #0A0E17 0%, #0A0E17 100%);
+  --gradient-surface-subtle: linear-gradient(180deg, #121826 0%, #0F1420 100%);
+  --gradient-surface-elevated: linear-gradient(180deg, #1A1F2E 0%, #121826 100%);
+
+  --color-bg-primary: var(--surface-secondary);
+  --color-bg-card: var(--surface-primary);
+  --color-bg-elevated: var(--surface-elevated);
+
+  --border-default: #2A3347;
+  --border-subtle: #222C3D;
+  --color-border: var(--border-default);
+  --color-border-strong: #3A4763;
+
+  --text-primary: #F3F4F6;
+  --text-secondary: #D1D5FF;
+  --text-disabled: #A5B4FC;
+  --color-text-primary: var(--text-primary);
+  --color-text-body: var(--text-secondary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-disabled);
+
+  --status-success: #00D4FF;
+  --status-success-subtle: rgba(0, 212, 255, 0.18);
+  --status-warning: #FF3B5C;
+  --status-warning-subtle: rgba(255, 59, 92, 0.18);
+  --status-danger: #FF3B5C;
+  --status-danger-subtle: rgba(255, 59, 92, 0.18);
+  --status-info: #00D4FF;
+  --status-info-subtle: rgba(0, 212, 255, 0.18);
+
+  --interactive-primary: #00D4FF;
+  --interactive-hover: #00E0FF;
+  --nav-signup-text: #A7F3D0;
+  --nav-signup-bg: rgba(11, 61, 42, 0.92);
+  --nav-signup-hover-bg: rgba(14, 78, 53, 0.94);
+  --nav-signup-border: rgba(52, 211, 153, 0.60);
+  --nav-signup-outline: rgba(52, 211, 153, 0.25);
+  --nav-signup-inset-shadow: rgba(16, 185, 129, 0.45);
+  --highlight-yellow: #4A3A12;
+  --color-neutral: #64748B;
+  --color-neutral-light: rgba(100, 116, 139, 0.14);
+
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 24px 32px -10px rgba(0, 0, 0, 0.4), 0 12px 14px -8px rgba(0, 0, 0, 0.28);
+  --shadow-card-hover: var(--shadow-md);
+
+  --focus-ring-color: #00D4FF;
+  --focus-ring-shadow: 0 0 0 4px rgba(0, 212, 255, 0.26);
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.transition-theme {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: var(--duration-normal);
+  transition-timing-function: var(--easing-default);
+}
+
+.card-hover {
+  transition: all var(--duration-normal) var(--easing-default);
+}
+
+.card-hover:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* Logo visibility based on theme */
+.logo-dark-mode {
+  display: none;
+}
+.logo-light-mode {
+  display: block;
+}
+
+[data-color-mode="dark"] .logo-dark-mode {
+  display: block;
+}
+[data-color-mode="dark"] .logo-light-mode {
+  display: none;
+}
+
+/* Single header logo (Adaptavist) – design system: visible in dark mode */
+[data-color-mode="dark"] .header-logo {
+  filter: brightness(1.25) saturate(0.85);
+}

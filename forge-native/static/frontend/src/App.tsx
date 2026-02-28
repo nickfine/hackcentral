@@ -1252,6 +1252,16 @@ export function App(): JSX.Element {
     try {
       const result = await invokeTyped('hdcGetAppViewUrl', { pageId: targetPageId });
       const url = typeof result?.url === 'string' ? result.url.trim() : '';
+      if (url) {
+        console.info(
+          '[HackCentral app-view route]',
+          JSON.stringify({
+            pageId: targetPageId,
+            runtimeOwner: result.runtimeOwner,
+            routeVersion: result.routeVersion,
+          })
+        );
+      }
       return url || null;
     } catch {
       return null;

@@ -5,18 +5,23 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "forge lint",
+    "test:backend": "node --test tests/**/*.test.mjs",
     "frontend:install": "npm install --prefix static/frontend",
     "frontend:dev": "npm run dev --prefix static/frontend",
     "frontend:build": "npm run build --prefix static/frontend",
     "macro:install": "npm install --prefix static/macro-frontend",
     "macro:dev": "npm run dev --prefix static/macro-frontend",
     "macro:build": "npm run build --prefix static/macro-frontend",
-    "custom-ui:install": "npm run frontend:install && npm run macro:install",
-    "custom-ui:build": "npm run frontend:build && npm run macro:build"
+    "runtime:install": "npm install --prefix static/runtime-frontend",
+    "runtime:dev": "npm run dev --prefix static/runtime-frontend",
+    "runtime:build": "npm run build --prefix static/runtime-frontend",
+    "custom-ui:install": "npm run frontend:install && npm run macro:install && npm run runtime:install",
+    "custom-ui:build": "npm run frontend:build && npm run macro:build && npm run runtime:build"
   },
   "dependencies": {
     "@forge/api": "^7.0.1",
     "@forge/resolver": "^1.7.1",
+    "@supabase/supabase-js": "^2.90.1",
     "convex": "^1.31.7"
   },
   "devDependencies": {

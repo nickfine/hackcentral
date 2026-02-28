@@ -139,6 +139,8 @@ export type SyncErrorCategory = "none" | "permission" | "validation" | "transien
 export type InstanceRuntime = "hdc_native" | "hackday_template";
 export type TemplateTarget = "hackday";
 export type TemplateProvisionStatus = "provisioned" | "initialized" | "failed";
+export type AppRuntimeOwner = "hd26forge" | "hackcentral";
+export type AppRouteVersion = "v1" | "v2";
 
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
@@ -299,13 +301,17 @@ export interface CreateInstanceDraftResult {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
-  /** HD26Forge app-shell URL for this new event page (full-page runtime). */
+  /** Full-page runtime URL for this event page (HD26Forge v1 or HackCentral v2). */
   appViewUrl?: string | null;
+  appViewRuntimeOwner?: AppRuntimeOwner;
+  appViewRouteVersion?: AppRouteVersion;
   templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
 export interface AppViewUrlResult {
   url: string | null;
+  runtimeOwner: AppRuntimeOwner;
+  routeVersion: AppRouteVersion;
 }
 
 export interface EventLifecycleResult {

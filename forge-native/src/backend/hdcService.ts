@@ -3,6 +3,9 @@ import {
   DEFAULT_TIMEZONE,
 } from '../shared/types';
 import type {
+  AppRouteVersion,
+  AppRuntimeOwner,
+  AppViewUrlResult,
   CreateInstanceDraftInput,
   CreateInstanceDraftResult,
   DerivedProfileSnapshot,
@@ -118,12 +121,35 @@ function resolveTemplateTarget(runtimeType: InstanceRuntime): 'hackday' | null {
   return 'hackday';
 }
 
+const HDC_RUNTIME_OWNER_HACKCENTRAL = 'hackcentral' as const;
+const HDC_RUNTIME_OWNER_HD26FORGE = 'hd26forge' as const;
+const HDC_RUNTIME_MACRO_KEY_DEFAULT = 'hackday-runtime-macro';
+
+function resolveHackdayTemplateRuntimeOwner(): AppRuntimeOwner {
+  const normalized = (process.env.HDC_RUNTIME_OWNER || '').trim().toLowerCase();
+  return normalized === HDC_RUNTIME_OWNER_HACKCENTRAL
+    ? HDC_RUNTIME_OWNER_HACKCENTRAL
+    : HDC_RUNTIME_OWNER_HD26FORGE;
+}
+
 function getHackdayTemplateAppRouteConfig(): {
   targetAppId: string;
   targetEnvironmentId: string;
 } | null {
   const targetAppId = process.env.HACKDAY_TEMPLATE_APP_ID?.trim();
   const targetEnvironmentId = process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID?.trim();
+  if (!targetAppId || !targetEnvironmentId) {
+    return null;
+  }
+  return { targetAppId, targetEnvironmentId };
+}
+
+function getHackcentralRuntimeAppRouteConfig(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+} | null {
+  const targetAppId = process.env.HDC_RUNTIME_APP_ID?.trim() || process.env.FORGE_APP_ID?.trim();
+  const targetEnvironmentId = process.env.HDC_RUNTIME_ENVIRONMENT_ID?.trim() || process.env.FORGE_ENVIRONMENT_ID?.trim();
   if (!targetAppId || !targetEnvironmentId) {
     return null;
   }
@@ -145,6 +171,23 @@ function getHackdayTemplateMacroConfig(): {
     );
   }
   return { targetAppId, targetEnvironmentId, targetMacroKey };
+}
+
+function getHackcentralRuntimeMacroConfig(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+  targetMacroKey: string;
+} | null {
+  const routeConfig = getHackcentralRuntimeAppRouteConfig();
+  if (!routeConfig?.targetAppId || !routeConfig?.targetEnvironmentId) {
+    return null;
+  }
+  const targetMacroKey = process.env.HDC_RUNTIME_MACRO_KEY?.trim() || HDC_RUNTIME_MACRO_KEY_DEFAULT;
+  return {
+    targetAppId: routeConfig.targetAppId,
+    targetEnvironmentId: routeConfig.targetEnvironmentId,
+    targetMacroKey,
+  };
 }
 
 function normalizeSiteBaseUrl(value: string | null | undefined): string | null {
@@ -193,6 +236,63 @@ function buildHackdayTemplateAppViewUrl(
   )}`;
   const siteBase = normalizeSiteBaseUrl(siteUrl);
   return siteBase ? `${siteBase}${path}` : path;
+}
+
+function buildRuntimeAppViewUrl(siteUrl: string | null | undefined, pageId: string): AppViewUrlResult {
+  const preferredOwner = resolveHackdayTemplateRuntimeOwner();
+  if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
+    const runtimeRoute = getHackcentralRuntimeAppRouteConfig();
+    if (runtimeRoute) {
+      const url = buildHackdayTemplateAppViewUrl(siteUrl, pageId, runtimeRoute);
+      if (url) {
+        return {
+          url,
+          runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
+          routeVersion: 'v2',
+        };
+      }
+    }
+    console.warn(
+      '[hdc-runtime-routing] HDC_RUNTIME_OWNER=hackcentral but route config is missing/invalid; falling back to hd26forge route.'
+    );
+  }
+
+  const legacyRoute = getHackdayTemplateAppRouteConfig();
+  return {
+    url: legacyRoute ? buildHackdayTemplateAppViewUrl(siteUrl, pageId, legacyRoute) : null,
+    runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE,
+    routeVersion: 'v1',
+  };
+}
+
+function resolveRuntimeMacroConfigForHackdayTemplates(): {
+  targetAppId: string;
+  targetEnvironmentId: string;
+  targetMacroKey: string;
+  runtimeOwner: AppRuntimeOwner;
+  routeVersion: AppRouteVersion;
+} {
+  const preferredOwner = resolveHackdayTemplateRuntimeOwner();
+  if (preferredOwner === HDC_RUNTIME_OWNER_HACKCENTRAL) {
+    const runtimeMacroConfig = getHackcentralRuntimeMacroConfig();
+    if (runtimeMacroConfig) {
+      return {
+        ...runtimeMacroConfig,
+        runtimeOwner: HDC_RUNTIME_OWNER_HACKCENTRAL,
+        routeVersion: 'v2',
+      };
+    }
+    console.warn(
+      '[hdc-runtime-routing] HDC_RUNTIME_OWNER=hackcentral but macro config is missing/invalid; falling back to hd26forge macro.'
+    );
+  }
+
+  const legacyMacroConfig = getHackdayTemplateMacroConfig();
+  return {
+    ...legacyMacroConfig,
+    runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE,
+    routeVersion: 'v1',
+  };
 }
 
 function normalizeEventSchedule(
@@ -842,18 +942,27 @@ export class HdcService {
     };
   }
 
-  async getAppViewUrl(viewer: ViewerContext, pageId: string): Promise<{ url: string | null }> {
+  async getAppViewUrl(viewer: ViewerContext, pageId: string): Promise<AppViewUrlResult> {
     const normalizedPageId = typeof pageId === 'string' ? pageId.trim() : '';
     if (!normalizedPageId) {
-      return { url: null };
+      const runtimeOwner = resolveHackdayTemplateRuntimeOwner();
+      return {
+        url: null,
+        runtimeOwner,
+        routeVersion: runtimeOwner === HDC_RUNTIME_OWNER_HACKCENTRAL ? 'v2' : 'v1',
+      };
     }
-    const routeConfig = getHackdayTemplateAppRouteConfig();
-    if (!routeConfig) {
-      return { url: null };
-    }
-    return {
-      url: buildHackdayTemplateAppViewUrl(viewer.siteUrl, normalizedPageId, routeConfig),
-    };
+    const routeResult = buildRuntimeAppViewUrl(viewer.siteUrl, normalizedPageId);
+    console.info(
+      '[hdc-runtime-routing]',
+      JSON.stringify({
+        pageId: normalizedPageId,
+        runtimeOwner: routeResult.runtimeOwner,
+        routeVersion: routeResult.routeVersion,
+        hasUrl: Boolean(routeResult.url),
+      })
+    );
+    return routeResult;
   }
 
   async rebuildScheduleMilestonesForExistingEvent(eventId: string): Promise<{
@@ -928,21 +1037,21 @@ export class HdcService {
 
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
     if (existingByRequest) {
-      const existingAppRouteConfig = getHackdayTemplateAppRouteConfig();
       const existingProvisionStatus =
         existingByRequest.runtime_type === 'hackday_template'
           ? (await this.repository.getHackdayTemplateSeedByConfluencePageId(existingByRequest.confluence_page_id))
               ?.provision_status ?? 'provisioned'
           : null;
-      const existingAppViewUrl =
-        existingByRequest.runtime_type === 'hackday_template' && existingAppRouteConfig
-          ? buildHackdayTemplateAppViewUrl(viewer.siteUrl, existingByRequest.confluence_page_id, existingAppRouteConfig)
-          : null;
+      const existingAppView = existingByRequest.runtime_type === 'hackday_template'
+        ? buildRuntimeAppViewUrl(viewer.siteUrl, existingByRequest.confluence_page_id)
+        : { url: null, runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE, routeVersion: 'v1' as const };
       return {
         eventId: existingByRequest.id,
         childPageId: existingByRequest.confluence_page_id,
         childPageUrl: existingByRequest.confluence_page_url ?? '',
-        appViewUrl: existingAppViewUrl,
+        appViewUrl: existingAppView.url,
+        appViewRuntimeOwner: existingAppView.runtimeOwner,
+        appViewRouteVersion: existingAppView.routeVersion,
         templateProvisionStatus: existingProvisionStatus,
       };
     }
@@ -976,7 +1085,7 @@ export class HdcService {
 
     const runtimeType = normalizeInstanceRuntime(input.instanceRuntime);
     const templateTarget = resolveTemplateTarget(runtimeType);
-    const templateMacroConfig = runtimeType === 'hackday_template' ? getHackdayTemplateMacroConfig() : null;
+    const templateMacroConfig = runtimeType === 'hackday_template' ? resolveRuntimeMacroConfigForHackdayTemplates() : null;
 
     const childPage = await createChildPageUnderParent({
       parentPageId: input.parentPageId,
@@ -1082,10 +1191,9 @@ export class HdcService {
         });
         templateProvisionStatus = seed.provision_status;
       }
-      const appViewUrl =
-        runtimeType === 'hackday_template' && templateMacroConfig
-          ? buildHackdayTemplateAppViewUrl(viewer.siteUrl, childPage.pageId, templateMacroConfig)
-          : null;
+      const appView = runtimeType === 'hackday_template'
+        ? buildRuntimeAppViewUrl(viewer.siteUrl, childPage.pageId)
+        : { url: null, runtimeOwner: HDC_RUNTIME_OWNER_HD26FORGE, routeVersion: 'v1' as const };
 
       await Promise.all([
         this.repository.upsertSyncState(event.id, {
@@ -1120,7 +1228,9 @@ export class HdcService {
         eventId: event.id,
         childPageId: childPage.pageId,
         childPageUrl: childPage.pageUrl,
-        appViewUrl,
+        appViewUrl: appView.url,
+        appViewRuntimeOwner: appView.runtimeOwner,
+        appViewRouteVersion: appView.routeVersion,
         templateProvisionStatus,
       };
     } catch (error) {

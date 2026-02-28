@@ -19,6 +19,8 @@ export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 export type InstanceRuntime = 'hdc_native' | 'hackday_template';
 export type TemplateTarget = 'hackday';
 export type TemplateProvisionStatus = 'provisioned' | 'initialized' | 'failed';
+export type AppRuntimeOwner = 'hd26forge' | 'hackcentral';
+export type AppRouteVersion = 'v1' | 'v2';
 
 // Event duration in days
 export type EventDuration = 1 | 2 | 3;
@@ -203,13 +205,17 @@ export interface CreateInstanceDraftResult {
   eventId: string;
   childPageId: string;
   childPageUrl: string;
-  /** HD26Forge app-shell URL for this event page (full-page runtime). */
+  /** Full-page runtime URL for this event page (HD26Forge v1 or HackCentral v2). */
   appViewUrl?: string | null;
+  appViewRuntimeOwner?: AppRuntimeOwner;
+  appViewRouteVersion?: AppRouteVersion;
   templateProvisionStatus: TemplateProvisionStatus | null;
 }
 
 export interface AppViewUrlResult {
   url: string | null;
+  runtimeOwner: AppRuntimeOwner;
+  routeVersion: AppRouteVersion;
 }
 
 export interface EventLifecycleResult {
