@@ -46,6 +46,8 @@ const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay
 const WIZARD_STORAGE_KEY_PREFIX = 'hdc-create-wizard:';
 const SUBMISSION_REQUIREMENT_OPTIONS: SubmissionRequirement[] = ['video_demo', 'working_prototype', 'documentation'];
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
+const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
+const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 
 type RuntimeConfigErrorLike = {
   code?: unknown;
@@ -98,12 +100,17 @@ function navigateTopWindow(targetUrl: string): boolean {
 }
 
 async function navigateWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  return navigateWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS);
+}
+
+async function navigateWithRouterTimeoutBudget(targetUrl: string, timeoutMs: number): Promise<boolean> {
+  if (timeoutMs <= 0) return false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const outcome = await Promise.race([
       router.navigate(targetUrl).then(() => 'navigated' as const),
       new Promise<'timeout'>((resolve) => {
-        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+        timeoutId = setTimeout(() => resolve('timeout'), timeoutMs);
       }),
     ]);
     return outcome === 'navigated';
@@ -115,12 +122,17 @@ async function navigateWithRouterTimeout(targetUrl: string): Promise<boolean> {
 }
 
 async function openWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  return openWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS);
+}
+
+async function openWithRouterTimeoutBudget(targetUrl: string, timeoutMs: number): Promise<boolean> {
+  if (timeoutMs <= 0) return false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const outcome = await Promise.race([
       router.open(targetUrl).then(() => 'opened' as const),
       new Promise<'timeout'>((resolve) => {
-        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+        timeoutId = setTimeout(() => resolve('timeout'), timeoutMs);
       }),
     ]);
     return outcome === 'opened';
@@ -135,6 +147,35 @@ async function launchAppViewUrl(targetUrl: string): Promise<boolean> {
   if (navigateTopWindow(targetUrl)) return true;
   if (await navigateWithRouterTimeout(targetUrl)) return true;
   return openWithRouterTimeout(targetUrl);
+}
+
+async function launchAppViewUrlFastPath(targetUrl: string): Promise<boolean> {
+  if (navigateTopWindow(targetUrl)) return true;
+  const budgetStartedAt = Date.now();
+  if (await navigateWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS)) return true;
+  const remainingBudgetMs = APP_VIEW_NAV_TIMEOUT_MS - Math.max(0, Date.now() - budgetStartedAt);
+  if (remainingBudgetMs <= 0) return false;
+  return openWithRouterTimeoutBudget(targetUrl, remainingBudgetMs);
+}
+
+function logCreateHandoffTelemetry(input: {
+  creationRequestId: string;
+  eventId?: string | null;
+  childPageId?: string | null;
+  durationMs: number;
+  stageMs: Record<string, number>;
+  outcome: 'opened_app_view' | 'fallback_child_page' | 'context_refreshed' | 'timeout' | 'error';
+  warning?: string | null;
+}): void {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'create_handoff',
+      source: 'macro',
+      mode: HDC_PERF_CREATE_HANDOFF_V1 ? 'v1' : 'legacy',
+      ...input,
+    })
+  );
 }
 
 interface WizardDraftState {
@@ -797,12 +838,21 @@ export function App(): JSX.Element {
     }
 
     setSaving(true);
-    setMessage('');
+    setMessage(HDC_PERF_LOADING_UX_V1 ? 'Creating HackDay draft...' : '');
 
     const requestId = pendingCreateRequestId || crypto.randomUUID();
     if (!pendingCreateRequestId) {
       setPendingCreateRequestId(requestId);
     }
+    const handoffStartedAt = Date.now();
+    const handoffStageMs: Record<string, number> = {};
+    const markHandoffStage = (stage: string, stageStartedAt: number): void => {
+      handoffStageMs[stage] = Math.max(0, Date.now() - stageStartedAt);
+    };
+    let handoffOutcome: 'opened_app_view' | 'fallback_child_page' | 'context_refreshed' | 'timeout' | 'error' = 'error';
+    let handoffWarning: string | null = null;
+    let handoffEventId: string | null = null;
+    let handoffChildPageId: string | null = null;
 
     try {
       const normalizedPrimaryAdminEmail = primaryAdminEmail.trim().toLowerCase();
@@ -865,11 +915,13 @@ export function App(): JSX.Element {
         },
       };
 
+      const createResolverStartedAt = Date.now();
       const result = await withTimeout(
         invokeTyped('hdcCreateInstanceDraft', payload),
         CREATE_DRAFT_TIMEOUT_MS,
         `Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds.`
       );
+      markHandoffStage('create_resolver', createResolverStartedAt);
       setMessage(
         `Draft created. Child page id: ${result.childPageId}. Template provision status: ${result.templateProvisionStatus ?? 'provisioned'}. Open that page and click "Open App View" for the full runtime.`
       );
@@ -877,19 +929,31 @@ export function App(): JSX.Element {
       resetWizard(true);
       invalidateSwitcherCaches(context);
       const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+      handoffEventId = typeof result.eventId === 'string' ? result.eventId : null;
+      handoffChildPageId = childPageId || null;
 
       if (childPageId) {
+        if (HDC_PERF_LOADING_UX_V1) {
+          setMessage('Draft created. Preparing app context...');
+        }
+        const activationStartedAt = Date.now();
         try {
-          const activation = await invokeTyped('hdcActivateAppModeContext', { pageId: childPageId });
+          const activation = HDC_PERF_CREATE_HANDOFF_V1 && handoffEventId
+            ? await invokeTyped('hdcSetActiveAppModeContext', { pageId: childPageId, eventId: handoffEventId })
+            : await invokeTyped('hdcActivateAppModeContext', { pageId: childPageId });
           if (!activation?.success) {
             console.warn('[HackCentral Macro] hdcActivateAppModeContext returned non-success during create flow', activation);
           }
         } catch (activationErr) {
           console.warn('[HackCentral Macro] Failed to prime app mode context during create flow', activationErr);
+          handoffWarning = activationErr instanceof Error ? activationErr.message : String(activationErr);
         }
+        markHandoffStage('context_activation', activationStartedAt);
       }
 
+      const appViewUrlLookupStartedAt = Date.now();
       const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      markHandoffStage('app_view_url_lookup', appViewUrlLookupStartedAt);
       const appViewRuntimeOwner = typeof result.appViewRuntimeOwner === 'string'
         ? result.appViewRuntimeOwner.trim().toLowerCase()
         : '';
@@ -901,8 +965,13 @@ export function App(): JSX.Element {
       let appViewOpened = false;
       if (appViewUrl) {
         setMessage('Draft created. Opening full app view now...');
-        appViewOpened = await launchAppViewUrl(appViewUrl);
+        const appViewLaunchStartedAt = Date.now();
+        appViewOpened = HDC_PERF_CREATE_HANDOFF_V1
+          ? await launchAppViewUrlFastPath(appViewUrl)
+          : await launchAppViewUrl(appViewUrl);
+        markHandoffStage('app_view_launch', appViewLaunchStartedAt);
         if (appViewOpened) {
+          handoffOutcome = 'opened_app_view';
           setMessage('Draft created. App view opened.');
           return;
         }
@@ -917,8 +986,11 @@ export function App(): JSX.Element {
 
       if (childPagePath) {
         setMessage('Draft created. Redirecting to the child page. Then use "Open App View" in the page header.');
+        const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(childPagePath);
+          markHandoffStage('child_page_navigation', childNavigateStartedAt);
+          handoffOutcome = 'fallback_child_page';
           return;
         } catch {
           // Fall through to broader navigation options.
@@ -927,9 +999,13 @@ export function App(): JSX.Element {
         if (absoluteChildTarget) {
           try {
             await router.open(absoluteChildTarget);
+            markHandoffStage('child_page_navigation', childNavigateStartedAt);
+            handoffOutcome = 'fallback_child_page';
             return;
           } catch {
             if (typeof window !== 'undefined') {
+              markHandoffStage('child_page_navigation', childNavigateStartedAt);
+              handoffOutcome = 'fallback_child_page';
               window.location.assign(absoluteChildTarget);
               return;
             }
@@ -939,22 +1015,32 @@ export function App(): JSX.Element {
 
       if (result.childPageUrl) {
         setMessage('Draft created. Redirecting to the child page. Then use "Open App View" in the page header.');
+        const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(result.childPageUrl);
+          markHandoffStage('child_page_navigation', childNavigateStartedAt);
+          handoffOutcome = 'fallback_child_page';
           return;
         } catch {
           if (typeof window !== 'undefined') {
+            markHandoffStage('child_page_navigation', childNavigateStartedAt);
+            handoffOutcome = 'fallback_child_page';
             window.location.assign(result.childPageUrl);
             return;
           }
         }
       }
 
+      const contextRefreshStartedAt = Date.now();
       await loadContext();
+      markHandoffStage('context_refresh', contextRefreshStartedAt);
+      handoffOutcome = 'context_refreshed';
     } catch (err) {
       if (isRuntimeConfigError(err)) {
         setCreateDraftTimedOut(false);
         setError(getRuntimeConfigOperatorMessage(err));
+        handoffWarning = err instanceof Error ? err.message : String(err);
+        handoffOutcome = 'error';
         return;
       }
       if (isRequestTimeoutError(err)) {
@@ -962,17 +1048,31 @@ export function App(): JSX.Element {
         setMessage(
           `Creation is taking longer than ${CREATE_DRAFT_TIMEOUT_MS / 1000} seconds. Retry to continue with the same request id.`
         );
+        handoffOutcome = 'timeout';
+        handoffWarning = err.message;
         return;
       }
       if (isDuplicateEventNameError(err)) {
         setEventNameError('An instance with this name already exists under this parent page.');
         setPendingCreateRequestId(null);
         setCreateDraftTimedOut(false);
+        handoffWarning = getErrorMessage(err);
+        handoffOutcome = 'error';
         return;
       }
 
+      handoffWarning = err instanceof Error ? err.message : String(err);
       setError(err instanceof Error ? err.message : 'Failed to create draft instance.');
     } finally {
+      logCreateHandoffTelemetry({
+        creationRequestId: requestId,
+        eventId: handoffEventId,
+        childPageId: handoffChildPageId,
+        durationMs: Math.max(0, Date.now() - handoffStartedAt),
+        stageMs: handoffStageMs,
+        outcome: handoffOutcome,
+        warning: handoffWarning,
+      });
       setSaving(false);
     }
   }, [
@@ -1010,6 +1110,7 @@ export function App(): JSX.Element {
     wizardStep,
     resultsAnnounceAt,
     getValidationErrorForStep,
+    resolveAppViewUrlForPage,
   ]);
 
   const handleSubmitHack = useCallback(async () => {

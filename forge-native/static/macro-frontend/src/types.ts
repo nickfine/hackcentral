@@ -231,6 +231,14 @@ export interface ActivateAppModeContextResult {
   runtimeSource?: string | null;
 }
 
+export interface SetActiveAppModeContextResult {
+  success: boolean;
+  pageId?: string | null;
+  eventId?: string | null;
+  reason?: string | null;
+  runtimeSource?: string | null;
+}
+
 export interface EventLifecycleResult {
   lifecycleStatus: LifecycleStatus;
 }
@@ -257,6 +265,7 @@ export type Defs = {
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;
   hdcGetAppViewUrl: (payload: { pageId: string }) => AppViewUrlResult;
   hdcActivateAppModeContext: (payload: { pageId: string }) => ActivateAppModeContextResult;
+  hdcSetActiveAppModeContext: (payload: { pageId: string; eventId: string }) => SetActiveAppModeContextResult;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
