@@ -1317,3 +1317,43 @@ Use this template at the end of every work session:
 - Execute live Forge UI + telemetry gate closure for `P1.SHOW.01`, then either:
   - upgrade checkpoint to `GO` and advance to `P1.CHILD.01`, or
   - hold as `NO GO` with rollback actions if live checks fail.
+
+## Session Update - P1.SHOW.01 Live UI + Telemetry Gate Closure (Mar 1, 2026 11:56 GMT)
+
+### Completed
+
+- Closed `P1.SHOW.01` from `CONDITIONAL GO` to `GO`.
+- Rebuilt and redeployed Forge production bundle from `forge-native` and confirmed runtime moved to app version `5.29.0`.
+- Executed live Showcase smoke on production global page:
+  - URL: `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central`
+  - submit modal includes required `demoUrl` and Showcase metadata fields (`teamMembers`, `sourceEventId`, `tags`, `linkedArtifactIds`)
+  - validation error confirmed for non-https demo URL (`[SHOWCASE_VALIDATION_FAILED] demoUrl must be a valid https URL.`)
+  - valid submit path completed for smoke record `Showcase Smoke 2026-03-01 11:52`
+  - list filters validated (search/tags/featured-only)
+  - detail panel validated (`Demo`, `Team`, linked artifacts/problems sections)
+  - featured toggle validated in UI (`Mark featured` / `Unfeature`)
+- Captured live UI evidence screenshot:
+  - `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
+- Sampled live Forge telemetry logs (`forge logs --since 30m --verbose`):
+  - `INFO [hdc-switcher-telemetry]`
+  - `INFO [hdc-performance-telemetry]`
+  - expected showcase validation traces from smoke inputs (invalid `demoUrl`, invalid non-UUID source event)
+- Validated admin/non-admin featured authority and rollback dry-run via live backend invocation:
+  - admin account unfeature succeeded:
+    - `admin_unfeature {"projectId":"834fc179-ca7a-44d5-9680-4ee6c2276fa2","featured":false,...}`
+  - non-admin account denied:
+    - `[SHOWCASE_FORBIDDEN] Showcase admin access required...`
+- Verified live DB state for smoke record:
+  - `project_id=834fc179-ca7a-44d5-9680-4ee6c2276fa2`
+  - `demo_url=https://example.com/demo`
+  - `tags=[showcase-smoke, ops-automation]`
+  - `featured=false` after rollback dry-run
+
+### Regressions or gotchas
+
+- `sourceEventId` currently persists through a UUID-typed path; non-UUID strings produce DB error (`22P02`). For smoke runs, leave this optional field blank unless using a valid event UUID.
+- Legacy/stale global-page environment URL (`.../6ef543d7-.../hackday-central`) now returns `Global page module was not found`; use the `86632806-...` production URL above for Playwright smoke.
+
+### Next recommended step
+
+- Start `P1.CHILD.01` by locking import-to-child contract boundaries (`R5.1`-`R5.4`) using finalized Showcase submission semantics.

@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 11:42 GMT
+Last updated: 2026-03-01 11:56 GMT
 
 ## Current Snapshot
 
@@ -75,7 +75,7 @@ Last updated: 2026-03-01 11:42 GMT
     - `qa:p1:telemetry-static-check`
     - `qa:p1:go-gate`
   - checkpoint artifact: `docs/artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md`
-- Showcase (`P1.SHOW.01`) is now in progress with contract + migration + first UI wiring:
+- Showcase (`P1.SHOW.01`) is now completed and validated (GO):
   - contract spec: `docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`
   - migration: `forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`
   - resolvers: `hdcListShowcaseHacks`, `hdcGetShowcaseHackDetail`, `hdcSetShowcaseFeatured`
@@ -87,25 +87,33 @@ Last updated: 2026-03-01 11:42 GMT
     - admin featured toggle controls
     - submit-hack modal expanded to include required `demoUrl` and Showcase metadata fields
   - Showcase targeted tests: `tests/forge-native-showcase-contract.spec.ts` + `tests/forge-native-showcase-runtime-modes.spec.ts` (`9/9` passing)
-  - rollout artifact: `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` (`CONDITIONAL GO`)
+  - rollout artifact: `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` (`GO`)
+  - live UI smoke evidence screenshot: `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
   - Phase 1 regression pack updated to include Showcase suites:
     - root `package.json` script `qa:p1:regression-pack` now runs Registry + Problem Exchange + Pipeline + Showcase suites (`56/56`)
   - live migration applied to `ssafugtobsqxmqtphwch`; read-only resolver smoke passed (`listShowcaseHacks`, `getShowcaseHackDetail`)
+  - production deploy/install refresh completed (`forge app version 5.29.0`)
+  - live authority check validated featured toggle permissions:
+    - admin account can set/unset featured
+    - non-admin account receives `[SHOWCASE_FORBIDDEN]`
+  - live telemetry sampling captured from `forge logs`:
+    - `[hdc-switcher-telemetry]`
+    - `[hdc-performance-telemetry]`
 
 ## Active Task Pointer
 
-- Active Task ID: `P1.SHOW.01`
-- Task title: `Showcase split + hack detail pages`
+- Active Task ID: `P1.CHILD.01`
+- Task title: `Child integrations (problem import + auto-draft publish)`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
-- Showcase requirements source: `HDC-PRODUCT-ROADMAP.md` (`R4.1`-`R4.4`)
+- Child integration requirements source: `HDC-PRODUCT-ROADMAP.md` (`R5.1`-`R5.4`)
 
 ## Next 3 Atomic Actions
 
-1. Execute live Forge UI smoke for `P1.SHOW.01` (submit hack with `demoUrl`, list filters, detail panel, featured toggle as admin/non-admin) and attach screenshot evidence.
-2. Run live telemetry sampling for Showcase rollout gate and update `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` from `CONDITIONAL GO` to `GO` or `NO GO`.
-3. After Showcase gate closure, advance to `P1.CHILD.01` contract sequencing (`R5.1`-`R5.4`) with explicit dependency on finalized Showcase submission semantics.
+1. Lock `P1.CHILD.01` contract spec for Problem Exchange import into child HackDay drafts (`R5.1`-`R5.4`).
+2. Implement backend/resolver contracts for child import + auto-draft publish semantics with explicit source-linking to solved problems/hacks.
+3. Wire Forge UI baseline for child integration flow and add targeted contract/runtime suites before live rollout gate.
 
 ## Blockers / Decisions Needed
 
@@ -128,6 +136,15 @@ Last updated: 2026-03-01 11:42 GMT
      - `SUPABASE_SERVICE_ROLE_KEY`
      - `SUPABASE_SCHEMA=public`
      - `FORGE_DATA_BACKEND=supabase`
+
+## Playwright MCP Access Note
+
+- Preferred live browser validation surface for HackCentral global page:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central`
+- Known stale route that should not be used for current production smoke:
+  - `.../6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central` (`Global page module was not found`)
+- Key smoke evidence from this session:
+  - `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
 
 ## Validation Commands
 
@@ -191,6 +208,15 @@ cd /Users/nickster/Downloads/HackCentral/forge-native && npm run typecheck
 SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json
 SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects api-keys --project-ref ssafugtobsqxmqtphwch --output json
 SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" curl -sS -X POST "https://api.supabase.com/v1/projects/ssafugtobsqxmqtphwch/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg query \"select count(*)::int as showcase_rows from \\\"ShowcaseHack\\\";\" '{query:$query}')"
+
+# Showcase production deploy + telemetry sampling completed in this session
+cd /Users/nickster/Downloads/HackCentral/forge-native && npm run custom-ui:build
+cd /Users/nickster/Downloads/HackCentral/forge-native && forge deploy --environment production --no-verify
+cd /Users/nickster/Downloads/HackCentral/forge-native && forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
+cd /Users/nickster/Downloads/HackCentral/forge-native && forge logs -e production --since 30m --verbose
+
+# Showcase live authority + rollback dry-run verification completed in this session
+cd /Users/nickster/Downloads/HackCentral && SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" SUPABASE_SCHEMA="public" FORGE_DATA_BACKEND="supabase" npx -y tsx -e "import { setShowcaseFeatured } from './forge-native/src/backend/hackcentral.ts'; ..."
 ```
 
 ## Fresh Chat Startup Checklist
