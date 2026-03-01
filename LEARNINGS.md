@@ -2087,3 +2087,25 @@ Use this template at the end of every work session:
 - `EventAuditLog.new_value` provides a workable partial source for `R9.1` even when dedicated token metering tables do not exist yet.
 - Returning numeric `tokenVolume=0` with explicit source-status metadata is safer for downstream dashboards/exports than returning `null` once a token mapping policy exists.
 - Attribution quality should be tracked explicitly (`attributed rows / token-bearing rows`) to avoid overstating confidence until richer user/team linkage and rate-card sources are available.
+
+## Session Update - Continuation Prompt Retirement Housekeeping (Mar 1, 2026 18:02 GMT)
+
+### Completed
+
+- Removed stale `CONTINUATION_PROMPT.md` from the child worktree because it was out-of-date and not part of the active startup workflow.
+- Updated continuity verification commands in `CONTINUATION.md` to stop referencing the removed file.
+- Updated `HDC-PRODUCT-EXECUTION-PLAN.md` continuity metadata:
+  - marked `P0.CONT.04` as deprecated
+  - added changelog evidence row for prompt retirement decision
+
+### Validation Evidence
+
+- `rg -n "CONTINUATION_PROMPT\.md" /Users/nickster/Downloads/HackCentral-p1-child-01`
+  - remaining mentions are historical references in append-only `LEARNINGS.md`
+- `git status --short --branch`
+  - confirms deletion and continuity doc updates are staged for next commit
+
+### Operational Learnings
+
+- Keeping a stale bootstrap prompt in-repo creates avoidable restart risk; startup should stay anchored to a single current handoff source (`CONTINUATION.md`) plus roadmap/plan files.
+- Historical learnings can keep old file references without issue as long as active workflow docs no longer depend on them.

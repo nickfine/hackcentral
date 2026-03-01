@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 17:45 GMT  
+Last updated: 2026-03-01 18:02 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -31,7 +31,7 @@ Program: HackDay Central (HDC)
 | `P0.CONT.01` | Continuity backbone | Nick Fine | Completed (2026-03-01) | None | `HDC-PRODUCT-EXECUTION-PLAN.md` created with required schema | This file |
 | `P0.CONT.02` | Continuity startup order | Nick Fine | Completed (2026-03-01) | `P0.CONT.01` | `hdc-product-roadmap.hd` updated with fixed read order | `hdc-product-roadmap.hd` |
 | `P0.CONT.03` | Handoff schema | Nick Fine | Completed (2026-03-01) | `P0.CONT.01` | `CONTINUATION.md` rewritten with active task pointer + next actions | `CONTINUATION.md` |
-| `P0.CONT.04` | Bootstrap prompt schema | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `CONTINUATION_PROMPT.md` rewritten for fresh chat bootstrap | `CONTINUATION_PROMPT.md` |
+| `P0.CONT.04` | Bootstrap prompt schema | Nick Fine | Deprecated (2026-03-01) | `P0.CONT.03` | Legacy bootstrap prompt retired; startup protocol now anchored to `CONTINUATION.md` + roadmap startup order | `hdc-product-roadmap.hd`, `CONTINUATION.md` |
 | `P0.CONT.05` | Session rituals | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `.claude/instructions.md` enforces startup/shutdown rituals and current source-of-truth files | `.claude/instructions.md` |
 | `P0.CONT.06` | Source-of-truth cleanup | Nick Fine | Completed (2026-03-01) | `P0.CONT.05` | `README.md` and `docs/README.md` references corrected | `README.md`, `docs/README.md` |
 | `P0.CONT.07` | Forge handoff file | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `forge-native/CONTINUATION_HANDOFF.md` exists and is linked | `forge-native/CONTINUATION_HANDOFF.md` |
@@ -130,3 +130,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Advanced `P3.ROI.01` baseline: completed Supabase MCP-first + CLI fallback datasource audit (`docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`), locked ROI scaffold contract and fallback policy (`docs/HDC-P3-ROI-CONTRACT-SPEC.md`), implemented admin-gated resolver `hdcGetRoiDashboard` with typed payload (`RoiDashboardSnapshot`) and export bundle scaffold, and validated with targeted ROI + Phase 2 regression suites (`8/8`) plus backend/frontend typechecks. |
 | 2026-03-01 | Advanced `P3.ROI.01` live conditional-go slice: wired admin-visible ROI dashboard UI with filter + CSV/summary exports (`forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/constants/nav.ts`), deployed production, captured admin/non-admin resolver smoke (`docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`), captured production UI + export evidence (`docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`, `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`, `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`), and recorded checkpoint `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md` with `CONDITIONAL GO` due unresolved spend/token source dependencies. |
 | 2026-03-01 | Advanced `P3.ROI.01` `R9.1` token-source slice: added `EventAuditLog.new_value` token-volume mapping into ROI resolver (token totals/breakdowns/trend now numeric; `0` when no token-bearing rows), updated ROI contract tests/spec, captured live resolver evidence (`docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`), and published checkpoint `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md` (`CONDITIONAL GO` pending `R9.2`/`R9.4`). |
+| 2026-03-01 | Housekeeping update: retired stale `CONTINUATION_PROMPT.md` from active workflow, updated continuity validation commands to use `CONTINUATION.md` + execution plan only, and marked `P0.CONT.04` as deprecated to prevent stale-task bootstrap drift. |
