@@ -480,6 +480,7 @@ export async function createChildPageUnderParent(input: {
   targetEnvironmentId?: string;
   targetMacroKey?: string;
   fallbackLabel?: string;
+  nonBlockingFullWidth?: boolean;
 }): Promise<{ pageId: string; pageUrl: string }> {
   const parentMetadata = await getParentPageMetadata(input.parentPageId);
   const hasExplicitTargetMacro = Boolean(input.targetAppId && input.targetMacroKey && input.targetEnvironmentId);
@@ -547,21 +548,30 @@ export async function createChildPageUnderParent(input: {
   if (!payload.id) {
     throw new Error('Confluence API did not return child page id.');
   }
+  const childPageId = payload.id;
 
-  try {
-    await ensurePageFullWidthByDefault(payload.id);
-  } catch (error) {
+  const logFullWidthWarning = (error: unknown): void => {
     console.warn(
       '[hdc-page-layout-warning]',
       JSON.stringify({
-        pageId: payload.id,
+        pageId: childPageId,
         message: error instanceof Error ? error.message : String(error),
       })
     );
+  };
+
+  if (input.nonBlockingFullWidth) {
+    void ensurePageFullWidthByDefault(childPageId).catch(logFullWidthWarning);
+  } else {
+    try {
+      await ensurePageFullWidthByDefault(childPageId);
+    } catch (error) {
+      logFullWidthWarning(error);
+    }
   }
 
   return {
-    pageId: payload.id,
+    pageId: childPageId,
     pageUrl: extractPageUrl(payload),
   };
 }

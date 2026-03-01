@@ -55,6 +55,8 @@ const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
+const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
+const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 
 type RuntimeConfigErrorLike = {
   code?: unknown;
@@ -107,12 +109,17 @@ function navigateTopWindow(targetUrl: string): boolean {
 }
 
 async function navigateWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  return navigateWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS);
+}
+
+async function navigateWithRouterTimeoutBudget(targetUrl: string, timeoutMs: number): Promise<boolean> {
+  if (timeoutMs <= 0) return false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const outcome = await Promise.race([
       router.navigate(targetUrl).then(() => 'navigated' as const),
       new Promise<'timeout'>((resolve) => {
-        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+        timeoutId = setTimeout(() => resolve('timeout'), timeoutMs);
       }),
     ]);
     return outcome === 'navigated';
@@ -124,12 +131,17 @@ async function navigateWithRouterTimeout(targetUrl: string): Promise<boolean> {
 }
 
 async function openWithRouterTimeout(targetUrl: string): Promise<boolean> {
+  return openWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS);
+}
+
+async function openWithRouterTimeoutBudget(targetUrl: string, timeoutMs: number): Promise<boolean> {
+  if (timeoutMs <= 0) return false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const outcome = await Promise.race([
       router.open(targetUrl).then(() => 'opened' as const),
       new Promise<'timeout'>((resolve) => {
-        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
+        timeoutId = setTimeout(() => resolve('timeout'), timeoutMs);
       }),
     ]);
     return outcome === 'opened';
@@ -144,6 +156,35 @@ async function launchAppViewUrl(targetUrl: string): Promise<boolean> {
   if (navigateTopWindow(targetUrl)) return true;
   if (await navigateWithRouterTimeout(targetUrl)) return true;
   return openWithRouterTimeout(targetUrl);
+}
+
+async function launchAppViewUrlFastPath(targetUrl: string): Promise<boolean> {
+  if (navigateTopWindow(targetUrl)) return true;
+  const budgetStartedAt = Date.now();
+  if (await navigateWithRouterTimeoutBudget(targetUrl, APP_VIEW_NAV_TIMEOUT_MS)) return true;
+  const remainingBudgetMs = APP_VIEW_NAV_TIMEOUT_MS - Math.max(0, Date.now() - budgetStartedAt);
+  if (remainingBudgetMs <= 0) return false;
+  return openWithRouterTimeoutBudget(targetUrl, remainingBudgetMs);
+}
+
+function logCreateHandoffTelemetry(input: {
+  creationRequestId: string;
+  eventId?: string | null;
+  childPageId?: string | null;
+  durationMs: number;
+  stageMs: Record<string, number>;
+  outcome: 'opened_app_view' | 'fallback_child_page' | 'context_refreshed' | 'timeout' | 'error';
+  warning?: string | null;
+}): void {
+  console.info(
+    '[hdc-performance-telemetry]',
+    JSON.stringify({
+      metric: 'create_handoff',
+      source: 'global_frontend',
+      mode: HDC_PERF_CREATE_HANDOFF_V1 ? 'v1' : 'legacy',
+      ...input,
+    })
+  );
 }
 
 function isAdaptavistEmail(email: string): boolean {
@@ -1372,10 +1413,19 @@ export function App(): JSX.Element {
 
     setSaving(true);
     setActionError('');
-    setActionMessage('');
+    setActionMessage(HDC_PERF_LOADING_UX_V1 ? 'Creating HackDay draft...' : '');
 
     const requestId = wPendingRequestId || crypto.randomUUID();
     if (!wPendingRequestId) setWPendingRequestId(requestId);
+    const handoffStartedAt = Date.now();
+    const handoffStageMs: Record<string, number> = {};
+    const markHandoffStage = (stage: string, stageStartedAt: number): void => {
+      handoffStageMs[stage] = Math.max(0, Date.now() - stageStartedAt);
+    };
+    let handoffOutcome: 'opened_app_view' | 'fallback_child_page' | 'context_refreshed' | 'timeout' | 'error' = 'error';
+    let handoffWarning: string | null = null;
+    let handoffEventId: string | null = null;
+    let handoffChildPageId: string | null = null;
 
     const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
     const maxT = Math.max(minT, Math.floor(Number(wMaxTeamSize) || 1));
@@ -1431,34 +1481,50 @@ export function App(): JSX.Element {
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
+      const createResolverStartedAt = Date.now();
       const result = await Promise.race([
         invokeTyped('hdcCreateInstanceDraft', payload),
         new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error(`Creation timed out after ${CREATE_DRAFT_TIMEOUT_MS / 1000}s. Retry to continue.`)), CREATE_DRAFT_TIMEOUT_MS);
         }),
       ]);
+      markHandoffStage('create_resolver', createResolverStartedAt);
       clearTimeout(timeoutId);
       setActionMessage(
         `HackDay created! Child page: ${result.childPageId}. Open that page, then click "Open App View" for the full HackDay runtime.`
       );
       setWPendingRequestId(null);
       resetWizard();
-      await loadBootstrap();
+      if (!HDC_PERF_CREATE_HANDOFF_V1) {
+        await loadBootstrap();
+      }
       setView('hackdays');
       const childPageId = typeof result.childPageId === 'string' ? result.childPageId.trim() : '';
+      handoffEventId = typeof result.eventId === 'string' ? result.eventId : null;
+      handoffChildPageId = childPageId || null;
 
       if (childPageId) {
+        if (HDC_PERF_LOADING_UX_V1) {
+          setActionMessage('HackDay created. Preparing app context...');
+        }
+        const activationStartedAt = Date.now();
         try {
-          const activation = await invokeTyped('hdcActivateAppModeContext', { pageId: childPageId });
+          const activation = HDC_PERF_CREATE_HANDOFF_V1 && handoffEventId
+            ? await invokeTyped('hdcSetActiveAppModeContext', { pageId: childPageId, eventId: handoffEventId })
+            : await invokeTyped('hdcActivateAppModeContext', { pageId: childPageId });
           if (!activation?.success) {
             console.warn('[HackCentral] hdcActivateAppModeContext returned non-success during create flow', activation);
           }
         } catch (activationErr) {
           console.warn('[HackCentral] Failed to prime app mode context during create flow', activationErr);
+          handoffWarning = activationErr instanceof Error ? activationErr.message : String(activationErr);
         }
+        markHandoffStage('context_activation', activationStartedAt);
       }
 
+      const appViewUrlLookupStartedAt = Date.now();
       const appViewUrl = result.appViewUrl || (await resolveAppViewUrlForPage(result.childPageId));
+      markHandoffStage('app_view_url_lookup', appViewUrlLookupStartedAt);
       const appViewRuntimeOwner = typeof result.appViewRuntimeOwner === 'string'
         ? result.appViewRuntimeOwner.trim().toLowerCase()
         : '';
@@ -1470,8 +1536,13 @@ export function App(): JSX.Element {
       let appViewOpened = false;
       if (appViewUrl) {
         setActionMessage('HackDay created. Opening full app view now...');
-        appViewOpened = await launchAppViewUrl(appViewUrl);
+        const appViewLaunchStartedAt = Date.now();
+        appViewOpened = HDC_PERF_CREATE_HANDOFF_V1
+          ? await launchAppViewUrlFastPath(appViewUrl)
+          : await launchAppViewUrl(appViewUrl);
+        markHandoffStage('app_view_launch', appViewLaunchStartedAt);
         if (appViewOpened) {
+          handoffOutcome = 'opened_app_view';
           setActionMessage('HackDay created. App view opened.');
           return;
         }
@@ -1486,8 +1557,11 @@ export function App(): JSX.Element {
 
       if (childPagePath) {
         setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(childPagePath);
+          markHandoffStage('child_page_navigation', childNavigateStartedAt);
+          handoffOutcome = 'fallback_child_page';
           return;
         } catch {
           // Fall through to broader navigation options.
@@ -1496,9 +1570,13 @@ export function App(): JSX.Element {
         if (absoluteChildTarget) {
           try {
             await router.open(absoluteChildTarget);
+            markHandoffStage('child_page_navigation', childNavigateStartedAt);
+            handoffOutcome = 'fallback_child_page';
             return;
           } catch {
             if (typeof window !== 'undefined') {
+              markHandoffStage('child_page_navigation', childNavigateStartedAt);
+              handoffOutcome = 'fallback_child_page';
               window.location.assign(absoluteChildTarget);
               return;
             }
@@ -1508,19 +1586,31 @@ export function App(): JSX.Element {
 
       if (result.childPageUrl) {
         setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(result.childPageUrl);
+          markHandoffStage('child_page_navigation', childNavigateStartedAt);
+          handoffOutcome = 'fallback_child_page';
           return;
         } catch {
           // Fall through to full-page navigation.
         }
         if (typeof window !== 'undefined') {
+          markHandoffStage('child_page_navigation', childNavigateStartedAt);
+          handoffOutcome = 'fallback_child_page';
           window.location.assign(result.childPageUrl);
+          return;
         }
       }
+      const contextRefreshStartedAt = Date.now();
+      await loadBootstrap();
+      markHandoffStage('context_refresh', contextRefreshStartedAt);
+      handoffOutcome = 'context_refreshed';
     } catch (err) {
       clearTimeout(timeoutId);
       if (isRuntimeConfigError(err)) {
+        handoffWarning = err instanceof Error ? err.message : String(err);
+        handoffOutcome = 'error';
         setActionError(getRuntimeConfigOperatorMessage(err));
         return;
       }
@@ -1528,10 +1618,27 @@ export function App(): JSX.Element {
       if (msg.includes('already exists')) {
         setWEventNameError('An instance with this name already exists under this parent page.');
         setWPendingRequestId(null);
+        handoffOutcome = 'error';
+        handoffWarning = msg;
+      } else if (msg.toLowerCase().includes('timed out')) {
+        handoffOutcome = 'timeout';
+        handoffWarning = msg;
+        setActionError(msg);
       } else {
+        handoffOutcome = 'error';
+        handoffWarning = msg;
         setActionError(msg);
       }
     } finally {
+      logCreateHandoffTelemetry({
+        creationRequestId: requestId,
+        eventId: handoffEventId,
+        childPageId: handoffChildPageId,
+        durationMs: Math.max(0, Date.now() - handoffStartedAt),
+        stageMs: handoffStageMs,
+        outcome: handoffOutcome,
+        warning: handoffWarning,
+      });
       setSaving(false);
     }
   }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);

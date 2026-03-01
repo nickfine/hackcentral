@@ -49,6 +49,10 @@ const SEED_USER_EMAIL_PREFIX = "seed26.";
 const SUPPORTED_RESET_SEED_PROFILES = new Set([RESET_SEED_PROFILE_BALANCED_V1]);
 const HDC_RUNTIME_CONFIG_ERROR_CODE = "HDC_RUNTIME_CONFIG_INVALID";
 const HDC_RUNTIME_OWNER = "hackcentral";
+const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = (() => {
+  const raw = String(process.env.HDC_PERF_RUNTIME_BOOTSTRAP_V2 || "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+})();
 
 /**
  * API Contract: Team Size Field Naming
@@ -1483,7 +1487,7 @@ async function createMilestonesFromSchedule(supabase, event, seed) {
 async function resolveInstanceContext(
   supabase,
   req,
-  { allowPayloadPageId = true, preferPayloadPageId = false } = {}
+  { allowPayloadPageId = true, preferPayloadPageId = false, allowBootstrapWrites = true } = {}
 ) {
   const pageId = getConfluencePageId(req, {
     allowPayloadFallback: allowPayloadPageId,
@@ -1577,12 +1581,22 @@ async function resolveInstanceContext(
     }
   }
 
-  if (!event) {
+  if (!event && allowBootstrapWrites) {
     event = await createEventFromTemplateSeed(supabase, seed, pageId);
     runtimeSource = "seed_bootstrap";
   }
 
-  if (event) {
+  if (!event && !allowBootstrapWrites) {
+    return {
+      pageId,
+      eventId: null,
+      event: null,
+      setupRequired: true,
+      runtimeSource: "seed_pending_bootstrap",
+    };
+  }
+
+  if (event && allowBootstrapWrites) {
     // Create milestones from schedule (idempotent - skips if already exist)
     await createMilestonesFromSchedule(supabase, event, seed);
     await markTemplateSeedInitialized(supabase, seed, event.id);
@@ -1615,6 +1629,7 @@ async function resolveActiveAppModeContext(supabase, req) {
     const resolved = await resolveInstanceContext(supabase, appModeReq, {
       allowPayloadPageId: true,
       preferPayloadPageId: true,
+      allowBootstrapWrites: !HDC_PERF_RUNTIME_BOOTSTRAP_V2,
     });
     if (!resolved?.event || !resolved?.pageId) {
       await clearStoredActiveAppModeContext(accountId);
@@ -1646,12 +1661,17 @@ async function resolveActiveAppModeContext(supabase, req) {
  * Resolve current event with page-scoped context first.
  * Non-page invocations intentionally return no event context.
  */
-async function getCurrentEventContext(supabase, req) {
+async function getCurrentEventContext(
+  supabase,
+  req,
+  { allowBootstrapWrites = !HDC_PERF_RUNTIME_BOOTSTRAP_V2 } = {}
+) {
   try {
     if (isAppModeRequest(req)) {
       // 1) Always resolve trusted Confluence page context first.
       const trustedContext = await resolveInstanceContext(supabase, req, {
         allowPayloadPageId: false,
+        allowBootstrapWrites,
       });
       if (trustedContext?.event || trustedContext?.pageId) {
         return trustedContext;
@@ -1661,6 +1681,7 @@ async function getCurrentEventContext(supabase, req) {
       const payloadContext = await resolveInstanceContext(supabase, req, {
         allowPayloadPageId: true,
         preferPayloadPageId: true,
+        allowBootstrapWrites,
       });
       if (payloadContext?.event || payloadContext?.pageId) {
         return payloadContext;
@@ -1675,7 +1696,7 @@ async function getCurrentEventContext(supabase, req) {
       return buildAppModeContextRequiredResult();
     }
 
-    const context = await resolveInstanceContext(supabase, req);
+    const context = await resolveInstanceContext(supabase, req, { allowBootstrapWrites });
     if (!context.event && context.runtimeSource === "missing_page_context") {
       const globalEvent = await getLatestEventForGlobalContext(supabase);
       if (globalEvent) {
@@ -2782,6 +2803,79 @@ resolver.define("healthCheck", async () => {
     status: "ok",
     timestamp: new Date().toISOString(),
   };
+});
+
+resolver.define("getRuntimeBootstrap", async (req) => {
+  const startedAt = Date.now();
+  const stageMs = {};
+  const markStage = (stage, stageStartedAt) => {
+    stageMs[stage] = Math.max(0, Date.now() - stageStartedAt);
+  };
+  let bootstrapContext = null;
+
+  try {
+    const supabase = getSupabaseClient();
+    if (HDC_PERF_RUNTIME_BOOTSTRAP_V2) {
+      const contextBootstrapStartedAt = Date.now();
+      bootstrapContext = await getCurrentEventContext(supabase, req, {
+        allowBootstrapWrites: true,
+      });
+      markStage("context_bootstrap", contextBootstrapStartedAt);
+    }
+
+    const runStage = async (functionKey, stageName) => {
+      const stageStartedAt = Date.now();
+      const value = await resolver.getFunction(functionKey)(req);
+      markStage(stageName, stageStartedAt);
+      return value;
+    };
+
+    const [user, eventPhasePayload, teams, freeAgents, registrations] = await Promise.all([
+      runStage("getCurrentUser", "get_current_user"),
+      runStage("getEventPhase", "get_event_phase"),
+      runStage("getTeams", "get_teams"),
+      runStage("getFreeAgents", "get_free_agents"),
+      runStage("getRegistrations", "get_registrations"),
+    ]);
+
+    console.info(
+      "[hdc-performance-telemetry]",
+      JSON.stringify({
+        metric: "runtime_bootstrap",
+        mode: HDC_PERF_RUNTIME_BOOTSTRAP_V2 ? "v2" : "legacy",
+        durationMs: Math.max(0, Date.now() - startedAt),
+        stageMs,
+        pageId: eventPhasePayload?.instanceContext?.pageId ?? bootstrapContext?.pageId ?? null,
+        eventId: eventPhasePayload?.eventId ?? bootstrapContext?.eventId ?? null,
+        runtimeSource:
+          eventPhasePayload?.instanceContext?.runtimeSource ??
+          bootstrapContext?.runtimeSource ??
+          null,
+        outcome: "success",
+      })
+    );
+
+    return {
+      user,
+      eventPhasePayload,
+      teams,
+      freeAgents,
+      registrations,
+    };
+  } catch (error) {
+    console.info(
+      "[hdc-performance-telemetry]",
+      JSON.stringify({
+        metric: "runtime_bootstrap",
+        mode: HDC_PERF_RUNTIME_BOOTSTRAP_V2 ? "v2" : "legacy",
+        durationMs: Math.max(0, Date.now() - startedAt),
+        stageMs,
+        outcome: "error",
+        warning: error instanceof Error ? error.message : String(error),
+      })
+    );
+    throw error;
+  }
 });
 
 resolver.define("getAppModeLaunchUrl", async (req) => {
