@@ -1,0 +1,129 @@
+{
+  "generatedAt": "2026-03-01T17:30:38Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "candidates": {
+    "admins": [
+      {
+        "id": "654f0986-a70a-4c82-bf33-163e7d30d43f",
+        "atlassian_account_id": "642558c74b23217e558e9a25",
+        "label": "NickTestMonday",
+        "role": "ADMIN",
+        "capability_tags": []
+      },
+      {
+        "id": "553069db-97e1-431f-b693-ccf47babbe6e",
+        "atlassian_account_id": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff",
+        "label": "Ruthie Brockholes",
+        "role": "ADMIN",
+        "capability_tags": []
+      }
+    ],
+    "nonAdmins": [
+      {
+        "id": "user-1770998322559-c819ygvrq",
+        "atlassian_account_id": "712020:ffb3bc44-d1de-4b67-b170-fc2d74c21939",
+        "label": "SR",
+        "role": "USER",
+        "capability_tags": []
+      },
+      {
+        "id": "user-1771257937461-8qf77i10y",
+        "atlassian_account_id": "557058:cb0dd9fa-0c45-4dc3-8d30-9eb2391521f6",
+        "label": "Scrabble",
+        "role": "USER",
+        "capability_tags": []
+      },
+      {
+        "id": "user-1770997867603-aic50qqik",
+        "atlassian_account_id": "5fbbbf2147ac91006f94d23b",
+        "label": "Adaptavist IT",
+        "role": "USER",
+        "capability_tags": []
+      },
+      {
+        "id": "confluence-reg-1",
+        "atlassian_account_id": "confluence-account-456",
+        "label": "Confluence Registered User",
+        "role": "USER",
+        "capability_tags": []
+      },
+      {
+        "id": "confluence-reg-test-1768699558.511611",
+        "atlassian_account_id": "confluence-test-account-1768699558.511611",
+        "label": "Confluence Integration Test",
+        "role": "USER",
+        "capability_tags": []
+      },
+      {
+        "id": "confluence-user-1",
+        "atlassian_account_id": "confluence-account-123",
+        "label": "Confluence Test User",
+        "role": "USER",
+        "capability_tags": []
+      }
+    ]
+  },
+  "usedAccounts": {
+    "adminAccountId": "642558c74b23217e558e9a25",
+    "nonAdminAccountId": "712020:ffb3bc44-d1de-4b67-b170-fc2d74c21939"
+  },
+  "resolverSmoke": {
+    "generatedAt": "2026-03-01T17:30:35.789Z",
+    "adminAccountId": "642558c74b23217e558e9a25",
+    "nonAdminAccountId": "712020:ffb3bc44-d1de-4b67-b170-fc2d74c21939",
+    "adminResult": {
+      "ok": true,
+      "policyVersion": "r9-roi-scaffold-v1",
+      "window": "monthly",
+      "totals": {
+        "tokenVolume": null,
+        "cost": null,
+        "outputs": {
+          "hacksCompleted": 0,
+          "artifactsPublished": 0,
+          "problemsSolved": 0,
+          "pipelineItemsProgressed": 1
+        },
+        "costPerOutput": {
+          "perHack": null,
+          "perArtifact": null,
+          "perProblemSolved": null,
+          "perPipelineItemProgressed": null
+        }
+      },
+      "sources": {
+        "tokenVolume": {
+          "status": "unavailable",
+          "source": "none",
+          "reason": "No token-usage dataset is currently available in public schema tables or audit log payloads."
+        },
+        "costRateCard": {
+          "status": "unavailable",
+          "source": "none",
+          "reason": "No model rate-card table is available in public schema."
+        },
+        "outputs": {
+          "status": "available_partial",
+          "source": "Project, Artifact, Problem, PipelineTransitionLog",
+          "reason": "Output signals are available for people and teams, but spend attribution is unavailable."
+        },
+        "businessUnit": {
+          "status": "unavailable",
+          "source": "none",
+          "reason": "No explicit business-unit dimension is present in Team, TeamMember, or User records."
+        }
+      },
+      "trendPoints": 1,
+      "teamBreakdownRows": 0,
+      "personBreakdownRows": 1,
+      "notes": [
+        "Token-volume and cost-rate-card sources are currently unavailable in the live schema; spend metrics remain null in this scaffold.",
+        "Business-unit breakdown is disabled because no explicit BU dimension exists in Team, TeamMember, or User tables."
+      ]
+    },
+    "nonAdminResult": {
+      "ok": false,
+      "error": "[ROI_FORBIDDEN] Admin access is required to view ROI dashboard."
+    }
+  }
+}

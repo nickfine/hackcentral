@@ -7,6 +7,7 @@ export type View =
   | 'pipeline'
   | 'team_up'
   | 'team_pulse'
+  | 'roi'
   | 'create_hackday'
   | 'profile'
   | 'search'

@@ -2007,3 +2007,44 @@ Use this template at the end of every work session:
 
 - For this workspace, Supabase MCP remains useful as the required first check, but management-level ROI audits still require CLI/management API fallback to get reliable schema introspection.
 - The ROI contract is safest when it explicitly encodes source availability and null spend fields rather than implying synthetic spend values before token/rate-card integration exists.
+
+## Session Update - P3.ROI.01 Live Admin UI + Export Conditional-GO Slice (Mar 1, 2026 17:32 GMT)
+
+### Completed
+
+- Extended the Forge UI to expose an admin-only ROI dashboard surface from Team Pulse.
+- Added ROI filter controls (`window`, `teamId`, `businessUnit`) and dashboard rendering blocks:
+  - source coverage
+  - totals
+  - trend rows
+  - team/person breakdowns
+  - notes
+- Added live export controls on ROI view:
+  - `Export ROI (CSV)`
+  - `Export Summary`
+- Deployed production bundle and validated access behavior:
+  - admin can open ROI dashboard
+  - non-admin receives `[ROI_FORBIDDEN]`
+- Published rollout checkpoint with `CONDITIONAL GO` decision due unresolved source dependencies.
+
+### Validation Evidence
+
+- Production resolver smoke artifact:
+  - `docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`
+- Production UI smoke artifact:
+  - `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`
+- Production export artifacts:
+  - `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`
+  - `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`
+- Rollout checkpoint artifact:
+  - `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`
+- Regression/typecheck validation for this slice:
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`8/8`)
+
+### Operational Learnings
+
+- Keeping ROI export payload generation server-driven (`export.rows` + formatted summary) avoids client-side shape drift and makes smoke verification deterministic.
+- Role-gated resolver preflight on UI entry (`hdcGetRoiDashboard`) is a low-friction way to enforce admin-only access while still allowing explicit non-admin evidence capture for rollout gates.
+- A conditional-go checkpoint is appropriate for ROI scaffolds when UI/resolver paths are validated but critical spend/token sources are still in fallback mode.

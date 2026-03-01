@@ -1,0 +1,11 @@
+ROI scaffold (monthly) generated 2026-03-01T17:31:15.394Z. Outputs: hacks=0, artifacts=0, problems=0, pipeline_progressions=1. Spend metrics are pending token-volume and rate-card sources.
+
+Sources
+- tokenVolume: unavailable (No token-usage dataset is currently available in public schema tables or audit log payloads.)
+- costRateCard: unavailable (No model rate-card table is available in public schema.)
+- outputs: available_partial (Output signals are available for people and teams, but spend attribution is unavailable.)
+- businessUnit: unavailable (No explicit business-unit dimension is present in Team, TeamMember, or User records.)
+
+Notes
+- Token-volume and cost-rate-card sources are currently unavailable in the live schema; spend metrics remain null in this scaffold.
+- Business-unit breakdown is disabled because no explicit BU dimension exists in Team, TeamMember, or User tables.

@@ -14,6 +14,7 @@ import type {
   EventDuration,
   FlagProblemInput,
   FeaturedHack,
+  GetRoiDashboardInput,
   GetPathwayResult,
   GetShowcaseHackDetailResult,
   GetArtifactResult,
@@ -34,6 +35,8 @@ import type {
   ProblemListItem,
   ProblemStatus,
   ProjectSnapshot,
+  RoiDashboardSnapshot,
+  RoiTimeWindow,
   ScheduleEventType,
   ShowcaseHackListItem,
   ThemePreference,
@@ -981,6 +984,16 @@ function downloadJson(filename: string, payload: unknown): void {
   URL.revokeObjectURL(url);
 }
 
+function downloadText(filename: string, payload: string): void {
+  const blob = new Blob([payload], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 type CsvValue = string | number | boolean | null | undefined;
 
 function toCsvCell(value: CsvValue): string {
@@ -1348,6 +1361,17 @@ export function App(): JSX.Element {
   const [teamSearch, setTeamSearch] = useState('');
   const [teamExperienceFilter, setTeamExperienceFilter] = useState('all');
   const [teamMentorFilter, setTeamMentorFilter] = useState<MentorFilter>('hackers');
+
+  const [roiSnapshot, setRoiSnapshot] = useState<RoiDashboardSnapshot | null>(null);
+  const [roiLoading, setRoiLoading] = useState(false);
+  const [roiLoaded, setRoiLoaded] = useState(false);
+  const [roiError, setRoiError] = useState('');
+  const [roiCanView, setRoiCanView] = useState(false);
+  const [roiAccessChecked, setRoiAccessChecked] = useState(false);
+  const [roiWindowInput, setRoiWindowInput] = useState<RoiTimeWindow>('monthly');
+  const [roiTeamFilterInput, setRoiTeamFilterInput] = useState('');
+  const [roiBusinessUnitInput, setRoiBusinessUnitInput] = useState('');
+  const [roiAppliedFilters, setRoiAppliedFilters] = useState<GetRoiDashboardInput>({ window: 'monthly' });
 
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
@@ -2051,6 +2075,185 @@ export function App(): JSX.Element {
     pathwayEditorTagsInput,
     pathwayEditorTitle,
   ]);
+
+  const loadRoiDashboard = useCallback(
+    async (
+      filters: GetRoiDashboardInput,
+      options?: {
+        preflight?: boolean;
+        silentForbidden?: boolean;
+      }
+    ) => {
+      const preflight = options?.preflight === true;
+      const silentForbidden = options?.silentForbidden === true;
+      if (!preflight) {
+        setRoiLoading(true);
+      }
+      setRoiError('');
+      try {
+        if (previewMode) {
+          const previewTeamPulse = bootstrap?.teamPulse ?? null;
+          const window = filters.window ?? 'monthly';
+          const hacksCompleted = bootstrap?.summary.totalHacks ?? 0;
+          const artifactsPublished = previewTeamPulse?.totalArtifactCount ?? 0;
+          const problemsSolved = previewTeamPulse?.solvedProblemCount ?? 0;
+          const pipelineItemsProgressed = (bootstrap?.summary.completedProjects ?? 0) + (bootstrap?.summary.inProgressProjects ?? 0);
+          const previewSnapshot: RoiDashboardSnapshot = {
+            calculatedAt: new Date().toISOString(),
+            policyVersion: 'r9-roi-scaffold-v1',
+            window,
+            appliedFilters: {
+              teamId: filters.teamId?.trim() || null,
+              businessUnit: filters.businessUnit?.trim() || null,
+            },
+            sources: {
+              tokenVolume: {
+                status: 'unavailable',
+                source: 'preview',
+                reason: 'Preview mode has no spend source.',
+              },
+              costRateCard: {
+                status: 'unavailable',
+                source: 'preview',
+                reason: 'Preview mode has no rate-card source.',
+              },
+              outputs: {
+                status: 'available_partial',
+                source: 'summary/teamPulse preview',
+                reason: 'Output metrics are derived from preview bootstrap data.',
+              },
+              businessUnit: {
+                status: 'unavailable',
+                source: 'preview',
+                reason: 'Preview mode has no business-unit mapping.',
+              },
+            },
+            totals: {
+              tokenVolume: null,
+              cost: null,
+              outputs: {
+                hacksCompleted,
+                artifactsPublished,
+                problemsSolved,
+                pipelineItemsProgressed,
+              },
+              costPerOutput: {
+                perHack: null,
+                perArtifact: null,
+                perProblemSolved: null,
+                perPipelineItemProgressed: null,
+              },
+            },
+            breakdowns: {
+              person: allPeople.slice(0, 10).map((person) => ({
+                dimensionId: person.id,
+                dimensionLabel: person.fullName,
+                tokenVolume: null,
+                cost: null,
+                outputs: {
+                  hacksCompleted: 0,
+                  artifactsPublished: 0,
+                  problemsSolved: 0,
+                  pipelineItemsProgressed: 0,
+                },
+              })),
+              team: [
+                {
+                  dimensionId: filters.teamId?.trim() || 'all-teams',
+                  dimensionLabel: filters.teamId?.trim() || 'All Teams',
+                  tokenVolume: null,
+                  cost: null,
+                  outputs: {
+                    hacksCompleted,
+                    artifactsPublished,
+                    problemsSolved,
+                    pipelineItemsProgressed,
+                  },
+                },
+              ],
+              businessUnit: [],
+            },
+            trend: (previewTeamPulse?.timeToFirstHackTrend ?? []).map((point) => ({
+              periodStart: point.periodStart,
+              periodLabel: point.periodLabel,
+              tokenVolume: null,
+              cost: null,
+              outputs: {
+                hacksCompleted: point.sampleSize,
+                artifactsPublished: 0,
+                problemsSolved: 0,
+                pipelineItemsProgressed: 0,
+              },
+            })),
+            export: {
+              generatedAt: new Date().toISOString(),
+              fileName: `roi-preview-${new Date().toISOString().slice(0, 10)}.csv`,
+              rows: [
+                { section: 'summary', dimension: 'all', id: 'all', label: 'All', metric: 'window', value: window },
+                { section: 'summary', dimension: 'all', id: 'all', label: 'All', metric: 'hacks_completed', value: String(hacksCompleted) },
+                { section: 'summary', dimension: 'all', id: 'all', label: 'All', metric: 'artifacts_published', value: String(artifactsPublished) },
+                { section: 'summary', dimension: 'all', id: 'all', label: 'All', metric: 'problems_solved', value: String(problemsSolved) },
+              ],
+              formattedSummary:
+                `Preview ROI scaffold (${window}). Outputs: hacks=${hacksCompleted}, artifacts=${artifactsPublished}, problems=${problemsSolved}. ` +
+                'Spend metrics are unavailable in preview mode.',
+            },
+            notes: ['Preview mode: ROI spend/token sources are not available.'],
+          };
+          setRoiSnapshot(previewSnapshot);
+          setRoiCanView(true);
+          setRoiLoaded(true);
+          setRoiAccessChecked(true);
+          return;
+        }
+
+        const result = await invokeTyped('hdcGetRoiDashboard', filters);
+        setRoiSnapshot(result);
+        setRoiCanView(true);
+        setRoiLoaded(true);
+        setRoiAccessChecked(true);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load ROI dashboard.';
+        if (message.includes('[ROI_FORBIDDEN]')) {
+          setRoiCanView(false);
+          setRoiAccessChecked(true);
+          if (!silentForbidden) {
+            setRoiError('ROI dashboard is only available to platform admins.');
+          }
+          return;
+        }
+        setRoiAccessChecked(true);
+        setRoiError(message);
+      } finally {
+        if (!preflight) {
+          setRoiLoading(false);
+        }
+      }
+    },
+    [allPeople, bootstrap, previewMode]
+  );
+
+  const applyRoiFilters = useCallback(() => {
+    setRoiAppliedFilters({
+      window: roiWindowInput,
+      teamId: roiTeamFilterInput.trim() || undefined,
+      businessUnit: roiBusinessUnitInput.trim() || undefined,
+    });
+  }, [roiBusinessUnitInput, roiTeamFilterInput, roiWindowInput]);
+
+  useEffect(() => {
+    if (!bootstrap || roiAccessChecked) return;
+    void loadRoiDashboard({ window: 'monthly' }, { preflight: true, silentForbidden: true });
+  }, [bootstrap, loadRoiDashboard, roiAccessChecked]);
+
+  useEffect(() => {
+    if (view !== 'roi') return;
+    if (!roiCanView && roiAccessChecked) {
+      setRoiError('ROI dashboard is only available to platform admins.');
+      return;
+    }
+    void loadRoiDashboard(roiAppliedFilters);
+  }, [loadRoiDashboard, roiAccessChecked, roiAppliedFilters, roiCanView, view]);
 
   const loadShowcaseHacks = useCallback(async () => {
     setShowcaseLoading(true);
@@ -3029,6 +3232,28 @@ export function App(): JSX.Element {
     1,
     ...timeToFirstHackTrend.map((point) => (typeof point.medianDays === 'number' ? point.medianDays : 0))
   );
+  const roiTotals = roiSnapshot?.totals.outputs ?? {
+    hacksCompleted: 0,
+    artifactsPublished: 0,
+    problemsSolved: 0,
+    pipelineItemsProgressed: 0,
+  };
+  const roiTotalOutputs =
+    roiTotals.hacksCompleted +
+    roiTotals.artifactsPublished +
+    roiTotals.problemsSolved +
+    roiTotals.pipelineItemsProgressed;
+  const roiTrend = roiSnapshot?.trend ?? [];
+  const roiTrendMaxOutputs = Math.max(
+    1,
+    ...roiTrend.map(
+      (point) =>
+        point.outputs.hacksCompleted +
+        point.outputs.artifactsPublished +
+        point.outputs.problemsSolved +
+        point.outputs.pipelineItemsProgressed
+    )
+  );
 
   const aiContributors = bootstrap?.summary.activeMentors ?? 0;
   const totalPeople = bootstrap?.summary.totalPeople ?? 0;
@@ -3833,6 +4058,48 @@ export function App(): JSX.Element {
     downloadCsv(`team-pulse-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
+  const exportRoiCsv = (): void => {
+    if (!roiSnapshot) return;
+    const rows: CsvValue[][] = [
+      ['section', 'dimension', 'id', 'label', 'metric', 'value', 'generated_at'],
+    ];
+    for (const row of roiSnapshot.export.rows) {
+      rows.push([
+        row.section,
+        row.dimension,
+        row.id,
+        row.label,
+        row.metric,
+        row.value,
+        roiSnapshot.export.generatedAt,
+      ]);
+    }
+    downloadCsv(
+      `roi-dashboard-${roiSnapshot.window}-${roiSnapshot.calculatedAt.slice(0, 10)}.csv`,
+      rows
+    );
+  };
+
+  const exportRoiSummary = (): void => {
+    if (!roiSnapshot) return;
+    const lines = [
+      roiSnapshot.export.formattedSummary,
+      '',
+      'Sources',
+      `- tokenVolume: ${roiSnapshot.sources.tokenVolume.status} (${roiSnapshot.sources.tokenVolume.reason})`,
+      `- costRateCard: ${roiSnapshot.sources.costRateCard.status} (${roiSnapshot.sources.costRateCard.reason})`,
+      `- outputs: ${roiSnapshot.sources.outputs.status} (${roiSnapshot.sources.outputs.reason})`,
+      `- businessUnit: ${roiSnapshot.sources.businessUnit.status} (${roiSnapshot.sources.businessUnit.reason})`,
+      '',
+      'Notes',
+      ...roiSnapshot.notes.map((note) => `- ${note}`),
+    ];
+    downloadText(
+      `roi-summary-${roiSnapshot.window}-${roiSnapshot.calculatedAt.slice(0, 10)}.txt`,
+      lines.join('\n')
+    );
+  };
+
   const navigateToSwitcherPage = useCallback(async (targetPageId: string) => {
     if (!targetPageId) return;
     let appViewUrl: string | null = null;
@@ -4365,6 +4632,11 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <h1>Team Pulse</h1>
                 <div className="title-row-actions">
+                  {roiCanView ? (
+                    <button type="button" className="btn btn-outline" onClick={() => setView('roi')}>
+                      Open ROI Dashboard
+                    </button>
+                  ) : null}
                   <button type="button" className="btn btn-outline" onClick={exportTeamPulseCsv}>
                     Export metrics (CSV)
                   </button>
@@ -4526,6 +4798,247 @@ export function App(): JSX.Element {
                   )}
                 </div>
               </article>
+            </section>
+          ) : null}
+
+          {view === 'roi' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>ROI Dashboard</h1>
+                  <p className="subtitle">Phase 3 scaffold for spend vs output reporting (`R9.1`-`R9.5`).</p>
+                </div>
+                <div className="title-row-actions">
+                  <button type="button" className="btn btn-ghost" onClick={() => setView('team_pulse')}>
+                    Back to Team Pulse
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => void loadRoiDashboard(roiAppliedFilters)}
+                    disabled={roiLoading || !roiCanView}
+                  >
+                    {roiLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                  <button type="button" className="btn btn-outline" onClick={exportRoiCsv} disabled={!roiSnapshot}>
+                    Export ROI (CSV)
+                  </button>
+                  <button type="button" className="btn btn-outline" onClick={exportRoiSummary} disabled={!roiSnapshot}>
+                    Export Summary
+                  </button>
+                </div>
+              </section>
+
+              {!roiCanView && roiAccessChecked ? (
+                <section className="message message-error">ROI dashboard is only available to platform admins.</section>
+              ) : null}
+
+              {roiCanView ? (
+                <>
+                  <section className="filter-row">
+                    <select
+                      value={roiWindowInput}
+                      onChange={(event) => setRoiWindowInput(event.target.value as RoiTimeWindow)}
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Team ID (optional)"
+                      value={roiTeamFilterInput}
+                      onChange={(event) => setRoiTeamFilterInput(event.target.value)}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Business unit (optional)"
+                      value={roiBusinessUnitInput}
+                      onChange={(event) => setRoiBusinessUnitInput(event.target.value)}
+                    />
+                    <button type="button" className="btn btn-primary" onClick={applyRoiFilters}>
+                      Apply ROI Filters
+                    </button>
+                  </section>
+
+                  {roiError ? <section className="message message-error">{roiError}</section> : null}
+                  {roiLoading && !roiLoaded ? <p className="empty-copy">Loading ROI dashboard...</p> : null}
+
+                  {roiSnapshot ? (
+                    <>
+                      <section className="grid metric-grid">
+                        <article className="card metric-tile">
+                          <h3>TOKEN VOLUME</h3>
+                          <p>{roiSnapshot.totals.tokenVolume === null ? 'n/a' : roiSnapshot.totals.tokenVolume.toLocaleString()}</p>
+                          <small>{roiSnapshot.sources.tokenVolume.status.toUpperCase()} source</small>
+                        </article>
+                        <article className="card metric-tile">
+                          <h3>TOTAL SPEND</h3>
+                          <p>{roiSnapshot.totals.cost === null ? 'n/a' : `£${roiSnapshot.totals.cost.toFixed(2)}`}</p>
+                          <small>{roiSnapshot.sources.costRateCard.status.toUpperCase()} source</small>
+                        </article>
+                        <article className="card metric-tile">
+                          <h3>TOTAL OUTPUTS</h3>
+                          <p>{roiTotalOutputs}</p>
+                          <small>{roiSnapshot.sources.outputs.source}</small>
+                        </article>
+                        <article className="card metric-tile">
+                          <h3>COST / OUTPUT</h3>
+                          <p>{roiSnapshot.totals.costPerOutput.perHack === null ? 'n/a' : `£${roiSnapshot.totals.costPerOutput.perHack.toFixed(2)}`}</p>
+                          <small>Per hack (scaffold field)</small>
+                        </article>
+                      </section>
+
+                      <section className="grid pulse-grid">
+                        <article className="card pulse-card">
+                          <h2>Source coverage</h2>
+                          <p className="caption">Availability status for spend and attribution sources.</p>
+                          <table className="pulse-matrix-table">
+                            <thead>
+                              <tr>
+                                <th>Source</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>Token volume</td>
+                                <td>{roiSnapshot.sources.tokenVolume.status}</td>
+                                <td>{roiSnapshot.sources.tokenVolume.reason}</td>
+                              </tr>
+                              <tr>
+                                <td>Cost rate card</td>
+                                <td>{roiSnapshot.sources.costRateCard.status}</td>
+                                <td>{roiSnapshot.sources.costRateCard.reason}</td>
+                              </tr>
+                              <tr>
+                                <td>Outputs</td>
+                                <td>{roiSnapshot.sources.outputs.status}</td>
+                                <td>{roiSnapshot.sources.outputs.reason}</td>
+                              </tr>
+                              <tr>
+                                <td>Business unit</td>
+                                <td>{roiSnapshot.sources.businessUnit.status}</td>
+                                <td>{roiSnapshot.sources.businessUnit.reason}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </article>
+
+                        <article className="card pulse-card">
+                          <h2>Output trend ({roiSnapshot.window})</h2>
+                          <p className="caption">Output totals by reporting period.</p>
+                          {roiTrend.length > 0 ? (
+                            <div className="pulse-trend-list">
+                              {roiTrend.map((point) => {
+                                const outputCount =
+                                  point.outputs.hacksCompleted +
+                                  point.outputs.artifactsPublished +
+                                  point.outputs.problemsSolved +
+                                  point.outputs.pipelineItemsProgressed;
+                                const barWidth = Math.max(8, (outputCount / roiTrendMaxOutputs) * 100);
+                                return (
+                                  <div key={point.periodStart} className="pulse-trend-row">
+                                    <div className="pulse-trend-head">
+                                      <span>{point.periodLabel}</span>
+                                      <span>{outputCount} outputs</span>
+                                    </div>
+                                    <div className="pulse-trend-track" aria-hidden="true">
+                                      <span className="pulse-trend-fill" style={{ width: `${barWidth}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="empty-copy">No trend points available for this filter set.</p>
+                          )}
+                        </article>
+                      </section>
+
+                      <section className="grid pulse-grid">
+                        <article className="card pulse-card">
+                          <h2>Team breakdown</h2>
+                          {roiSnapshot.breakdowns.team.length > 0 ? (
+                            <table className="pulse-matrix-table">
+                              <thead>
+                                <tr>
+                                  <th>Team</th>
+                                  <th>Outputs</th>
+                                  <th>Spend</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roiSnapshot.breakdowns.team.slice(0, 10).map((row) => {
+                                  const outputCount =
+                                    row.outputs.hacksCompleted +
+                                    row.outputs.artifactsPublished +
+                                    row.outputs.problemsSolved +
+                                    row.outputs.pipelineItemsProgressed;
+                                  return (
+                                    <tr key={row.dimensionId}>
+                                      <td>{row.dimensionLabel}</td>
+                                      <td>{outputCount}</td>
+                                      <td>{row.cost === null ? 'n/a' : `£${row.cost.toFixed(2)}`}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="empty-copy">No team rows for current filters.</p>
+                          )}
+                        </article>
+
+                        <article className="card pulse-card">
+                          <h2>Person breakdown</h2>
+                          {roiSnapshot.breakdowns.person.length > 0 ? (
+                            <table className="pulse-matrix-table">
+                              <thead>
+                                <tr>
+                                  <th>Person</th>
+                                  <th>Outputs</th>
+                                  <th>Spend</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roiSnapshot.breakdowns.person.slice(0, 10).map((row) => {
+                                  const outputCount =
+                                    row.outputs.hacksCompleted +
+                                    row.outputs.artifactsPublished +
+                                    row.outputs.problemsSolved +
+                                    row.outputs.pipelineItemsProgressed;
+                                  return (
+                                    <tr key={row.dimensionId}>
+                                      <td>{row.dimensionLabel}</td>
+                                      <td>{outputCount}</td>
+                                      <td>{row.cost === null ? 'n/a' : `£${row.cost.toFixed(2)}`}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="empty-copy">No person rows for current filters.</p>
+                          )}
+                        </article>
+                      </section>
+
+                      {roiSnapshot.notes.length > 0 ? (
+                        <article className="card">
+                          <h2>Notes</h2>
+                          <ul className="showcase-meta-list">
+                            {roiSnapshot.notes.map((note, index) => (
+                              <li key={`roi-note-${index}`}>{note}</li>
+                            ))}
+                          </ul>
+                        </article>
+                      ) : null}
+                    </>
+                  ) : null}
+                </>
+              ) : null}
             </section>
           ) : null}
 

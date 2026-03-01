@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 17:21 GMT
+Last updated: 2026-03-01 17:40 GMT
 
 ## Current Snapshot
 
@@ -11,7 +11,7 @@ Last updated: 2026-03-01 17:21 GMT
 - Latest known release markers:
   - Root app version: `0.6.44`
   - Forge native package version: `0.3.12`
-- Current phase: `Phase 2 in execution`
+- Current phase: `Phase 3 in execution`
 - Registry (`P1.REG.01`) is complete and validated:
   - migration: `forge-native/supabase/migrations/20260301011000_phase1_registry.sql`
   - resolvers: `hdcCreateArtifact`, `hdcListArtifacts`, `hdcGetArtifact`, `hdcMarkArtifactReuse`
@@ -280,6 +280,18 @@ Last updated: 2026-03-01 17:21 GMT
     - `tests/forge-native-roi-contract.spec.ts` (`2/2`)
     - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + `tests/forge-native-recognition-mentor-policy-contract.spec.ts` + `tests/forge-native-phase2-telemetry-contract.spec.ts` + ROI suite (`8/8`)
     - backend/frontend typechecks pass
+- Phase 3 ROI live conditional-go slice is now landed:
+  - admin-visible ROI dashboard UI with filter controls and export actions:
+    - `forge-native/static/frontend/src/App.tsx`
+    - `forge-native/static/frontend/src/constants/nav.ts`
+  - production rollout evidence:
+    - resolver smoke (admin allow + non-admin forbidden): `docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`
+    - UI smoke screenshot: `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`
+    - live CSV export sample: `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`
+    - live summary export sample: `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`
+  - rollout decision:
+    - checkpoint: `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`
+    - status: `CONDITIONAL GO` (blocked on unresolved `R9.1` token source and `R9.2` spend calculation path)
 
 ## Active Task Pointer
 
@@ -291,12 +303,13 @@ Last updated: 2026-03-01 17:21 GMT
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
+- ROI requirements source: `HDC-PRODUCT-ROADMAP.md` (`R9.1`-`R9.5`)
 
 ## Next 3 Atomic Actions
 
-1. Wire `hdcGetRoiDashboard` into an admin-visible UI surface and add ROI CSV + summary export controls.
-2. Run live resolver smoke (`admin` allow + `non-admin` forbidden) and capture artifacts.
-3. Publish `P3.ROI.01` rollout checkpoint (`Conditional GO`) with explicit spend-source gap caveats.
+1. Integrate token-usage source mapping into ROI payload so token totals are sourced values (`R9.1`), not fallback nulls.
+2. Implement configurable rate-card spend/cost-per-output calculation path and wire into ROI totals (`R9.2`).
+3. Define and wire business-unit attribution source into ROI filters and breakdown rows (`R9.4` parity completion).
 
 ## Blockers / Decisions Needed
 
@@ -344,6 +357,9 @@ Last updated: 2026-03-01 17:21 GMT
   - `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`
   - `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`
   - `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`
+  - `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`
+  - `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`
+  - `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`
 
 ## Validation Commands
 
