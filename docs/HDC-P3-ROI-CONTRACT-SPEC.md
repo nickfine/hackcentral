@@ -1,6 +1,6 @@
 # HDC P3 ROI Contract Spec
 
-Last updated: 2026-03-01 21:06 GMT  
+Last updated: 2026-03-01 21:24 GMT  
 Owner: HackDay Central Engineering  
 Task ID: `P3.ROI.01`  
 Roadmap refs: `R9.1`, `R9.2`, `R9.3`, `R9.4`, `R9.5`
@@ -98,6 +98,7 @@ Non-admin access returns:
 4. Business-unit attribution is resolved from Team BU fields and optional `HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON` overrides; unresolved coverage is surfaced as `available_partial` or `unavailable`.
 5. Team and business-unit filters are both applied to totals, trend, and breakdown payloads.
 6. Project normalization supports schema variants (`submittedAt`, `ownerId`, `createdAt`, `sourceType`) to avoid dropping hack outputs in mixed snake_case/camelCase deployments.
+7. When token-bearing rows are absent, token-source reason text includes observed `EventAuditLog.action` distribution to aid upstream telemetry triage.
 
 ## Validation
 

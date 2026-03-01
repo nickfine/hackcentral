@@ -2224,3 +2224,77 @@ Use this template at the end of every work session:
 
 - ROI attribution should tolerate at least `ACCEPTED` and `ACTIVE` TeamMember statuses to remain stable across schema/workflow variants.
 - Even when live status distribution is currently single-valued (`ACCEPTED`), pre-emptive acceptance of `ACTIVE` avoids avoidable production regressions.
+
+## Session Update - P3.ROI.01 Token Source Live Watch Refresh (Mar 1, 2026 21:22 GMT)
+
+### Completed
+
+- Re-ran `R9.1` token-source production watch audit (Supabase MCP-first, then CLI/service-role fallback).
+- Confirmed current production `EventAuditLog` payload stream does not yet contain token-bearing keys; all observed rows remain `event_created` entries with model metadata only.
+- Published token-source watch checkpoint with updated decision and next-action framing.
+
+### Validation Evidence
+
+- Supabase MCP-first:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior).
+- Fallback live source audit artifact:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-LIVE-AUDIT-20260301-2120Z.json`
+  - key metrics:
+    - `rowCount=56`
+    - `rowsWithTokenKeywordCount=0`
+    - `rowsWithNumericTokenKeywordCount=0`
+    - `rowsWithModelKeywordCount=56`
+    - action distribution: `event_created=56`
+- Checkpoint artifact:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-WATCH-CHECKPOINT-20260301-2122Z.md`
+
+### Operational Learnings
+
+- Zero-spend ROI output can be a legitimate live-source state when token-bearing audit producers are not active; this should not be treated as a resolver defect by default.
+- Token-source watch checkpoints should record action distribution and payload-key coverage, not only aggregate token totals, to separate schema/mapping issues from upstream telemetry gaps.
+
+## Session Update - P3.ROI.01 Token Source Diagnostics Enrichment (Mar 1, 2026 21:24 GMT)
+
+### Completed
+
+- Added ROI diagnostics enrichment in source reasoning: when no token-bearing rows are detected, token-source reason now includes observed `EventAuditLog.action` distribution.
+- Deployed production with this diagnostics update so admin ROI notes directly expose upstream telemetry shape.
+
+### Validation Evidence
+
+- Regression + targeted cross-suite:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`10/10`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Deploy/install:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (site already latest)
+- Post-deploy resolver evidence:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`
+  - confirms token-source reason now includes `Observed audit actions: event_created=56.`
+
+### Operational Learnings
+
+- Including observed action distribution in ROI source notes materially shortens triage time by proving whether source absence is due to missing payload keys vs missing producer events.
+
+## Session Update - P3.ROI.01 Token Producer Gap Confirmation (Mar 1, 2026 21:26 GMT)
+
+### Completed
+
+- Mapped current backend audit emitters and confirmed no in-repo token-usage producer currently writes token-bearing payloads into `EventAuditLog.new_value`.
+- Published explicit gap analysis artifact to separate remaining ROI closure work from resolver-level defects.
+
+### Validation Evidence
+
+- Emitter inventory command:
+  - `rg -n "logAudit\(\{|action:\s*'" forge-native/src/backend -g '*.ts'`
+- Gap analysis artifact:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
+- Corroborating live source evidence:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-LIVE-AUDIT-20260301-2120Z.json`
+
+### Operational Learnings
+
+- For ROI closure, distinguishing "mapping broken" from "producer missing" is critical; action-emitter inventory should be part of token-source gate checks.
+- Once a token producer dependency is external to this repo, continuity docs should label it explicitly as a blocker to avoid repetitive re-investigation.

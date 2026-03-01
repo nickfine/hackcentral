@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 21:14 GMT
+Last updated: 2026-03-01 21:24 GMT
 
 ## Current Snapshot
 
@@ -343,6 +343,20 @@ Last updated: 2026-03-01 21:14 GMT
   - checkpoint:
     - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`
     - status: `GO` (non-breaking hardening)
+- Phase 3 ROI token-source live watch has been re-run:
+  - Supabase fallback live audit confirms current `EventAuditLog` shape:
+    - `rowCount=56`
+    - `action=event_created` for all rows
+    - `rowsWithNumericTokenKeywordCount=0`
+  - evidence:
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-LIVE-AUDIT-20260301-2120Z.json`
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-WATCH-CHECKPOINT-20260301-2122Z.md`
+  - decision: `CONDITIONAL GO` for token-source confidence until upstream token-bearing audit events are populated
+- Phase 3 ROI token-source diagnostics now include audit-action visibility:
+  - ROI token-source reason text now reports top observed `EventAuditLog.action` counts when token rows are absent.
+  - post-deploy evidence:
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`
+    - sample reason now includes: `Observed audit actions: event_created=56.`
 
 ## Active Task Pointer
 
@@ -358,13 +372,15 @@ Last updated: 2026-03-01 21:14 GMT
 
 ## Next 3 Atomic Actions
 
-1. Monitor token-bearing `EventAuditLog.new_value` coverage and capture a non-zero spend ROI snapshot for `R9.1`/`R9.2` confidence.
-2. Validate whether any additional membership semantics beyond `ACCEPTED`/`ACTIVE` are required in production before closing ROI attribution hardening.
-3. Decide `P3.ROI.01` close criteria (`R9.1`-`R9.5`) and move active task to `P3.FORK.01` once token-source watch is accepted.
+1. Identify and unblock upstream token-bearing audit producer so `EventAuditLog.new_value` includes token payload fields in production.
+2. Capture first non-zero spend resolver/UI evidence checkpoint once token-bearing rows exist.
+3. Finalize ROI close criteria (`R9.1`-`R9.5`) and transition active task to `P3.FORK.01`.
 
 ## Blockers / Decisions Needed
 
-- No blockers currently logged.
+- Blocker:
+  - No in-repo token-bearing audit producer is currently emitting usage payloads into `EventAuditLog.new_value`; ROI non-zero spend evidence depends on upstream telemetry integration.
+  - analysis: `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -418,6 +434,10 @@ Last updated: 2026-03-01 21:14 GMT
   - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`
   - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-LIVE-VERIFY-20260301-2112Z.json`
   - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-LIVE-AUDIT-20260301-2120Z.json`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-WATCH-CHECKPOINT-20260301-2122Z.md`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
 
 ## Validation Commands
 

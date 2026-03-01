@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 21:14 GMT  
+Last updated: 2026-03-01 21:26 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -57,9 +57,9 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P3.ROI.01` - monitor token-bearing `EventAuditLog.new_value` coverage and capture a non-zero spend ROI snapshot for `R9.1`/`R9.2` confidence.
-2. `P3.ROI.01` - extend output attribution hardening for non-hack outputs when team membership status semantics differ from `accepted` in production.
-3. `P3.ROI.01` - decide close criteria for ROI P0 (`R9.1`-`R9.5`) and transition active task to `P3.FORK.01` once token-source watch is accepted.
+1. `P3.ROI.01` - identify and unblock upstream token-bearing audit producer so `EventAuditLog.new_value` includes token payload fields in production.
+2. `P3.ROI.01` - capture first non-zero spend resolver/UI evidence checkpoint once token-bearing rows exist.
+3. `P3.ROI.01` - finalize ROI close criteria (`R9.1`-`R9.5`) and transition active task to `P3.FORK.01`.
 
 ### Next
 
@@ -134,3 +134,6 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Advanced `P3.ROI.01` `R9.2` + `R9.4` slice: implemented configurable rate-card spend and cost-per-output wiring, added business-unit attribution source path (Team BU fields + env override map), extended ROI exports/UI to include BU breakdown and spend metrics, validated with ROI + Phase 2 regression suites and Forge/frontend typechecks, executed Supabase MCP-first then CLI fallback live resolver verification (`docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`), and published checkpoint `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md` (`CONDITIONAL GO`; live UI smoke pending deployment). |
 | 2026-03-01 | Closed `P3.ROI.01` `R9.2`/`R9.4` deploy gate to GO: added ROI project normalization compatibility for live camelCase schema variants (`submittedAt`, `ownerId`, `createdAt`, `sourceType`) to prevent dropped hack outputs, deployed production bundle, captured live resolver evidence with non-empty team/BU rows (`docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`), captured production ROI UI smoke showing `Business-unit breakdown` row population (`docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`), and published post-deploy checkpoint decision (`docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`). |
 | 2026-03-01 | Added `P3.ROI.01` membership-status attribution hardening: ROI primary-team resolution now accepts `TeamMember.status=ACTIVE` in addition to `ACCEPTED`, added regression coverage in `tests/forge-native-roi-contract.spec.ts`, deployed production bundle, and captured live verification (`docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-LIVE-VERIFY-20260301-2112Z.json`) plus checkpoint (`docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`). |
+| 2026-03-01 | Ran `P3.ROI.01` token-source live watch audit (MCP-first then CLI fallback): production `EventAuditLog` currently contains `56` rows, all `event_created`, with no token-key payloads (`rowsWithNumericTokenKeywordCount=0`), confirming zero-spend ROI is currently source-data constrained rather than resolver regression; recorded evidence (`docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-LIVE-AUDIT-20260301-2120Z.json`) and checkpoint (`docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-WATCH-CHECKPOINT-20260301-2122Z.md`). |
+| 2026-03-01 | Improved `P3.ROI.01` token-source diagnostics: ROI source-reason text now includes observed `EventAuditLog.action` distribution when no token-bearing rows are detected (for clearer upstream telemetry triage); validated suites (`10/10`), deployed production, and captured post-deploy resolver evidence (`docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`). |
+| 2026-03-01 | Completed `P3.ROI.01` token-producer gap analysis: enumerated backend `logAudit` emitters and confirmed no in-repo token-usage producer currently writes token-bearing payloads into `EventAuditLog.new_value`; documented remaining dependency in `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`. |

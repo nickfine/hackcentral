@@ -3559,6 +3559,7 @@ export class SupabaseRepository {
     let totalCost = 0;
     let tokenSignalRowCount = 0;
     let tokenAttributedRowCount = 0;
+    const auditActionCounts = new Map<string, number>();
     let tokenRowsWithModel = 0;
     let tokenRowsUsingExplicitRate = 0;
     let tokenRowsUsingDefaultRate = 0;
@@ -3694,6 +3695,8 @@ export class SupabaseRepository {
     }
 
     for (const auditRow of eventAuditLogs) {
+      const action = typeof auditRow.action === 'string' && auditRow.action.trim() ? auditRow.action.trim() : 'unknown';
+      auditActionCounts.set(action, (auditActionCounts.get(action) ?? 0) + 1);
       const tokenVolume = extractRoiTokenVolumeFromAuditPayload(auditRow.new_value);
       if (!tokenVolume || tokenVolume <= 0) continue;
       tokenSignalRowCount += 1;
@@ -4022,10 +4025,15 @@ export class SupabaseRepository {
       );
     }
 
+    const topAuditActions = Array.from(auditActionCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, count]) => `${name}=${count}`)
+      .join(', ');
     const tokenSourceReason =
       tokenSignalRowCount > 0
         ? `Token volume is mapped from EventAuditLog.new_value payload keys; ${tokenAttributedRowCount}/${tokenSignalRowCount} token-bearing rows had user/team attribution.`
-        : 'Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.';
+        : `Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data. Observed audit actions: ${topAuditActions || 'none'}.`;
 
     const notes = [
       `Token volume source policy: ${tokenSourceReason}`,

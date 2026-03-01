@@ -1,0 +1,324 @@
+{
+  "generatedAt": "2026-03-01T21:20:46.960Z",
+  "rowCount": 56,
+  "actionCounts": [
+    {
+      "action": "event_created",
+      "count": 56
+    }
+  ],
+  "tokenKeyTop": [],
+  "modelKeyTop": [
+    {
+      "path": "rules.judgingModel",
+      "count": 56
+    }
+  ],
+  "rowsWithTokenKeywordCount": 0,
+  "rowsWithNumericTokenKeywordCount": 0,
+  "rowsWithModelKeywordCount": 56,
+  "rowsWithTokenKeywordSample": [],
+  "rowsWithNumericTokenKeywordSample": [],
+  "rowsWithModelKeywordSample": [
+    {
+      "id": "b6754ec3-9e2c-4862-9e65-de43e345554e",
+      "action": "event_created",
+      "created_at": "2026-03-01T12:56:49.142+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "8ca347fb-8847-48c1-bc6b-040186ab64c7",
+      "action": "event_created",
+      "created_at": "2026-03-01T00:28:40.363+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "f10bf93f-6fa8-478d-a3c2-7671e0412280",
+      "action": "event_created",
+      "created_at": "2026-03-01T00:20:40.089+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "ab44e2ce-3613-4787-92a9-0d558f6ee6dd",
+      "action": "event_created",
+      "created_at": "2026-03-01T00:13:45.481+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "7c35ce92-1e46-4644-a239-b8de4a363a6b",
+      "action": "event_created",
+      "created_at": "2026-02-28T23:28:40.833+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "ebe6697d-be94-4d0d-bc2c-a570b4db0176",
+      "action": "event_created",
+      "created_at": "2026-02-28T16:32:41.458+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "ab55576b-ec85-434d-99c3-7ec334fcece5",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:28:16.321+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "4cb9b539-d662-4e7a-ae68-f1db599a9639",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:23:07.971+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "846f4ace-35c2-4be4-92c9-0fb7cda52d7b",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:22:53.353+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "dc88faf3-939e-45b4-b099-41e8f27f5ab7",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:22:48.673+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "c53e7961-f039-4761-9bbf-c2a763879c67",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:22:13.681+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "d3a2b285-56e2-458e-8e2f-e34947c1ab3f",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:17:27.267+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "40768cbd-30e2-407b-be0c-a6162dca25e1",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:14:22.907+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "7b651bc2-576f-44ca-a5bd-43472a7028c4",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:06:52.851+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "0b7a73b3-62bd-4e75-995e-e3e4237e5a9d",
+      "action": "event_created",
+      "created_at": "2026-02-28T15:05:18.906+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "5f1aa0b6-7431-44e1-a7e4-a44ed8338805",
+      "action": "event_created",
+      "created_at": "2026-02-28T13:10:33.205+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "240c44e3-a087-4a57-837e-1d55abc0017d",
+      "action": "event_created",
+      "created_at": "2026-02-28T13:04:50.597+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "8c1641e6-8540-44e1-9bac-05ec9c78bc08",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:56:50.51+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "39e4291a-e764-45e7-9439-be620d10d86a",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:52:58.813+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "59ea053d-871b-43d1-9247-10420f6f8d27",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:49:30.49+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "88b712c5-4014-434d-b63c-7165547856ab",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:47:11.875+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "e4d39e56-ea0c-4393-9678-30ed3afc6ab7",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:43:00.484+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "0212b20a-a103-4190-9478-1a98ead836a2",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:36:02.977+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "5fc5f531-52ad-4d1f-b1f4-158c24eda26e",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:28:42.66+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "id": "d48ddc38-52bc-4f42-ac06-29b68ceafa4c",
+      "action": "event_created",
+      "created_at": "2026-02-28T12:21:28.12+00:00",
+      "modelPaths": [
+        {
+          "path": "rules.judgingModel",
+          "valueType": "string",
+          "value": "hybrid"
+        }
+      ]
+    }
+  ]
+}
