@@ -4806,7 +4806,7 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>ROI Dashboard</h1>
-                  <p className="subtitle">Phase 3 scaffold for spend vs output reporting (`R9.1`-`R9.5`).</p>
+                  <p className="subtitle">Phase 3 spend vs output reporting (`R9.1`-`R9.5`).</p>
                 </div>
                 <div className="title-row-actions">
                   <button type="button" className="btn btn-ghost" onClick={() => setView('team_pulse')}>
@@ -4885,7 +4885,7 @@ export function App(): JSX.Element {
                         <article className="card metric-tile">
                           <h3>COST / OUTPUT</h3>
                           <p>{roiSnapshot.totals.costPerOutput.perHack === null ? 'n/a' : `£${roiSnapshot.totals.costPerOutput.perHack.toFixed(2)}`}</p>
-                          <small>Per hack (scaffold field)</small>
+                          <small>Per hack</small>
                         </article>
                       </section>
 
@@ -5021,6 +5021,39 @@ export function App(): JSX.Element {
                             </table>
                           ) : (
                             <p className="empty-copy">No person rows for current filters.</p>
+                          )}
+                        </article>
+
+                        <article className="card pulse-card">
+                          <h2>Business-unit breakdown</h2>
+                          {roiSnapshot.breakdowns.businessUnit.length > 0 ? (
+                            <table className="pulse-matrix-table">
+                              <thead>
+                                <tr>
+                                  <th>Business unit</th>
+                                  <th>Outputs</th>
+                                  <th>Spend</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roiSnapshot.breakdowns.businessUnit.slice(0, 10).map((row) => {
+                                  const outputCount =
+                                    row.outputs.hacksCompleted +
+                                    row.outputs.artifactsPublished +
+                                    row.outputs.problemsSolved +
+                                    row.outputs.pipelineItemsProgressed;
+                                  return (
+                                    <tr key={row.dimensionId}>
+                                      <td>{row.dimensionLabel}</td>
+                                      <td>{outputCount}</td>
+                                      <td>{row.cost === null ? 'n/a' : `£${row.cost.toFixed(2)}`}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="empty-copy">No business-unit rows for current filters.</p>
                           )}
                         </article>
                       </section>

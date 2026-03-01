@@ -131,6 +131,43 @@ const ROI_TOKEN_PROMPT_KEYS = ['prompttokens', 'inputtokens'];
 const ROI_TOKEN_COMPLETION_KEYS = ['completiontokens', 'outputtokens'];
 const ROI_TOKEN_GENERIC_KEYS = ['tokens'];
 const ROI_TOKEN_TEAM_ID_KEYS = ['teamid'];
+const ROI_TOKEN_MODEL_KEYS = [
+  'model',
+  'modelname',
+  'modelid',
+  'aimodel',
+  'llmmodel',
+  'providermodel',
+  'deployment',
+  'engine',
+  'variant',
+];
+const ROI_RATE_CARD_ENV = 'HDC_ROI_RATE_CARD_JSON';
+const ROI_BUSINESS_UNIT_TEAM_MAP_ENV = 'HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON';
+const ROI_DEFAULT_RATE_CARD_PER_1K_TOKENS_GBP = 0.01;
+const ROI_DEFAULT_RATE_CARD_BY_MODEL_PER_1K_GBP: Record<string, number> = {
+  'gpt-4o': 0.01,
+  'gpt-4o-mini': 0.001,
+  'claude-3-5-sonnet': 0.012,
+  'claude-3-7-sonnet': 0.015,
+  'claude-3-opus': 0.03,
+  'gemini-1.5-pro': 0.008,
+  'gemini-1.5-flash': 0.0012,
+};
+const ROI_BUSINESS_UNIT_KEYS = [
+  'business_unit',
+  'businessUnit',
+  'businessunit',
+  'business_unit_name',
+  'businessUnitName',
+  'org_unit',
+  'orgUnit',
+  'orgunit',
+  'department',
+  'division',
+  'cost_centre',
+  'costCentre',
+];
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -307,6 +344,26 @@ interface DbEventAuditLog {
   action: string | null;
   new_value: unknown;
   created_at: string | null;
+}
+
+interface RoiRateCardConfig {
+  source: string;
+  modelRatesPer1kTokensGbp: Map<string, number>;
+  defaultRatePer1kTokensGbp: number;
+  parseWarning: string | null;
+}
+
+interface RoiRateResolution {
+  model: string | null;
+  ratePer1kTokensGbp: number | null;
+  usedDefaultRate: boolean;
+  matchedRateKey: string | null;
+}
+
+interface RoiBusinessUnitMapConfig {
+  source: string;
+  teamMap: Map<string, string>;
+  parseWarning: string | null;
 }
 
 interface DbArtifact {
@@ -606,9 +663,47 @@ function normalizeMetricKey(input: string): string {
   return input.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function normalizeRoiModelKey(model: string): string {
+  return model.trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function normalizeRoiBusinessUnitLabel(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
 function roundRoiTokenVolume(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0;
   return Math.round(value * 100) / 100;
+}
+
+function isAcceptedTeamMembershipStatus(status: string | null): boolean {
+  if (!status) return true;
+  const normalized = status.trim().toLowerCase();
+  return normalized === 'accepted' || normalized === 'active';
+}
+
+function roundRoiCost(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round(value * 100) / 100;
+}
+
+function calculateRoiCostPerOutput(totalCost: number | null, outputCount: number): number | null {
+  if (!isFiniteNumber(totalCost) || outputCount <= 0) return null;
+  if (totalCost <= 0) return 0;
+  return roundRoiCost(totalCost / outputCount);
+}
+
+function toPositiveFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.trim());
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 function parseJsonObject(value: unknown): Record<string, unknown> | null {
@@ -691,6 +786,175 @@ function sumNumericValuesByKeys(bucket: Map<string, number[]>, keys: string[]): 
   return total;
 }
 
+function parseRoiRateCardConfig(): RoiRateCardConfig {
+  const rates = new Map<string, number>();
+  for (const [model, rate] of Object.entries(ROI_DEFAULT_RATE_CARD_BY_MODEL_PER_1K_GBP)) {
+    rates.set(normalizeRoiModelKey(model), rate);
+  }
+  let defaultRatePer1kTokensGbp = ROI_DEFAULT_RATE_CARD_PER_1K_TOKENS_GBP;
+  let parseWarning: string | null = null;
+  const raw = process.env[ROI_RATE_CARD_ENV]?.trim() ?? '';
+  if (!raw) {
+    return {
+      source: 'in-code-default-rate-card',
+      modelRatesPer1kTokensGbp: rates,
+      defaultRatePer1kTokensGbp,
+      parseWarning,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('rate-card payload must be an object');
+    }
+
+    const parsedObject = parsed as Record<string, unknown>;
+    const parsedDefault =
+      toPositiveFiniteNumber(parsedObject.defaultPer1kTokensGbp) ??
+      toPositiveFiniteNumber(parsedObject.default_rate_per_1k_tokens_gbp) ??
+      toPositiveFiniteNumber(parsedObject.default) ??
+      toPositiveFiniteNumber(parsedObject.defaultPer1kTokens) ??
+      toPositiveFiniteNumber(parsedObject.default_rate_per_1k_tokens);
+    if (parsedDefault !== null) {
+      defaultRatePer1kTokensGbp = parsedDefault;
+    }
+
+    const applyRateEntries = (candidate: Record<string, unknown>): void => {
+      for (const [rawKey, rawRate] of Object.entries(candidate)) {
+        const normalizedKey = normalizeRoiModelKey(rawKey);
+        if (
+          !normalizedKey ||
+          normalizedKey === 'default' ||
+          normalizedKey === 'defaultper1ktokensgbp' ||
+          normalizedKey === 'default_rate_per_1k_tokens_gbp' ||
+          normalizedKey === 'defaultper1ktokens' ||
+          normalizedKey === 'default_rate_per_1k_tokens' ||
+          normalizedKey === 'models' ||
+          normalizedKey === 'currency'
+        ) {
+          continue;
+        }
+        const parsedRate = toPositiveFiniteNumber(rawRate);
+        if (parsedRate !== null) {
+          rates.set(normalizedKey, parsedRate);
+        }
+      }
+    };
+
+    const modelsValue = parsedObject.models;
+    if (modelsValue && typeof modelsValue === 'object' && !Array.isArray(modelsValue)) {
+      applyRateEntries(modelsValue as Record<string, unknown>);
+    }
+    applyRateEntries(parsedObject);
+  } catch (error) {
+    parseWarning =
+      error instanceof Error
+        ? `Failed to parse ${ROI_RATE_CARD_ENV}; using in-code defaults (${error.message}).`
+        : `Failed to parse ${ROI_RATE_CARD_ENV}; using in-code defaults.`;
+  }
+
+  return {
+    source: parseWarning ? 'in-code-default-rate-card' : `env:${ROI_RATE_CARD_ENV}`,
+    modelRatesPer1kTokensGbp: rates,
+    defaultRatePer1kTokensGbp,
+    parseWarning,
+  };
+}
+
+function resolveRoiRateForModel(model: string | null, config: RoiRateCardConfig): RoiRateResolution {
+  if (model) {
+    const normalizedModel = normalizeRoiModelKey(model);
+    if (normalizedModel) {
+      const exact = config.modelRatesPer1kTokensGbp.get(normalizedModel);
+      if (exact !== undefined) {
+        return {
+          model: normalizedModel,
+          ratePer1kTokensGbp: exact,
+          usedDefaultRate: false,
+          matchedRateKey: normalizedModel,
+        };
+      }
+
+      for (const [configuredModel, configuredRate] of config.modelRatesPer1kTokensGbp.entries()) {
+        if (!configuredModel) continue;
+        if (normalizedModel.startsWith(configuredModel) || configuredModel.startsWith(normalizedModel)) {
+          return {
+            model: normalizedModel,
+            ratePer1kTokensGbp: configuredRate,
+            usedDefaultRate: false,
+            matchedRateKey: configuredModel,
+          };
+        }
+      }
+    }
+  }
+
+  if (config.defaultRatePer1kTokensGbp > 0) {
+    return {
+      model: model ? normalizeRoiModelKey(model) : null,
+      ratePer1kTokensGbp: config.defaultRatePer1kTokensGbp,
+      usedDefaultRate: true,
+      matchedRateKey: null,
+    };
+  }
+
+  return {
+    model: model ? normalizeRoiModelKey(model) : null,
+    ratePer1kTokensGbp: null,
+    usedDefaultRate: false,
+    matchedRateKey: null,
+  };
+}
+
+function calculateRoiCostFromTokenVolume(tokenVolume: number, ratePer1kTokensGbp: number | null): number {
+  if (tokenVolume <= 0 || !isFiniteNumber(ratePer1kTokensGbp) || ratePer1kTokensGbp <= 0) return 0;
+  return (tokenVolume / 1000) * ratePer1kTokensGbp;
+}
+
+function parseRoiBusinessUnitMapConfig(): RoiBusinessUnitMapConfig {
+  const teamMap = new Map<string, string>();
+  let parseWarning: string | null = null;
+  const raw = process.env[ROI_BUSINESS_UNIT_TEAM_MAP_ENV]?.trim() ?? '';
+  if (!raw) {
+    return {
+      source: 'team-record-fields',
+      teamMap,
+      parseWarning,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('business-unit map payload must be an object');
+    }
+
+    const source = parsed as Record<string, unknown>;
+    const mapSource =
+      source.teams && typeof source.teams === 'object' && !Array.isArray(source.teams)
+        ? (source.teams as Record<string, unknown>)
+        : source;
+    for (const [rawTeamKey, rawBusinessUnit] of Object.entries(mapSource)) {
+      const normalizedTeamKey = normalizeMetricKey(rawTeamKey);
+      if (!normalizedTeamKey) continue;
+      if (typeof rawBusinessUnit !== 'string' || !rawBusinessUnit.trim()) continue;
+      teamMap.set(normalizedTeamKey, normalizeRoiBusinessUnitLabel(rawBusinessUnit));
+    }
+  } catch (error) {
+    parseWarning =
+      error instanceof Error
+        ? `Failed to parse ${ROI_BUSINESS_UNIT_TEAM_MAP_ENV}; using team record fields only (${error.message}).`
+        : `Failed to parse ${ROI_BUSINESS_UNIT_TEAM_MAP_ENV}; using team record fields only.`;
+  }
+
+  return {
+    source: parseWarning ? 'team-record-fields' : `team-record-fields + env:${ROI_BUSINESS_UNIT_TEAM_MAP_ENV}`,
+    teamMap,
+    parseWarning,
+  };
+}
+
 function extractRoiTokenVolumeFromAuditPayload(payload: unknown): number | null {
   const parsed = parseJsonObject(payload);
   if (!parsed) return null;
@@ -712,10 +976,49 @@ function extractRoiTokenVolumeFromAuditPayload(payload: unknown): number | null 
   return null;
 }
 
+function extractRoiModelFromAuditPayload(payload: unknown): string | null {
+  const parsed = parseJsonObject(payload);
+  if (!parsed) return null;
+  const model = findFirstStringValueByNormalizedKey(parsed, new Set(ROI_TOKEN_MODEL_KEYS));
+  if (!model) return null;
+  const normalized = normalizeRoiModelKey(model);
+  return normalized || null;
+}
+
 function extractRoiTeamIdFromAuditPayload(payload: unknown): string | null {
   const parsed = parseJsonObject(payload);
   if (!parsed) return null;
   return findFirstStringValueByNormalizedKey(parsed, new Set(ROI_TOKEN_TEAM_ID_KEYS));
+}
+
+function resolveBusinessUnitFromTeamRow(
+  teamRow: DbProjectRow,
+  teamLabel: string | null,
+  config: RoiBusinessUnitMapConfig
+): string | null {
+  const explicitValue = getStringField(teamRow, ROI_BUSINESS_UNIT_KEYS);
+  if (explicitValue && explicitValue.trim()) {
+    return normalizeRoiBusinessUnitLabel(explicitValue);
+  }
+
+  const nestedValue = findFirstStringValueByNormalizedKey(
+    teamRow,
+    new Set(ROI_BUSINESS_UNIT_KEYS.map((key) => normalizeMetricKey(key)))
+  );
+  if (nestedValue && nestedValue.trim()) {
+    return normalizeRoiBusinessUnitLabel(nestedValue);
+  }
+
+  const teamId = getStringField(teamRow, ['id']);
+  if (teamId) {
+    const mappedById = config.teamMap.get(normalizeMetricKey(teamId));
+    if (mappedById) return mappedById;
+  }
+  if (teamLabel) {
+    const mappedByLabel = config.teamMap.get(normalizeMetricKey(teamLabel));
+    if (mappedByLabel) return mappedByLabel;
+  }
+  return null;
 }
 
 function toStatusLabel(status: string): string {
@@ -2040,16 +2343,18 @@ function getStringArrayField(row: DbProjectRow, keys: string[]): string[] | null
 }
 
 function normalizeProjectRow(row: DbProjectRow): DbProject {
-  const submittedAt = getStringField(row, ['submitted_at']);
+  const submittedAt = getStringField(row, ['submitted_at', 'submittedAt']);
   const title = getStringField(row, ['title', 'name']) ?? 'Untitled';
-  const status = getStringField(row, ['status']) ?? (submittedAt ? 'completed' : 'idea');
-  const sourceTypeRaw = getStringField(row, ['source_type']) as DbProject['source_type'];
+  const sourceTypeRaw = getStringField(row, ['source_type', 'sourceType']) as DbProject['source_type'];
   const sourceType =
     sourceTypeRaw === 'hack_submission'
       ? 'hack_submission'
       : submittedAt
         ? 'hack_submission'
         : 'project';
+  const status =
+    getStringField(row, ['status', 'project_status', 'projectStatus']) ??
+    (sourceType === 'hack_submission' ? 'completed' : 'idea');
 
   return {
     id: getStringField(row, ['id']) ?? '',
@@ -2058,7 +2363,7 @@ function normalizeProjectRow(row: DbProjectRow): DbProject {
     status,
     hack_type: (getStringField(row, ['hack_type']) as DbProject['hack_type']) ?? null,
     visibility: (getStringField(row, ['visibility']) as Visibility | null) ?? 'org',
-    owner_id: getStringField(row, ['owner_id']),
+    owner_id: getStringField(row, ['owner_id', 'ownerId']),
     workflow_transformed: getBooleanField(row, ['workflow_transformed']) ?? false,
     ai_impact_hypothesis: getStringField(row, ['ai_impact_hypothesis']),
     ai_tools_used: getStringArrayField(row, ['ai_tools_used']) ?? [],
@@ -2070,7 +2375,7 @@ function normalizeProjectRow(row: DbProjectRow): DbProject {
     event_id: getStringField(row, ['event_id']),
     pipeline_stage: (getStringField(row, ['pipeline_stage']) as PipelineStage | null) ?? null,
     pipeline_stage_entered_at: getStringField(row, ['pipeline_stage_entered_at']),
-    created_at: getStringField(row, ['created_at']),
+    created_at: getStringField(row, ['created_at', 'createdAt']),
   };
 }
 
@@ -3075,6 +3380,8 @@ export class SupabaseRepository {
     const businessUnitFilter =
       typeof input.businessUnit === 'string' && input.businessUnit.trim() ? input.businessUnit.trim() : null;
     const calculatedAt = nowIso();
+    const rateCardConfig = parseRoiRateCardConfig();
+    const businessUnitMapConfig = parseRoiBusinessUnitMapConfig();
 
     const [users, projects, artifacts, problems, teamRows, teamMemberRows, pipelineTransitions, eventAuditLogs] =
       await Promise.all([
@@ -3156,6 +3463,7 @@ export class SupabaseRepository {
     const projectById = new Map(projects.map((project) => [project.id, project]));
     const userLabelById = new Map(users.map((user) => [user.id, user.full_name || user.email || user.id]));
     const teamLabelById = new Map<string, string>();
+    const teamBusinessUnitById = new Map<string, string>();
     for (const row of teamRows) {
       const teamId = getStringField(row, ['id']);
       if (!teamId) continue;
@@ -3163,6 +3471,10 @@ export class SupabaseRepository {
         getStringField(row, ['name', 'title', 'display_name', 'slug']) ??
         `Team ${teamId.slice(Math.max(0, teamId.length - 6))}`;
       teamLabelById.set(teamId, label);
+      const businessUnit = resolveBusinessUnitFromTeamRow(row, label, businessUnitMapConfig);
+      if (businessUnit) {
+        teamBusinessUnitById.set(teamId, businessUnit);
+      }
     }
 
     const rolePriority = (role: string | null): number => {
@@ -3191,7 +3503,7 @@ export class SupabaseRepository {
       const teamId = getStringField(row, ['team_id', 'teamId']);
       const status = getStringField(row, ['status'])?.trim().toLowerCase() ?? null;
       if (!userId || !teamId) continue;
-      if (status && status !== 'accepted') continue;
+      if (!isAcceptedTeamMembershipStatus(status)) continue;
       const createdAt = getStringField(row, ['created_at', 'createdAt']);
       const existing = membershipsByUserId.get(userId) ?? [];
       existing.push({
@@ -3222,42 +3534,69 @@ export class SupabaseRepository {
       return primaryTeamByUserId.get(candidateUserId) ?? null;
     };
 
-    const shouldIncludeTeam = (teamId: string | null): boolean => {
-      if (!teamFilter) return true;
-      return teamId === teamFilter;
+    const resolveBusinessUnit = (
+      teamId: string | null,
+      candidateUserId: string | null | undefined
+    ): string | null => {
+      if (teamId) {
+        const fromTeam = teamBusinessUnitById.get(teamId);
+        if (fromTeam) return fromTeam;
+      }
+      if (!candidateUserId) return null;
+      const primaryTeamId = resolveTeamId(candidateUserId);
+      if (!primaryTeamId) return null;
+      return teamBusinessUnitById.get(primaryTeamId) ?? null;
+    };
+
+    const shouldIncludeDimension = (teamId: string | null, businessUnit: string | null): boolean => {
+      if (teamFilter && teamId !== teamFilter) return false;
+      if (businessUnitFilter && businessUnit !== businessUnitFilter) return false;
+      return true;
     };
 
     const totals = emptyRoiOutputs();
     let totalTokenVolume = 0;
+    let totalCost = 0;
     let tokenSignalRowCount = 0;
     let tokenAttributedRowCount = 0;
+    let tokenRowsWithModel = 0;
+    let tokenRowsUsingExplicitRate = 0;
+    let tokenRowsUsingDefaultRate = 0;
+    let tokenRowsWithoutRate = 0;
     const personOutputs = new Map<string, RoiOutputMetrics>();
     const personTokenVolumes = new Map<string, number>();
+    const personCosts = new Map<string, number>();
     const teamOutputs = new Map<string, RoiOutputMetrics>();
     const teamTokenVolumes = new Map<string, number>();
+    const teamCosts = new Map<string, number>();
+    const businessUnitOutputs = new Map<string, RoiOutputMetrics>();
+    const businessUnitTokenVolumes = new Map<string, number>();
+    const businessUnitCosts = new Map<string, number>();
     const trendMetrics = new Map<
       string,
       {
         periodStart: string;
         outputs: RoiOutputMetrics;
         tokenVolume: number;
+        cost: number;
       }
     >();
 
-    const addTokenVolume = (map: Map<string, number>, key: string | null, amount: number): void => {
+    const addNumericSignal = (map: Map<string, number>, key: string | null, amount: number): void => {
       if (!key || amount <= 0) return;
       map.set(key, (map.get(key) ?? 0) + amount);
     };
 
     const ensureTrendMetric = (
       occurredAt: string | null | undefined
-    ): { periodStart: string; outputs: RoiOutputMetrics; tokenVolume: number } | null => {
+    ): { periodStart: string; outputs: RoiOutputMetrics; tokenVolume: number; cost: number } | null => {
       const period = resolveRoiPeriod(occurredAt ?? null, window);
       if (!period) return null;
       const existing = trendMetrics.get(period.periodLabel) ?? {
         periodStart: period.periodStart,
         outputs: emptyRoiOutputs(),
         tokenVolume: 0,
+        cost: 0,
       };
       trendMetrics.set(period.periodLabel, existing);
       return existing;
@@ -3269,7 +3608,8 @@ export class SupabaseRepository {
       actorTeamId: string | null,
       occurredAt: string | null | undefined
     ): void => {
-      if (!shouldIncludeTeam(actorTeamId)) return;
+      const actorBusinessUnit = resolveBusinessUnit(actorTeamId, actorUserId);
+      if (!shouldIncludeDimension(actorTeamId, actorBusinessUnit)) return;
 
       addRoiOutput(totals, metric, 1);
 
@@ -3285,6 +3625,12 @@ export class SupabaseRepository {
         teamOutputs.set(actorTeamId, existing);
       }
 
+      if (actorBusinessUnit) {
+        const existing = businessUnitOutputs.get(actorBusinessUnit) ?? emptyRoiOutputs();
+        addRoiOutput(existing, metric, 1);
+        businessUnitOutputs.set(actorBusinessUnit, existing);
+      }
+
       const trendMetric = ensureTrendMetric(occurredAt);
       if (!trendMetric) return;
       addRoiOutput(trendMetric.outputs, metric, 1);
@@ -3292,19 +3638,29 @@ export class SupabaseRepository {
 
     const recordTokenVolume = (
       tokenVolume: number,
+      cost: number,
       actorUserId: string | null,
       actorTeamId: string | null,
       occurredAt: string | null | undefined
     ): void => {
       if (tokenVolume <= 0) return;
-      if (!shouldIncludeTeam(actorTeamId)) return;
+      const actorBusinessUnit = resolveBusinessUnit(actorTeamId, actorUserId);
+      if (!shouldIncludeDimension(actorTeamId, actorBusinessUnit)) return;
 
       totalTokenVolume += tokenVolume;
-      addTokenVolume(personTokenVolumes, actorUserId, tokenVolume);
-      addTokenVolume(teamTokenVolumes, actorTeamId, tokenVolume);
+      addNumericSignal(personTokenVolumes, actorUserId, tokenVolume);
+      addNumericSignal(teamTokenVolumes, actorTeamId, tokenVolume);
+      addNumericSignal(businessUnitTokenVolumes, actorBusinessUnit, tokenVolume);
+      if (cost > 0) {
+        totalCost += cost;
+        addNumericSignal(personCosts, actorUserId, cost);
+        addNumericSignal(teamCosts, actorTeamId, cost);
+        addNumericSignal(businessUnitCosts, actorBusinessUnit, cost);
+      }
       const trendMetric = ensureTrendMetric(occurredAt);
       if (trendMetric) {
         trendMetric.tokenVolume += tokenVolume;
+        trendMetric.cost += cost;
       }
     };
 
@@ -3342,17 +3698,35 @@ export class SupabaseRepository {
       if (!tokenVolume || tokenVolume <= 0) continue;
       tokenSignalRowCount += 1;
 
+      const model = extractRoiModelFromAuditPayload(auditRow.new_value);
+      if (model) {
+        tokenRowsWithModel += 1;
+      }
+      const rateResolution = resolveRoiRateForModel(model, rateCardConfig);
+      if (rateResolution.ratePer1kTokensGbp === null) {
+        tokenRowsWithoutRate += 1;
+      } else if (rateResolution.usedDefaultRate) {
+        tokenRowsUsingDefaultRate += 1;
+      } else {
+        tokenRowsUsingExplicitRate += 1;
+      }
+      const tokenCost = calculateRoiCostFromTokenVolume(tokenVolume, rateResolution.ratePer1kTokensGbp);
+
       const actorUserId = auditRow.actor_user_id;
       const payloadTeamId = extractRoiTeamIdFromAuditPayload(auditRow.new_value);
       const actorTeamId = payloadTeamId ?? resolveTeamId(actorUserId);
       if (actorUserId || actorTeamId) {
         tokenAttributedRowCount += 1;
       }
-      recordTokenVolume(tokenVolume, actorUserId, actorTeamId, auditRow.created_at);
+      recordTokenVolume(tokenVolume, tokenCost, actorUserId, actorTeamId, auditRow.created_at);
     }
 
-    const personDimensionIds = new Set<string>([...personOutputs.keys(), ...personTokenVolumes.keys()]);
-    const teamDimensionIds = new Set<string>([...teamOutputs.keys(), ...teamTokenVolumes.keys()]);
+    const personDimensionIds = new Set<string>([
+      ...personOutputs.keys(),
+      ...personTokenVolumes.keys(),
+      ...personCosts.keys(),
+    ]);
+    const teamDimensionIds = new Set<string>([...teamOutputs.keys(), ...teamTokenVolumes.keys(), ...teamCosts.keys()]);
 
     const personBreakdown = Array.from(personDimensionIds)
       .map((userId) => {
@@ -3361,7 +3735,7 @@ export class SupabaseRepository {
           dimensionId: userId,
           dimensionLabel: userLabelById.get(userId) ?? userId,
           tokenVolume: roundRoiTokenVolume(personTokenVolumes.get(userId) ?? 0),
-          cost: null,
+          cost: roundRoiCost(personCosts.get(userId) ?? 0),
           outputs: cloneRoiOutputs(outputs),
         };
       })
@@ -3380,7 +3754,7 @@ export class SupabaseRepository {
           dimensionId: teamId,
           dimensionLabel: teamLabelById.get(teamId) ?? teamId,
           tokenVolume: roundRoiTokenVolume(teamTokenVolumes.get(teamId) ?? 0),
-          cost: null,
+          cost: roundRoiCost(teamCosts.get(teamId) ?? 0),
           outputs: cloneRoiOutputs(outputs),
         };
       })
@@ -3392,17 +3766,72 @@ export class SupabaseRepository {
       })
       .slice(0, ROI_BREAKDOWN_LIMIT);
 
+    const businessUnitDimensionIds = new Set<string>([
+      ...businessUnitOutputs.keys(),
+      ...businessUnitTokenVolumes.keys(),
+      ...businessUnitCosts.keys(),
+    ]);
+
+    const businessUnitBreakdown = Array.from(businessUnitDimensionIds)
+      .map((businessUnit) => {
+        const outputs = businessUnitOutputs.get(businessUnit) ?? emptyRoiOutputs();
+        return {
+          dimensionId: businessUnit,
+          dimensionLabel: businessUnit,
+          tokenVolume: roundRoiTokenVolume(businessUnitTokenVolumes.get(businessUnit) ?? 0),
+          cost: roundRoiCost(businessUnitCosts.get(businessUnit) ?? 0),
+          outputs: cloneRoiOutputs(outputs),
+        };
+      })
+      .sort((a, b) => {
+        const outputDiff = sumRoiOutputs(b.outputs) - sumRoiOutputs(a.outputs);
+        if (outputDiff !== 0) return outputDiff;
+        if ((b.cost ?? 0) !== (a.cost ?? 0)) return (b.cost ?? 0) - (a.cost ?? 0);
+        if (b.tokenVolume !== a.tokenVolume) return b.tokenVolume - a.tokenVolume;
+        return a.dimensionLabel.localeCompare(b.dimensionLabel);
+      })
+      .slice(0, ROI_BREAKDOWN_LIMIT);
+
     const trend = Array.from(trendMetrics.entries())
       .map(([periodLabel, value]) => ({
         periodLabel,
         periodStart: value.periodStart,
         tokenVolume: roundRoiTokenVolume(value.tokenVolume),
-        cost: null,
+        cost: roundRoiCost(value.cost),
         outputs: cloneRoiOutputs(value.outputs),
       }))
       .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
       .slice(-ROI_TREND_LIMIT);
     const roundedTotalTokenVolume = roundRoiTokenVolume(totalTokenVolume);
+    const roundedTotalCost = roundRoiCost(totalCost);
+    const totalCostPerOutput = {
+      perHack: calculateRoiCostPerOutput(roundedTotalCost, totals.hacksCompleted),
+      perArtifact: calculateRoiCostPerOutput(roundedTotalCost, totals.artifactsPublished),
+      perProblemSolved: calculateRoiCostPerOutput(roundedTotalCost, totals.problemsSolved),
+      perPipelineItemProgressed: calculateRoiCostPerOutput(roundedTotalCost, totals.pipelineItemsProgressed),
+    };
+
+    const teamCount = teamLabelById.size;
+    const businessUnitMappedTeamCount = teamBusinessUnitById.size;
+    const businessUnitSourceStatus: RoiDashboardSnapshot['sources']['businessUnit']['status'] =
+      businessUnitMappedTeamCount === 0
+        ? 'unavailable'
+        : businessUnitMappedTeamCount < teamCount
+          ? 'available_partial'
+          : 'available';
+    const businessUnitSourceReason =
+      businessUnitMappedTeamCount === 0
+        ? 'No team records include a business-unit value and no business-unit team map override is configured.'
+        : businessUnitMappedTeamCount < teamCount
+          ? `Business-unit attribution resolved for ${businessUnitMappedTeamCount}/${teamCount} teams.`
+          : `Business-unit attribution resolved for ${businessUnitMappedTeamCount}/${teamCount} teams.`;
+
+    const costRateSourceStatus: RoiDashboardSnapshot['sources']['costRateCard']['status'] =
+      tokenRowsWithoutRate > 0 || tokenRowsUsingDefaultRate > 0 ? 'available_partial' : 'available';
+    const costRateSourceReason =
+      tokenSignalRowCount > 0
+        ? `Rate card ${rateCardConfig.source}; token rows=${tokenSignalRowCount}, explicit-model-rate=${tokenRowsUsingExplicitRate}, default-rate=${tokenRowsUsingDefaultRate}, without-rate=${tokenRowsWithoutRate}, rows-with-model=${tokenRowsWithModel}.`
+        : `Rate card ${rateCardConfig.source}; no token-bearing rows in current filter scope.`;
 
     const exportRows: RoiDashboardSnapshot['export']['rows'] = [
       {
@@ -3459,7 +3888,42 @@ export class SupabaseRepository {
         id: 'all',
         label: 'All',
         metric: 'cost',
-        value: 'n/a',
+        value: roundedTotalCost.toFixed(2),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'cost_per_hack',
+        value: totalCostPerOutput.perHack === null ? 'n/a' : totalCostPerOutput.perHack.toFixed(2),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'cost_per_artifact',
+        value: totalCostPerOutput.perArtifact === null ? 'n/a' : totalCostPerOutput.perArtifact.toFixed(2),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'cost_per_problem_solved',
+        value: totalCostPerOutput.perProblemSolved === null ? 'n/a' : totalCostPerOutput.perProblemSolved.toFixed(2),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'cost_per_pipeline_item_progressed',
+        value:
+          totalCostPerOutput.perPipelineItemProgressed === null
+            ? 'n/a'
+            : totalCostPerOutput.perPipelineItemProgressed.toFixed(2),
       },
     ];
 
@@ -3488,6 +3952,14 @@ export class SupabaseRepository {
           label: row.dimensionLabel,
           metric: 'token_volume',
           value: String(row.tokenVolume ?? 0),
+        },
+        {
+          section: 'team',
+          dimension: 'team',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'cost',
+          value: row.cost === null ? 'n/a' : row.cost.toFixed(2),
         }
       );
     }
@@ -3509,6 +3981,43 @@ export class SupabaseRepository {
           label: row.dimensionLabel,
           metric: 'token_volume',
           value: String(row.tokenVolume ?? 0),
+        },
+        {
+          section: 'person',
+          dimension: 'person',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'cost',
+          value: row.cost === null ? 'n/a' : row.cost.toFixed(2),
+        }
+      );
+    }
+
+    for (const row of businessUnitBreakdown.slice(0, 10)) {
+      exportRows.push(
+        {
+          section: 'business_unit',
+          dimension: 'business_unit',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'total_outputs',
+          value: String(sumRoiOutputs(row.outputs)),
+        },
+        {
+          section: 'business_unit',
+          dimension: 'business_unit',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'token_volume',
+          value: String(row.tokenVolume ?? 0),
+        },
+        {
+          section: 'business_unit',
+          dimension: 'business_unit',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'cost',
+          value: row.cost === null ? 'n/a' : row.cost.toFixed(2),
         }
       );
     }
@@ -3520,14 +4029,24 @@ export class SupabaseRepository {
 
     const notes = [
       `Token volume source policy: ${tokenSourceReason}`,
-      'Cost-rate-card source is currently unavailable in the live schema; cost and cost-per-output remain null.',
-      'Business-unit breakdown is disabled because no explicit BU dimension exists in Team, TeamMember, or User tables.',
+      `Cost-rate-card source policy: ${costRateSourceReason}`,
+      `Business-unit attribution policy: ${businessUnitSourceReason}`,
     ];
+    if (rateCardConfig.parseWarning) {
+      notes.push(rateCardConfig.parseWarning);
+    }
+    if (businessUnitMapConfig.parseWarning) {
+      notes.push(businessUnitMapConfig.parseWarning);
+    }
     if (teamFilter) {
       notes.push(`Team filter applied: ${teamFilter}`);
     }
     if (businessUnitFilter) {
-      notes.push(`Business-unit filter requested (${businessUnitFilter}) but no business-unit source is available yet.`);
+      if (businessUnitSourceStatus === 'unavailable') {
+        notes.push(`Business-unit filter requested (${businessUnitFilter}) but no business-unit source is available.`);
+      } else {
+        notes.push(`Business-unit filter applied: ${businessUnitFilter}`);
+      }
     }
 
     return {
@@ -3545,36 +4064,34 @@ export class SupabaseRepository {
           reason: tokenSourceReason,
         },
         costRateCard: {
-          status: 'unavailable',
-          source: 'none',
-          reason: 'No model rate-card table is available in public schema.',
+          status: costRateSourceStatus,
+          source: `EventAuditLog.new_value + ${rateCardConfig.source}`,
+          reason: costRateSourceReason,
         },
         outputs: {
-          status: 'available_partial',
+          status: businessUnitSourceStatus === 'available' ? 'available' : 'available_partial',
           source: 'Project, Artifact, Problem, PipelineTransitionLog',
-          reason: 'Output signals are available for people and teams, but spend attribution is unavailable.',
+          reason:
+            businessUnitSourceStatus === 'available'
+              ? 'Output signals are available for person, team, and business-unit aggregation.'
+              : 'Output signals are available for people/teams; business-unit aggregation has partial coverage.',
         },
         businessUnit: {
-          status: 'unavailable',
-          source: 'none',
-          reason: 'No explicit business-unit dimension is present in Team, TeamMember, or User records.',
+          status: businessUnitSourceStatus,
+          source: businessUnitMapConfig.source,
+          reason: businessUnitSourceReason,
         },
       },
       totals: {
         tokenVolume: roundedTotalTokenVolume,
-        cost: null,
+        cost: roundedTotalCost,
         outputs: cloneRoiOutputs(totals),
-        costPerOutput: {
-          perHack: null,
-          perArtifact: null,
-          perProblemSolved: null,
-          perPipelineItemProgressed: null,
-        },
+        costPerOutput: totalCostPerOutput,
       },
       breakdowns: {
         person: personBreakdown,
         team: teamBreakdown,
-        businessUnit: [],
+        businessUnit: businessUnitBreakdown,
       },
       trend,
       export: {
@@ -3586,7 +4103,8 @@ export class SupabaseRepository {
           `Outputs: hacks=${totals.hacksCompleted}, artifacts=${totals.artifactsPublished}, ` +
           `problems=${totals.problemsSolved}, pipeline_progressions=${totals.pipelineItemsProgressed}. ` +
           `Token volume=${roundedTotalTokenVolume}. ` +
-          'Cost metrics are pending rate-card sources.',
+          `Spend=£${roundedTotalCost.toFixed(2)}. ` +
+          `Cost-per-hack=${totalCostPerOutput.perHack === null ? 'n/a' : `£${totalCostPerOutput.perHack.toFixed(2)}`}.`,
       },
       notes,
     };

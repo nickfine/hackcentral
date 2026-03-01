@@ -110,8 +110,8 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
       }
       if (table === 'Team') {
         return [
-          { id: 'team-a', name: 'Alpha' },
-          { id: 'team-b', name: 'Beta' },
+          { id: 'team-a', name: 'Alpha', business_unit: 'Operations' },
+          { id: 'team-b', name: 'Beta', business_unit: 'Platform' },
         ];
       }
       if (table === 'TeamMember') {
@@ -152,6 +152,7 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
             action: 'llm_usage_logged',
             new_value: {
               usage: {
+                model: 'gpt-4o',
                 prompt_tokens: 300,
                 completion_tokens: 200,
               },
@@ -237,26 +238,42 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
     expect(result.window).toBe('monthly');
     expect(result.sources.tokenVolume.status).toBe('available_partial');
     expect(result.totals.tokenVolume).toBe(1500);
-    expect(result.sources.costRateCard.status).toBe('unavailable');
-    expect(result.sources.outputs.status).toBe('available_partial');
+    expect(result.sources.costRateCard.status).toBe('available_partial');
+    expect(result.sources.outputs.status).toBe('available');
+    expect(result.sources.businessUnit.status).toBe('available');
+    expect(result.totals.cost).toBeCloseTo(0.02, 2);
     expect(result.totals.outputs).toEqual({
       hacksCompleted: 2,
       artifactsPublished: 2,
       problemsSolved: 1,
       pipelineItemsProgressed: 2,
     });
+    expect(result.totals.costPerOutput).toEqual({
+      perHack: 0.01,
+      perArtifact: 0.01,
+      perProblemSolved: 0.02,
+      perPipelineItemProgressed: 0.01,
+    });
     expect(result.breakdowns.team[0]).toMatchObject({
       dimensionId: 'team-a',
       tokenVolume: 500,
+      cost: 0.01,
     });
     expect(result.breakdowns.team[1]).toMatchObject({
       dimensionId: 'team-b',
       tokenVolume: 1000,
+      cost: 0.01,
+    });
+    expect(result.breakdowns.businessUnit[0]).toMatchObject({
+      dimensionId: 'Operations',
+      tokenVolume: 500,
+      cost: 0.01,
     });
     expect(result.trend.some((point) => point.tokenVolume > 0)).toBe(true);
+    expect(result.trend.some((point) => (point.cost ?? 0) > 0)).toBe(true);
     expect(result.export.rows.length).toBeGreaterThan(5);
     expect(result.export.formattedSummary).toContain('Token volume=1500');
-    expect(result.export.formattedSummary).toContain('Cost metrics are pending rate-card sources.');
+    expect(result.export.formattedSummary).toContain('Spend=£0.02');
   });
 
   it('rejects non-admin viewers', async () => {
@@ -270,5 +287,138 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
     } as never);
 
     await expect(repo.getRoiDashboard(adminViewer, {})).rejects.toThrow('[ROI_FORBIDDEN]');
+  });
+
+  it('counts hack outputs from Project camelCase fields when explicit status is absent', async () => {
+    const selectOne = vi.fn(async (table: string) => {
+      if (table === 'User') {
+        return {
+          id: 'u-admin',
+          role: 'ADMIN',
+          capability_tags: [],
+        };
+      }
+      return null;
+    });
+
+    const selectMany = vi.fn(async (table: string) => {
+      if (table === 'User') {
+        return [
+          {
+            id: 'u-admin',
+            email: 'admin@example.com',
+            full_name: 'Admin User',
+            atlassian_account_id: 'acc-admin',
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'u-1',
+            email: 'u1@example.com',
+            full_name: 'User One',
+            atlassian_account_id: 'acc-u1',
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ];
+      }
+      if (table === 'Project') {
+        return [
+          {
+            id: 'p-camel-1',
+            name: 'CamelCase Hack',
+            source_type: 'hack_submission',
+            teamId: 'team-a',
+            ownerId: 'u-1',
+            createdAt: '2026-03-01T11:52:58.023608+00:00',
+          },
+        ];
+      }
+      if (table === 'Team') {
+        return [{ id: 'team-a', name: 'Alpha', business_unit: 'Operations' }];
+      }
+      if (table === 'TeamMember') {
+        return [];
+      }
+      return [];
+    });
+
+    const repo = new SupabaseRepository({ selectOne, selectMany } as never);
+    const result = await repo.getRoiDashboard(adminViewer, { window: 'monthly' });
+
+    expect(result.totals.outputs.hacksCompleted).toBe(1);
+    expect(result.breakdowns.team.length).toBe(1);
+    expect(result.breakdowns.team[0]?.dimensionId).toBe('team-a');
+    expect(result.breakdowns.businessUnit.length).toBe(1);
+    expect(result.breakdowns.businessUnit[0]?.dimensionId).toBe('Operations');
+  });
+
+  it('accepts ACTIVE TeamMember status for ROI team attribution', async () => {
+    const selectOne = vi.fn(async (table: string) => {
+      if (table === 'User') {
+        return {
+          id: 'u-admin',
+          role: 'ADMIN',
+          capability_tags: [],
+        };
+      }
+      return null;
+    });
+
+    const selectMany = vi.fn(async (table: string) => {
+      if (table === 'User') {
+        return [
+          {
+            id: 'u-admin',
+            email: 'admin@example.com',
+            full_name: 'Admin User',
+            atlassian_account_id: 'acc-admin',
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'u-active',
+            email: 'active@example.com',
+            full_name: 'Active User',
+            atlassian_account_id: 'acc-active',
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ];
+      }
+      if (table === 'Project') {
+        return [
+          {
+            id: 'p-active-1',
+            name: 'Active Membership Hack',
+            source_type: 'hack_submission',
+            ownerId: 'u-active',
+            createdAt: '2026-03-01T11:52:58.023608+00:00',
+          },
+        ];
+      }
+      if (table === 'Team') {
+        return [{ id: 'team-active', name: 'Active Team', business_unit: 'Operations' }];
+      }
+      if (table === 'TeamMember') {
+        return [
+          {
+            userId: 'u-active',
+            teamId: 'team-active',
+            role: 'MEMBER',
+            status: 'ACTIVE',
+            createdAt: '2026-01-02T00:00:00.000Z',
+          },
+        ];
+      }
+      return [];
+    });
+
+    const repo = new SupabaseRepository({ selectOne, selectMany } as never);
+    const result = await repo.getRoiDashboard(adminViewer, { window: 'monthly' });
+
+    expect(result.totals.outputs.hacksCompleted).toBe(1);
+    expect(result.breakdowns.team.some((row) => row.dimensionId === 'team-active')).toBe(true);
+    expect(result.breakdowns.businessUnit.some((row) => row.dimensionId === 'Operations')).toBe(true);
   });
 });

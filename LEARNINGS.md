@@ -2109,3 +2109,118 @@ Use this template at the end of every work session:
 
 - Keeping a stale bootstrap prompt in-repo creates avoidable restart risk; startup should stay anchored to a single current handoff source (`CONTINUATION.md`) plus roadmap/plan files.
 - Historical learnings can keep old file references without issue as long as active workflow docs no longer depend on them.
+
+## Session Update - P3.ROI.01 R9.2 + R9.4 Spend and BU Wiring (Mar 1, 2026 20:44 GMT)
+
+### Completed
+
+- Implemented `R9.2` configurable spend path in ROI resolver:
+  - token model extraction from `EventAuditLog.new_value`
+  - rate-card resolution using `HDC_ROI_RATE_CARD_JSON` with in-code defaults
+  - spend propagation to totals, trend, and person/team/business-unit breakdown rows
+  - non-null cost-per-output wiring in ROI totals + CSV export rows
+- Implemented `R9.4` business-unit attribution source path:
+  - Team BU-field extraction with optional override map from `HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON`
+  - BU filter now gates totals/trend/breakdowns
+  - BU breakdown section now present in resolver payload and ROI dashboard UI table
+- Updated ROI checkpoint/spec artifacts:
+  - `docs/HDC-P3-ROI-CONTRACT-SPEC.md`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`
+
+### Validation Evidence
+
+- Targeted ROI contract suite:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts` (`2/2`)
+- Cross-suite regression sanity:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`8/8`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Supabase MCP-first + fallback live verification:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior)
+  - CLI/service-role fallback evidence artifact:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`
+  - live resolver evidence confirms:
+    - admin access succeeds with spend fields (`totals.cost=0` on current token-empty live dataset)
+    - non-admin access remains blocked (`[ROI_FORBIDDEN]`)
+    - BU source status is `unavailable` in production data due `0/12` Team rows with BU signal
+
+### Operational Learnings
+
+- A configurable env-backed rate-card with explicit source metadata allows `R9.2` to ship safely even when production token rows are sparse.
+- `R9.4` needs both code-path support and data-population work; exposing BU-source status/coverage in payload notes prevents false confidence when BU mappings are missing.
+- Using Supabase MCP as required first step remains valuable for protocol compliance, while CLI/service-role fallback is still required for dependable live admin verification in this workspace.
+
+## Session Update - P3.ROI.01 R9.2/R9.4 Post-Deploy Compatibility + GO Gate (Mar 1, 2026 21:08 GMT)
+
+### Completed
+
+- Closed the remaining `R9.2`/`R9.4` rollout gate by shipping post-deploy compatibility hardening for ROI output attribution in live schema variants:
+  - `normalizeProjectRow` now reads `Project.submittedAt`, `Project.ownerId`, `Project.createdAt`, and `Project.sourceType` variants.
+  - when explicit project status is absent, `source_type='hack_submission'` now acts as completion signal for ROI hack-output aggregation.
+- Added regression coverage in `tests/forge-native-roi-contract.spec.ts` for camelCase project rows without explicit status.
+- Deployed updated Forge production bundle and verified Confluence installation is on latest version.
+- Re-ran live resolver/UI verification and confirmed non-empty BU output rows without synthetic data insertion.
+
+### Validation Evidence
+
+- Supabase MCP-first check:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior).
+- Regression + targeted cross-suite:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`9/9`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Deploy/install:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (site already latest)
+- Live resolver artifact (CLI/service-role fallback with production-equivalent ROI env config):
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`
+  - confirms:
+    - `sources.costRateCard.status=available`
+    - `sources.businessUnit.status=available`
+    - `teamBreakdownRows=1`
+    - `businessUnitBreakdownRows=1`
+- Live production ROI UI smoke screenshot:
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`
+  - confirms visible `Business-unit breakdown` row (`Shared Services`, outputs `1`, spend `£0.00`) and source coverage `business unit=available`.
+- Post-deploy checkpoint artifact:
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md` (`GO`)
+
+### Operational Learnings
+
+- Live schema drift between snake_case and camelCase project fields can silently suppress ROI output metrics if normalization only reads one variant.
+- For `hack_submission` rows in legacy/mixed schemas, source-type fallback is a practical completion signal when explicit status fields are absent.
+- BU breakdown population gates should prefer attribution-path verification against real data over synthetic inserts; this reduces production-data risk while still proving end-to-end behavior.
+
+## Session Update - P3.ROI.01 Membership Status Attribution Hardening (Mar 1, 2026 21:14 GMT)
+
+### Completed
+
+- Added ROI attribution hardening so primary-team resolution accepts `TeamMember.status=ACTIVE` in addition to `ACCEPTED`.
+- Added ROI contract regression coverage (`tests/forge-native-roi-contract.spec.ts`) proving `ACTIVE` memberships are attributed into team/business-unit ROI breakdowns.
+- Deployed production bundle and revalidated install state on Confluence production site.
+- Captured fresh live status/ROI verification evidence.
+
+### Validation Evidence
+
+- Supabase MCP-first:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior).
+- Test gate:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`10/10`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Deploy/install:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (site already latest)
+- Live verification artifacts:
+  - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-LIVE-VERIFY-20260301-2112Z.json`
+    - membership statuses currently observed: `accepted=20`
+    - ROI attribution still populated: `teamBreakdownRows=1`, `businessUnitBreakdownRows=1`
+  - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`
+
+### Operational Learnings
+
+- ROI attribution should tolerate at least `ACCEPTED` and `ACTIVE` TeamMember statuses to remain stable across schema/workflow variants.
+- Even when live status distribution is currently single-valued (`ACCEPTED`), pre-emptive acceptance of `ACTIVE` avoids avoidable production regressions.

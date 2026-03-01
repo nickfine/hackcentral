@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-03-01T21:02:05.448Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "resolverSmoke": {
+    "admin": {
+      "ok": true,
+      "monthly": {
+        "window": "monthly",
+        "totals": {
+          "tokenVolume": 0,
+          "cost": 0,
+          "outputs": {
+            "hacksCompleted": 1,
+            "artifactsPublished": 0,
+            "problemsSolved": 0,
+            "pipelineItemsProgressed": 1
+          },
+          "costPerOutput": {
+            "perHack": 0,
+            "perArtifact": null,
+            "perProblemSolved": null,
+            "perPipelineItemProgressed": 0
+          }
+        },
+        "sources": {
+          "tokenVolume": {
+            "status": "available_partial",
+            "source": "EventAuditLog.new_value",
+            "reason": "Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data."
+          },
+          "costRateCard": {
+            "status": "available",
+            "source": "EventAuditLog.new_value + env:HDC_ROI_RATE_CARD_JSON",
+            "reason": "Rate card env:HDC_ROI_RATE_CARD_JSON; no token-bearing rows in current filter scope."
+          },
+          "outputs": {
+            "status": "available",
+            "source": "Project, Artifact, Problem, PipelineTransitionLog",
+            "reason": "Output signals are available for person, team, and business-unit aggregation."
+          },
+          "businessUnit": {
+            "status": "available",
+            "source": "team-record-fields + env:HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON",
+            "reason": "Business-unit attribution resolved for 12/12 teams."
+          }
+        },
+        "teamBreakdownRows": 1,
+        "businessUnitBreakdownRows": 1,
+        "topBusinessUnits": [
+          {
+            "dimensionId": "Shared Services",
+            "dimensionLabel": "Shared Services",
+            "tokenVolume": 0,
+            "cost": 0,
+            "outputs": {
+              "hacksCompleted": 1,
+              "artifactsPublished": 0,
+              "problemsSolved": 0,
+              "pipelineItemsProgressed": 0
+            }
+          }
+        ],
+        "trendPoints": 1,
+        "notePreview": [
+          "Token volume source policy: Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.",
+          "Cost-rate-card source policy: Rate card env:HDC_ROI_RATE_CARD_JSON; no token-bearing rows in current filter scope.",
+          "Business-unit attribution policy: Business-unit attribution resolved for 12/12 teams."
+        ]
+      },
+      "quarterly": {
+        "window": "quarterly",
+        "totals": {
+          "tokenVolume": 0,
+          "cost": 0,
+          "outputs": {
+            "hacksCompleted": 1,
+            "artifactsPublished": 0,
+            "problemsSolved": 0,
+            "pipelineItemsProgressed": 1
+          },
+          "costPerOutput": {
+            "perHack": 0,
+            "perArtifact": null,
+            "perProblemSolved": null,
+            "perPipelineItemProgressed": 0
+          }
+        },
+        "sources": {
+          "tokenVolume": {
+            "status": "available_partial",
+            "source": "EventAuditLog.new_value",
+            "reason": "Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data."
+          },
+          "costRateCard": {
+            "status": "available",
+            "source": "EventAuditLog.new_value + env:HDC_ROI_RATE_CARD_JSON",
+            "reason": "Rate card env:HDC_ROI_RATE_CARD_JSON; no token-bearing rows in current filter scope."
+          },
+          "outputs": {
+            "status": "available",
+            "source": "Project, Artifact, Problem, PipelineTransitionLog",
+            "reason": "Output signals are available for person, team, and business-unit aggregation."
+          },
+          "businessUnit": {
+            "status": "available",
+            "source": "team-record-fields + env:HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON",
+            "reason": "Business-unit attribution resolved for 12/12 teams."
+          }
+        },
+        "teamBreakdownRows": 1,
+        "businessUnitBreakdownRows": 1,
+        "topBusinessUnits": [
+          {
+            "dimensionId": "Shared Services",
+            "dimensionLabel": "Shared Services",
+            "tokenVolume": 0,
+            "cost": 0,
+            "outputs": {
+              "hacksCompleted": 1,
+              "artifactsPublished": 0,
+              "problemsSolved": 0,
+              "pipelineItemsProgressed": 0
+            }
+          }
+        ],
+        "trendPoints": 1,
+        "notePreview": [
+          "Token volume source policy: Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.",
+          "Cost-rate-card source policy: Rate card env:HDC_ROI_RATE_CARD_JSON; no token-bearing rows in current filter scope.",
+          "Business-unit attribution policy: Business-unit attribution resolved for 12/12 teams."
+        ]
+      }
+    },
+    "nonAdmin": {
+      "ok": false,
+      "error": "[ROI_FORBIDDEN] Admin access is required to view ROI dashboard."
+    }
+  }
+}

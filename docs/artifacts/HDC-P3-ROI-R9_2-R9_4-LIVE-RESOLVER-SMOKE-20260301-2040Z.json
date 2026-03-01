@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-03-01T20:40:38Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "supabaseMcpProjects": [],
+  "fallbackPath": {
+    "mode": "cli+service-role-rest",
+    "supabaseUrl": "https://ssafugtobsqxmqtphwch.supabase.co",
+    "usedAccounts": {
+      "adminAccountId": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff",
+      "nonAdminAccountId": "confluence-account-123"
+    }
+  },
+  "sourceChecks": {
+    "teamRowsTotal": 12,
+    "teamRowsWithBusinessUnitSignals": 0,
+    "eventAuditRowsTotal": 56,
+    "eventAuditRowsWithTokenKeyword": 0,
+    "eventAuditRowsWithModelKeyword": 56
+  },
+  "resolverSmoke": {
+    "generatedAt": "2026-03-01T20:40:37.538Z",
+    "adminAccountId": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff",
+    "nonAdminAccountId": "confluence-account-123",
+    "adminResult": {
+      "ok": true,
+      "policyVersion": "r9-roi-scaffold-v1",
+      "window": "monthly",
+      "totals": {
+        "tokenVolume": 0,
+        "cost": 0,
+        "outputs": {
+          "hacksCompleted": 0,
+          "artifactsPublished": 0,
+          "problemsSolved": 0,
+          "pipelineItemsProgressed": 1
+        },
+        "costPerOutput": {
+          "perHack": null,
+          "perArtifact": null,
+          "perProblemSolved": null,
+          "perPipelineItemProgressed": 0
+        }
+      },
+      "sources": {
+        "tokenVolume": {
+          "status": "available_partial",
+          "source": "EventAuditLog.new_value",
+          "reason": "Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data."
+        },
+        "costRateCard": {
+          "status": "available",
+          "source": "EventAuditLog.new_value + in-code-default-rate-card",
+          "reason": "Rate card in-code-default-rate-card; no token-bearing rows in current filter scope."
+        },
+        "outputs": {
+          "status": "available_partial",
+          "source": "Project, Artifact, Problem, PipelineTransitionLog",
+          "reason": "Output signals are available for people/teams; business-unit aggregation has partial coverage."
+        },
+        "businessUnit": {
+          "status": "unavailable",
+          "source": "team-record-fields",
+          "reason": "No team records include a business-unit value and no business-unit team map override is configured."
+        }
+      },
+      "teamBreakdownRows": 0,
+      "personBreakdownRows": 1,
+      "businessUnitBreakdownRows": 0,
+      "trendPoints": 1,
+      "notePreview": [
+        "Token volume source policy: Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.",
+        "Cost-rate-card source policy: Rate card in-code-default-rate-card; no token-bearing rows in current filter scope.",
+        "Business-unit attribution policy: No team records include a business-unit value and no business-unit team map override is configured."
+      ]
+    },
+    "nonAdminResult": {
+      "ok": false,
+      "error": "[ROI_FORBIDDEN] Admin access is required to view ROI dashboard."
+    }
+  }
+}

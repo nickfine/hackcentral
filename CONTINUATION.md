@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 18:02 GMT
+Last updated: 2026-03-01 21:14 GMT
 
 ## Current Snapshot
 
@@ -303,7 +303,46 @@ Last updated: 2026-03-01 18:02 GMT
     - `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`
   - checkpoint:
     - `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`
-    - status: `CONDITIONAL GO` (remaining gates: `R9.2` and `R9.4`)
+    - status: `CONDITIONAL GO` (slice complete; superseded by `R9.2`/`R9.4` follow-on slice)
+- Phase 3 ROI `R9.2` + `R9.4` spend/BU slice is now landed:
+  - resolver now computes spend and cost-per-output from configurable rate cards:
+    - rate-card source: `HDC_ROI_RATE_CARD_JSON` (with in-code defaults)
+    - token model mapping source: `EventAuditLog.new_value`
+  - resolver now emits business-unit attribution/breakdowns:
+    - source path: Team BU fields + optional `HDC_ROI_BUSINESS_UNIT_TEAM_MAP_JSON` override map
+    - BU filter now applied to totals/trend/breakdowns
+  - ROI exports + UI updates:
+    - CSV rows now include spend + cost-per-output summary metrics and BU section rows
+    - ROI dashboard now includes Business-unit breakdown table and non-null spend fields
+  - live resolver/source verification (Supabase MCP-first + CLI fallback) evidence:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`
+  - checkpoint:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`
+    - status: `CONDITIONAL GO` (remaining gate: deploy + live ROI UI smoke for this slice)
+- Phase 3 ROI `R9.2` + `R9.4` post-deploy gate is now closed (`GO`):
+  - compatibility hardening landed in `normalizeProjectRow`:
+    - `Project.submittedAt`, `Project.ownerId`, `Project.createdAt`, `Project.sourceType` now supported
+    - missing explicit project status now falls back to `source_type='hack_submission'` for completed hack output attribution
+  - production deploy/install completed for updated resolver logic
+  - live resolver evidence now shows non-empty team/BU output rows:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`
+  - live ROI UI smoke evidence now shows populated BU table row:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`
+  - post-deploy checkpoint:
+    - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`
+    - status: `GO` (for `R9.2` + `R9.4` slice)
+- Phase 3 ROI membership-status attribution hardening is now landed:
+  - primary-team resolution for ROI attribution now accepts TeamMember statuses:
+    - `ACCEPTED`
+    - `ACTIVE`
+  - regression coverage added in `tests/forge-native-roi-contract.spec.ts`
+  - production deploy/install refresh completed for this patch
+  - live verification artifact:
+    - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-LIVE-VERIFY-20260301-2112Z.json`
+    - confirms live status distribution currently `accepted=20`
+  - checkpoint:
+    - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`
+    - status: `GO` (non-breaking hardening)
 
 ## Active Task Pointer
 
@@ -319,9 +358,9 @@ Last updated: 2026-03-01 18:02 GMT
 
 ## Next 3 Atomic Actions
 
-1. Implement configurable rate-card spend/cost-per-output calculation path and wire into ROI totals (`R9.2`).
-2. Define and wire business-unit attribution source into ROI filters and breakdown rows (`R9.4` parity completion).
-3. Run live resolver/UI verification for `R9.2` + `R9.4` and publish updated rollout checkpoint decision.
+1. Monitor token-bearing `EventAuditLog.new_value` coverage and capture a non-zero spend ROI snapshot for `R9.1`/`R9.2` confidence.
+2. Validate whether any additional membership semantics beyond `ACCEPTED`/`ACTIVE` are required in production before closing ROI attribution hardening.
+3. Decide `P3.ROI.01` close criteria (`R9.1`-`R9.5`) and move active task to `P3.FORK.01` once token-source watch is accepted.
 
 ## Blockers / Decisions Needed
 
@@ -372,6 +411,13 @@ Last updated: 2026-03-01 18:02 GMT
   - `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`
   - `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`
   - `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`
+  - `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`
+  - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-LIVE-VERIFY-20260301-2112Z.json`
+  - `docs/artifacts/HDC-P3-ROI-MEMBERSHIP-STATUS-CHECKPOINT-20260301-2114Z.md`
 
 ## Validation Commands
 
