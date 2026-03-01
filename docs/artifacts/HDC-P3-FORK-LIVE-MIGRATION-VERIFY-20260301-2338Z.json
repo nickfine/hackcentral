@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-03-01T23:38:08Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "migration": "20260301233000_phase3_fork_relations.sql",
+  "verification": {
+    "table": [
+      {
+        "table_name": "ForkRelation"
+      }
+    ],
+    "constraint": [
+      {
+        "conname": "fork_relation_unique_source_fork"
+      }
+    ],
+    "rowCount": [
+      {
+        "fork_relation_rows": 3
+      }
+    ]
+  }
+}

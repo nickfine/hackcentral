@@ -2392,3 +2392,33 @@ Use this template at the end of every work session:
 - Treating fork attribution as a dedicated relation (`ForkRelation`) keeps source entities immutable while enabling count aggregation and provenance for both hacks and artifacts.
 - Adding fork contract tests that assert migration/resolver/type/UI wiring together helps catch partial-slice regressions early before live rollout.
 - In this workspace, `mcp__supabase__list_projects` returning `[]` should be treated as an expected access constraint and not as a code-level blocker; proceed with documented CLI fallback for live gates.
+
+## Session Update - P3.FORK.01 Live Migration/Smoke Closure + Task Transition (Mar 1, 2026 23:40 GMT)
+
+### Completed
+
+- Closed `P3.FORK.01` from conditional gate to final `GO`.
+- Applied and verified production `ForkRelation` migration state.
+- Ran live resolver smoke for both fork flows (`hdcForkShowcaseHack`, `hdcForkArtifact`).
+- Ran live production UI smoke in Hacks and Registry surfaces and confirmed fork actions/counters.
+- Transitioned active task from `P3.FORK.01` to `P3.FEED.01` in continuity/execution docs.
+
+### Validation Evidence
+
+- Live migration verification artifact:
+  - `docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`
+  - confirms `ForkRelation` table + unique constraint present and row count observable.
+- Live resolver smoke artifact:
+  - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`
+  - confirms successful fork roundtrips for showcase hacks and artifacts.
+- Live UI smoke artifacts:
+  - `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`
+  - `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`
+- Final post-deploy checkpoint:
+  - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md` (`GO`)
+
+### Operational Learnings
+
+- Supabase MCP availability and Supabase MCP admin-scope permissions are separate concerns; in this workspace MCP is reachable but some management calls can still be permission-scoped.
+- For fork/remix rollout gates, pairing migration verification + resolver smoke + dual-surface UI smoke provides faster close confidence than any single signal.
+- Continuity docs should be updated in the same post-deploy slice as GO checkpoint publication to avoid stale active-task restarts.

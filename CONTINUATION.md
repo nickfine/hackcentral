@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 23:28 GMT
+Last updated: 2026-03-01 23:40 GMT
 
 ## Current Snapshot
 
@@ -375,51 +375,42 @@ Last updated: 2026-03-01 23:28 GMT
     - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
   - transition:
     - active task advanced from `P3.ROI.01` to `P3.FORK.01`
-- Phase 3 Fork/remix baseline (`P3.FORK.01`) is now landed (backend + UI, conditional gate):
-  - migration:
+- Phase 3 Fork/remix rollout (`P3.FORK.01`) is now complete (`GO`):
+  - migration applied and verified:
     - `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`
-  - backend resolver/service wiring:
-    - `hdcForkShowcaseHack`
-    - `hdcForkArtifact`
-    - fork attribution persistence in `ForkRelation` + audit actions (`hack_forked`, `artifact_forked`)
-  - shared/frontend contract parity:
-    - `forge-native/src/shared/types.ts`
-    - `forge-native/static/frontend/src/types.ts`
-    - `forkCount` now included on Showcase/Registry list items
-  - Forge UI affordances:
-    - Showcase `Fork Hack` action in `forge-native/static/frontend/src/App.tsx`
-    - Registry `Fork Artifact` action in `forge-native/static/frontend/src/App.tsx`
-    - source fork counters updated in-place after fork actions
-  - tests and build validation:
-    - `forge-native/tests/backend/fork-contract.test.mjs`
-    - `npm --prefix forge-native run typecheck` (pass)
-    - `npm --prefix forge-native run test:backend` (pass)
-    - `npm --prefix forge-native run frontend:build` (pass)
-  - checkpoint:
-    - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md` (`CONDITIONAL GO`)
+    - `docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`
+  - live resolver verification:
+    - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`
+  - live UI verification:
+    - `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`
+    - `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`
+  - final checkpoint:
+    - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md` (`GO`)
+  - transition:
+    - active task advanced from `P3.FORK.01` to `P3.FEED.01`
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.FORK.01`
-- Task title: `Fork and remix capability rollout`
+- Active Task ID: `P3.FEED.01`
+- Task title: `Home feed and personalization rollout`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
-- Fork/remix requirements source: `HDC-PRODUCT-ROADMAP.md` (`R10.1`-`R10.2`)
+- Home feed requirements source: `HDC-PRODUCT-ROADMAP.md` (`R12.1`-`R12.2`)
 
 ## Next 3 Atomic Actions
 
-1. Apply `ForkRelation` migration in production and run live resolver smoke for `hdcForkShowcaseHack` and `hdcForkArtifact`.
-2. Capture production UI smoke evidence for Showcase/Registry fork actions and source `forkCount` updates.
-3. Publish `P3.FORK.01` GO checkpoint and then advance to `P3.FEED.01`.
+1. Define `P3.FEED.01` activity-feed event contract for new hacks, trending problems, new artifacts, pipeline movements, and upcoming hackdays.
+2. Define personalization signal inputs from existing Phase 2/3 datasets and lock fallback behavior for sparse histories.
+3. Implement backend feed resolver scaffold and initial Home feed lane wiring in Forge UI.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - No code blocker; live `P3.FORK.01` gate still depends on production migration + resolver/UI smoke evidence capture.
+  - No code blocker currently logged for `P3.FEED.01`.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -429,6 +420,7 @@ Last updated: 2026-03-01 23:28 GMT
 
 - Preferred path: use Supabase MCP tools first.
 - Known behavior in this workspace:
+  - Supabase MCP is reachable in this environment; project-admin endpoints can still be permission-scoped depending on configured key.
   - `mcp__supabase__list_projects` may return empty even when project access exists.
   - `mcp__supabase__list_tables` / `mcp__supabase__list_migrations` currently return permission errors for `ssafugtobsqxmqtphwch`; use CLI fallback with `SUPABASE_ACCESS_TOKEN`.
   - `/Users/nickster/Downloads/HD26Forge/.mcp.json` currently configures Supabase MCP with anon API key, which is insufficient for management/admin checks.

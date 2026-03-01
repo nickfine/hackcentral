@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-03-01T23:35:10.547Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "supabaseMode": "cli+service-role",
+  "viewer": {
+    "accountId": "cmiukfwe1000807bj5ir1vpy4",
+    "siteUrl": "https://hackdaytemp.atlassian.net",
+    "timezone": "Europe/London"
+  },
+  "showcaseItemsCount": 2,
+  "showcaseFork": {
+    "sourceProjectId": "b34f700b-10e0-4951-8789-aad5f11773b3",
+    "forkProjectId": "616e2cee-b58d-47fe-80e7-1130e854a87d",
+    "sourceForkCountFromForkResult": 1,
+    "sourceForkCountFromDetail": 1,
+    "sourceTitle": "Fork Smoke 2026-03-01 23:34",
+    "forkTitle": "Fork Smoke 2026-03-01 23:35"
+  },
+  "artifactItemsCountBeforeSeed": 0,
+  "artifactSeed": {
+    "created": true,
+    "artifactId": "0f44a90c-a63c-457f-9571-4a4163f3f73d",
+    "createdAt": "2026-03-01T23:35:12.736+00:00",
+    "title": "Artifact Fork Source Smoke 2026-03-01 23:35"
+  },
+  "artifactItemsCount": 1,
+  "artifactFork": {
+    "sourceArtifactId": "0f44a90c-a63c-457f-9571-4a4163f3f73d",
+    "forkArtifactId": "6de71ad2-907f-4107-8f8e-dff2ebbd269a",
+    "sourceForkCountFromForkResult": 1,
+    "sourceForkCountFromDetail": 1,
+    "sourceTitle": "Artifact Fork Source Smoke 2026-03-01 23:35",
+    "forkTitle": "Fork Artifact Smoke 2026-03-01 23:35"
+  }
+}
