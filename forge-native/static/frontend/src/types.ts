@@ -29,6 +29,36 @@ export interface SummaryStats {
   activeMentors: number;
 }
 
+export interface TeamPulseCrossTeamEdge {
+  sourceTeamId: string;
+  sourceTeamLabel: string;
+  targetTeamId: string;
+  targetTeamLabel: string;
+  reuseCount: number;
+}
+
+export interface TeamPulseTrendPoint {
+  periodStart: string;
+  periodLabel: string;
+  medianDays: number | null;
+  sampleSize: number;
+}
+
+export interface TeamPulseMetrics {
+  calculatedAt: string;
+  reuseRatePct: number;
+  reusedArtifactCount: number;
+  totalArtifactCount: number;
+  crossTeamAdoptionCount: number;
+  crossTeamAdoptionEdges: TeamPulseCrossTeamEdge[];
+  timeToFirstHackMedianDays: number | null;
+  timeToFirstHackSampleSize: number;
+  timeToFirstHackTrend: TeamPulseTrendPoint[];
+  problemConversionPct: number;
+  solvedProblemCount: number;
+  totalProblemCount: number;
+}
+
 export interface FeaturedHack {
   id: string;
   title: string;
@@ -80,6 +110,7 @@ export interface BootstrapData {
   viewer: ViewerContext;
   source: DataSourceInfo;
   summary: SummaryStats;
+  teamPulse?: TeamPulseMetrics | null;
   featuredHacks: FeaturedHack[];
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];

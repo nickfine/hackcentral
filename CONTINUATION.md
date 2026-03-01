@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 13:55 GMT
+Last updated: 2026-03-01 14:05 GMT
 
 ## Current Snapshot
 
@@ -165,6 +165,26 @@ Last updated: 2026-03-01 13:55 GMT
     - frontend + backend now validate pathway-step `linkedArtifactId` as UUID before persistence
     - expanded contract coverage in `tests/forge-native-pathways-contract.spec.ts` for edit-id preservation and invalid artifact-id validation
     - validation rerun: `npm run test:run -- tests/forge-native-pathways-contract.spec.ts` (`4/4`), backend/frontend typechecks pass
+- Team Pulse metrics expansion (`P2.METRICS.01`) implementation baseline is now landed (in progress, not GO):
+  - contract spec: `docs/HDC-P2-TEAM-PULSE-METRICS-CONTRACT-SPEC.md`
+  - shared/frontend contracts:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+    - `BootstrapData.teamPulse` now carries `R7.1`-`R7.4` metric payload
+  - backend aggregation in `forge-native/src/backend/supabase/repositories.ts` now computes:
+    - `R7.1` reuse rate (`reusedArtifactCount/totalArtifactCount`)
+    - `R7.2` cross-team adoption edge counts from `ArtifactReuse` + source project teams
+    - `R7.3` time-to-first-hack median and monthly trend (`User.created_at` -> first hack submission)
+    - `R7.4` Problem Exchange solved conversion rate
+  - Team Pulse UI wiring in `forge-native/static/frontend/src/App.tsx` + `styles.css` now renders:
+    - metric tiles for `R7.1`-`R7.4`
+    - cross-team adoption matrix table
+    - time-to-first-hack trend bars
+    - Team Pulse JSON export payload now includes live `teamPulse` contract
+  - targeted validation:
+    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` (`1/1`)
+    - cross-suite regression: pathways + showcase + Team Pulse contract (`17/17`)
+    - backend/frontend typechecks pass
 
 ## Active Task Pointer
 
@@ -178,9 +198,9 @@ Last updated: 2026-03-01 13:55 GMT
 
 ## Next 3 Atomic Actions
 
-1. Lock `P2.METRICS.01` contract boundaries from `R7.1`-`R7.4` into an implementation spec (`Team Pulse KPI definitions, windows, filters, and role visibility`).
-2. Map metric data dependencies across existing entities (`Project`, `Artifact`, `ShowcaseHack`, `PathwayProgress`, Problem Exchange telemetry) and define required resolver/schema deltas.
-3. Implement backend baseline for Team Pulse metrics (`types`, `repository`, `resolver`) behind an explicit feature gate and add targeted contract/runtime tests.
+1. Run live Supabase verification for Team Pulse metric sources (`ArtifactReuse`, `TeamMember`, `Problem`) and confirm production schema compatibility/permissions.
+2. Harden cross-team attribution policy for multi-team users (deterministic primary-team selection) and capture decision in the contract spec.
+3. Add CSV export format for Team Pulse metrics and prepare a `P2.METRICS.01` rollout checkpoint artifact template.
 
 ## Blockers / Decisions Needed
 

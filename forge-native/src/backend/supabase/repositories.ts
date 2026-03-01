@@ -69,6 +69,7 @@ import type {
   UpsertPathwayResult,
   SetPathwayStepCompletionInput,
   SetPathwayStepCompletionResult,
+  TeamPulseMetrics,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -88,6 +89,7 @@ import { SupabaseRestClient, type QueryFilter } from './client';
 const EVENT_TABLE = 'Event';
 const USER_TABLE = 'User';
 const TEAM_TABLE = 'Team';
+const TEAM_MEMBER_TABLE = 'TeamMember';
 const PROJECT_TABLE = 'Project';
 const EVENT_ADMIN_TABLE = 'EventAdmin';
 const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
@@ -151,6 +153,7 @@ interface DbUser {
   happy_to_mentor: boolean | null;
   seeking_mentor: boolean | null;
   capability_tags: string[] | null;
+  created_at?: string | null;
 }
 
 interface DbProblemExchangeModeratorLookup {
@@ -226,6 +229,7 @@ interface DbProject {
   time_saved_estimate: number | null;
   failures_and_lessons: string | null;
   source_type: 'hack_submission' | 'project' | null;
+  team_id: string | null;
   synced_to_library_at: string | null;
   event_id: string | null;
   pipeline_stage: PipelineStage | null;
@@ -461,6 +465,32 @@ function logRegistryLookupTelemetry(input: {
 
 function isFiniteNumber(value: number | null | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function roundMetric(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function calculateRatioPercent(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return roundMetric((numerator / denominator) * 100);
+}
+
+function calculateMedian(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const ordered = values.slice().sort((a, b) => a - b);
+  const middle = Math.floor(ordered.length / 2);
+  if (ordered.length % 2 === 1) {
+    return roundMetric(ordered[middle]);
+  }
+  return roundMetric((ordered[middle - 1] + ordered[middle]) / 2);
+}
+
+function calculateDaysBetween(startIso: string, endIso: string): number | null {
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return (end - start) / (1000 * 60 * 60 * 24);
 }
 
 function toStatusLabel(status: string): string {
@@ -794,6 +824,160 @@ function createPathwayListItem(
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
     updatedByName,
     progress,
+  };
+}
+
+function buildTeamPulseMetrics(input: {
+  calculatedAt: string;
+  users: DbUser[];
+  projects: DbProject[];
+  artifacts: DbArtifact[];
+  artifactReuses: Record<string, unknown>[];
+  problems: DbProblem[];
+  teamRows: Record<string, unknown>[];
+  teamMemberRows: Record<string, unknown>[];
+}): TeamPulseMetrics {
+  const { calculatedAt, users, projects, artifacts, artifactReuses, problems, teamRows, teamMemberRows } = input;
+
+  const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+  const teamLabelById = new Map<string, string>();
+  for (const row of teamRows) {
+    const teamId = getStringField(row, ['id']);
+    if (!teamId) continue;
+    const label =
+      getStringField(row, ['name', 'title', 'display_name', 'slug']) ??
+      `Team ${teamId.slice(Math.max(0, teamId.length - 6))}`;
+    teamLabelById.set(teamId, label);
+  }
+
+  const userPrimaryTeamId = new Map<string, string>();
+  for (const row of teamMemberRows) {
+    const userId = getStringField(row, ['user_id', 'userId']);
+    const teamId = getStringField(row, ['team_id', 'teamId']);
+    const status = getStringField(row, ['status'])?.toLowerCase() ?? null;
+    if (!userId || !teamId) continue;
+    if (status && status !== 'accepted') continue;
+    if (!userPrimaryTeamId.has(userId)) {
+      userPrimaryTeamId.set(userId, teamId);
+    }
+  }
+
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+  const artifactById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+
+  const activeArtifacts = artifacts.filter((artifact) => !artifact.archived_at);
+  const totalArtifactCount = activeArtifacts.length;
+  const reusedArtifactCount = activeArtifacts.filter((artifact) => Math.max(0, artifact.reuse_count ?? 0) > 0).length;
+  const reuseRatePct = calculateRatioPercent(reusedArtifactCount, totalArtifactCount);
+
+  const resolveTeamLabel = (teamId: string): string => {
+    if (teamId.startsWith('user:')) {
+      const userId = teamId.slice(5);
+      return userNameById.get(userId) ?? userId;
+    }
+    return teamLabelById.get(teamId) ?? teamId;
+  };
+
+  const edgeCounter = new Map<string, { sourceTeamId: string; targetTeamId: string; reuseCount: number }>();
+  for (const reuseRow of artifactReuses) {
+    const artifactId = getStringField(reuseRow, ['artifact_id', 'artifactId']);
+    const userId = getStringField(reuseRow, ['user_id', 'userId']);
+    if (!artifactId || !userId) continue;
+
+    const artifact = artifactById.get(artifactId);
+    if (!artifact || artifact.archived_at) continue;
+    const sourceProjectId = artifact.source_hack_project_id;
+    if (!sourceProjectId) continue;
+
+    const sourceProject = projectById.get(sourceProjectId);
+    if (!sourceProject) continue;
+    const sourceTeamId = sourceProject.team_id ?? (sourceProject.owner_id ? `user:${sourceProject.owner_id}` : null);
+    const targetTeamId = userPrimaryTeamId.get(userId) ?? `user:${userId}`;
+    if (!sourceTeamId || sourceTeamId === targetTeamId) continue;
+
+    const edgeKey = `${sourceTeamId}::${targetTeamId}`;
+    const existing = edgeCounter.get(edgeKey);
+    if (existing) {
+      existing.reuseCount += 1;
+    } else {
+      edgeCounter.set(edgeKey, { sourceTeamId, targetTeamId, reuseCount: 1 });
+    }
+  }
+
+  const crossTeamAdoptionCount = Array.from(edgeCounter.values()).reduce((sum, edge) => sum + edge.reuseCount, 0);
+  const crossTeamAdoptionEdges = Array.from(edgeCounter.values())
+    .map((edge) => ({
+      sourceTeamId: edge.sourceTeamId,
+      sourceTeamLabel: resolveTeamLabel(edge.sourceTeamId),
+      targetTeamId: edge.targetTeamId,
+      targetTeamLabel: resolveTeamLabel(edge.targetTeamId),
+      reuseCount: edge.reuseCount,
+    }))
+    .sort((a, b) => b.reuseCount - a.reuseCount)
+    .slice(0, 24);
+
+  const firstHackAtByUser = new Map<string, string>();
+  for (const project of projects) {
+    if (project.source_type !== 'hack_submission' || !project.owner_id || !project.created_at) continue;
+    const current = firstHackAtByUser.get(project.owner_id);
+    if (!current || project.created_at < current) {
+      firstHackAtByUser.set(project.owner_id, project.created_at);
+    }
+  }
+
+  const leadTimeSamples: Array<{ firstHackAt: string; days: number }> = [];
+  for (const user of users) {
+    const firstHackAt = firstHackAtByUser.get(user.id);
+    const joinedAt = user.created_at ?? null;
+    if (!firstHackAt || !joinedAt) continue;
+    const days = calculateDaysBetween(joinedAt, firstHackAt);
+    if (days === null) continue;
+    leadTimeSamples.push({ firstHackAt, days });
+  }
+
+  const timeToFirstHackMedianDays = calculateMedian(leadTimeSamples.map((sample) => sample.days));
+  const timeToFirstHackSampleSize = leadTimeSamples.length;
+
+  const trendBuckets = new Map<string, number[]>();
+  for (const sample of leadTimeSamples) {
+    const month = sample.firstHackAt.slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(month)) continue;
+    const existing = trendBuckets.get(month) ?? [];
+    existing.push(sample.days);
+    trendBuckets.set(month, existing);
+  }
+
+  const timeToFirstHackTrend = Array.from(trendBuckets.keys())
+    .sort()
+    .slice(-6)
+    .map((month) => {
+      const values = trendBuckets.get(month) ?? [];
+      return {
+        periodStart: `${month}-01T00:00:00.000Z`,
+        periodLabel: month,
+        medianDays: calculateMedian(values),
+        sampleSize: values.length,
+      };
+    });
+
+  const visibleProblems = problems.filter((problem) => normalizeProblemModerationState(problem.moderation_state) !== 'removed');
+  const totalProblemCount = visibleProblems.length;
+  const solvedProblemCount = visibleProblems.filter((problem) => problem.status === 'solved').length;
+  const problemConversionPct = calculateRatioPercent(solvedProblemCount, totalProblemCount);
+
+  return {
+    calculatedAt,
+    reuseRatePct,
+    reusedArtifactCount,
+    totalArtifactCount,
+    crossTeamAdoptionCount,
+    crossTeamAdoptionEdges,
+    timeToFirstHackMedianDays,
+    timeToFirstHackSampleSize,
+    timeToFirstHackTrend,
+    problemConversionPct,
+    solvedProblemCount,
+    totalProblemCount,
   };
 }
 
@@ -1369,6 +1553,7 @@ function normalizeProjectRow(row: DbProjectRow): DbProject {
     time_saved_estimate: getNumberField(row, ['time_saved_estimate']),
     failures_and_lessons: getStringField(row, ['failures_and_lessons']),
     source_type: sourceType ?? 'project',
+    team_id: getStringField(row, ['team_id', 'teamId']),
     synced_to_library_at: getStringField(row, ['synced_to_library_at']),
     event_id: getStringField(row, ['event_id']),
     pipeline_stage: (getStringField(row, ['pipeline_stage']) as PipelineStage | null) ?? null,
@@ -2065,10 +2250,11 @@ export class SupabaseRepository {
   }
 
   async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-    const [users, projects, registry, showcaseRows] = await Promise.all([
+    const [users, projects, registry, showcaseRows, artifacts, artifactReuseRows, problemRows, teamRows, teamMemberRows] =
+      await Promise.all([
       this.client.selectMany<DbUser>(
         USER_TABLE,
-        'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags'
+        'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags,created_at'
       ),
       this.listProjects(),
       this.listAllEvents(),
@@ -2079,6 +2265,39 @@ export class SupabaseRepository {
         )
         .catch((error) => {
           if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbArtifact>(
+          ARTIFACT_TABLE,
+          'id,reuse_count,archived_at,source_hack_project_id,created_by_user_id,title,description,artifact_type,tags,source_url,source_label,source_hackday_event_id,visibility,created_at,updated_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(ARTIFACT_REUSE_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, ARTIFACT_REUSE_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbProblem>(PROBLEM_TABLE, 'id,status,moderation_state')
+        .catch((error) => {
+          if (hasMissingTable(error, PROBLEM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
           throw error;
         }),
     ]);
@@ -2168,6 +2387,16 @@ export class SupabaseRepository {
 
     const inProgressProjects = projectRows.filter((project) => ['idea', 'building', 'incubation'].includes(project.status));
     const completedProjects = projectRows.filter((project) => project.status === 'completed');
+    const teamPulse = buildTeamPulseMetrics({
+      calculatedAt: nowIso(),
+      users,
+      projects,
+      artifacts,
+      artifactReuses: artifactReuseRows,
+      problems: problemRows,
+      teamRows,
+      teamMemberRows,
+    });
 
     return {
       viewer,
@@ -2180,6 +2409,7 @@ export class SupabaseRepository {
         completedProjects: completedProjects.length,
         activeMentors: people.filter((person) => person.mentorSlotsRemaining > 0).length,
       },
+      teamPulse,
       featuredHacks,
       recentProjects,
       people,

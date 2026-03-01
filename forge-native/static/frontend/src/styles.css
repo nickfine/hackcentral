@@ -2701,6 +2701,58 @@ button {
   line-height: 1.35;
 }
 
+.pulse-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: var(--tier4-size);
+}
+
+.pulse-matrix-table th,
+.pulse-matrix-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pulse-matrix-table th:last-child,
+.pulse-matrix-table td:last-child {
+  text-align: right;
+}
+
+.pulse-trend-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pulse-trend-row {
+  display: grid;
+  gap: 6px;
+}
+
+.pulse-trend-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: var(--tier4-size);
+}
+
+.pulse-trend-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #edf2fa;
+  overflow: hidden;
+}
+
+.pulse-trend-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-strong));
+}
+
 .recognition-tabs {
   padding-top: 8px;
 }

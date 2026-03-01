@@ -2990,6 +2990,18 @@ export function App(): JSX.Element {
   );
   const hackers = filteredPeople;
 
+  const teamPulse = bootstrap?.teamPulse ?? null;
+  const reuseRatePct = teamPulse?.reuseRatePct ?? 0;
+  const crossTeamAdoptionCount = teamPulse?.crossTeamAdoptionCount ?? 0;
+  const timeToFirstHackMedianDays = teamPulse?.timeToFirstHackMedianDays ?? null;
+  const problemConversionPct = teamPulse?.problemConversionPct ?? 0;
+  const crossTeamAdoptionEdges = teamPulse?.crossTeamAdoptionEdges ?? [];
+  const timeToFirstHackTrend = teamPulse?.timeToFirstHackTrend ?? [];
+  const trendMaxMedianDays = Math.max(
+    1,
+    ...timeToFirstHackTrend.map((point) => (typeof point.medianDays === 'number' ? point.medianDays : 0))
+  );
+
   const aiContributors = bootstrap?.summary.activeMentors ?? 0;
   const totalPeople = bootstrap?.summary.totalPeople ?? 0;
   const aiContributorPct = percent(aiContributors, totalPeople);
@@ -2998,9 +3010,8 @@ export function App(): JSX.Element {
   const projectsWithAiPct = percent(projectsWithAiCount, Math.max(projectsWithAiCount + 25, 1));
 
   const completedHacks = bootstrap?.summary.totalHacks ?? 0;
-  const weeklyActive = Math.max(0, (bootstrap?.summary.activeMentors ?? 0) - 5);
 
-  const maturityValue = Math.min(100, (aiContributorPct + projectsWithAiPct) / 2 + 35);
+  const maturityValue = Math.min(100, (reuseRatePct + problemConversionPct) / 2 + 20);
   const nextMilestone = Math.max(0, Math.round(50 - maturityValue));
 
   const gini = computeGini(featuredHacks.map((hack) => hack.reuseCount));
@@ -3598,15 +3609,16 @@ export function App(): JSX.Element {
   const exportTeamPulse = (): void => {
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
       exportedAt: new Date().toISOString(),
-      placeholderMetrics: true,
-      placeholderNote: TEAM_PULSE_PLACEHOLDER_NOTE,
       summary: bootstrap?.summary ?? null,
-      aiContributorPct,
-      projectsWithAiPct,
-      gini,
-      frontline,
-      leaders,
-      others,
+      teamPulse: teamPulse ?? null,
+      legacySnapshot: {
+        aiContributorPct,
+        projectsWithAiPct,
+        gini,
+        frontline,
+        leaders,
+        others,
+      },
     });
   };
 
@@ -4142,14 +4154,14 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <h1>Team Pulse</h1>
                 <button type="button" className="btn btn-outline" onClick={exportTeamPulse}>
-                  Export metrics (placeholder)
+                  Export metrics (JSON)
                 </button>
               </section>
               {TEAM_PULSE_PLACEHOLDER_NOTE ? <section className="message message-preview">{TEAM_PULSE_PLACEHOLDER_NOTE}</section> : null}
 
               <article className="card collective-card">
                 <h2>Our Collective Progress</h2>
-                <p>Estimated progress for layout testing — Spark, {nextMilestone}% to Momentum.</p>
+                <p>Phase 2 Team Pulse metrics from live registry/problem/reuse activity. Spark, {nextMilestone}% to Momentum.</p>
 
                 <div className="stage-row" aria-label="Maturity stages">
                   <span className="stage active">Spark</span>
@@ -4164,75 +4176,109 @@ export function App(): JSX.Element {
 
                 <div className="collective-meta">
                   <div>
-                    <span className="meta-label">AI Contributors</span>
-                    <strong>{aiContributorPct.toFixed(1)}%</strong>
+                    <span className="meta-label">Reuse Rate</span>
+                    <strong>{reuseRatePct.toFixed(1)}%</strong>
                   </div>
                   <div>
-                    <span className="meta-label">Projects with AI</span>
-                    <strong>{projectsWithAiPct.toFixed(1)}%</strong>
+                    <span className="meta-label">Problem Conversion</span>
+                    <strong>{problemConversionPct.toFixed(1)}%</strong>
                   </div>
                 </div>
               </article>
 
               <section className="grid metric-grid">
                 <article className="card metric-tile">
-                  <h3>AI CONTRIBUTORS</h3>
-                  <p>{aiContributors}</p>
-                  <small>Estimated: {aiContributorPct.toFixed(1)}% of employees with AI contributions</small>
+                  <h3>REUSE RATE</h3>
+                  <p>{reuseRatePct.toFixed(1)}%</p>
+                  <small>
+                    {teamPulse?.reusedArtifactCount ?? 0} reused artifacts out of {teamPulse?.totalArtifactCount ?? 0} published artifacts.
+                  </small>
                 </article>
                 <article className="card metric-tile">
-                  <h3>PROJECTS WITH AI</h3>
-                  <p>{projectsWithAiCount}</p>
-                  <small>Estimated: {projectsWithAiPct.toFixed(1)}% of projects using AI hacks</small>
+                  <h3>CROSS-TEAM ADOPTION</h3>
+                  <p>{crossTeamAdoptionCount}</p>
+                  <small>Cross-team artifact reuse events where source and adopter teams differ.</small>
                 </article>
                 <article className="card metric-tile">
-                  <h3>COMPLETED HACKS</h3>
-                  <p>{completedHacks}</p>
-                  <small>Estimated total reusable AI hacks</small>
+                  <h3>TIME TO FIRST HACK</h3>
+                  <p>{timeToFirstHackMedianDays === null ? '—' : `${timeToFirstHackMedianDays.toFixed(1)}d`}</p>
+                  <small>
+                    Median across {teamPulse?.timeToFirstHackSampleSize ?? 0} users from join to first hack submission.
+                  </small>
                 </article>
                 <article className="card metric-tile">
-                  <h3>WEEKLY ACTIVE</h3>
-                  <p>{weeklyActive}</p>
-                  <small>Estimated active AI contributors this week</small>
+                  <h3>PROBLEM CONVERSION</h3>
+                  <p>{problemConversionPct.toFixed(1)}%</p>
+                  <small>
+                    {teamPulse?.solvedProblemCount ?? 0} solved problems out of {teamPulse?.totalProblemCount ?? 0} submitted.
+                  </small>
                 </article>
               </section>
 
               <section className="grid pulse-grid">
                 <article className="card pulse-card">
-                  <h2>Knowledge Distribution</h2>
-                  <div className="gini-wrap">
-                    <div className="gini-circle">
-                      <strong>{gini.toFixed(2)}</strong>
-                      <span>Gini</span>
-                    </div>
-                    <div>
-                      <h3>{gini >= 0.8 ? 'High concentration' : gini >= 0.7 ? 'Moderate concentration' : 'Low concentration'}</h3>
-                      <p>
-                        {gini >= 0.8
-                          ? 'High concentration. Escalate: AI expertise is too centralized.'
-                          : 'Fuller circle = healthier distribution.'}
-                      </p>
-                    </div>
-                  </div>
+                  <h2>Cross-team adoption matrix</h2>
+                  <p className="caption">Top flows from source team to adopting team.</p>
+                  {crossTeamAdoptionEdges.length > 0 ? (
+                    <table className="pulse-matrix-table">
+                      <thead>
+                        <tr>
+                          <th>From</th>
+                          <th>To</th>
+                          <th>Reuses</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {crossTeamAdoptionEdges.slice(0, 8).map((edge) => (
+                          <tr key={`${edge.sourceTeamId}-${edge.targetTeamId}`}>
+                            <td>{edge.sourceTeamLabel}</td>
+                            <td>{edge.targetTeamLabel}</td>
+                            <td>{edge.reuseCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="empty-copy">No cross-team reuse events recorded yet.</p>
+                  )}
                 </article>
 
                 <article className="card pulse-card">
-                  <h2>Frontline vs leader contributions</h2>
-                  <p className="caption">
-                    Estimated split by experience level (frontline = newbie/curious/comfortable; leader = power user/expert).
-                  </p>
+                  <h2>Time-to-first-hack trend</h2>
+                  <p className="caption">Monthly median days from first platform join to first hack submission.</p>
+                  {timeToFirstHackTrend.length > 0 ? (
+                    <div className="pulse-trend-list">
+                      {timeToFirstHackTrend.map((point) => {
+                        const medianDays = point.medianDays ?? 0;
+                        const barWidth = point.medianDays === null ? 0 : Math.max(8, (medianDays / trendMaxMedianDays) * 100);
+                        return (
+                          <div key={point.periodStart} className="pulse-trend-row">
+                            <div className="pulse-trend-head">
+                              <span>{point.periodLabel}</span>
+                              <span>{point.medianDays === null ? '—' : `${point.medianDays.toFixed(1)}d`} · n={point.sampleSize}</span>
+                            </div>
+                            <div className="pulse-trend-track" aria-hidden="true">
+                              <span className="pulse-trend-fill" style={{ width: `${barWidth}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="empty-copy">Not enough first-hack history to chart a trend yet.</p>
+                  )}
                   <div className="split-grid">
                     <div>
-                      <h3>Frontline</h3>
-                      <p>{frontline} contributions from {Math.max(frontline, 1)} active user{frontline === 1 ? '' : 's'}</p>
+                      <h3>Contributors</h3>
+                      <p>{aiContributors} active mentors/contributors in current summary snapshot.</p>
                     </div>
                     <div>
-                      <h3>Leader</h3>
-                      <p>{leaders} contributions from {Math.max(leaders, 0)} active user{leaders === 1 ? '' : 's'}</p>
+                      <h3>Projects with AI</h3>
+                      <p>{projectsWithAiCount} projects currently tagged as active/completed AI projects.</p>
                     </div>
                     <div>
-                      <h3>Other</h3>
-                      <p>{others} contributions from {Math.max(others, 0)} active user{others === 1 ? '' : 's'}</p>
+                      <h3>Completed Hacks</h3>
+                      <p>{completedHacks} total hack submissions in current summary snapshot.</p>
                     </div>
                   </div>
                 </article>

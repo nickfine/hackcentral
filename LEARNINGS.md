@@ -1587,3 +1587,40 @@ Use this template at the end of every work session:
 
 - Pathway progress integrity depends on stable `PathwayStep.id` values; destructive rewrite patterns (`deleteMany(pathway_id)` + full reinsert) can silently wipe `PathwayProgress` due FK cascade.
 - Green status on aggregate scripts can hide reduced coverage when referenced test files are absent in a child checkout; gate output should be inspected for actual executed suites, not just exit code.
+
+## Session Update - P2.METRICS.01 Team Pulse Baseline (Mar 1, 2026 14:05 GMT)
+
+### Completed
+
+- Locked Team Pulse metrics contract for `R7.1`-`R7.4`:
+  - `docs/HDC-P2-TEAM-PULSE-METRICS-CONTRACT-SPEC.md`
+- Extended bootstrap payload contract with `teamPulse`:
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+- Implemented Supabase aggregation in `forge-native/src/backend/supabase/repositories.ts` for:
+  - reuse rate (`reusedArtifactCount/totalArtifactCount`)
+  - cross-team adoption counts + edge matrix from artifact reuse flows
+  - median time-to-first-hack + monthly trend
+  - Problem Exchange solved conversion percentage
+- Reworked Team Pulse UI rendering in:
+  - `forge-native/static/frontend/src/App.tsx`
+  - `forge-native/static/frontend/src/styles.css`
+  - shows R7 metric tiles, cross-team matrix table, and first-hack trend bars
+  - Team Pulse export now emits live `teamPulse` payload to JSON
+
+### Validation Evidence
+
+- Team Pulse contract suite:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts` (`1/1` passing)
+- Targeted cross-suite:
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts` (`17/17` passing)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Guardrail gate rerun:
+  - `npm run qa:p1:go-gate` (pass; still partial-scope in this child worktree as previously noted)
+
+### Operational Learnings
+
+- Team Pulse `R7` metrics can be added without a new resolver by extending `getBootstrapData`, which keeps frontend fetch behavior stable while feature scope evolves.
+- Cross-team adoption requires deterministic team attribution policy; fallback to user-level IDs avoids runtime failure but should be replaced by explicit product-approved multi-team precedence for GO.
