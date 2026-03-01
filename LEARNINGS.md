@@ -2337,3 +2337,29 @@ Use this template at the end of every work session:
 - ROI producer payloads must emit one canonical total-token key to avoid aggregator overcount when the mapper sums total-key aliases.
 - Shipping a dedicated admin-gated producer resolver unblocks ROI spend evidence without requiring upstream schema changes or new tables.
 - MCP-first + CLI fallback remains the reliable pattern in this workspace for production verification workflows.
+
+## Session Update - P3.ROI.01 Final GO Gate + Task Transition (Mar 1, 2026 23:13 GMT)
+
+### Completed
+
+- Captured production ROI UI smoke evidence with visible non-zero spend after producer rollout.
+- Published final ROI module checkpoint and marked `P3.ROI.01` complete (`GO`).
+- Advanced active task to `P3.FORK.01` and updated continuity/execution docs accordingly.
+
+### Validation Evidence
+
+- Production UI smoke artifact (Playwright):
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
+  - visible values include:
+    - `TOKEN VOLUME 14,400`
+    - `TOTAL SPEND £0.14`
+    - `COST / OUTPUT £0.14`
+- Final rollout checkpoint artifact:
+  - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
+- Supporting resolver delta evidence from prior slice:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
+
+### Operational Learnings
+
+- For ROI closure, pairing resolver delta artifacts with an explicit production UI screenshot materially reduces ambiguity in GO decisions.
+- After a module GO, continuity docs should immediately move the active task pointer to the next roadmap work package to avoid restart drift.

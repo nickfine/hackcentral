@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 21:39 GMT
+Last updated: 2026-03-01 23:13 GMT
 
 ## Current Snapshot
 
@@ -368,30 +368,36 @@ Last updated: 2026-03-01 21:39 GMT
     - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
   - checkpoint status:
     - `GO` for producer dependency resolution (remaining ROI close gate: final UI non-zero spend smoke + module close checkpoint)
+- Phase 3 ROI final rollout gate is now closed (`GO`):
+  - production ROI UI smoke now shows non-zero spend totals:
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
+  - final rollout checkpoint:
+    - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
+  - transition:
+    - active task advanced from `P3.ROI.01` to `P3.FORK.01`
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.ROI.01`
-- Task title: `ROI dashboard scaffold and admin surface rollout`
+- Active Task ID: `P3.FORK.01`
+- Task title: `Fork and remix capability rollout`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
-- ROI requirements source: `HDC-PRODUCT-ROADMAP.md` (`R9.1`-`R9.5`)
+- Fork/remix requirements source: `HDC-PRODUCT-ROADMAP.md` (`R10.1`-`R10.2`)
 
 ## Next 3 Atomic Actions
 
-1. Capture production ROI UI smoke evidence with non-zero spend after token-producer rollout.
-2. Finalize ROI close criteria (`R9.1`-`R9.5`) and publish the final ROI module GO checkpoint.
-3. Transition active task to `P3.FORK.01` once the final ROI GO checkpoint is recorded.
+1. Define fork/remix contract boundaries for `R10.1` and `R10.2` on top of Showcase + Registry models.
+2. Implement backend resolver/service scaffolds for hack/artifact fork operations with attribution preservation.
+3. Wire initial fork UI affordances and capture first live resolver/UI smoke evidence for `P3.FORK.01`.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - None at resolver/producer level for ROI token ingestion.
-  - open execution gate: capture production ROI UI non-zero spend smoke evidence and publish final ROI close checkpoint.
+  - None currently logged for `P3.FORK.01` kickoff.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -451,6 +457,8 @@ Last updated: 2026-03-01 21:39 GMT
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
+  - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
 
 ## Validation Commands
 
