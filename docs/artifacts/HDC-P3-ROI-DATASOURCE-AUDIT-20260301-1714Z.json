@@ -1,0 +1,869 @@
+{
+  "generatedAt": "2026-03-01T17:14:16Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "supabaseMcpProjects": [],
+  "cliProjects": [
+    {
+      "created_at": "2025-12-04T17:40:10.570121Z",
+      "database": {
+        "host": "db.ssafugtobsqxmqtphwch.supabase.co",
+        "postgres_engine": "17",
+        "release_channel": "ga",
+        "version": "17.6.1.054"
+      },
+      "id": "ssafugtobsqxmqtphwch",
+      "name": "HackDay",
+      "organization_id": "sqofzwgkbhdpdjtsczql",
+      "organization_slug": "sqofzwgkbhdpdjtsczql",
+      "ref": "ssafugtobsqxmqtphwch",
+      "region": "eu-west-2",
+      "status": "ACTIVE_HEALTHY",
+      "linked": false
+    },
+    {
+      "created_at": "2025-11-06T00:46:33.443638Z",
+      "database": {
+        "host": "db.ciigguboqwjfilxpmjuy.supabase.co",
+        "postgres_engine": "17",
+        "release_channel": "ga",
+        "version": "17.6.1.038"
+      },
+      "id": "ciigguboqwjfilxpmjuy",
+      "name": "SprintSight",
+      "organization_id": "sqofzwgkbhdpdjtsczql",
+      "organization_slug": "sqofzwgkbhdpdjtsczql",
+      "ref": "ciigguboqwjfilxpmjuy",
+      "region": "eu-west-1",
+      "status": "INACTIVE",
+      "linked": false
+    }
+  ],
+  "tokenCostColumns": [
+    {
+      "table_name": "Account",
+      "column_name": "refresh_token",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "access_token",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "token_type",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Account",
+      "column_name": "id_token",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Session",
+      "column_name": "sessionToken",
+      "data_type": "text"
+    },
+    {
+      "table_name": "VerificationToken",
+      "column_name": "token",
+      "data_type": "text"
+    }
+  ],
+  "tokenCostTables": [
+    {
+      "table_schema": "public",
+      "table_name": "VerificationToken"
+    }
+  ],
+  "coreTableColumns": [
+    {
+      "table_name": "Artifact",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "title",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "description",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "artifact_type",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "tags",
+      "data_type": "ARRAY"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "source_url",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "source_label",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "source_hack_project_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "source_hackday_event_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "created_by_user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "visibility",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "reuse_count",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Artifact",
+      "column_name": "archived_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "event_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "actor_user_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "action",
+      "data_type": "text"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "previous_value",
+      "data_type": "jsonb"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "new_value",
+      "data_type": "jsonb"
+    },
+    {
+      "table_name": "EventAuditLog",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "project_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "from_stage",
+      "data_type": "text"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "to_stage",
+      "data_type": "text"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "note",
+      "data_type": "text"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "changed_by_user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "column_name": "changed_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "title",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "description",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "frequency",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "estimated_time_wasted_hours",
+      "data_type": "numeric"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "team",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "domain",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "contact_details",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "status",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "moderation_state",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "vote_count",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "flag_count",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "created_by_user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "claimed_by_user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "linked_hack_project_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "linked_artifact_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "auto_hidden_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "hidden_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "closed_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Problem",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "teamId",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "description",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "videoUrl",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "slideUrl",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "repoUrl",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "demoUrl",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "submittedAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "event_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "source_type",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "synced_to_library_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "hack_type",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "visibility",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "owner_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "workflow_transformed",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "ai_impact_hypothesis",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "ai_tools_used",
+      "data_type": "ARRAY"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "time_saved_estimate",
+      "data_type": "numeric"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "failures_and_lessons",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "pipeline_stage",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Project",
+      "column_name": "pipeline_stage_entered_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "eventId",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "description",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "maxSize",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "lookingFor",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "trackSide",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "emoji",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "isPublic",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "slug",
+      "data_type": "text"
+    },
+    {
+      "table_name": "Team",
+      "column_name": "isAutoCreated",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "teamId",
+      "data_type": "text"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "userId",
+      "data_type": "text"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "role",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "status",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "TeamMember",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "User",
+      "column_name": "id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "email",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "emailVerified",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "User",
+      "column_name": "image",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "role",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "User",
+      "column_name": "skills",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "bio",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "isFreeAgent",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "User",
+      "column_name": "lookingFor",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "trackSide",
+      "data_type": "USER-DEFINED"
+    },
+    {
+      "table_name": "User",
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "User",
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "User",
+      "column_name": "atlassian_account_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "callsign",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "autoAssignOptIn",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "User",
+      "column_name": "full_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "experience_level",
+      "data_type": "text"
+    },
+    {
+      "table_name": "User",
+      "column_name": "mentor_capacity",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "User",
+      "column_name": "mentor_sessions_used",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "User",
+      "column_name": "happy_to_mentor",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "User",
+      "column_name": "seeking_mentor",
+      "data_type": "boolean"
+    },
+    {
+      "table_name": "User",
+      "column_name": "capability_tags",
+      "data_type": "ARRAY"
+    }
+  ],
+  "coreTableRowCounts": [
+    {
+      "table_name": "Artifact",
+      "rows": 0
+    },
+    {
+      "table_name": "EventAuditLog",
+      "rows": 56
+    },
+    {
+      "table_name": "PipelineTransitionLog",
+      "rows": 1
+    },
+    {
+      "table_name": "Problem",
+      "rows": 1
+    },
+    {
+      "table_name": "Project",
+      "rows": 2
+    },
+    {
+      "table_name": "Team",
+      "rows": 12
+    },
+    {
+      "table_name": "TeamMember",
+      "rows": 20
+    },
+    {
+      "table_name": "User",
+      "rows": 72
+    }
+  ],
+  "eventAuditKeywordScan": {
+    "rows_total": 56,
+    "rows_with_token_keyword": 0,
+    "rows_with_cost_keyword": 0,
+    "rows_with_spend_keyword": 0,
+    "rows_with_price_keyword": 0,
+    "rows_with_model_keyword": 56
+  },
+  "teamSample": [
+    {
+      "id": "0f20cb64-8c50-55ee-aec6-c40c9a1e205c",
+      "eventId": "4b30aab8-0814-4698-91b7-d1839c983a8a",
+      "name": "Forge Workflow Orchestrator",
+      "description": "Creates composable Forge automations to coordinate Jira, Confluence, and external API workflows.",
+      "maxSize": 5,
+      "lookingFor": "Forge, Integration Design",
+      "trackSide": "HUMAN",
+      "createdAt": "2026-02-26 13:38:46.629",
+      "updatedAt": "2026-02-26 13:38:46.629",
+      "emoji": null,
+      "isPublic": true,
+      "slug": null,
+      "isAutoCreated": false
+    },
+    {
+      "id": "269a796f-99cb-5e45-899d-1c7fb4514ca8",
+      "eventId": "4b30aab8-0814-4698-91b7-d1839c983a8a",
+      "name": "Slack-to-JSM Incident Bridge",
+      "description": "Turns incident chatter in Slack into structured JSM incidents with timeline summaries and accountable owners.",
+      "maxSize": 5,
+      "lookingFor": "JSM Automation, Slack Apps",
+      "trackSide": "HUMAN",
+      "createdAt": "2026-02-26 13:38:46.629",
+      "updatedAt": "2026-02-26 13:38:46.629",
+      "emoji": null,
+      "isPublic": true,
+      "slug": null,
+      "isAutoCreated": false
+    },
+    {
+      "id": "3e85c07a-6266-5960-ae75-db9450f48782",
+      "eventId": "4b30aab8-0814-4698-91b7-d1839c983a8a",
+      "name": "Meeting-to-Jira Action Miner",
+      "description": "Extracts tasks, owners, and deadlines from meeting transcripts and drafts Jira tickets with context links.",
+      "maxSize": 5,
+      "lookingFor": "Speech AI, Jira APIs",
+      "trackSide": "HUMAN",
+      "createdAt": "2026-02-26 13:38:46.629",
+      "updatedAt": "2026-02-26 13:38:46.629",
+      "emoji": null,
+      "isPublic": true,
+      "slug": null,
+      "isAutoCreated": false
+    },
+    {
+      "id": "4deafcac-ade2-5515-825e-f78d6ed2197f",
+      "eventId": "4b30aab8-0814-4698-91b7-d1839c983a8a",
+      "name": "Customer Signal Synthesizer",
+      "description": "Combines support tickets, NPS themes, and product telemetry into ranked opportunities for product teams.",
+      "maxSize": 5,
+      "lookingFor": "Analytics, Customer Research",
+      "trackSide": "HUMAN",
+      "createdAt": "2026-02-26 13:38:46.629",
+      "updatedAt": "2026-02-26 13:38:46.629",
+      "emoji": null,
+      "isPublic": true,
+      "slug": null,
+      "isAutoCreated": false
+    },
+    {
+      "id": "780420e8-2352-5b59-9bdf-f5aacef63c42",
+      "eventId": "4b30aab8-0814-4698-91b7-d1839c983a8a",
+      "name": "Confluence Auto-Briefer",
+      "description": "Builds concise weekly brief pages from meeting notes, decisions, and action updates across project spaces.",
+      "maxSize": 5,
+      "lookingFor": "Confluence Macros, UX Writing",
+      "trackSide": "HUMAN",
+      "createdAt": "2026-02-26 13:38:46.629",
+      "updatedAt": "2026-02-26 13:38:46.629",
+      "emoji": null,
+      "isPublic": true,
+      "slug": null,
+      "isAutoCreated": false
+    }
+  ],
+  "teamMemberSample": [
+    {
+      "id": "010e6d1a-abe9-5dd4-a21e-f3f9a5e68718",
+      "teamId": "0f20cb64-8c50-55ee-aec6-c40c9a1e205c",
+      "userId": "28c25dea-d1bf-5975-9977-adfcf42177b3",
+      "role": "MEMBER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "1081edd3-6a89-53af-bfb5-008327a37cfe",
+      "teamId": "b62b0b58-dc4d-56dc-91cd-d5d1756c7007",
+      "userId": "c67de7a9-bdbd-501c-80e3-8313fcc7141f",
+      "role": "MEMBER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "221f0948-0c03-5c4d-9eb5-1fbeb7979689",
+      "teamId": "780420e8-2352-5b59-9bdf-f5aacef63c42",
+      "userId": "42498cbe-e8e3-542f-8833-e0d05dc275c0",
+      "role": "OWNER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "2768d835-80b5-58b8-9e52-23a525c19212",
+      "teamId": "780420e8-2352-5b59-9bdf-f5aacef63c42",
+      "userId": "66b06544-d20b-59fe-93d3-cc984e82b3ee",
+      "role": "MEMBER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "31016136-6c8b-597d-b276-9715fbfcb85d",
+      "teamId": "904a4155-1bf5-5297-9c77-9c6a3a069d2a",
+      "userId": "075eb054-d5af-53fa-86cf-9ddfd4909d1b",
+      "role": "MEMBER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "31a05ae1-0a9f-582b-9a4c-fa0d8a4d411f",
+      "teamId": "b1a8fe44-a932-5516-af9c-9511b25b50ce",
+      "userId": "82c74bf1-f251-5841-b62b-80e93f616c16",
+      "role": "OWNER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "412f3fff-0230-5898-9389-5cf3fa099db6",
+      "teamId": "269a796f-99cb-5e45-899d-1c7fb4514ca8",
+      "userId": "3ba9843e-01f5-50bb-9dbf-5aa22d40d184",
+      "role": "MEMBER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    },
+    {
+      "id": "4ebcee87-280c-5adc-9eee-2a3052f253ee",
+      "teamId": "3e85c07a-6266-5960-ae75-db9450f48782",
+      "userId": "f503b3f5-eb29-539b-a2a9-f2eb820600f9",
+      "role": "OWNER",
+      "status": "ACCEPTED",
+      "createdAt": "2026-02-26 13:38:46.629"
+    }
+  ],
+  "sourceCoverageAssessment": {
+    "tokenVolume": {
+      "status": "unavailable",
+      "reason": "No dedicated token-usage table/columns found in public schema and EventAuditLog keyword scan has no token usage signals."
+    },
+    "costRateCard": {
+      "status": "unavailable",
+      "reason": "No rate-card or pricing source table/columns found in public schema."
+    },
+    "outputsPersonTeam": {
+      "status": "available_partial",
+      "reason": "Project, Artifact, Problem, and PipelineTransitionLog tables are present for per-user and team-attributed output counts."
+    },
+    "outputsBusinessUnit": {
+      "status": "unavailable",
+      "reason": "No explicit business-unit dimension discovered in Team/TeamMember/User columns."
+    }
+  }
+}

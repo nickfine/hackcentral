@@ -59,6 +59,97 @@ export interface TeamPulseMetrics {
   totalProblemCount: number;
 }
 
+export type RoiTimeWindow = 'weekly' | 'monthly' | 'quarterly';
+export type RoiSourceStatus = 'available' | 'available_partial' | 'unavailable';
+
+export interface RoiSourceDescriptor {
+  status: RoiSourceStatus;
+  source: string;
+  reason: string;
+}
+
+export interface RoiOutputMetrics {
+  hacksCompleted: number;
+  artifactsPublished: number;
+  problemsSolved: number;
+  pipelineItemsProgressed: number;
+}
+
+export interface RoiCostPerOutput {
+  perHack: number | null;
+  perArtifact: number | null;
+  perProblemSolved: number | null;
+  perPipelineItemProgressed: number | null;
+}
+
+export interface RoiBreakdownRow {
+  dimensionId: string;
+  dimensionLabel: string;
+  tokenVolume: number | null;
+  cost: number | null;
+  outputs: RoiOutputMetrics;
+}
+
+export interface RoiTrendPoint {
+  periodStart: string;
+  periodLabel: string;
+  tokenVolume: number | null;
+  cost: number | null;
+  outputs: RoiOutputMetrics;
+}
+
+export interface RoiExportRow {
+  section: 'summary' | 'team' | 'person' | 'business_unit';
+  dimension: 'all' | 'team' | 'person' | 'business_unit';
+  id: string;
+  label: string;
+  metric: string;
+  value: string;
+}
+
+export interface RoiExportBundle {
+  generatedAt: string;
+  fileName: string;
+  rows: RoiExportRow[];
+  formattedSummary: string;
+}
+
+export interface RoiDashboardSnapshot {
+  calculatedAt: string;
+  policyVersion: 'r9-roi-scaffold-v1';
+  window: RoiTimeWindow;
+  appliedFilters: {
+    teamId: string | null;
+    businessUnit: string | null;
+  };
+  sources: {
+    tokenVolume: RoiSourceDescriptor;
+    costRateCard: RoiSourceDescriptor;
+    outputs: RoiSourceDescriptor;
+    businessUnit: RoiSourceDescriptor;
+  };
+  totals: {
+    tokenVolume: number | null;
+    cost: number | null;
+    outputs: RoiOutputMetrics;
+    costPerOutput: RoiCostPerOutput;
+  };
+  breakdowns: {
+    person: RoiBreakdownRow[];
+    team: RoiBreakdownRow[];
+    businessUnit: RoiBreakdownRow[];
+  };
+  trend: RoiTrendPoint[];
+  export: RoiExportBundle;
+  notes: string[];
+}
+
+export interface GetRoiDashboardInput {
+  window?: RoiTimeWindow;
+  teamId?: string;
+  businessUnit?: string;
+}
+
 export interface RecognitionMentorSignalEntry {
   userId: string;
   userName: string;
@@ -1021,6 +1112,7 @@ export type Defs = {
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
+  hdcGetRoiDashboard: (payload: GetRoiDashboardInput) => RoiDashboardSnapshot;
   hdcTrackTeamPulseExport: (payload: TrackTeamPulseExportInput) => TrackTeamPulseExportResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
   hdcRetrySync: (payload: { eventId: string }) => SyncResult;

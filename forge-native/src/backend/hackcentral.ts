@@ -42,6 +42,8 @@ import type {
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
+  GetRoiDashboardInput,
+  RoiDashboardSnapshot,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
   UpdateMentorProfileInput,
@@ -264,6 +266,12 @@ function unsupportedPathwaysBackendError(): never {
   );
 }
 
+function unsupportedRoiBackendError(): never {
+  throw new Error(
+    '[ROI_UNSUPPORTED_BACKEND] ROI operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
 function getProblemExchangeModerationMode(): ProblemExchangeCapabilitiesResult['moderationMode'] {
   return 'allowlist';
 }
@@ -318,6 +326,16 @@ export async function trackTeamPulseExport(
         loggedAt,
       };
     }
+  );
+}
+
+export async function getRoiDashboard(
+  viewer: ViewerContext,
+  input: GetRoiDashboardInput
+): Promise<RoiDashboardSnapshot> {
+  return withConfiguredBackend(
+    () => repository.getRoiDashboard(viewer, input),
+    () => Promise.resolve(unsupportedRoiBackendError())
   );
 }
 

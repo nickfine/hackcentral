@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 17:08 GMT
+Last updated: 2026-03-01 17:21 GMT
 
 ## Current Snapshot
 
@@ -265,11 +265,26 @@ Last updated: 2026-03-01 17:08 GMT
   - validation coverage:
     - `tests/forge-native-phase2-telemetry-contract.spec.ts`
     - `qa:p2:telemetry-static-check`
+- Phase 3 ROI baseline (`P3.ROI.01`) has started and first scaffold slice is landed:
+  - live datasource audit evidence (Supabase MCP-first + CLI fallback): `docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`
+  - ROI contract + fallback policy: `docs/HDC-P3-ROI-CONTRACT-SPEC.md`
+  - new admin-gated resolver contract: `hdcGetRoiDashboard`
+  - shared/frontend type parity updates:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - backend wiring:
+    - `forge-native/src/backend/supabase/repositories.ts`
+    - `forge-native/src/backend/hackcentral.ts`
+    - `forge-native/src/index.ts`
+  - validation:
+    - `tests/forge-native-roi-contract.spec.ts` (`2/2`)
+    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + `tests/forge-native-recognition-mentor-policy-contract.spec.ts` + `tests/forge-native-phase2-telemetry-contract.spec.ts` + ROI suite (`8/8`)
+    - backend/frontend typechecks pass
 
 ## Active Task Pointer
 
 - Active Task ID: `P3.ROI.01`
-- Task title: `ROI metrics and token data-source audit`
+- Task title: `ROI dashboard scaffold and admin surface rollout`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
@@ -279,9 +294,9 @@ Last updated: 2026-03-01 17:08 GMT
 
 ## Next 3 Atomic Actions
 
-1. Run `P3.ROI.01` token and cost data-source audit against available Supabase/Forge surfaces.
-2. Lock ROI contract scaffold (`R9.1`-`R9.5`) with explicit source mapping and fallback rules.
-3. Implement initial ROI resolver payload skeleton and validate with targeted contract checks.
+1. Wire `hdcGetRoiDashboard` into an admin-visible UI surface and add ROI CSV + summary export controls.
+2. Run live resolver smoke (`admin` allow + `non-admin` forbidden) and capture artifacts.
+3. Publish `P3.ROI.01` rollout checkpoint (`Conditional GO`) with explicit spend-source gap caveats.
 
 ## Blockers / Decisions Needed
 

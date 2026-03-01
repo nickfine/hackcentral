@@ -13,6 +13,7 @@ import {
   listShowcaseHacks,
   listPathways,
   getShowcaseHackDetail,
+  getRoiDashboard,
   setShowcaseFeatured,
   setPathwayStepCompletion,
   trackTeamPulseExport,
@@ -36,6 +37,7 @@ import type {
   ActivateAppModeContextResult,
   CreateInstanceDraftInput,
   FlagProblemInput,
+  GetRoiDashboardInput,
   GetPipelineBoardInput,
   ListShowcaseHacksInput,
   ListPathwaysInput,
@@ -321,6 +323,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: TrackTeamPulseExportInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return trackTeamPulseExport(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcGetRoiDashboard',
+  async (request: { context?: RawResolverContext; payload: GetRoiDashboardInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getRoiDashboard(viewer, request.payload || {});
   }
 );
 

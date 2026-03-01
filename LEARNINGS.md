@@ -1966,3 +1966,44 @@ Use this template at the end of every work session:
 
 - Resolver-backed telemetry tracking is the cleanest way to capture UI export actions in backend logs without coupling export behavior to additional data writes.
 - Phase-specific static telemetry scripts (`qa:p2:telemetry-static-check`) reduce drift risk when adding new channels without weakening existing Phase 1 telemetry gates.
+
+## Session Update - P3.ROI.01 Audit + Resolver Scaffold Baseline (Mar 1, 2026 17:21 GMT)
+
+### Completed
+
+- Executed `P3.ROI.01` datasource audit with Supabase MCP-first and documented CLI fallback.
+- Captured consolidated audit artifact:
+  - `docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`
+- Locked ROI contract scaffold with explicit fallback/source mapping:
+  - `docs/HDC-P3-ROI-CONTRACT-SPEC.md`
+- Added admin-gated ROI resolver baseline:
+  - resolver: `hdcGetRoiDashboard`
+  - backend wiring:
+    - `forge-native/src/backend/supabase/repositories.ts`
+    - `forge-native/src/backend/hackcentral.ts`
+    - `forge-native/src/index.ts`
+  - type contract parity:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+- Added targeted ROI contract tests:
+  - `tests/forge-native-roi-contract.spec.ts`
+
+### Validation Evidence
+
+- Supabase MCP-first call:
+  - `mcp__supabase__list_projects` returned `[]` in this workspace.
+- CLI fallback project discovery:
+  - `SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json`
+  - confirmed `ssafugtobsqxmqtphwch` is available.
+- Targeted ROI validation:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts` (`2/2`)
+- Cross-suite regression sanity:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts tests/forge-native-roi-contract.spec.ts` (`8/8`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- For this workspace, Supabase MCP remains useful as the required first check, but management-level ROI audits still require CLI/management API fallback to get reliable schema introspection.
+- The ROI contract is safest when it explicitly encodes source availability and null spend fields rather than implying synthetic spend values before token/rate-card integration exists.

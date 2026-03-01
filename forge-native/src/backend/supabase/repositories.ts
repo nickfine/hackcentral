@@ -71,6 +71,10 @@ import type {
   SetPathwayStepCompletionInput,
   SetPathwayStepCompletionResult,
   TeamPulseMetrics,
+  RoiDashboardSnapshot,
+  RoiOutputMetrics,
+  RoiTimeWindow,
+  GetRoiDashboardInput,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
   SubmissionRequirement,
@@ -119,6 +123,9 @@ const RECOGNITION_MENTOR_LEADERBOARD_LIMIT = 25;
 const RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS = 1;
 const RECOGNITION_PATHWAY_LEADERBOARD_LIMIT = 25;
 const RECOGNITION_SEGMENT_LEADERBOARD_LIMIT = 25;
+const ROI_POLICY_VERSION = 'r9-roi-scaffold-v1';
+const ROI_BREAKDOWN_LIMIT = 25;
+const ROI_TREND_LIMIT = 6;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -178,6 +185,12 @@ interface DbPipelineAdminLookup {
 }
 
 interface DbPathwayEditorLookup {
+  id: string;
+  role?: string | null;
+  capability_tags?: string[] | null;
+}
+
+interface DbRoiAccessLookup {
   id: string;
   role?: string | null;
   capability_tags?: string[] | null;
@@ -500,6 +513,79 @@ function calculateDaysBetween(startIso: string, endIso: string): number | null {
   const end = Date.parse(endIso);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
   return (end - start) / (1000 * 60 * 60 * 24);
+}
+
+function normalizeRoiWindow(window: unknown): RoiTimeWindow {
+  if (window === 'weekly' || window === 'quarterly') return window;
+  return 'monthly';
+}
+
+function emptyRoiOutputs(): RoiOutputMetrics {
+  return {
+    hacksCompleted: 0,
+    artifactsPublished: 0,
+    problemsSolved: 0,
+    pipelineItemsProgressed: 0,
+  };
+}
+
+function addRoiOutput(outputs: RoiOutputMetrics, metric: keyof RoiOutputMetrics, amount = 1): void {
+  outputs[metric] += amount;
+}
+
+function cloneRoiOutputs(outputs: RoiOutputMetrics): RoiOutputMetrics {
+  return {
+    hacksCompleted: outputs.hacksCompleted,
+    artifactsPublished: outputs.artifactsPublished,
+    problemsSolved: outputs.problemsSolved,
+    pipelineItemsProgressed: outputs.pipelineItemsProgressed,
+  };
+}
+
+function sumRoiOutputs(outputs: RoiOutputMetrics): number {
+  return outputs.hacksCompleted + outputs.artifactsPublished + outputs.problemsSolved + outputs.pipelineItemsProgressed;
+}
+
+function resolveRoiPeriod(timestamp: string | null | undefined, window: RoiTimeWindow): {
+  periodLabel: string;
+  periodStart: string;
+} | null {
+  if (!timestamp) return null;
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const year = parsed.getUTCFullYear();
+  const month = parsed.getUTCMonth() + 1;
+  const day = parsed.getUTCDate();
+
+  if (window === 'monthly') {
+    const mm = String(month).padStart(2, '0');
+    return {
+      periodLabel: `${year}-${mm}`,
+      periodStart: `${year}-${mm}-01T00:00:00.000Z`,
+    };
+  }
+
+  if (window === 'quarterly') {
+    const quarter = Math.floor((month - 1) / 3) + 1;
+    const quarterStartMonth = (quarter - 1) * 3 + 1;
+    const mm = String(quarterStartMonth).padStart(2, '0');
+    return {
+      periodLabel: `${year}-Q${quarter}`,
+      periodStart: `${year}-${mm}-01T00:00:00.000Z`,
+    };
+  }
+
+  const dayOfWeek = parsed.getUTCDay();
+  const dayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(Date.UTC(year, month - 1, day + dayOffset, 0, 0, 0, 0));
+  const isoYear = monday.getUTCFullYear();
+  const isoMonth = String(monday.getUTCMonth() + 1).padStart(2, '0');
+  const isoDay = String(monday.getUTCDate()).padStart(2, '0');
+  const label = `${isoYear}-W${isoMonth}${isoDay}`;
+  return {
+    periodLabel: label,
+    periodStart: `${isoYear}-${isoMonth}-${isoDay}T00:00:00.000Z`,
+  };
 }
 
 function toStatusLabel(status: string): string {
@@ -2300,6 +2386,45 @@ export class SupabaseRepository {
     }
   }
 
+  async canUserViewRoiDashboard(viewer: ViewerContext): Promise<boolean> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      return false;
+    }
+
+    try {
+      const row = await this.client.selectOne<DbRoiAccessLookup>(
+        USER_TABLE,
+        'id,role,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+      if (!row) return false;
+
+      const normalizedRole = typeof row.role === 'string' ? row.role.trim().toUpperCase() : '';
+      if (normalizedRole === 'ADMIN') {
+        return true;
+      }
+
+      const tags = Array.isArray(row.capability_tags)
+        ? row.capability_tags
+            .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+            .filter(Boolean)
+        : [];
+
+      return tags.includes('roi_admin') || tags.includes('platform_admin');
+    } catch (error) {
+      if (hasMissingUserRoleColumn(error)) {
+        const fallbackUser = await this.getUserByAccountId(accountId);
+        if (!fallbackUser) return false;
+        const tags = (fallbackUser.capability_tags ?? [])
+          .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+          .filter(Boolean);
+        return tags.includes('roi_admin') || tags.includes('platform_admin');
+      }
+      throw error;
+    }
+  }
+
   async ensureUser(viewer: ViewerContext, explicitEmail?: string): Promise<DbUser> {
     const existing = await this.getUserByAccountId(viewer.accountId);
     if (existing) return existing;
@@ -2806,6 +2931,429 @@ export class SupabaseRepository {
       logged: true,
       metric: 'team_pulse_export',
       loggedAt,
+    };
+  }
+
+  async getRoiDashboard(viewer: ViewerContext, input: GetRoiDashboardInput = {}): Promise<RoiDashboardSnapshot> {
+    const canView = await this.canUserViewRoiDashboard(viewer);
+    if (!canView) {
+      throw new Error('[ROI_FORBIDDEN] Admin access is required to view ROI dashboard.');
+    }
+
+    const window = normalizeRoiWindow(input.window);
+    const teamFilter = typeof input.teamId === 'string' && input.teamId.trim() ? input.teamId.trim() : null;
+    const businessUnitFilter =
+      typeof input.businessUnit === 'string' && input.businessUnit.trim() ? input.businessUnit.trim() : null;
+    const calculatedAt = nowIso();
+
+    const [users, projects, artifacts, problems, teamRows, teamMemberRows, pipelineTransitions] = await Promise.all([
+      (async (): Promise<DbUser[]> => {
+        const baseColumns = 'id,email,full_name,atlassian_account_id,capability_tags';
+        try {
+          return await this.client.selectMany<DbUser>(USER_TABLE, `${baseColumns},created_at`);
+        } catch (error) {
+          if (!hasMissingUserCreatedAtColumn(error)) throw error;
+          const legacyRows = await this.client.selectMany<Record<string, unknown>>(USER_TABLE, `${baseColumns},createdAt`);
+          return legacyRows.map((row) => ({
+            id: getStringField(row, ['id']) ?? '',
+            email: getStringField(row, ['email']) ?? '',
+            full_name: getStringField(row, ['full_name']),
+            atlassian_account_id: getStringField(row, ['atlassian_account_id']),
+            role: null,
+            experience_level: null,
+            mentor_capacity: null,
+            mentor_sessions_used: null,
+            happy_to_mentor: null,
+            seeking_mentor: null,
+            capability_tags: getStringArrayField(row, ['capability_tags']),
+            created_at: getStringField(row, ['created_at', 'createdAt']),
+            createdAt: getStringField(row, ['createdAt', 'created_at']),
+          }));
+        }
+      })(),
+      this.listProjects(),
+      this.client
+        .selectMany<DbArtifact>(
+          ARTIFACT_TABLE,
+          'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbProblem>(
+          PROBLEM_TABLE,
+          'id,status,moderation_state,claimed_by_user_id,created_at,updated_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, PROBLEM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbPipelineTransitionLog>(
+          PIPELINE_TRANSITION_LOG_TABLE,
+          'id,project_id,from_stage,to_stage,note,changed_by_user_id,changed_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, PIPELINE_TRANSITION_LOG_TABLE)) return [];
+          throw error;
+        }),
+    ]);
+
+    const projectById = new Map(projects.map((project) => [project.id, project]));
+    const userLabelById = new Map(users.map((user) => [user.id, user.full_name || user.email || user.id]));
+    const teamLabelById = new Map<string, string>();
+    for (const row of teamRows) {
+      const teamId = getStringField(row, ['id']);
+      if (!teamId) continue;
+      const label =
+        getStringField(row, ['name', 'title', 'display_name', 'slug']) ??
+        `Team ${teamId.slice(Math.max(0, teamId.length - 6))}`;
+      teamLabelById.set(teamId, label);
+    }
+
+    const rolePriority = (role: string | null): number => {
+      if (!role) return 4;
+      const normalized = role.trim().toLowerCase();
+      if (normalized === 'owner') return 0;
+      if (normalized === 'admin') return 1;
+      if (normalized === 'lead') return 2;
+      if (normalized === 'member') return 3;
+      return 4;
+    };
+
+    const membershipSortTime = (value: string | null): number => {
+      if (!value) return Number.POSITIVE_INFINITY;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+    };
+
+    const membershipsByUserId = new Map<
+      string,
+      Array<{ teamId: string; rolePriority: number; createdAtMs: number; sourceIndex: number }>
+    >();
+    for (let index = 0; index < teamMemberRows.length; index += 1) {
+      const row = teamMemberRows[index];
+      const userId = getStringField(row, ['user_id', 'userId']);
+      const teamId = getStringField(row, ['team_id', 'teamId']);
+      const status = getStringField(row, ['status'])?.trim().toLowerCase() ?? null;
+      if (!userId || !teamId) continue;
+      if (status && status !== 'accepted') continue;
+      const createdAt = getStringField(row, ['created_at', 'createdAt']);
+      const existing = membershipsByUserId.get(userId) ?? [];
+      existing.push({
+        teamId,
+        rolePriority: rolePriority(getStringField(row, ['role'])),
+        createdAtMs: membershipSortTime(createdAt),
+        sourceIndex: index,
+      });
+      membershipsByUserId.set(userId, existing);
+    }
+
+    const primaryTeamByUserId = new Map<string, string>();
+    for (const [userId, memberships] of membershipsByUserId) {
+      memberships.sort((a, b) => {
+        if (a.rolePriority !== b.rolePriority) return a.rolePriority - b.rolePriority;
+        if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+        if (a.teamId !== b.teamId) return a.teamId.localeCompare(b.teamId);
+        return a.sourceIndex - b.sourceIndex;
+      });
+      const primary = memberships[0];
+      if (primary) {
+        primaryTeamByUserId.set(userId, primary.teamId);
+      }
+    }
+
+    const resolveTeamId = (candidateUserId: string | null | undefined): string | null => {
+      if (!candidateUserId) return null;
+      return primaryTeamByUserId.get(candidateUserId) ?? null;
+    };
+
+    const shouldIncludeTeam = (teamId: string | null): boolean => {
+      if (!teamFilter) return true;
+      return teamId === teamFilter;
+    };
+
+    const totals = emptyRoiOutputs();
+    const personOutputs = new Map<string, RoiOutputMetrics>();
+    const teamOutputs = new Map<string, RoiOutputMetrics>();
+    const trendOutputs = new Map<string, { periodStart: string; outputs: RoiOutputMetrics }>();
+
+    const recordOutput = (
+      metric: keyof RoiOutputMetrics,
+      actorUserId: string | null,
+      actorTeamId: string | null,
+      occurredAt: string | null | undefined
+    ): void => {
+      if (!shouldIncludeTeam(actorTeamId)) return;
+
+      addRoiOutput(totals, metric, 1);
+
+      if (actorUserId) {
+        const existing = personOutputs.get(actorUserId) ?? emptyRoiOutputs();
+        addRoiOutput(existing, metric, 1);
+        personOutputs.set(actorUserId, existing);
+      }
+
+      if (actorTeamId) {
+        const existing = teamOutputs.get(actorTeamId) ?? emptyRoiOutputs();
+        addRoiOutput(existing, metric, 1);
+        teamOutputs.set(actorTeamId, existing);
+      }
+
+      const period = resolveRoiPeriod(occurredAt ?? null, window);
+      if (!period) return;
+      const existing = trendOutputs.get(period.periodLabel) ?? {
+        periodStart: period.periodStart,
+        outputs: emptyRoiOutputs(),
+      };
+      addRoiOutput(existing.outputs, metric, 1);
+      trendOutputs.set(period.periodLabel, existing);
+    };
+
+    for (const project of projects) {
+      if (project.source_type !== 'hack_submission') continue;
+      if (project.status !== 'completed') continue;
+      const ownerId = project.owner_id;
+      const actorTeamId = project.team_id ?? resolveTeamId(ownerId);
+      recordOutput('hacksCompleted', ownerId, actorTeamId, project.created_at);
+    }
+
+    for (const artifact of artifacts) {
+      if (artifact.archived_at) continue;
+      const sourceProject = artifact.source_hack_project_id ? projectById.get(artifact.source_hack_project_id) : null;
+      const actorTeamId = sourceProject?.team_id ?? resolveTeamId(artifact.created_by_user_id);
+      recordOutput('artifactsPublished', artifact.created_by_user_id, actorTeamId, artifact.created_at);
+    }
+
+    for (const problem of problems) {
+      if (problem.status !== 'solved') continue;
+      if (normalizeProblemModerationState(problem.moderation_state) === 'removed') continue;
+      const actorUserId = problem.claimed_by_user_id;
+      const actorTeamId = resolveTeamId(actorUserId);
+      recordOutput('problemsSolved', actorUserId, actorTeamId, problem.updated_at ?? problem.created_at);
+    }
+
+    for (const transition of pipelineTransitions) {
+      const actorUserId = transition.changed_by_user_id;
+      const actorTeamId = resolveTeamId(actorUserId);
+      recordOutput('pipelineItemsProgressed', actorUserId, actorTeamId, transition.changed_at);
+    }
+
+    const personBreakdown = Array.from(personOutputs.entries())
+      .map(([userId, outputs]) => ({
+        dimensionId: userId,
+        dimensionLabel: userLabelById.get(userId) ?? userId,
+        tokenVolume: null,
+        cost: null,
+        outputs: cloneRoiOutputs(outputs),
+      }))
+      .sort((a, b) => {
+        const outputDiff = sumRoiOutputs(b.outputs) - sumRoiOutputs(a.outputs);
+        if (outputDiff !== 0) return outputDiff;
+        return a.dimensionLabel.localeCompare(b.dimensionLabel);
+      })
+      .slice(0, ROI_BREAKDOWN_LIMIT);
+
+    const teamBreakdown = Array.from(teamOutputs.entries())
+      .map(([teamId, outputs]) => ({
+        dimensionId: teamId,
+        dimensionLabel: teamLabelById.get(teamId) ?? teamId,
+        tokenVolume: null,
+        cost: null,
+        outputs: cloneRoiOutputs(outputs),
+      }))
+      .sort((a, b) => {
+        const outputDiff = sumRoiOutputs(b.outputs) - sumRoiOutputs(a.outputs);
+        if (outputDiff !== 0) return outputDiff;
+        return a.dimensionLabel.localeCompare(b.dimensionLabel);
+      })
+      .slice(0, ROI_BREAKDOWN_LIMIT);
+
+    const trend = Array.from(trendOutputs.entries())
+      .map(([periodLabel, value]) => ({
+        periodLabel,
+        periodStart: value.periodStart,
+        tokenVolume: null,
+        cost: null,
+        outputs: cloneRoiOutputs(value.outputs),
+      }))
+      .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
+      .slice(-ROI_TREND_LIMIT);
+
+    const exportRows: RoiDashboardSnapshot['export']['rows'] = [
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'window',
+        value: window,
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'hacks_completed',
+        value: String(totals.hacksCompleted),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'artifacts_published',
+        value: String(totals.artifactsPublished),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'problems_solved',
+        value: String(totals.problemsSolved),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'pipeline_items_progressed',
+        value: String(totals.pipelineItemsProgressed),
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'token_volume',
+        value: 'n/a',
+      },
+      {
+        section: 'summary',
+        dimension: 'all',
+        id: 'all',
+        label: 'All',
+        metric: 'cost',
+        value: 'n/a',
+      },
+    ];
+
+    for (const row of teamBreakdown.slice(0, 10)) {
+      exportRows.push(
+        {
+          section: 'team',
+          dimension: 'team',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'total_outputs',
+          value: String(sumRoiOutputs(row.outputs)),
+        },
+        {
+          section: 'team',
+          dimension: 'team',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'hacks_completed',
+          value: String(row.outputs.hacksCompleted),
+        }
+      );
+    }
+
+    for (const row of personBreakdown.slice(0, 10)) {
+      exportRows.push({
+        section: 'person',
+        dimension: 'person',
+        id: row.dimensionId,
+        label: row.dimensionLabel,
+        metric: 'total_outputs',
+        value: String(sumRoiOutputs(row.outputs)),
+      });
+    }
+
+    const notes = [
+      'Token-volume and cost-rate-card sources are currently unavailable in the live schema; spend metrics remain null in this scaffold.',
+      'Business-unit breakdown is disabled because no explicit BU dimension exists in Team, TeamMember, or User tables.',
+    ];
+    if (teamFilter) {
+      notes.push(`Team filter applied: ${teamFilter}`);
+    }
+    if (businessUnitFilter) {
+      notes.push(`Business-unit filter requested (${businessUnitFilter}) but no business-unit source is available yet.`);
+    }
+
+    return {
+      calculatedAt,
+      policyVersion: ROI_POLICY_VERSION,
+      window,
+      appliedFilters: {
+        teamId: teamFilter,
+        businessUnit: businessUnitFilter,
+      },
+      sources: {
+        tokenVolume: {
+          status: 'unavailable',
+          source: 'none',
+          reason: 'No token-usage dataset is currently available in public schema tables or audit log payloads.',
+        },
+        costRateCard: {
+          status: 'unavailable',
+          source: 'none',
+          reason: 'No model rate-card table is available in public schema.',
+        },
+        outputs: {
+          status: 'available_partial',
+          source: 'Project, Artifact, Problem, PipelineTransitionLog',
+          reason: 'Output signals are available for people and teams, but spend attribution is unavailable.',
+        },
+        businessUnit: {
+          status: 'unavailable',
+          source: 'none',
+          reason: 'No explicit business-unit dimension is present in Team, TeamMember, or User records.',
+        },
+      },
+      totals: {
+        tokenVolume: null,
+        cost: null,
+        outputs: cloneRoiOutputs(totals),
+        costPerOutput: {
+          perHack: null,
+          perArtifact: null,
+          perProblemSolved: null,
+          perPipelineItemProgressed: null,
+        },
+      },
+      breakdowns: {
+        person: personBreakdown,
+        team: teamBreakdown,
+        businessUnit: [],
+      },
+      trend,
+      export: {
+        generatedAt: calculatedAt,
+        fileName: `hdc-roi-${window}-${calculatedAt.slice(0, 10)}.csv`,
+        rows: exportRows,
+        formattedSummary:
+          `ROI scaffold (${window}) generated ${calculatedAt}. ` +
+          `Outputs: hacks=${totals.hacksCompleted}, artifacts=${totals.artifactsPublished}, ` +
+          `problems=${totals.problemsSolved}, pipeline_progressions=${totals.pipelineItemsProgressed}. ` +
+          'Spend metrics are pending token-volume and rate-card sources.',
+      },
+      notes,
     };
   }
 
