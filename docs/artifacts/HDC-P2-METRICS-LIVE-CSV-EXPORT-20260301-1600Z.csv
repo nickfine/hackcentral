@@ -1,0 +1,6 @@
+section,metric,value,numerator,denominator,source_team_id,source_team_label,target_team_id,target_team_label,period,sample_size,exported_at
+summary,reuse_rate_pct,0,0,0,,,,,,,2026-03-01T16:00:04.322Z
+summary,cross_team_adoption_count,0,,,,,,,,,2026-03-01T16:00:04.322Z
+summary,time_to_first_hack_median_days,41.8,,,,,,,,1,2026-03-01T16:00:04.322Z
+summary,problem_conversion_pct,0,0,1,,,,,,,2026-03-01T16:00:04.322Z
+time_to_first_hack_trend,median_days,41.8,,,,,,,2026-03,1,2026-03-01T16:00:04.322Z

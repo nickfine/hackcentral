@@ -1,0 +1,64 @@
+[hdc-performance-telemetry] {"metric":"registry_lookup","source":"listAllEvents","durationMs":1251,"rowCount":56,"usedLegacyConfigFallback":false,"outcome":"success"}
+[hdc-switcher-telemetry] {"source":"getBootstrapData","total":56,"nonNavigable":0,"withMissingPageId":0}
+{
+  "viewer": {
+    "accountId": "cmiukfwe1000807bj5ir1vpy4",
+    "siteUrl": "https://hackdaytemp.atlassian.net",
+    "timezone": "Europe/London"
+  },
+  "source": {
+    "provider": "supabase",
+    "deploymentUrl": "https://ssafugtobsqxmqtphwch.supabase.co",
+    "schema": "public"
+  },
+  "recognition": {
+    "mentorSignal": {
+      "calculatedAt": "2026-03-01T16:47:29.311Z",
+      "policyVersion": "r8-mentor-sessions-used-v1",
+      "policySource": "User.mentor_sessions_used",
+      "badgeThreshold": 3,
+      "leaderboardLimit": 25,
+      "leaderboard": [],
+      "qualifiedMentorChampionCount": 0
+    },
+    "pathwaySignal": {
+      "calculatedAt": "2026-03-01T16:47:29.311Z",
+      "policyVersion": "r8-pathway-completion-v1",
+      "policySource": "PathwayProgress",
+      "badgeThresholdDistinctPathways": 1,
+      "leaderboardLimit": 25,
+      "leaderboard": [
+        {
+          "userId": "654f0986-a70a-4c82-bf33-163e7d30d43f",
+          "userName": "nfine@adaptavist.com",
+          "distinctPathwayCount": 1,
+          "completedStepCount": 1,
+          "lastCompletedAt": "2026-03-01T13:38:55.105+00:00",
+          "rank": 1,
+          "qualifiesPathwayContributor": true
+        }
+      ],
+      "qualifiedPathwayContributorCount": 1
+    },
+    "leaderboards": {
+      "builders": [
+        {
+          "userId": "654f0986-a70a-4c82-bf33-163e7d30d43f",
+          "userName": "nfine@adaptavist.com",
+          "count": 1,
+          "rank": 1
+        }
+      ],
+      "sharers": [],
+      "solvers": [],
+      "mentors": []
+    },
+    "viewerBadges": {
+      "firstArtifactPublished": false,
+      "firstProblemSolved": false,
+      "fiveArtifactsReused": false,
+      "mentoredThreePeople": false,
+      "contributedToPathway": false
+    }
+  }
+}

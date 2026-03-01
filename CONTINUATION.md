@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 16:45 GMT
+Last updated: 2026-03-01 16:52 GMT
 
 ## Current Snapshot
 
@@ -248,11 +248,17 @@ Last updated: 2026-03-01 16:45 GMT
     - `tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
     - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + recognition suite (`4/4`)
     - backend/frontend typechecks pass
+- Recognition rollout gate (`P2.RECOG.01`) is now complete (`GO`):
+  - rollout checkpoint: `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`
+  - live source verification evidence: `docs/artifacts/HDC-P2-RECOG-LIVE-SCHEMA-VERIFY-20260301-1647Z.json`
+  - live resolver payload evidence: `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`
+  - live UI smoke evidence: `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`
+  - production UI smoke confirms Team Pulse segmented recognition tabs (`Builders`, `Sharers`, `Solvers`, `Mentors`) and Home viewer badge lane rendering
 
 ## Active Task Pointer
 
-- Active Task ID: `P2.RECOG.01`
-- Task title: `Enhanced recognition`
+- Active Task ID: `P2.OBS.01`
+- Task title: `Phase 2 observability hardening`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
@@ -262,9 +268,9 @@ Last updated: 2026-03-01 16:45 GMT
 
 ## Next 3 Atomic Actions
 
-1. Run live Supabase verification for recognition signal sources (`Project`, `Artifact`, `Problem`, `PathwayProgress`, `User`) and capture payload snapshot evidence.
-2. Deploy/upgrade Forge production bundle and execute live Team Pulse recognition UI smoke for segmented leaderboard tabs + viewer badges.
-3. Record `P2.RECOG.01` rollout checkpoint artifact and move task status from in-progress to `GO` (or `CONDITIONAL GO` if any live gate fails).
+1. Define `P2.OBS.01` telemetry contract for adoption KPIs across Pathways, Team Pulse metrics, and Recognition interactions.
+2. Implement backend telemetry hooks for recognition reads and Team Pulse exports with deterministic event payload fields.
+3. Add targeted telemetry validation and record `P2.OBS.01` rollout checkpoint evidence.
 
 ## Blockers / Decisions Needed
 
@@ -305,6 +311,10 @@ Last updated: 2026-03-01 16:45 GMT
   - `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`
   - `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`
   - `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-SCHEMA-VERIFY-20260301-1647Z.json`
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`
+  - `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`
 
 ## Validation Commands
 

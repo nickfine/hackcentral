@@ -1884,3 +1884,39 @@ Use this template at the end of every work session:
 
 - Keeping recognition policies versioned (`r8-mentor-sessions-used-v1`, `r8-pathway-completion-v1`) while expanding output shape allows safe iteration without breaking UI contract assumptions.
 - `Problem` reads for recognition need solved-ownership linkage fields (`claimed_by_user_id`, `linked_hack_project_id`, `linked_artifact_id`) in bootstrap query; minimal status-only selects are insufficient for `firstProblemSolved` badge derivation.
+
+## Session Update - P2.RECOG.01 Live Rollout Gate Closure (Mar 1, 2026 16:52 GMT)
+
+### Completed
+
+- Closed remaining `P2.RECOG.01` rollout gates for `R8.1` and `R8.2`.
+- Captured production UI smoke evidence for recognition surfaces:
+  - Team Pulse segmented recognition tabs (`Builders`, `Sharers`, `Solvers`, `Mentors`)
+  - Home dashboard viewer badge lane
+- Recorded final recognition rollout checkpoint artifact with GO decision:
+  - `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`
+- Advanced execution pointer from `P2.RECOG.01` to `P2.OBS.01` in continuity docs.
+
+### Validation Evidence
+
+- Live source schema verification artifact:
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-SCHEMA-VERIFY-20260301-1647Z.json`
+  - confirms recognition signal source columns across `Project`, `Artifact`, `Problem`, `PathwayProgress`, `User`.
+- Live resolver payload artifact:
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`
+  - includes:
+    - `mentorSignal.policyVersion=r8-mentor-sessions-used-v1`
+    - `pathwaySignal.policyVersion=r8-pathway-completion-v1`
+    - segmented `leaderboards` lanes
+    - `viewerBadges` object with all five badge flags.
+- Live production UI smoke screenshot:
+  - `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`
+- Targeted validation rerun:
+  - `npm run test:run -- tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts` (`4/4`)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Resolver artifacts that are captured from ad-hoc scripts can include telemetry log lines before JSON payload; keep that in mind when machine-parsing evidence files.
+- UI smoke that proves segmented tabs should be captured from Team Pulse view (not only Home), while viewer badge rendering should be validated from Home; keeping both surfaces in one run avoids false GO confidence.

@@ -1,0 +1,23 @@
+[hdc-performance-telemetry] {"metric":"registry_lookup","source":"listAllEvents","durationMs":1427,"rowCount":56,"usedLegacyConfigFallback":false,"outcome":"success"}
+[hdc-switcher-telemetry] {"source":"getBootstrapData","total":56,"nonNavigable":0,"withMissingPageId":0}
+{
+  "calculatedAt": "2026-03-01T15:56:24.032Z",
+  "reuseRatePct": 0,
+  "reusedArtifactCount": 0,
+  "totalArtifactCount": 0,
+  "crossTeamAdoptionCount": 0,
+  "timeToFirstHackMedianDays": 41.8,
+  "timeToFirstHackSampleSize": 1,
+  "problemConversionPct": 0,
+  "solvedProblemCount": 0,
+  "totalProblemCount": 1,
+  "crossTeamEdgeSample": [],
+  "timeToFirstHackTrend": [
+    {
+      "periodStart": "2026-03-01T00:00:00.000Z",
+      "periodLabel": "2026-03",
+      "medianDays": 41.8,
+      "sampleSize": 1
+    }
+  ]
+}

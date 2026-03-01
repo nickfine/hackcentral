@@ -1,6 +1,6 @@
 # HDC P2 Team Pulse Metrics Contract Spec
 
-Last updated: 2026-03-01 14:05 GMT
+Last updated: 2026-03-01 16:02 GMT
 Owner: HackDay Central Engineering
 Task ID: `P2.METRICS.01`
 Roadmap refs: `R7.1`, `R7.2`, `R7.3`, `R7.4`
@@ -64,6 +64,10 @@ teamPulse?: TeamPulseMetrics | null
    - counts `ArtifactReuse` events where artifact source team and reuser team differ
    - source team resolved from artifact source project `team_id` (fallback: source owner user)
    - adopter team resolved from `TeamMember` accepted membership (fallback: reuser user)
+   - deterministic primary-team policy for users with multiple accepted memberships:
+     1. prefer highest role priority (`OWNER` > `ADMIN` > `LEAD` > `MEMBER` > other)
+     2. then earliest membership timestamp (`createdAt`/`created_at`)
+     3. then lexical `teamId`/`team_id` tie-break
 3. `timeToFirstHackMedianDays`:
    - per-user duration from `User.created_at` to first owned hack-submission project `created_at`
    - median rounded to 1 decimal
@@ -84,15 +88,33 @@ Team Pulse view displays:
 5. Cross-team adoption matrix table (top edges)
 6. Time-to-first-hack monthly trend list
 
-Export action now emits current Team Pulse contract payload to JSON.
+Export actions emit Team Pulse metrics to:
+
+1. JSON payload (full contract for engineering handoffs)
+2. CSV (`summary`, `cross_team_edge`, `time_to_first_hack_trend` rows) for stakeholder reporting
 
 ## Fallback and Compatibility
 
 1. If Team/TeamMember tables are unavailable, cross-team metrics gracefully fall back to user-level labels.
 2. If required metric tables are missing, each metric degrades to zero/null rather than failing bootstrap.
-3. Convex bootstrap path remains compatible because `teamPulse` is optional.
+3. User join timestamp compatibility: bootstrap user query now falls back from `User.created_at` to `User.createdAt` when legacy camelCase schema is present.
+4. Convex bootstrap path remains compatible because `teamPulse` is optional.
 
 ## Validation
+
+Live source-table verification (production `ssafugtobsqxmqtphwch`):
+
+1. Supabase MCP `list_projects` returned empty in this workspace (known behavior).
+2. CLI fallback (`SUPABASE_ACCESS_TOKEN`) confirmed schema columns for `ArtifactReuse`, `TeamMember`, `Problem` in `public`.
+3. Service-role REST checks succeeded:
+   - `ArtifactReuse`: HTTP `200` (readable; currently zero rows)
+   - `TeamMember`: HTTP `206` (readable; sample columns `teamId`, `userId`, `status`, `createdAt`)
+   - `Problem`: HTTP `200` (readable; sample columns `id`, `status`, `moderation_state`, `created_at`)
+4. Live resolver smoke (`getBootstrapData`) succeeded after adding `User.createdAt` fallback compatibility:
+   - payload snapshot: `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`
+5. Live Team Pulse production UI smoke succeeded for CSV export:
+   - screenshot: `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`
+   - exported CSV: `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`
 
 ```bash
 npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts
