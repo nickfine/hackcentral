@@ -35,6 +35,8 @@ import type {
   ListArtifactsInput,
   ListArtifactsResult,
   MarkArtifactReuseResult,
+  ForkArtifactInput,
+  ForkArtifactResult,
   GetPipelineBoardInput,
   GetPipelineBoardResult,
   MovePipelineItemInput,
@@ -46,6 +48,8 @@ import type {
   GetShowcaseHackDetailResult,
   SetShowcaseFeaturedInput,
   SetShowcaseFeaturedResult,
+  ForkShowcaseHackInput,
+  ForkShowcaseHackResult,
   UpdatePipelineStageCriteriaInput,
   UpdatePipelineStageCriteriaResult,
   PipelineBoardItem,
@@ -107,6 +111,7 @@ const HACKDAY_TEMPLATE_SEED_TABLE = 'HackdayTemplateSeed';
 const MILESTONE_TABLE = 'Milestone';
 const ARTIFACT_TABLE = 'Artifact';
 const ARTIFACT_REUSE_TABLE = 'ArtifactReuse';
+const FORK_RELATION_TABLE = 'ForkRelation';
 const PROBLEM_TABLE = 'Problem';
 const PROBLEM_VOTE_TABLE = 'ProblemVote';
 const PROBLEM_FLAG_TABLE = 'ProblemFlag';
@@ -392,6 +397,17 @@ interface DbArtifactReuse {
   user_id: string;
   used_at: string;
   context_note: string | null;
+}
+
+interface DbForkRelation {
+  id: string;
+  entity_type: 'project' | 'artifact' | null;
+  source_id: string;
+  fork_id: string;
+  source_owner_user_id: string | null;
+  forked_by_user_id: string | null;
+  metadata: unknown;
+  created_at: string | null;
 }
 
 interface DbProblem {
@@ -1221,6 +1237,10 @@ function createRoiValidationError(message: string): Error {
   return new Error(`[ROI_VALIDATION_FAILED] ${message}`);
 }
 
+function createForkValidationError(message: string): Error {
+  return new Error(`[FORK_VALIDATION_FAILED] ${message}`);
+}
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -1261,7 +1281,7 @@ function logPhase2Telemetry(metric: string, payload: Record<string, unknown>): v
   );
 }
 
-function createArtifactListItem(row: DbArtifact, authorName: string): ArtifactListItem {
+function createArtifactListItem(row: DbArtifact, authorName: string, forkCount = 0): ArtifactListItem {
   return {
     id: row.id,
     title: row.title,
@@ -1274,6 +1294,7 @@ function createArtifactListItem(row: DbArtifact, authorName: string): ArtifactLi
     sourceHackdayEventId: row.source_hackday_event_id ?? undefined,
     visibility: normalizeArtifactVisibility(row.visibility),
     reuseCount: row.reuse_count ?? 0,
+    forkCount: Math.max(0, Math.floor(forkCount)),
     createdAt: row.created_at ?? nowIso(),
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
     authorName,
@@ -1823,8 +1844,9 @@ function createShowcaseHackListItem(input: {
   metadata: DbShowcaseHack | null;
   authorName: string;
   reuseCount: number;
+  forkCount: number;
 }): ShowcaseHackListItem {
-  const { project, metadata, authorName, reuseCount } = input;
+  const { project, metadata, authorName, reuseCount, forkCount } = input;
   const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(metadata?.linked_artifact_ids ?? []);
   return {
     projectId: project.id,
@@ -1840,6 +1862,7 @@ function createShowcaseHackListItem(input: {
     demoUrl: metadata?.demo_url ?? undefined,
     pipelineStage: resolveProjectPipelineStage(project),
     reuseCount: Math.max(0, Math.floor(reuseCount)),
+    forkCount: Math.max(0, Math.floor(forkCount)),
     teamMembersCount: normalizeShowcaseTeamMembers(metadata?.team_members ?? []).length,
     linkedArtifactsCount: linkedArtifactIds.length,
     createdAt: project.created_at ?? metadata?.created_at ?? nowIso(),
@@ -2960,6 +2983,67 @@ export class SupabaseRepository {
       'id,title,description,frequency,estimated_time_wasted_hours,team,domain,contact_details,status,moderation_state,vote_count,flag_count,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id,auto_hidden_at,hidden_at,closed_at,created_at,updated_at',
       [{ field: 'id', op: 'eq', value: problemId }]
     );
+  }
+
+  private async listForkRelations(entityType: 'project' | 'artifact'): Promise<DbForkRelation[]> {
+    try {
+      return await this.client.selectMany<DbForkRelation>(
+        FORK_RELATION_TABLE,
+        'id,entity_type,source_id,fork_id,source_owner_user_id,forked_by_user_id,metadata,created_at',
+        [{ field: 'entity_type', op: 'eq', value: entityType }]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, FORK_RELATION_TABLE)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  private async getSourceForkCounts(entityType: 'project' | 'artifact'): Promise<Map<string, number>> {
+    const rows = await this.listForkRelations(entityType);
+    const countBySourceId = new Map<string, number>();
+    for (const row of rows) {
+      const sourceId = typeof row.source_id === 'string' ? row.source_id.trim() : '';
+      if (!sourceId) continue;
+      countBySourceId.set(sourceId, (countBySourceId.get(sourceId) ?? 0) + 1);
+    }
+    return countBySourceId;
+  }
+
+  private async getSourceForkCount(entityType: 'project' | 'artifact', sourceId: string): Promise<number> {
+    const counts = await this.getSourceForkCounts(entityType);
+    return counts.get(sourceId) ?? 0;
+  }
+
+  private async recordForkRelation(input: {
+    entityType: 'project' | 'artifact';
+    sourceId: string;
+    forkId: string;
+    sourceOwnerUserId: string | null;
+    forkedByUserId: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt: string;
+  }): Promise<void> {
+    try {
+      await this.client.insert<DbForkRelation>(FORK_RELATION_TABLE, {
+        id: randomUUID(),
+        entity_type: input.entityType,
+        source_id: input.sourceId,
+        fork_id: input.forkId,
+        source_owner_user_id: input.sourceOwnerUserId ?? null,
+        forked_by_user_id: input.forkedByUserId,
+        metadata: input.metadata ?? {},
+        created_at: input.createdAt,
+      });
+    } catch (error) {
+      if (hasMissingTable(error, FORK_RELATION_TABLE)) {
+        throw new Error(
+          `Missing required table ${FORK_RELATION_TABLE}. Apply the phase 3 fork migration before calling fork resolvers.`
+        );
+      }
+      throw error;
+    }
   }
 
   private async insertProject(payload: Record<string, unknown> & { title: string }): Promise<{
@@ -4292,6 +4376,224 @@ export class SupabaseRepository {
     };
   }
 
+  async forkShowcaseHack(viewer: ViewerContext, input: ForkShowcaseHackInput): Promise<ForkShowcaseHackResult> {
+    const sourceProjectId = typeof input.sourceProjectId === 'string' ? input.sourceProjectId.trim() : '';
+    if (!sourceProjectId) {
+      throw createForkValidationError('sourceProjectId is required.');
+    }
+
+    const sourceProject = await this.getProjectById(sourceProjectId);
+    if (!sourceProject) {
+      throw new Error('[FORK_SOURCE_NOT_FOUND] Source hack project was not found.');
+    }
+    if (sourceProject.source_type !== 'hack_submission') {
+      throw new Error('[FORK_SOURCE_INVALID] sourceProjectId must reference a hack submission project.');
+    }
+
+    let sourceMetadata: DbShowcaseHack | null = null;
+    try {
+      sourceMetadata = await this.client.selectOne<DbShowcaseHack>(
+        SHOWCASE_HACK_TABLE,
+        'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
+        [{ field: 'project_id', op: 'eq', value: sourceProjectId }]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling fork resolvers.`
+        );
+      }
+      throw error;
+    }
+
+    const user = await this.ensureUser(viewer);
+    const createdAt = nowIso();
+    const title = (input.title?.trim() || `${sourceProject.title} (Fork)`).trim();
+    if (title.length < 3 || title.length > 180) {
+      throw createForkValidationError('title must be 3-180 characters when provided.');
+    }
+    const description = (input.description?.trim() || sourceProject.description || '').trim() || null;
+    const sourceEventId = sourceMetadata?.source_event_id ?? sourceProject.event_id ?? null;
+    const normalizedTags = normalizeShowcaseTags([...(sourceMetadata?.tags ?? []), 'fork']);
+    const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(sourceMetadata?.linked_artifact_ids ?? []);
+
+    const insertedProject = await this.insertProject({
+      title,
+      name: title,
+      description,
+      status: 'in_progress',
+      hack_type: sourceProject.hack_type ?? 'app',
+      visibility: input.visibility ?? asVisibility(sourceProject.visibility),
+      owner_id: user.id,
+      workflow_transformed: sourceProject.workflow_transformed ?? false,
+      source_type: 'hack_submission',
+      event_id: sourceEventId,
+      synced_to_library_at: null,
+      pipeline_stage: 'hack',
+      pipeline_stage_entered_at: createdAt,
+    });
+
+    try {
+      await this.client.upsert<DbShowcaseHack>(
+        SHOWCASE_HACK_TABLE,
+        {
+          project_id: insertedProject.id,
+          featured: false,
+          demo_url: null,
+          team_members: [],
+          source_event_id: sourceEventId,
+          tags: normalizedTags,
+          linked_artifact_ids: linkedArtifactIds,
+          context: sourceMetadata?.context ?? null,
+          limitations: sourceMetadata?.limitations ?? null,
+          risk_notes: sourceMetadata?.risk_notes ?? null,
+          source_repo_url: sourceMetadata?.source_repo_url ?? null,
+          created_by_user_id: user.id,
+          created_at: createdAt,
+          updated_at: createdAt,
+        },
+        'project_id'
+      );
+    } catch (error) {
+      await this.client
+        .deleteMany(PROJECT_TABLE, [{ field: 'id', op: 'eq', value: insertedProject.id }])
+        .catch(() => []);
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling fork resolvers.`
+        );
+      }
+      throw error;
+    }
+
+    await this.recordForkRelation({
+      entityType: 'project',
+      sourceId: sourceProjectId,
+      forkId: insertedProject.id,
+      sourceOwnerUserId: sourceProject.owner_id,
+      forkedByUserId: user.id,
+      metadata: {
+        sourceType: 'hack_submission',
+        sourceVisibility: sourceProject.visibility ?? null,
+      },
+      createdAt,
+    });
+
+    if (sourceEventId) {
+      await this.logAudit({
+        eventId: sourceEventId,
+        actorUserId: user.id,
+        action: 'hack_forked',
+        newValue: {
+          sourceProjectId,
+          forkProjectId: insertedProject.id,
+          forkedByUserId: user.id,
+          createdAt,
+        },
+      });
+    }
+
+    const sourceForkCount = await this.getSourceForkCount('project', sourceProjectId);
+    return {
+      projectId: insertedProject.id,
+      title: insertedProject.title ?? insertedProject.name ?? title,
+      createdAt,
+      forkedFromProjectId: sourceProjectId,
+      sourceForkCount,
+    };
+  }
+
+  async forkArtifact(viewer: ViewerContext, input: ForkArtifactInput): Promise<ForkArtifactResult> {
+    const sourceArtifactId = typeof input.sourceArtifactId === 'string' ? input.sourceArtifactId.trim() : '';
+    if (!sourceArtifactId) {
+      throw createForkValidationError('sourceArtifactId is required.');
+    }
+
+    let sourceArtifact: DbArtifact | null = null;
+    try {
+      sourceArtifact = await this.getArtifactRowById(sourceArtifactId);
+    } catch (error) {
+      if (hasMissingTable(error, ARTIFACT_TABLE)) {
+        throw new Error(
+          `Missing required table ${ARTIFACT_TABLE}. Apply the phase 1 registry migration before calling fork resolvers.`
+        );
+      }
+      throw error;
+    }
+
+    if (!sourceArtifact || sourceArtifact.archived_at) {
+      throw new Error('[FORK_SOURCE_NOT_FOUND] Source artifact was not found.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const createdAt = nowIso();
+    const title = (input.title?.trim() || `${sourceArtifact.title} (Fork)`).trim();
+    if (title.length < 3 || title.length > 120) {
+      throw createForkValidationError('title must be 3-120 characters when provided.');
+    }
+    const description = (input.description?.trim() || sourceArtifact.description || '').trim();
+    if (description.length < 10 || description.length > 2000) {
+      throw createForkValidationError('description must be 10-2000 characters.');
+    }
+    const tags = normalizeArtifactTags([...(sourceArtifact.tags ?? []), 'fork']);
+    const visibility =
+      input.visibility ?? normalizeArtifactVisibility(sourceArtifact.visibility ?? 'org');
+
+    const inserted = await this.client.insert<DbArtifact>(ARTIFACT_TABLE, {
+      id: randomUUID(),
+      title,
+      description,
+      artifact_type: sourceArtifact.artifact_type,
+      tags,
+      source_url: sourceArtifact.source_url,
+      source_label: `Fork of ${sourceArtifact.title} (${sourceArtifact.id})`,
+      source_hack_project_id: sourceArtifact.source_hack_project_id,
+      source_hackday_event_id: sourceArtifact.source_hackday_event_id,
+      created_by_user_id: user.id,
+      visibility,
+      reuse_count: 0,
+      created_at: createdAt,
+      updated_at: createdAt,
+      archived_at: null,
+    });
+
+    await this.recordForkRelation({
+      entityType: 'artifact',
+      sourceId: sourceArtifactId,
+      forkId: inserted.id,
+      sourceOwnerUserId: sourceArtifact.created_by_user_id,
+      forkedByUserId: user.id,
+      metadata: {
+        sourceArtifactType: sourceArtifact.artifact_type,
+        sourceVisibility: sourceArtifact.visibility ?? null,
+      },
+      createdAt,
+    });
+
+    if (sourceArtifact.source_hackday_event_id) {
+      await this.logAudit({
+        eventId: sourceArtifact.source_hackday_event_id,
+        actorUserId: user.id,
+        action: 'artifact_forked',
+        newValue: {
+          sourceArtifactId,
+          forkArtifactId: inserted.id,
+          forkedByUserId: user.id,
+          createdAt,
+        },
+      });
+    }
+
+    const sourceForkCount = await this.getSourceForkCount('artifact', sourceArtifactId);
+    return {
+      artifactId: inserted.id,
+      title: inserted.title,
+      createdAt: inserted.created_at ?? createdAt,
+      forkedFromArtifactId: sourceArtifactId,
+      sourceForkCount,
+    };
+  }
+
   async createArtifact(viewer: ViewerContext, input: CreateArtifactInput): Promise<CreateArtifactResult> {
     const title = input.title?.trim();
     if (!title || title.length < 3 || title.length > 120) {
@@ -4381,12 +4683,13 @@ export class SupabaseRepository {
     const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
 
     try {
-      const [rows, users] = await Promise.all([
+      const [rows, users, forkCountByArtifactId] = await Promise.all([
         this.client.selectMany<DbArtifact>(
           ARTIFACT_TABLE,
           'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at'
         ),
         this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+        this.getSourceForkCounts('artifact'),
       ]);
 
       const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
@@ -4423,7 +4726,13 @@ export class SupabaseRepository {
       return {
         items: filtered
           .slice(0, limit)
-          .map((row) => createArtifactListItem(row, userNameById.get(row.created_by_user_id) ?? 'Unknown')),
+          .map((row) =>
+            createArtifactListItem(
+              row,
+              userNameById.get(row.created_by_user_id) ?? 'Unknown',
+              forkCountByArtifactId.get(row.id) ?? 0
+            )
+          ),
         nextCursor: null,
       };
     } catch (error) {
@@ -4462,13 +4771,14 @@ export class SupabaseRepository {
       throw new Error('[ARTIFACT_NOT_FOUND] Artifact not found.');
     }
 
-    const [author, sourceHack] = await Promise.all([
+    const [author, sourceHack, forkCount] = await Promise.all([
       this.getUserById(artifact.created_by_user_id),
       artifact.source_hack_project_id ? this.getProjectById(artifact.source_hack_project_id) : Promise.resolve(null),
+      this.getSourceForkCount('artifact', artifact.id),
     ]);
 
     return {
-      artifact: createArtifactListItem(artifact, author?.full_name || author?.email || 'Unknown'),
+      artifact: createArtifactListItem(artifact, author?.full_name || author?.email || 'Unknown', forkCount),
       sourceHack: sourceHack
         ? {
             projectId: sourceHack.id,
@@ -5815,7 +6125,7 @@ export class SupabaseRepository {
     const canManage = await this.canUserManagePipeline(viewer);
 
     try {
-      const [projects, users, showcaseRows, artifacts] = await Promise.all([
+      const [projects, users, showcaseRows, artifacts, forkCountByProjectId] = await Promise.all([
         this.listProjects(),
         this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
         this.client.selectMany<DbShowcaseHack>(
@@ -5831,6 +6141,7 @@ export class SupabaseRepository {
             if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
             throw error;
           }),
+        this.getSourceForkCounts('project'),
       ]);
 
       const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
@@ -5856,6 +6167,7 @@ export class SupabaseRepository {
             metadata: showcaseByProjectId.get(project.id) ?? null,
             authorName: project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : 'Unknown',
             reuseCount: reuseCountByProjectId.get(project.id) ?? 0,
+            forkCount: forkCountByProjectId.get(project.id) ?? 0,
           })
         );
 
@@ -5935,7 +6247,7 @@ export class SupabaseRepository {
     }
 
     try {
-      const [showcaseRow, artifacts, problems, owner] = await Promise.all([
+      const [showcaseRow, artifacts, problems, owner, forkCount] = await Promise.all([
         this.client.selectOne<DbShowcaseHack>(
           SHOWCASE_HACK_TABLE,
           'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
@@ -5962,6 +6274,7 @@ export class SupabaseRepository {
             throw error;
           }),
         project.owner_id ? this.getUserById(project.owner_id) : Promise.resolve(null),
+        this.getSourceForkCount('project', normalizedProjectId),
       ]);
 
       const publishedArtifacts = artifacts.filter((artifact) => !artifact.archived_at);
@@ -5971,6 +6284,7 @@ export class SupabaseRepository {
         metadata: showcaseRow ?? null,
         authorName: owner?.full_name || owner?.email || 'Unknown',
         reuseCount,
+        forkCount,
       });
 
       const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(showcaseRow?.linked_artifact_ids ?? []);

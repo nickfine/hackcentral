@@ -362,6 +362,7 @@ export interface ArtifactListItem {
   sourceHackdayEventId?: string;
   visibility: ArtifactVisibility;
   reuseCount: number;
+  forkCount: number;
   createdAt: string;
   updatedAt: string;
   authorName: string;
@@ -386,6 +387,21 @@ export interface MarkArtifactReuseResult {
   artifactId: string;
   reuseCount: number;
   alreadyMarked: boolean;
+}
+
+export interface ForkArtifactInput {
+  sourceArtifactId: string;
+  title?: string;
+  description?: string;
+  visibility?: ArtifactVisibility;
+}
+
+export interface ForkArtifactResult {
+  artifactId: string;
+  title: string;
+  createdAt: string;
+  forkedFromArtifactId: string;
+  sourceForkCount: number;
 }
 
 export type ProblemFrequency = 'daily' | 'weekly' | 'monthly';
@@ -713,6 +729,7 @@ export interface ShowcaseHackListItem {
   demoUrl?: string;
   pipelineStage: PipelineStage;
   reuseCount: number;
+  forkCount: number;
   teamMembersCount: number;
   linkedArtifactsCount: number;
   createdAt: string;
@@ -768,6 +785,21 @@ export interface SetShowcaseFeaturedResult {
   projectId: string;
   featured: boolean;
   updatedAt: string;
+}
+
+export interface ForkShowcaseHackInput {
+  sourceProjectId: string;
+  title?: string;
+  description?: string;
+  visibility?: 'private' | 'org' | 'public';
+}
+
+export interface ForkShowcaseHackResult {
+  projectId: string;
+  title: string;
+  createdAt: string;
+  forkedFromProjectId: string;
+  sourceForkCount: number;
 }
 
 export interface UpdatePipelineStageCriteriaInput {
@@ -1105,6 +1137,7 @@ export type Defs = {
   hdcListArtifacts: (payload: ListArtifactsInput) => ListArtifactsResult;
   hdcGetArtifact: (payload: { artifactId: string }) => GetArtifactResult;
   hdcMarkArtifactReuse: (payload: { artifactId: string }) => MarkArtifactReuseResult;
+  hdcForkArtifact: (payload: ForkArtifactInput) => ForkArtifactResult;
   hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
   hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
   hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;
@@ -1123,6 +1156,7 @@ export type Defs = {
   hdcListShowcaseHacks: (payload: ListShowcaseHacksInput) => ListShowcaseHacksResult;
   hdcGetShowcaseHackDetail: (payload: { projectId: string }) => GetShowcaseHackDetailResult;
   hdcSetShowcaseFeatured: (payload: SetShowcaseFeaturedInput) => SetShowcaseFeaturedResult;
+  hdcForkShowcaseHack: (payload: ForkShowcaseHackInput) => ForkShowcaseHackResult;
   createProject: (payload: CreateProjectInput) => CreateProjectResult;
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;

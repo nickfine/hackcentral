@@ -27,6 +27,8 @@ import {
   updatePipelineStageCriteria,
   moderateProblem,
   markArtifactReuse,
+  forkArtifact,
+  forkShowcaseHack,
   updateProblemStatus,
   updateMentorProfile,
   voteProblem,
@@ -50,6 +52,8 @@ import type {
   SetPathwayStepCompletionInput,
   UpsertPathwayInput,
   UpdateProblemStatusInput,
+  ForkArtifactInput,
+  ForkShowcaseHackInput,
   ListArtifactsInput,
   ListProblemsInput,
   ListProblemImportCandidatesInput,
@@ -173,6 +177,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: { artifactId: string } }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return markArtifactReuse(viewer, request.payload.artifactId);
+  }
+);
+
+resolver.define(
+  'hdcForkArtifact',
+  async (request: { context?: RawResolverContext; payload: ForkArtifactInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return forkArtifact(viewer, request.payload);
   }
 );
 
@@ -309,6 +321,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: SetShowcaseFeaturedInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return setShowcaseFeatured(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcForkShowcaseHack',
+  async (request: { context?: RawResolverContext; payload: ForkShowcaseHackInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return forkShowcaseHack(viewer, request.payload);
   }
 );
 

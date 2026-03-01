@@ -42,6 +42,10 @@ import type {
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
+  ForkArtifactInput,
+  ForkArtifactResult,
+  ForkShowcaseHackInput,
+  ForkShowcaseHackResult,
   GetRoiDashboardInput,
   LogRoiTokenUsageInput,
   LogRoiTokenUsageResult,
@@ -348,6 +352,26 @@ export async function logRoiTokenUsage(
   return withConfiguredBackend(
     () => repository.logRoiTokenUsage(viewer, input),
     () => Promise.resolve(unsupportedRoiBackendError())
+  );
+}
+
+export async function forkShowcaseHack(
+  viewer: ViewerContext,
+  input: ForkShowcaseHackInput
+): Promise<ForkShowcaseHackResult> {
+  return withConfiguredBackend(
+    () => repository.forkShowcaseHack(viewer, input),
+    () => Promise.resolve(unsupportedShowcaseBackendError())
+  );
+}
+
+export async function forkArtifact(
+  viewer: ViewerContext,
+  input: ForkArtifactInput
+): Promise<ForkArtifactResult> {
+  return withConfiguredBackend(
+    () => repository.forkArtifact(viewer, input),
+    () => Promise.resolve(unsupportedRegistryBackendError())
   );
 }
 

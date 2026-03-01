@@ -44,6 +44,7 @@ export function mapFeaturedHackToArtifact(hack: FeaturedHack): ArtifactListItem 
     sourceHackdayEventId: undefined,
     visibility: hack.visibility as ArtifactVisibility,
     reuseCount: hack.reuseCount,
+    forkCount: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     authorName: hack.authorName,

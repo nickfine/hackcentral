@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 23:13 GMT
+Last updated: 2026-03-01 23:28 GMT
 
 ## Current Snapshot
 
@@ -375,6 +375,28 @@ Last updated: 2026-03-01 23:13 GMT
     - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
   - transition:
     - active task advanced from `P3.ROI.01` to `P3.FORK.01`
+- Phase 3 Fork/remix baseline (`P3.FORK.01`) is now landed (backend + UI, conditional gate):
+  - migration:
+    - `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`
+  - backend resolver/service wiring:
+    - `hdcForkShowcaseHack`
+    - `hdcForkArtifact`
+    - fork attribution persistence in `ForkRelation` + audit actions (`hack_forked`, `artifact_forked`)
+  - shared/frontend contract parity:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+    - `forkCount` now included on Showcase/Registry list items
+  - Forge UI affordances:
+    - Showcase `Fork Hack` action in `forge-native/static/frontend/src/App.tsx`
+    - Registry `Fork Artifact` action in `forge-native/static/frontend/src/App.tsx`
+    - source fork counters updated in-place after fork actions
+  - tests and build validation:
+    - `forge-native/tests/backend/fork-contract.test.mjs`
+    - `npm --prefix forge-native run typecheck` (pass)
+    - `npm --prefix forge-native run test:backend` (pass)
+    - `npm --prefix forge-native run frontend:build` (pass)
+  - checkpoint:
+    - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md` (`CONDITIONAL GO`)
 
 ## Active Task Pointer
 
@@ -390,14 +412,14 @@ Last updated: 2026-03-01 23:13 GMT
 
 ## Next 3 Atomic Actions
 
-1. Define fork/remix contract boundaries for `R10.1` and `R10.2` on top of Showcase + Registry models.
-2. Implement backend resolver/service scaffolds for hack/artifact fork operations with attribution preservation.
-3. Wire initial fork UI affordances and capture first live resolver/UI smoke evidence for `P3.FORK.01`.
+1. Apply `ForkRelation` migration in production and run live resolver smoke for `hdcForkShowcaseHack` and `hdcForkArtifact`.
+2. Capture production UI smoke evidence for Showcase/Registry fork actions and source `forkCount` updates.
+3. Publish `P3.FORK.01` GO checkpoint and then advance to `P3.FEED.01`.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - None currently logged for `P3.FORK.01` kickoff.
+  - No code blocker; live `P3.FORK.01` gate still depends on production migration + resolver/UI smoke evidence capture.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -459,6 +481,7 @@ Last updated: 2026-03-01 23:13 GMT
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
   - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
+  - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`
 
 ## Validation Commands
 

@@ -1052,6 +1052,7 @@ function mapFeaturedHackToShowcaseItem(hack: FeaturedHack): ShowcaseHackListItem
     demoUrl: hack.demoUrl ?? undefined,
     pipelineStage: 'hack',
     reuseCount: hack.reuseCount,
+    forkCount: 0,
     teamMembersCount: 0,
     linkedArtifactsCount: 0,
     createdAt: now,
@@ -1229,6 +1230,7 @@ export function App(): JSX.Element {
   const [showcaseLoaded, setShowcaseLoaded] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
   const [showcaseFeaturePendingProjectId, setShowcaseFeaturePendingProjectId] = useState<string | null>(null);
+  const [showcaseForkPendingProjectId, setShowcaseForkPendingProjectId] = useState<string | null>(null);
   const [showcaseSelectedProjectId, setShowcaseSelectedProjectId] = useState<string | null>(null);
   const [showcaseDetail, setShowcaseDetail] = useState<GetShowcaseHackDetailResult | null>(null);
   const [showcaseDetailLoading, setShowcaseDetailLoading] = useState(false);
@@ -1248,6 +1250,7 @@ export function App(): JSX.Element {
   const [registryLoaded, setRegistryLoaded] = useState(false);
   const [registryError, setRegistryError] = useState('');
   const [reusePendingArtifactId, setReusePendingArtifactId] = useState<string | null>(null);
+  const [forkPendingArtifactId, setForkPendingArtifactId] = useState<string | null>(null);
   const [detailLoadingArtifactId, setDetailLoadingArtifactId] = useState<string | null>(null);
   const [registryDetailsById, setRegistryDetailsById] = useState<Record<string, GetArtifactResult>>({});
   const [showCreateArtifactForm, setShowCreateArtifactForm] = useState(false);
@@ -2430,6 +2433,62 @@ export function App(): JSX.Element {
     [previewMode, showcaseCanManage]
   );
 
+  const handleForkShowcaseHack = useCallback(
+    async (item: ShowcaseHackListItem) => {
+      setActionError('');
+      setActionMessage('');
+      setShowcaseForkPendingProjectId(item.projectId);
+      try {
+        if (previewMode) {
+          setShowcaseItems((current) =>
+            current.map((candidate) =>
+              candidate.projectId === item.projectId
+                ? { ...candidate, forkCount: Math.max(0, candidate.forkCount + 1) }
+                : candidate
+            )
+          );
+          setShowcaseDetail((current) => {
+            if (!current || current.hack.projectId !== item.projectId) return current;
+            return {
+              ...current,
+              hack: {
+                ...current.hack,
+                forkCount: Math.max(0, current.hack.forkCount + 1),
+              },
+            };
+          });
+          setActionMessage(`Fork created (preview mode): ${item.title} (Fork)`);
+          return;
+        }
+
+        const result = await invokeTyped('hdcForkShowcaseHack', { sourceProjectId: item.projectId });
+        setShowcaseItems((current) =>
+          current.map((candidate) =>
+            candidate.projectId === item.projectId
+              ? { ...candidate, forkCount: result.sourceForkCount }
+              : candidate
+          )
+        );
+        setShowcaseDetail((current) => {
+          if (!current || current.hack.projectId !== item.projectId) return current;
+          return {
+            ...current,
+            hack: {
+              ...current.hack,
+              forkCount: result.sourceForkCount,
+            },
+          };
+        });
+        setActionMessage(`Fork created: ${result.title}`);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to fork showcase hack.');
+      } finally {
+        setShowcaseForkPendingProjectId(null);
+      }
+    },
+    [previewMode]
+  );
+
   const loadRegistryArtifacts = useCallback(
     async (filters: {
       query?: string;
@@ -2593,6 +2652,7 @@ export function App(): JSX.Element {
           sourceHackdayEventId: payload.sourceHackdayEventId,
           visibility: payload.visibility ?? 'org',
           reuseCount: 0,
+          forkCount: 0,
           createdAt: now,
           updatedAt: now,
           authorName: bootstrap?.viewer.accountId ?? 'Local Preview User',
@@ -2654,6 +2714,64 @@ export function App(): JSX.Element {
         setActionError(error instanceof Error ? error.message : 'Failed to mark artifact reuse.');
       } finally {
         setReusePendingArtifactId(null);
+      }
+    },
+    [previewMode]
+  );
+
+  const handleForkArtifact = useCallback(
+    async (item: ArtifactListItem) => {
+      setActionError('');
+      setActionMessage('');
+      setForkPendingArtifactId(item.id);
+      try {
+        if (previewMode) {
+          setRegistryItems((current) =>
+            current.map((candidate) =>
+              candidate.id === item.id ? { ...candidate, forkCount: Math.max(0, candidate.forkCount + 1) } : candidate
+            )
+          );
+          setRegistryDetailsById((current) => {
+            if (!current[item.id]) return current;
+            return {
+              ...current,
+              [item.id]: {
+                ...current[item.id],
+                artifact: {
+                  ...current[item.id].artifact,
+                  forkCount: Math.max(0, current[item.id].artifact.forkCount + 1),
+                },
+              },
+            };
+          });
+          setActionMessage(`Artifact forked (preview mode): ${item.title} (Fork)`);
+          return;
+        }
+
+        const result = await invokeTyped('hdcForkArtifact', { sourceArtifactId: item.id });
+        setRegistryItems((current) =>
+          current.map((candidate) =>
+            candidate.id === item.id ? { ...candidate, forkCount: result.sourceForkCount } : candidate
+          )
+        );
+        setRegistryDetailsById((current) => {
+          if (!current[item.id]) return current;
+          return {
+            ...current,
+            [item.id]: {
+              ...current[item.id],
+              artifact: {
+                ...current[item.id].artifact,
+                forkCount: result.sourceForkCount,
+              },
+            },
+          };
+        });
+        setActionMessage(`Artifact forked: ${result.title}`);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to fork artifact.');
+      } finally {
+        setForkPendingArtifactId(null);
       }
     },
     [previewMode]
@@ -4433,6 +4551,16 @@ export function App(): JSX.Element {
                         >
                           View details
                         </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => {
+                            void handleForkShowcaseHack(showcaseItem);
+                          }}
+                          disabled={showcaseForkPendingProjectId === showcaseItem.projectId}
+                        >
+                          {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
+                        </button>
                         {showcaseCanManage ? (
                           <button
                             type="button"
@@ -4484,6 +4612,9 @@ export function App(): JSX.Element {
                         <h3>{showcaseDetail.hack.title}</h3>
                         <p>{showcaseDetail.hack.description || 'No description provided.'}</p>
                         <p className="meta">Pipeline stage: {formatLabel(showcaseDetail.hack.pipelineStage)}</p>
+                        <p className="meta">
+                          Reuses: {showcaseDetail.hack.reuseCount} · Forks: {showcaseDetail.hack.forkCount}
+                        </p>
                         <p className="meta">
                           Demo:{' '}
                           {showcaseDetail.hack.demoUrl ? (
@@ -5339,6 +5470,16 @@ export function App(): JSX.Element {
                             >
                               {reusePendingArtifactId === item.id ? 'Saving...' : 'Mark Reuse'}
                             </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => {
+                                void handleForkArtifact(item);
+                              }}
+                              disabled={forkPendingArtifactId === item.id}
+                            >
+                              {forkPendingArtifactId === item.id ? 'Forking...' : 'Fork Artifact'}
+                            </button>
                             <a
                               className="btn btn-ghost"
                               href={item.sourceUrl}
@@ -5348,7 +5489,9 @@ export function App(): JSX.Element {
                               Source
                             </a>
                           </div>
-                          <span className="meta">{item.reuseCount} reuses</span>
+                          <span className="meta">
+                            {item.reuseCount} reuses · {item.forkCount} forks
+                          </span>
                         </div>
 
                         {detail ? (

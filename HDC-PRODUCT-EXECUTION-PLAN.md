@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 23:13 GMT  
+Last updated: 2026-03-01 23:28 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -48,7 +48,7 @@ Program: HackDay Central (HDC)
 | `P2.RECOG.01` | `R8.1` to `R8.2` | Eng | Completed (2026-03-01; GO) | `P2.METRICS.01` | Recognition rules + segmented leaderboards + viewer badges delivered and live-validated | `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`, `docs/artifacts/HDC-P2-RECOG-LIVE-SCHEMA-VERIFY-20260301-1647Z.json`, `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`, `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/constants/nav.ts`, `forge-native/static/frontend/src/App.tsx`, `tests/forge-native-recognition-mentor-policy-contract.spec.ts`, `tests/forge-native-team-pulse-metrics-contract.spec.ts` |
 | `P2.OBS.01` | Phase 2 telemetry | Eng | Completed (2026-03-01; GO) | `P2.PATH.01`, `P2.METRICS.01`, `P2.RECOG.01` | Adoption KPI trend instrumentation active with live telemetry sampling | `docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`, `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`, `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`, `tests/forge-native-phase2-telemetry-contract.spec.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `package.json` |
 | `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | Completed (2026-03-01; GO) | Phase 2 complete, token data source audit | ROI dashboard + export + token-volume mapping delivered with producer-backed non-zero spend evidence and final rollout checkpoint | `docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`, `docs/HDC-P3-ROI-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`, `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`, `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`, `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`, `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`, `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`, `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`, `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `tests/forge-native-roi-contract.spec.ts` |
-| `P3.FORK.01` | `R10.1` to `R10.2` | Eng | In progress (2026-03-01) | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | Pending |
+| `P3.FORK.01` | `R10.1` to `R10.2` | Eng | In progress (2026-03-01; backend+UI baseline landed) | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`, `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/tests/backend/fork-contract.test.mjs` |
 | `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | Planned | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | Pending |
 | `P3.FEED.01` | `R12.1` to `R12.2` | Eng | Planned | Phase 2 metrics available | Home feed + personalized recommendations delivered | Pending |
 | `P3.OBS.01` | Phase 3 telemetry | Eng + Data | Planned | `P3.ROI.01`, `P3.FEED.01` | Cost/output trend alerting with reporting cadence | Pending |
@@ -57,13 +57,13 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P3.FORK.01` - define fork/remix contract boundaries on top of registry/showcase models.
-2. `P3.FORK.01` - implement backend resolver contracts for hack/artifact fork operations with attribution preservation.
-3. `P3.FORK.01` - wire initial UI affordances for fork actions and capture first live smoke evidence.
+1. `P3.FORK.01` - apply `ForkRelation` migration to production target and run live resolver smoke for `hdcForkShowcaseHack` + `hdcForkArtifact`.
+2. `P3.FORK.01` - capture production UI smoke evidence for Showcase/Registry fork actions and source fork-count updates.
+3. `P3.FORK.01` - publish module GO checkpoint and close task once live evidence is captured.
 
 ### Next
 
-1. `P3.FORK.01` - define fork/remix contract boundaries on top of registry/showcase models.
+1. `P3.FORK.01` - complete live rollout gate and close with GO checkpoint.
 2. `P3.FEED.01` - prepare personalization signal inventory from Phase 2 outputs.
 3. `P3.OBS.01` - pre-plan cost/output trend alert thresholds and reporting cadence.
 
@@ -139,3 +139,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Completed `P3.ROI.01` token-producer gap analysis: enumerated backend `logAudit` emitters and confirmed no in-repo token-usage producer currently writes token-bearing payloads into `EventAuditLog.new_value`; documented remaining dependency in `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`. |
 | 2026-03-01 | Resolved `P3.ROI.01` token-producer blocker: added admin-gated producer resolver `hdcLogRoiTokenUsage` (typed in shared/frontend contracts), implemented canonical token-bearing audit writes (`llm_usage_logged`) in Supabase repository, added producer auth/contract tests, deployed production bundle, and captured post-deploy non-zero spend delta evidence (`docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`) plus checkpoint decision (`docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`). |
 | 2026-03-01 | Closed final `P3.ROI.01` gate to GO: captured production ROI UI smoke with visible non-zero spend (`docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`), published final rollout checkpoint (`docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`), marked `P3.ROI.01` completed, and advanced active task to `P3.FORK.01`. |
+| 2026-03-01 | Advanced `P3.FORK.01` baseline: added fork-relation migration (`20260301233000_phase3_fork_relations.sql`), implemented backend fork resolvers (`hdcForkShowcaseHack`, `hdcForkArtifact`) with attribution + audit logs, wired Showcase/Registry fork actions and fork counters in Forge UI, added fork contract coverage (`forge-native/tests/backend/fork-contract.test.mjs`), and recorded checkpoint `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md` (`CONDITIONAL GO`; live migration/smoke pending). |

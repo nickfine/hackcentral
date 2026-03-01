@@ -2363,3 +2363,32 @@ Use this template at the end of every work session:
 
 - For ROI closure, pairing resolver delta artifacts with an explicit production UI screenshot materially reduces ambiguity in GO decisions.
 - After a module GO, continuity docs should immediately move the active task pointer to the next roadmap work package to avoid restart drift.
+
+## Session Update - P3.FORK.01 Backend+UI Baseline (Mar 1, 2026 23:28 GMT)
+
+### Completed
+
+- Implemented `P3.FORK.01` fork/remix baseline across backend, resolver, and Forge UI:
+  - added `ForkRelation` migration and attribution schema (`forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`)
+  - added fork operations in Supabase repository (`forkShowcaseHack`, `forkArtifact`) with audit actions (`hack_forked`, `artifact_forked`)
+  - exposed new global-page resolvers (`hdcForkShowcaseHack`, `hdcForkArtifact`)
+  - wired Showcase/Registry UI actions (`Fork Hack`, `Fork Artifact`) and `forkCount` display/update behavior
+- Added fork contract guard tests in `forge-native/tests/backend/fork-contract.test.mjs`.
+- Published fork module checkpoint:
+  - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`
+
+### Validation Evidence
+
+- Supabase MCP-first:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior).
+- Backend + frontend validation:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix forge-native run test:backend` (pass, includes new fork contract suite)
+  - `npm --prefix forge-native run frontend:build` (pass)
+
+### Operational Learnings
+
+- Treating fork attribution as a dedicated relation (`ForkRelation`) keeps source entities immutable while enabling count aggregation and provenance for both hacks and artifacts.
+- Adding fork contract tests that assert migration/resolver/type/UI wiring together helps catch partial-slice regressions early before live rollout.
+- In this workspace, `mcp__supabase__list_projects` returning `[]` should be treated as an expected access constraint and not as a code-level blocker; proceed with documented CLI fallback for live gates.
