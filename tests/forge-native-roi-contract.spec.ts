@@ -9,7 +9,7 @@ const adminViewer: ViewerContext = {
 };
 
 describe('SupabaseRepository ROI scaffold contracts', () => {
-  it('returns R9 scaffold payload with explicit unavailable spend sources', async () => {
+  it('returns R9 scaffold payload with token-volume source mapping and unresolved cost source', async () => {
     const selectOne = vi.fn(async (table: string) => {
       if (table === 'User') {
         return {
@@ -143,6 +143,45 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
           },
         ];
       }
+      if (table === 'EventAuditLog') {
+        return [
+          {
+            id: 'audit-1',
+            event_id: 'event-1',
+            actor_user_id: 'u-1',
+            action: 'llm_usage_logged',
+            new_value: {
+              usage: {
+                prompt_tokens: 300,
+                completion_tokens: 200,
+              },
+            },
+            created_at: '2026-01-11T00:00:00.000Z',
+          },
+          {
+            id: 'audit-2',
+            event_id: 'event-2',
+            actor_user_id: 'u-2',
+            action: 'llm_usage_logged',
+            new_value: {
+              tokenVolume: 1000,
+            },
+            created_at: '2026-02-12T00:00:00.000Z',
+          },
+          {
+            id: 'audit-3',
+            event_id: 'event-3',
+            actor_user_id: 'u-admin',
+            action: 'event_created',
+            new_value: {
+              rules: {
+                judgingModel: 'hybrid',
+              },
+            },
+            created_at: '2026-02-20T00:00:00.000Z',
+          },
+        ];
+      }
       return [];
     });
 
@@ -196,7 +235,8 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
 
     expect(result.policyVersion).toBe('r9-roi-scaffold-v1');
     expect(result.window).toBe('monthly');
-    expect(result.sources.tokenVolume.status).toBe('unavailable');
+    expect(result.sources.tokenVolume.status).toBe('available_partial');
+    expect(result.totals.tokenVolume).toBe(1500);
     expect(result.sources.costRateCard.status).toBe('unavailable');
     expect(result.sources.outputs.status).toBe('available_partial');
     expect(result.totals.outputs).toEqual({
@@ -207,9 +247,16 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
     });
     expect(result.breakdowns.team[0]).toMatchObject({
       dimensionId: 'team-a',
+      tokenVolume: 500,
     });
+    expect(result.breakdowns.team[1]).toMatchObject({
+      dimensionId: 'team-b',
+      tokenVolume: 1000,
+    });
+    expect(result.trend.some((point) => point.tokenVolume > 0)).toBe(true);
     expect(result.export.rows.length).toBeGreaterThan(5);
-    expect(result.export.formattedSummary).toContain('Spend metrics are pending token-volume and rate-card sources.');
+    expect(result.export.formattedSummary).toContain('Token volume=1500');
+    expect(result.export.formattedSummary).toContain('Cost metrics are pending rate-card sources.');
   });
 
   it('rejects non-admin viewers', async () => {

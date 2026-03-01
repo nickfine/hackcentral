@@ -126,6 +126,11 @@ const RECOGNITION_SEGMENT_LEADERBOARD_LIMIT = 25;
 const ROI_POLICY_VERSION = 'r9-roi-scaffold-v1';
 const ROI_BREAKDOWN_LIMIT = 25;
 const ROI_TREND_LIMIT = 6;
+const ROI_TOKEN_TOTAL_KEYS = ['tokenvolume', 'tokencount', 'totaltokens', 'tokensused', 'usagetokens'];
+const ROI_TOKEN_PROMPT_KEYS = ['prompttokens', 'inputtokens'];
+const ROI_TOKEN_COMPLETION_KEYS = ['completiontokens', 'outputtokens'];
+const ROI_TOKEN_GENERIC_KEYS = ['tokens'];
+const ROI_TOKEN_TEAM_ID_KEYS = ['teamid'];
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -293,6 +298,15 @@ interface DbPipelineTransitionLog {
   note: string;
   changed_by_user_id: string;
   changed_at: string;
+}
+
+interface DbEventAuditLog {
+  id: string;
+  event_id: string | null;
+  actor_user_id: string | null;
+  action: string | null;
+  new_value: unknown;
+  created_at: string | null;
 }
 
 interface DbArtifact {
@@ -586,6 +600,122 @@ function resolveRoiPeriod(timestamp: string | null | undefined, window: RoiTimeW
     periodLabel: label,
     periodStart: `${isoYear}-${isoMonth}-${isoDay}T00:00:00.000Z`,
   };
+}
+
+function normalizeMetricKey(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function roundRoiTokenVolume(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round(value * 100) / 100;
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function collectNumericValuesByNormalizedKey(
+  value: unknown,
+  bucket: Map<string, number[]>,
+  depth = 0
+): void {
+  if (depth > 8 || value == null) return;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectNumericValuesByNormalizedKey(item, bucket, depth + 1);
+    }
+    return;
+  }
+  if (typeof value !== 'object') return;
+
+  for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedKey = normalizeMetricKey(rawKey);
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+      const existing = bucket.get(normalizedKey) ?? [];
+      existing.push(rawValue);
+      bucket.set(normalizedKey, existing);
+    }
+    collectNumericValuesByNormalizedKey(rawValue, bucket, depth + 1);
+  }
+}
+
+function findFirstStringValueByNormalizedKey(
+  value: unknown,
+  normalizedKeys: Set<string>,
+  depth = 0
+): string | null {
+  if (depth > 8 || value == null) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findFirstStringValueByNormalizedKey(item, normalizedKeys, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== 'object') return null;
+
+  for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedKey = normalizeMetricKey(rawKey);
+    if (normalizedKeys.has(normalizedKey) && typeof rawValue === 'string' && rawValue.trim()) {
+      return rawValue.trim();
+    }
+    const found = findFirstStringValueByNormalizedKey(rawValue, normalizedKeys, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+function sumNumericValuesByKeys(bucket: Map<string, number[]>, keys: string[]): number {
+  let total = 0;
+  for (const key of keys) {
+    const values = bucket.get(key) ?? [];
+    for (const value of values) {
+      total += value;
+    }
+  }
+  return total;
+}
+
+function extractRoiTokenVolumeFromAuditPayload(payload: unknown): number | null {
+  const parsed = parseJsonObject(payload);
+  if (!parsed) return null;
+
+  const valuesByKey = new Map<string, number[]>();
+  collectNumericValuesByNormalizedKey(parsed, valuesByKey);
+
+  const totalTokens = sumNumericValuesByKeys(valuesByKey, ROI_TOKEN_TOTAL_KEYS);
+  if (totalTokens > 0) return roundRoiTokenVolume(totalTokens);
+
+  const promptTokens = sumNumericValuesByKeys(valuesByKey, ROI_TOKEN_PROMPT_KEYS);
+  const completionTokens = sumNumericValuesByKeys(valuesByKey, ROI_TOKEN_COMPLETION_KEYS);
+  if (promptTokens > 0 || completionTokens > 0) {
+    return roundRoiTokenVolume(promptTokens + completionTokens);
+  }
+
+  const genericTokens = sumNumericValuesByKeys(valuesByKey, ROI_TOKEN_GENERIC_KEYS);
+  if (genericTokens > 0) return roundRoiTokenVolume(genericTokens);
+  return null;
+}
+
+function extractRoiTeamIdFromAuditPayload(payload: unknown): string | null {
+  const parsed = parseJsonObject(payload);
+  if (!parsed) return null;
+  return findFirstStringValueByNormalizedKey(parsed, new Set(ROI_TOKEN_TEAM_ID_KEYS));
 }
 
 function toStatusLabel(status: string): string {
@@ -2946,72 +3076,82 @@ export class SupabaseRepository {
       typeof input.businessUnit === 'string' && input.businessUnit.trim() ? input.businessUnit.trim() : null;
     const calculatedAt = nowIso();
 
-    const [users, projects, artifacts, problems, teamRows, teamMemberRows, pipelineTransitions] = await Promise.all([
-      (async (): Promise<DbUser[]> => {
-        const baseColumns = 'id,email,full_name,atlassian_account_id,capability_tags';
-        try {
-          return await this.client.selectMany<DbUser>(USER_TABLE, `${baseColumns},created_at`);
-        } catch (error) {
-          if (!hasMissingUserCreatedAtColumn(error)) throw error;
-          const legacyRows = await this.client.selectMany<Record<string, unknown>>(USER_TABLE, `${baseColumns},createdAt`);
-          return legacyRows.map((row) => ({
-            id: getStringField(row, ['id']) ?? '',
-            email: getStringField(row, ['email']) ?? '',
-            full_name: getStringField(row, ['full_name']),
-            atlassian_account_id: getStringField(row, ['atlassian_account_id']),
-            role: null,
-            experience_level: null,
-            mentor_capacity: null,
-            mentor_sessions_used: null,
-            happy_to_mentor: null,
-            seeking_mentor: null,
-            capability_tags: getStringArrayField(row, ['capability_tags']),
-            created_at: getStringField(row, ['created_at', 'createdAt']),
-            createdAt: getStringField(row, ['createdAt', 'created_at']),
-          }));
-        }
-      })(),
-      this.listProjects(),
-      this.client
-        .selectMany<DbArtifact>(
-          ARTIFACT_TABLE,
-          'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at'
-        )
-        .catch((error) => {
-          if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
-          throw error;
-        }),
-      this.client
-        .selectMany<DbProblem>(
-          PROBLEM_TABLE,
-          'id,status,moderation_state,claimed_by_user_id,created_at,updated_at'
-        )
-        .catch((error) => {
-          if (hasMissingTable(error, PROBLEM_TABLE)) return [];
-          throw error;
-        }),
-      this.client
-        .selectMany<Record<string, unknown>>(TEAM_TABLE, '*')
-        .catch((error) => {
-          if (hasMissingTable(error, TEAM_TABLE)) return [];
-          throw error;
-        }),
-      this.client
-        .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
-        .catch((error) => {
-          if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
-          throw error;
-        }),
-      this.client
-        .selectMany<DbPipelineTransitionLog>(
-          PIPELINE_TRANSITION_LOG_TABLE,
-          'id,project_id,from_stage,to_stage,note,changed_by_user_id,changed_at'
-        )
-        .catch((error) => {
-          if (hasMissingTable(error, PIPELINE_TRANSITION_LOG_TABLE)) return [];
-          throw error;
-        }),
-    ]);
+    const [users, projects, artifacts, problems, teamRows, teamMemberRows, pipelineTransitions, eventAuditLogs] =
+      await Promise.all([
+        (async (): Promise<DbUser[]> => {
+          const baseColumns = 'id,email,full_name,atlassian_account_id,capability_tags';
+          try {
+            return await this.client.selectMany<DbUser>(USER_TABLE, `${baseColumns},created_at`);
+          } catch (error) {
+            if (!hasMissingUserCreatedAtColumn(error)) throw error;
+            const legacyRows = await this.client.selectMany<Record<string, unknown>>(USER_TABLE, `${baseColumns},createdAt`);
+            return legacyRows.map((row) => ({
+              id: getStringField(row, ['id']) ?? '',
+              email: getStringField(row, ['email']) ?? '',
+              full_name: getStringField(row, ['full_name']),
+              atlassian_account_id: getStringField(row, ['atlassian_account_id']),
+              role: null,
+              experience_level: null,
+              mentor_capacity: null,
+              mentor_sessions_used: null,
+              happy_to_mentor: null,
+              seeking_mentor: null,
+              capability_tags: getStringArrayField(row, ['capability_tags']),
+              created_at: getStringField(row, ['created_at', 'createdAt']),
+              createdAt: getStringField(row, ['createdAt', 'created_at']),
+            }));
+          }
+        })(),
+        this.listProjects(),
+        this.client
+          .selectMany<DbArtifact>(
+            ARTIFACT_TABLE,
+            'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at'
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<DbProblem>(
+            PROBLEM_TABLE,
+            'id,status,moderation_state,claimed_by_user_id,created_at,updated_at'
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, PROBLEM_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<Record<string, unknown>>(TEAM_TABLE, '*')
+          .catch((error) => {
+            if (hasMissingTable(error, TEAM_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
+          .catch((error) => {
+            if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<DbPipelineTransitionLog>(
+            PIPELINE_TRANSITION_LOG_TABLE,
+            'id,project_id,from_stage,to_stage,note,changed_by_user_id,changed_at'
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, PIPELINE_TRANSITION_LOG_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<DbEventAuditLog>(
+            EVENT_AUDIT_LOG_TABLE,
+            'id,event_id,actor_user_id,action,new_value,created_at'
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, EVENT_AUDIT_LOG_TABLE)) return [];
+            throw error;
+          }),
+      ]);
 
     const projectById = new Map(projects.map((project) => [project.id, project]));
     const userLabelById = new Map(users.map((user) => [user.id, user.full_name || user.email || user.id]));
@@ -3088,9 +3228,40 @@ export class SupabaseRepository {
     };
 
     const totals = emptyRoiOutputs();
+    let totalTokenVolume = 0;
+    let tokenSignalRowCount = 0;
+    let tokenAttributedRowCount = 0;
     const personOutputs = new Map<string, RoiOutputMetrics>();
+    const personTokenVolumes = new Map<string, number>();
     const teamOutputs = new Map<string, RoiOutputMetrics>();
-    const trendOutputs = new Map<string, { periodStart: string; outputs: RoiOutputMetrics }>();
+    const teamTokenVolumes = new Map<string, number>();
+    const trendMetrics = new Map<
+      string,
+      {
+        periodStart: string;
+        outputs: RoiOutputMetrics;
+        tokenVolume: number;
+      }
+    >();
+
+    const addTokenVolume = (map: Map<string, number>, key: string | null, amount: number): void => {
+      if (!key || amount <= 0) return;
+      map.set(key, (map.get(key) ?? 0) + amount);
+    };
+
+    const ensureTrendMetric = (
+      occurredAt: string | null | undefined
+    ): { periodStart: string; outputs: RoiOutputMetrics; tokenVolume: number } | null => {
+      const period = resolveRoiPeriod(occurredAt ?? null, window);
+      if (!period) return null;
+      const existing = trendMetrics.get(period.periodLabel) ?? {
+        periodStart: period.periodStart,
+        outputs: emptyRoiOutputs(),
+        tokenVolume: 0,
+      };
+      trendMetrics.set(period.periodLabel, existing);
+      return existing;
+    };
 
     const recordOutput = (
       metric: keyof RoiOutputMetrics,
@@ -3114,14 +3285,27 @@ export class SupabaseRepository {
         teamOutputs.set(actorTeamId, existing);
       }
 
-      const period = resolveRoiPeriod(occurredAt ?? null, window);
-      if (!period) return;
-      const existing = trendOutputs.get(period.periodLabel) ?? {
-        periodStart: period.periodStart,
-        outputs: emptyRoiOutputs(),
-      };
-      addRoiOutput(existing.outputs, metric, 1);
-      trendOutputs.set(period.periodLabel, existing);
+      const trendMetric = ensureTrendMetric(occurredAt);
+      if (!trendMetric) return;
+      addRoiOutput(trendMetric.outputs, metric, 1);
+    };
+
+    const recordTokenVolume = (
+      tokenVolume: number,
+      actorUserId: string | null,
+      actorTeamId: string | null,
+      occurredAt: string | null | undefined
+    ): void => {
+      if (tokenVolume <= 0) return;
+      if (!shouldIncludeTeam(actorTeamId)) return;
+
+      totalTokenVolume += tokenVolume;
+      addTokenVolume(personTokenVolumes, actorUserId, tokenVolume);
+      addTokenVolume(teamTokenVolumes, actorTeamId, tokenVolume);
+      const trendMetric = ensureTrendMetric(occurredAt);
+      if (trendMetric) {
+        trendMetric.tokenVolume += tokenVolume;
+      }
     };
 
     for (const project of projects) {
@@ -3153,46 +3337,72 @@ export class SupabaseRepository {
       recordOutput('pipelineItemsProgressed', actorUserId, actorTeamId, transition.changed_at);
     }
 
-    const personBreakdown = Array.from(personOutputs.entries())
-      .map(([userId, outputs]) => ({
-        dimensionId: userId,
-        dimensionLabel: userLabelById.get(userId) ?? userId,
-        tokenVolume: null,
-        cost: null,
-        outputs: cloneRoiOutputs(outputs),
-      }))
+    for (const auditRow of eventAuditLogs) {
+      const tokenVolume = extractRoiTokenVolumeFromAuditPayload(auditRow.new_value);
+      if (!tokenVolume || tokenVolume <= 0) continue;
+      tokenSignalRowCount += 1;
+
+      const actorUserId = auditRow.actor_user_id;
+      const payloadTeamId = extractRoiTeamIdFromAuditPayload(auditRow.new_value);
+      const actorTeamId = payloadTeamId ?? resolveTeamId(actorUserId);
+      if (actorUserId || actorTeamId) {
+        tokenAttributedRowCount += 1;
+      }
+      recordTokenVolume(tokenVolume, actorUserId, actorTeamId, auditRow.created_at);
+    }
+
+    const personDimensionIds = new Set<string>([...personOutputs.keys(), ...personTokenVolumes.keys()]);
+    const teamDimensionIds = new Set<string>([...teamOutputs.keys(), ...teamTokenVolumes.keys()]);
+
+    const personBreakdown = Array.from(personDimensionIds)
+      .map((userId) => {
+        const outputs = personOutputs.get(userId) ?? emptyRoiOutputs();
+        return {
+          dimensionId: userId,
+          dimensionLabel: userLabelById.get(userId) ?? userId,
+          tokenVolume: roundRoiTokenVolume(personTokenVolumes.get(userId) ?? 0),
+          cost: null,
+          outputs: cloneRoiOutputs(outputs),
+        };
+      })
       .sort((a, b) => {
         const outputDiff = sumRoiOutputs(b.outputs) - sumRoiOutputs(a.outputs);
         if (outputDiff !== 0) return outputDiff;
+        if (b.tokenVolume !== a.tokenVolume) return b.tokenVolume - a.tokenVolume;
         return a.dimensionLabel.localeCompare(b.dimensionLabel);
       })
       .slice(0, ROI_BREAKDOWN_LIMIT);
 
-    const teamBreakdown = Array.from(teamOutputs.entries())
-      .map(([teamId, outputs]) => ({
-        dimensionId: teamId,
-        dimensionLabel: teamLabelById.get(teamId) ?? teamId,
-        tokenVolume: null,
-        cost: null,
-        outputs: cloneRoiOutputs(outputs),
-      }))
+    const teamBreakdown = Array.from(teamDimensionIds)
+      .map((teamId) => {
+        const outputs = teamOutputs.get(teamId) ?? emptyRoiOutputs();
+        return {
+          dimensionId: teamId,
+          dimensionLabel: teamLabelById.get(teamId) ?? teamId,
+          tokenVolume: roundRoiTokenVolume(teamTokenVolumes.get(teamId) ?? 0),
+          cost: null,
+          outputs: cloneRoiOutputs(outputs),
+        };
+      })
       .sort((a, b) => {
         const outputDiff = sumRoiOutputs(b.outputs) - sumRoiOutputs(a.outputs);
         if (outputDiff !== 0) return outputDiff;
+        if (b.tokenVolume !== a.tokenVolume) return b.tokenVolume - a.tokenVolume;
         return a.dimensionLabel.localeCompare(b.dimensionLabel);
       })
       .slice(0, ROI_BREAKDOWN_LIMIT);
 
-    const trend = Array.from(trendOutputs.entries())
+    const trend = Array.from(trendMetrics.entries())
       .map(([periodLabel, value]) => ({
         periodLabel,
         periodStart: value.periodStart,
-        tokenVolume: null,
+        tokenVolume: roundRoiTokenVolume(value.tokenVolume),
         cost: null,
         outputs: cloneRoiOutputs(value.outputs),
       }))
       .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
       .slice(-ROI_TREND_LIMIT);
+    const roundedTotalTokenVolume = roundRoiTokenVolume(totalTokenVolume);
 
     const exportRows: RoiDashboardSnapshot['export']['rows'] = [
       {
@@ -3241,7 +3451,7 @@ export class SupabaseRepository {
         id: 'all',
         label: 'All',
         metric: 'token_volume',
-        value: 'n/a',
+        value: String(roundedTotalTokenVolume),
       },
       {
         section: 'summary',
@@ -3270,23 +3480,47 @@ export class SupabaseRepository {
           label: row.dimensionLabel,
           metric: 'hacks_completed',
           value: String(row.outputs.hacksCompleted),
+        },
+        {
+          section: 'team',
+          dimension: 'team',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'token_volume',
+          value: String(row.tokenVolume ?? 0),
         }
       );
     }
 
     for (const row of personBreakdown.slice(0, 10)) {
-      exportRows.push({
-        section: 'person',
-        dimension: 'person',
-        id: row.dimensionId,
-        label: row.dimensionLabel,
-        metric: 'total_outputs',
-        value: String(sumRoiOutputs(row.outputs)),
-      });
+      exportRows.push(
+        {
+          section: 'person',
+          dimension: 'person',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'total_outputs',
+          value: String(sumRoiOutputs(row.outputs)),
+        },
+        {
+          section: 'person',
+          dimension: 'person',
+          id: row.dimensionId,
+          label: row.dimensionLabel,
+          metric: 'token_volume',
+          value: String(row.tokenVolume ?? 0),
+        }
+      );
     }
 
+    const tokenSourceReason =
+      tokenSignalRowCount > 0
+        ? `Token volume is mapped from EventAuditLog.new_value payload keys; ${tokenAttributedRowCount}/${tokenSignalRowCount} token-bearing rows had user/team attribution.`
+        : 'Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.';
+
     const notes = [
-      'Token-volume and cost-rate-card sources are currently unavailable in the live schema; spend metrics remain null in this scaffold.',
+      `Token volume source policy: ${tokenSourceReason}`,
+      'Cost-rate-card source is currently unavailable in the live schema; cost and cost-per-output remain null.',
       'Business-unit breakdown is disabled because no explicit BU dimension exists in Team, TeamMember, or User tables.',
     ];
     if (teamFilter) {
@@ -3306,9 +3540,9 @@ export class SupabaseRepository {
       },
       sources: {
         tokenVolume: {
-          status: 'unavailable',
-          source: 'none',
-          reason: 'No token-usage dataset is currently available in public schema tables or audit log payloads.',
+          status: 'available_partial',
+          source: 'EventAuditLog.new_value',
+          reason: tokenSourceReason,
         },
         costRateCard: {
           status: 'unavailable',
@@ -3327,7 +3561,7 @@ export class SupabaseRepository {
         },
       },
       totals: {
-        tokenVolume: null,
+        tokenVolume: roundedTotalTokenVolume,
         cost: null,
         outputs: cloneRoiOutputs(totals),
         costPerOutput: {
@@ -3351,7 +3585,8 @@ export class SupabaseRepository {
           `ROI scaffold (${window}) generated ${calculatedAt}. ` +
           `Outputs: hacks=${totals.hacksCompleted}, artifacts=${totals.artifactsPublished}, ` +
           `problems=${totals.problemsSolved}, pipeline_progressions=${totals.pipelineItemsProgressed}. ` +
-          'Spend metrics are pending token-volume and rate-card sources.',
+          `Token volume=${roundedTotalTokenVolume}. ` +
+          'Cost metrics are pending rate-card sources.',
       },
       notes,
     };

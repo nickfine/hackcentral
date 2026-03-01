@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 17:40 GMT
+Last updated: 2026-03-01 17:45 GMT
 
 ## Current Snapshot
 
@@ -291,7 +291,19 @@ Last updated: 2026-03-01 17:40 GMT
     - live summary export sample: `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`
   - rollout decision:
     - checkpoint: `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`
-    - status: `CONDITIONAL GO` (blocked on unresolved `R9.1` token source and `R9.2` spend calculation path)
+    - status: `CONDITIONAL GO` (initial scaffold; unresolved spend + BU attribution dependencies)
+- Phase 3 ROI `R9.1` token-source mapping slice is now landed:
+  - resolver token mapping source:
+    - `EventAuditLog.new_value` token usage keys (`tokenVolume`, `tokenCount`, `totalTokens`, `prompt/completion token pairs`)
+  - ROI payload behavior changes:
+    - `totals.tokenVolume` is now numeric (`0` when no token-bearing rows are found)
+    - `breakdowns.person[].tokenVolume`, `breakdowns.team[].tokenVolume`, `trend[].tokenVolume` now emit numeric values
+    - `sources.tokenVolume.status` now reports `available_partial` with attribution coverage reasoning
+  - live resolver evidence:
+    - `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`
+  - checkpoint:
+    - `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`
+    - status: `CONDITIONAL GO` (remaining gates: `R9.2` and `R9.4`)
 
 ## Active Task Pointer
 
@@ -307,9 +319,9 @@ Last updated: 2026-03-01 17:40 GMT
 
 ## Next 3 Atomic Actions
 
-1. Integrate token-usage source mapping into ROI payload so token totals are sourced values (`R9.1`), not fallback nulls.
-2. Implement configurable rate-card spend/cost-per-output calculation path and wire into ROI totals (`R9.2`).
-3. Define and wire business-unit attribution source into ROI filters and breakdown rows (`R9.4` parity completion).
+1. Implement configurable rate-card spend/cost-per-output calculation path and wire into ROI totals (`R9.2`).
+2. Define and wire business-unit attribution source into ROI filters and breakdown rows (`R9.4` parity completion).
+3. Run live resolver/UI verification for `R9.2` + `R9.4` and publish updated rollout checkpoint decision.
 
 ## Blockers / Decisions Needed
 

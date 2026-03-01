@@ -2048,3 +2048,42 @@ Use this template at the end of every work session:
 - Keeping ROI export payload generation server-driven (`export.rows` + formatted summary) avoids client-side shape drift and makes smoke verification deterministic.
 - Role-gated resolver preflight on UI entry (`hdcGetRoiDashboard`) is a low-friction way to enforce admin-only access while still allowing explicit non-admin evidence capture for rollout gates.
 - A conditional-go checkpoint is appropriate for ROI scaffolds when UI/resolver paths are validated but critical spend/token sources are still in fallback mode.
+
+## Session Update - P3.ROI.01 R9.1 Token-Source Mapping Slice (Mar 1, 2026 17:45 GMT)
+
+### Completed
+
+- Implemented `R9.1` token consumption source mapping in ROI resolver using `EventAuditLog.new_value` payload parsing.
+- Added token-key extraction policy to support:
+  - direct totals (`tokenVolume`, `tokenCount`, `totalTokens`, `tokensUsed`, `usageTokens`)
+  - paired fallback (`promptTokens/inputTokens` + `completionTokens/outputTokens`)
+- Updated ROI payload behavior:
+  - `totals.tokenVolume` now returns numeric output (`0` fallback when no token-bearing rows)
+  - `breakdowns.person[].tokenVolume`, `breakdowns.team[].tokenVolume`, and `trend[].tokenVolume` now return numeric values
+  - `sources.tokenVolume` now reports `available_partial` with source reasoning and attribution coverage
+- Updated ROI contract test coverage for token mapping behavior.
+- Published checkpoint artifact for this slice with remaining gates documented.
+
+### Validation Evidence
+
+- Targeted ROI contract suite:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts` (`2/2`)
+- Cross-suite regression sanity:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`8/8`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Live resolver artifact (admin + non-admin):
+  - `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`
+  - confirms admin payload includes:
+    - `sources.tokenVolume.status=available_partial`
+    - `totals.tokenVolume=0`
+  - confirms non-admin access remains blocked with `[ROI_FORBIDDEN]`
+- Rollout checkpoint artifact:
+  - `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`
+
+### Operational Learnings
+
+- `EventAuditLog.new_value` provides a workable partial source for `R9.1` even when dedicated token metering tables do not exist yet.
+- Returning numeric `tokenVolume=0` with explicit source-status metadata is safer for downstream dashboards/exports than returning `null` once a token mapping policy exists.
+- Attribution quality should be tracked explicitly (`attributed rows / token-bearing rows`) to avoid overstating confidence until richer user/team linkage and rate-card sources are available.

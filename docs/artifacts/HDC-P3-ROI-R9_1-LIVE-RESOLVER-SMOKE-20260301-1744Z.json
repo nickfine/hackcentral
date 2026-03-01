@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-03-01T17:43:24.933Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "admin": {
+    "ok": true,
+    "policyVersion": "r9-roi-scaffold-v1",
+    "window": "monthly",
+    "sources": {
+      "tokenVolume": {
+        "status": "available_partial",
+        "source": "EventAuditLog.new_value",
+        "reason": "Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data."
+      },
+      "costRateCard": {
+        "status": "unavailable",
+        "source": "none",
+        "reason": "No model rate-card table is available in public schema."
+      },
+      "outputs": {
+        "status": "available_partial",
+        "source": "Project, Artifact, Problem, PipelineTransitionLog",
+        "reason": "Output signals are available for people and teams, but spend attribution is unavailable."
+      },
+      "businessUnit": {
+        "status": "unavailable",
+        "source": "none",
+        "reason": "No explicit business-unit dimension is present in Team, TeamMember, or User records."
+      }
+    },
+    "totals": {
+      "tokenVolume": 0,
+      "cost": null,
+      "outputs": {
+        "hacksCompleted": 0,
+        "artifactsPublished": 0,
+        "problemsSolved": 0,
+        "pipelineItemsProgressed": 1
+      },
+      "costPerOutput": {
+        "perHack": null,
+        "perArtifact": null,
+        "perProblemSolved": null,
+        "perPipelineItemProgressed": null
+      }
+    },
+    "notePreview": [
+      "Token volume source policy: Token volume mapping is wired to EventAuditLog.new_value payload keys, but no token-bearing rows are present in the current source data.",
+      "Cost-rate-card source is currently unavailable in the live schema; cost and cost-per-output remain null."
+    ]
+  },
+  "nonAdmin": {
+    "ok": false,
+    "error": "Error: [ROI_FORBIDDEN] Admin access is required to view ROI dashboard."
+  }
+}

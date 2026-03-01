@@ -1,6 +1,6 @@
 # HDC P3 ROI Contract Spec
 
-Last updated: 2026-03-01 17:20 GMT  
+Last updated: 2026-03-01 18:05 GMT  
 Owner: HackDay Central Engineering  
 Task ID: `P3.ROI.01`  
 Roadmap refs: `R9.1`, `R9.2`, `R9.3`, `R9.4`, `R9.5`
@@ -24,13 +24,14 @@ Supabase MCP-first was executed and returned no projects in this workspace; CLI/
 
 Audit findings used by this scaffold:
 
-1. Token/cost sources in public schema are unavailable for ROI accounting (`R9.1`/`R9.2`) beyond auth token fields.
-2. Output sources are available and usable from:
+1. Token volume is mapped from `EventAuditLog.new_value` payload keys (`tokenVolume`, `tokenCount`, `totalTokens`, `prompt/completion token` pairs) with partial attribution when actor/team context is missing.
+2. Cost/rate-card sources in public schema are unavailable for ROI accounting (`R9.2`) beyond auth/session token fields.
+3. Output sources are available and usable from:
    - `Project` (`source_type='hack_submission'`, `status='completed'`)
    - `Artifact` (non-archived publish count)
    - `Problem` (solved + visible)
    - `PipelineTransitionLog` (stage progression events)
-3. Business-unit dimension is unavailable from current `Team` / `TeamMember` / `User` schema.
+4. Business-unit dimension is unavailable from current `Team` / `TeamMember` / `User` schema.
 
 ## Resolver Contract
 
@@ -91,10 +92,11 @@ Non-admin access returns:
 
 ## Fallback Policy
 
-1. Token and cost fields remain `null` until dedicated token-usage and rate-card sources are available.
-2. Cost-per-output fields remain `null` while spend is unavailable.
-3. Business-unit breakdown remains empty with explicit note while BU dimension is unavailable.
-4. Team filter is supported; business-unit filter is accepted but reported as unresolved in notes.
+1. Token volume is always numeric (`0` when no token-bearing audit rows are found), sourced from audit payload mapping.
+2. Cost fields remain `null` until rate-card sources are available.
+3. Cost-per-output fields remain `null` while spend is unavailable.
+4. Business-unit breakdown remains empty with explicit note while BU dimension is unavailable.
+5. Team filter is supported; business-unit filter is accepted but reported as unresolved in notes.
 
 ## Validation
 
