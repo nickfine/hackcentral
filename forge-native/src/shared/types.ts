@@ -370,6 +370,7 @@ export interface GetPathwayResult {
 }
 
 export interface UpsertPathwayStepInput {
+  stepId?: string;
   type: PathwayStepType;
   title: string;
   description?: string;

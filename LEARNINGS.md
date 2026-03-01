@@ -1557,3 +1557,33 @@ Use this template at the end of every work session:
 
 - Supabase MCP permissions for this project can intermittently block admin actions (`list_tables`, `list_migrations` with `MCP error -32600`); CLI fallback with `SUPABASE_ACCESS_TOKEN` remains required for live schema verification.
 - `forge-native` full `custom-ui:build` can fail on unrelated runtime-frontend Tailwind/PostCSS configuration in this workspace; frontend deploy for Guide Pathways was still achievable because the updated global-page bundle built/deployed successfully and production smoke confirmed behavior.
+
+## Session Update - P2.PATH.01 Post-GO Housekeeping Hardening (Mar 1, 2026 13:55 GMT)
+
+### Completed
+
+- Executed focused post-GO code review on pathways edit flow and implemented two hardening fixes:
+  - pathway step updates now preserve existing `PathwayStep.id` values and only delete removed steps (instead of deleting all steps each save).
+  - pathway-step `linkedArtifactId` is now validated as UUID in both frontend (`App.tsx`) and backend repository validation.
+- Updated pathway contracts to carry optional `stepId` through upsert payloads:
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+- Expanded pathways contract tests for:
+  - edit-path preserving step IDs while deleting only removed steps
+  - invalid `linkedArtifactId` validation rejection
+
+### Validation Evidence
+
+- Targeted pathways contract suite:
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts` (`4/4` passing)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Phase gate rerun:
+  - `npm run qa:p1:go-gate` (pass)
+  - observation: in this child worktree, `qa:p1:regression-pack` currently executed only Showcase suites (`tests/forge-native-showcase-contract.spec.ts`, `tests/forge-native-showcase-runtime-modes.spec.ts`)
+
+### Operational Learnings
+
+- Pathway progress integrity depends on stable `PathwayStep.id` values; destructive rewrite patterns (`deleteMany(pathway_id)` + full reinsert) can silently wipe `PathwayProgress` due FK cascade.
+- Green status on aggregate scripts can hide reduced coverage when referenced test files are absent in a child checkout; gate output should be inspected for actual executed suites, not just exit code.

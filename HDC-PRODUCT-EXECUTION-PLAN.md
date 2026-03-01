@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 13:39 GMT  
+Last updated: 2026-03-01 13:55 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -79,6 +79,7 @@ Program: HackDay Central (HDC)
 | Moderation logic causes false hides | Medium | Enforce distinct-user flag counting and admin override audit trail |
 | Pipeline adoption lags without clear stage criteria | Medium | Stage-gate criteria visible in UI and required transition notes |
 | Phase 3 token data not available at required granularity | High | Perform data-source audit before `P3.ROI.01`; scope fallback metrics if gaps remain |
+| `qa:p1:regression-pack` can report green in this child worktree while only a subset of suites execute | Medium | Treat root gate as partial until missing suite files are restored in this worktree; run targeted pathways and module suites explicitly before rollouts |
 
 ## Release Guardrails and Rollout Gates
 
@@ -116,3 +117,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Started `P2.PATH.01` backend baseline: locked pathways contract spec (`docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`), added pathways migration (`forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`), implemented resolver contracts (`hdcListPathways`, `hdcGetPathway`, `hdcUpsertPathway`, `hdcSetPathwayStepCompletion`) with pathway editor guardrails (`pathway_admin` / `pathway_contributor` / `platform_admin`), and added targeted tests (`tests/forge-native-pathways-contract.spec.ts`, `tests/forge-native-pathways-runtime-modes.spec.ts`; 5/5 passing). |
 | 2026-03-01 | Advanced `P2.PATH.01` Guide UI slice: replaced static guide content with pathways list/detail + progress completion wiring, added manager-gated pathway create/edit form (including ordered step editing) in `forge-native/static/frontend/src/App.tsx`, added Guide pathway styles in `forge-native/static/frontend/src/styles.css`, fixed empty-filter stale-detail bug in preview selection handling, passed targeted tests/typechecks, and captured local browser smoke evidence (`docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`). |
 | 2026-03-01 | Completed `P2.PATH.01` rollout to GO: fixed migration type mismatch (`linked_artifact_id` now `uuid`), applied pathways migration in production (`ssafugtobsqxmqtphwch`), verified live resolver authority paths (manager upsert/list/get + participant completion + participant upsert denied), deployed Forge production bundle, executed live Guide Pathways smoke (`Create pathway`, `Edit pathway`, save success, completion progress `1/3 -> 33%`), and recorded checkpoint artifact `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md`. Active task advanced to `P2.METRICS.01`. |
+| 2026-03-01 | Completed post-GO housekeeping for `P2.PATH.01`: code-review fixes now preserve existing step IDs during pathway edits (preventing progress cascade deletes), add frontend/backend `linkedArtifactId` UUID validation, and expand pathway contract tests (`tests/forge-native-pathways-contract.spec.ts`). Validation rerun: pathways contract suite pass (`4/4`), backend/frontend typechecks pass, and root `qa:p1:go-gate` pass (noting this child worktree currently executes Showcase suites only in `qa:p1:regression-pack`). |

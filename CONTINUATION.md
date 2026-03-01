@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 13:39 GMT
+Last updated: 2026-03-01 13:55 GMT
 
 ## Current Snapshot
 
@@ -160,6 +160,11 @@ Last updated: 2026-03-01 13:39 GMT
     - empty filter result now clears stale selected pathway detail in preview mode
   - live migration note:
     - corrected `PathwayStep.linked_artifact_id` column type to `uuid` to align with `Artifact.id`
+  - post-rollout hardening (completed after GO checkpoint):
+    - pathway edit persistence now preserves existing `PathwayStep.id` values and only removes deleted steps (prevents `PathwayProgress` cascade loss on every edit)
+    - frontend + backend now validate pathway-step `linkedArtifactId` as UUID before persistence
+    - expanded contract coverage in `tests/forge-native-pathways-contract.spec.ts` for edit-id preservation and invalid artifact-id validation
+    - validation rerun: `npm run test:run -- tests/forge-native-pathways-contract.spec.ts` (`4/4`), backend/frontend typechecks pass
 
 ## Active Task Pointer
 
@@ -182,6 +187,8 @@ Last updated: 2026-03-01 13:39 GMT
 - No blockers currently logged.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
+- Known gate-scope constraint in this child worktree:
+  - `npm run qa:p1:go-gate` currently reports pass while `qa:p1:regression-pack` only executes existing Showcase suites (2 files) because several listed suite files are absent in this child checkout.
 
 ## Supabase MCP Access Note
 

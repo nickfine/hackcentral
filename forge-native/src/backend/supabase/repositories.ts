@@ -657,6 +657,10 @@ function createPathwayValidationError(message: string): Error {
   return new Error(`[PATHWAY_VALIDATION_FAILED] ${message}`);
 }
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function logProblemExchangeTelemetry(
   metric: string,
   payload: Record<string, unknown>
@@ -2965,36 +2969,6 @@ export class SupabaseRepository {
     const user = await this.ensureUser(viewer);
     const now = nowIso();
 
-    const normalizedSteps = stepsInput.map((step, index) => {
-      const type = isPathwayStepType(step.type) ? step.type : null;
-      if (!type) {
-        throw createPathwayValidationError(`step ${index + 1}: type must be read, try, or build.`);
-      }
-      const stepTitle = step.title?.trim();
-      if (!stepTitle || stepTitle.length < 3) {
-        throw createPathwayValidationError(`step ${index + 1}: title must be at least 3 characters.`);
-      }
-      const externalUrl = step.externalUrl?.trim();
-      if (externalUrl && !/^https?:\/\//i.test(externalUrl)) {
-        throw createPathwayValidationError(`step ${index + 1}: externalUrl must be a valid http(s) URL.`);
-      }
-      return {
-        id: randomUUID(),
-        pathway_id: normalizedPathwayId,
-        position: index + 1,
-        step_type: type,
-        title: stepTitle,
-        description: step.description?.trim() || '',
-        linked_hack_project_id: step.linkedHackProjectId?.trim() || null,
-        linked_artifact_id: step.linkedArtifactId?.trim() || null,
-        external_url: externalUrl || null,
-        challenge_prompt: step.challengePrompt?.trim() || null,
-        is_optional: step.isOptional === true,
-        created_at: now,
-        updated_at: now,
-      };
-    });
-
     try {
       const existing =
         input.pathwayId?.trim()
@@ -3004,6 +2978,58 @@ export class SupabaseRepository {
               [{ field: 'id', op: 'eq', value: normalizedPathwayId }]
             )
           : null;
+      const existingStepRows = existing
+        ? await this.client.selectMany<DbPathwayStep>(PATHWAY_STEP_TABLE, 'id,created_at', [
+            { field: 'pathway_id', op: 'eq', value: normalizedPathwayId },
+          ])
+        : [];
+      const existingStepById = new Map(existingStepRows.map((row) => [row.id, row]));
+      const normalizedStepIds = new Set<string>();
+
+      const normalizedSteps = stepsInput.map((step, index) => {
+        const type = isPathwayStepType(step.type) ? step.type : null;
+        if (!type) {
+          throw createPathwayValidationError(`step ${index + 1}: type must be read, try, or build.`);
+        }
+        const stepTitle = step.title?.trim();
+        if (!stepTitle || stepTitle.length < 3) {
+          throw createPathwayValidationError(`step ${index + 1}: title must be at least 3 characters.`);
+        }
+        const externalUrl = step.externalUrl?.trim();
+        if (externalUrl && !/^https?:\/\//i.test(externalUrl)) {
+          throw createPathwayValidationError(`step ${index + 1}: externalUrl must be a valid http(s) URL.`);
+        }
+        const linkedArtifactId = step.linkedArtifactId?.trim() || null;
+        if (linkedArtifactId && !isUuid(linkedArtifactId)) {
+          throw createPathwayValidationError(`step ${index + 1}: linkedArtifactId must be a valid UUID.`);
+        }
+
+        const requestedStepId = step.stepId?.trim() || null;
+        if (requestedStepId && existing && !existingStepById.has(requestedStepId)) {
+          throw createPathwayValidationError(`step ${index + 1}: stepId does not belong to this pathway.`);
+        }
+        const stepId = requestedStepId && existingStepById.has(requestedStepId) ? requestedStepId : randomUUID();
+        if (normalizedStepIds.has(stepId)) {
+          throw createPathwayValidationError(`step ${index + 1}: duplicate stepId in payload.`);
+        }
+        normalizedStepIds.add(stepId);
+
+        return {
+          id: stepId,
+          pathway_id: normalizedPathwayId,
+          position: index + 1,
+          step_type: type,
+          title: stepTitle,
+          description: step.description?.trim() || '',
+          linked_hack_project_id: step.linkedHackProjectId?.trim() || null,
+          linked_artifact_id: linkedArtifactId,
+          external_url: externalUrl || null,
+          challenge_prompt: step.challengePrompt?.trim() || null,
+          is_optional: step.isOptional === true,
+          created_at: existingStepById.get(stepId)?.created_at ?? now,
+          updated_at: now,
+        };
+      });
 
       await this.client.upsert<DbPathway>(
         PATHWAY_TABLE,
@@ -3025,8 +3051,24 @@ export class SupabaseRepository {
         'id'
       );
 
-      await this.client.deleteMany(PATHWAY_STEP_TABLE, [{ field: 'pathway_id', op: 'eq', value: normalizedPathwayId }]);
-      await this.client.insertMany(PATHWAY_STEP_TABLE, normalizedSteps);
+      const retainedStepIds = existingStepRows.filter((step) => normalizedStepIds.has(step.id)).map((step) => step.id);
+      for (let index = 0; index < retainedStepIds.length; index += 1) {
+        await this.client.patchMany<DbPathwayStep>(
+          PATHWAY_STEP_TABLE,
+          { position: 1000 + index + 1, updated_at: now },
+          [{ field: 'id', op: 'eq', value: retainedStepIds[index] }]
+        );
+      }
+
+      for (const existingStep of existingStepRows) {
+        if (!normalizedStepIds.has(existingStep.id)) {
+          await this.client.deleteMany(PATHWAY_STEP_TABLE, [{ field: 'id', op: 'eq', value: existingStep.id }]);
+        }
+      }
+
+      for (const step of normalizedSteps) {
+        await this.client.upsert<DbPathwayStep>(PATHWAY_STEP_TABLE, step, 'id');
+      }
 
       const result = await this.getPathway(viewer, normalizedPathwayId);
       return {

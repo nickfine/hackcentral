@@ -99,12 +99,11 @@ describe('SupabaseRepository pathways contracts', () => {
     });
   });
 
-  it('upserts pathway metadata and replaces ordered steps', async () => {
+  it('upserts pathway metadata and ordered steps', async () => {
     const upsert = vi.fn().mockResolvedValue({ id: 'path-2' });
-    const deleteMany = vi.fn().mockResolvedValue([]);
-    const insertMany = vi.fn().mockResolvedValue([]);
+    const selectOne = vi.fn().mockResolvedValue(null);
 
-    const repo = new SupabaseRepository({ upsert, deleteMany, insertMany } as never);
+    const repo = new SupabaseRepository({ upsert, selectOne } as never);
     (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
     (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
     (repo as any).getPathway = vi.fn().mockResolvedValue({
@@ -141,6 +140,7 @@ describe('SupabaseRepository pathways contracts', () => {
     });
 
     const result = await repo.upsertPathway(viewer, {
+      pathwayId: 'path-2',
       title: 'Ops Pathway',
       summary: 'Ops intro',
       introText: 'Intro',
@@ -151,14 +151,121 @@ describe('SupabaseRepository pathways contracts', () => {
       recommended: false,
       steps: [
         { type: 'read', title: 'Read onboarding material' },
-        { type: 'try', title: 'Try one existing artifact', linkedArtifactId: 'artifact-1' },
+        {
+          type: 'try',
+          title: 'Try one existing artifact',
+          linkedArtifactId: '123e4567-e89b-12d3-a456-426614174000',
+        },
       ],
     });
 
-    expect(upsert).toHaveBeenCalledTimes(1);
-    expect(deleteMany).toHaveBeenCalledWith('PathwayStep', expect.any(Array));
-    expect(insertMany).toHaveBeenCalledTimes(1);
+    expect(upsert).toHaveBeenCalledTimes(3);
+    expect(upsert).toHaveBeenNthCalledWith(1, 'Pathway', expect.objectContaining({ id: 'path-2' }), 'id');
+    expect(upsert).toHaveBeenNthCalledWith(
+      2,
+      'PathwayStep',
+      expect.objectContaining({ pathway_id: 'path-2', position: 1, title: 'Read onboarding material' }),
+      'id'
+    );
+    expect(upsert).toHaveBeenNthCalledWith(
+      3,
+      'PathwayStep',
+      expect.objectContaining({
+        pathway_id: 'path-2',
+        position: 2,
+        title: 'Try one existing artifact',
+        linked_artifact_id: '123e4567-e89b-12d3-a456-426614174000',
+      }),
+      'id'
+    );
     expect(result.pathway.pathwayId).toBe('path-2');
     expect(result.steps.length).toBeGreaterThan(0);
+  });
+
+  it('preserves existing step ids and only deletes removed steps on pathway edit', async () => {
+    const upsert = vi.fn().mockResolvedValue({ id: 'path-2' });
+    const selectOne = vi.fn().mockResolvedValue({
+      id: 'path-2',
+      created_by_user_id: 'user-1',
+      created_at: '2026-03-01T00:00:00.000Z',
+    });
+    const selectMany = vi.fn().mockResolvedValue([
+      { id: 'step-keep', created_at: '2026-03-01T00:00:00.000Z' },
+      { id: 'step-remove', created_at: '2026-03-01T00:00:00.000Z' },
+    ]);
+    const patchMany = vi.fn().mockResolvedValue([]);
+    const deleteMany = vi.fn().mockResolvedValue([]);
+
+    const repo = new SupabaseRepository({ upsert, selectOne, selectMany, patchMany, deleteMany } as never);
+    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
+    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+    (repo as any).getPathway = vi.fn().mockResolvedValue({
+      pathway: {
+        pathwayId: 'path-2',
+        title: 'Ops Pathway',
+        summary: 'Ops intro',
+        introText: 'Intro',
+        domain: 'Operations',
+        role: 'Engineer',
+        tags: ['ops'],
+        stepCount: 2,
+        published: true,
+        recommended: false,
+        updatedAt: '2026-03-01T03:00:00.000Z',
+        updatedByName: 'Alice',
+        progress: {
+          completedStepIds: ['step-keep'],
+          completedSteps: 1,
+          totalSteps: 2,
+          completionPercent: 50,
+        },
+      },
+      steps: [
+        {
+          stepId: 'step-keep',
+          position: 1,
+          type: 'read',
+          title: 'Read',
+          description: '',
+          isOptional: false,
+        },
+      ],
+    });
+
+    await repo.upsertPathway(viewer, {
+      pathwayId: 'path-2',
+      title: 'Ops Pathway',
+      steps: [
+        { stepId: 'step-keep', type: 'read', title: 'Read onboarding material' },
+        { type: 'build', title: 'Build your first workflow' },
+      ],
+    });
+
+    expect(patchMany).toHaveBeenCalledWith(
+      'PathwayStep',
+      expect.objectContaining({ position: 1001 }),
+      [{ field: 'id', op: 'eq', value: 'step-keep' }]
+    );
+    expect(deleteMany).toHaveBeenCalledWith('PathwayStep', [{ field: 'id', op: 'eq', value: 'step-remove' }]);
+    expect(upsert).toHaveBeenCalledWith(
+      'PathwayStep',
+      expect.objectContaining({ id: 'step-keep', pathway_id: 'path-2', position: 1 }),
+      'id'
+    );
+  });
+
+  it('rejects invalid linkedArtifactId values before writing pathway steps', async () => {
+    const upsert = vi.fn();
+    const repo = new SupabaseRepository({ upsert } as never);
+    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
+    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+
+    await expect(
+      repo.upsertPathway(viewer, {
+        title: 'Ops Pathway',
+        steps: [{ type: 'read', title: 'Read onboarding material', linkedArtifactId: 'artifact-1' }],
+      })
+    ).rejects.toThrow('[PATHWAY_VALIDATION_FAILED] step 1: linkedArtifactId must be a valid UUID.');
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

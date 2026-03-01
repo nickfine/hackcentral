@@ -1136,18 +1136,26 @@ function createPathwayStepDraft(step?: PathwayStep): PathwayStepDraft {
 }
 
 function createDefaultPathwayStepDraft(): PathwayStepDraft {
-  return createPathwayStepDraft({
-    stepId: `draft-${crypto.randomUUID()}`,
-    position: 1,
+  return {
+    localId: `pathway-step-${crypto.randomUUID()}`,
+    stepId: undefined,
     type: 'read',
     title: '',
     description: '',
+    linkedHackProjectId: '',
+    linkedArtifactId: '',
+    externalUrl: '',
+    challengePrompt: '',
     isOptional: false,
-  });
+  };
 }
 
 function isValidHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
@@ -1957,12 +1965,18 @@ export function App(): JSX.Element {
         setActionError(`Step ${index + 1} URL must start with http:// or https://.`);
         return;
       }
+      const linkedArtifactId = step.linkedArtifactId.trim();
+      if (linkedArtifactId && !isUuid(linkedArtifactId)) {
+        setActionError(`Step ${index + 1} linked artifact ID must be a valid UUID.`);
+        return;
+      }
       normalizedSteps.push({
+        stepId: step.stepId?.trim() || undefined,
         type: step.type,
         title: stepTitle,
         description: step.description.trim() || undefined,
         linkedHackProjectId: step.linkedHackProjectId.trim() || undefined,
-        linkedArtifactId: step.linkedArtifactId.trim() || undefined,
+        linkedArtifactId: linkedArtifactId || undefined,
         externalUrl: externalUrl || undefined,
         challengePrompt: step.challengePrompt.trim() || undefined,
         isOptional: step.isOptional,
