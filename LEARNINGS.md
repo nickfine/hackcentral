@@ -1259,3 +1259,61 @@ Use this template at the end of every work session:
 
 - Active task advanced from `P1.OBS.01` to `P1.SHOW.01` in execution/continuation docs.
 - Future Phase 1 modules can now reuse a single checkpoint structure and command pack, reducing release-gate drift across chats.
+
+## Session Update - P1.SHOW.01 Contract + Migration + UI Wiring (Mar 1, 2026 11:42 GMT)
+
+### Completed
+
+- Started `P1.SHOW.01` against `R4.1`-`R4.4` and locked contract spec:
+  - `docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`
+- Added Showcase persistence migration:
+  - `forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`
+- Implemented Showcase backend contracts:
+  - `hdcListShowcaseHacks`
+  - `hdcGetShowcaseHackDetail`
+  - `hdcSetShowcaseFeatured`
+- Expanded `createHack` submission payload/persistence with Showcase metadata:
+  - required `demoUrl` validation (`https`)
+  - `teamMembers`, `sourceEventId`, `tags`, `linkedArtifactIds`
+  - metadata persisted to `ShowcaseHack`
+- Wired Forge `hacks` view to Showcase APIs:
+  - server-backed list/filter loading
+  - hack detail panel
+  - admin featured toggle controls
+  - submit modal fields aligned with new contract
+
+### Validation Evidence
+
+- Targeted Showcase test suites:
+  - `npm run test:run -- tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts`
+  - Result: `9/9` passing
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Standardized guardrail gate:
+  - `npm run qa:p1:go-gate`
+  - Result: `56/56` phase regression tests (Registry + Problem Exchange + Pipeline + Showcase) + backend/frontend typechecks + telemetry static check passing
+- Live Supabase migration + smoke:
+  - Applied `20260301122000_phase1_showcase.sql` to project `ssafugtobsqxmqtphwch` via Management API `database/query`
+  - Verified schema columns for `ShowcaseHack` and row access (`count(*)` query)
+  - Read-only resolver smoke passed:
+    - `listShowcaseHacks` => `listCount: 1`
+    - `getShowcaseHackDetail` => detail payload returned for first project
+
+### Operational Gotcha
+
+- Supabase MCP still returns empty project discovery (`mcp__supabase__list_projects -> []`) in this workspace.
+- Reliable fallback remains:
+  1. `SUPABASE_ACCESS_TOKEN` + CLI (`projects list`, `projects api-keys`)
+  2. Management API `POST /v1/projects/<ref>/database/query`
+  3. service-role-backed resolver/runtime verification from this repo
+
+### Artifact
+
+- `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` (`CONDITIONAL GO` pending live telemetry and rollback-drill completion)
+
+### Next Recommended Step
+
+- Execute live Forge UI + telemetry gate closure for `P1.SHOW.01`, then either:
+  - upgrade checkpoint to `GO` and advance to `P1.CHILD.01`, or
+  - hold as `NO GO` with rollback actions if live checks fail.

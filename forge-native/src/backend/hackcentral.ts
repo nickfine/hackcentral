@@ -1,12 +1,41 @@
 import { ConvexHttpClient } from 'convex/browser';
 import type {
+  CreateProblemInput,
+  CreateProblemResult,
+  CreateArtifactInput,
+  CreateArtifactResult,
   BootstrapData,
+  FlagProblemInput,
+  FlagProblemResult,
+  GetPipelineBoardInput,
+  GetPipelineBoardResult,
+  GetArtifactResult,
+  ListProblemsInput,
+  ListProblemsResult,
+  ModerateProblemInput,
+  ModerateProblemResult,
+  ProblemExchangeCapabilitiesResult,
+  ListArtifactsInput,
+  ListArtifactsResult,
+  MarkArtifactReuseResult,
+  MovePipelineItemInput,
+  MovePipelineItemResult,
+  ListShowcaseHacksInput,
+  ListShowcaseHacksResult,
+  GetShowcaseHackDetailResult,
+  SetShowcaseFeaturedInput,
+  SetShowcaseFeaturedResult,
+  UpdatePipelineStageCriteriaInput,
+  UpdatePipelineStageCriteriaResult,
+  UpdateProblemStatusInput,
+  UpdateProblemStatusResult,
   CreateHackInput,
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
   UpdateMentorProfileInput,
   UpdateMentorProfileResult,
+  VoteProblemResult,
   ViewerContext,
 } from '../shared/types';
 import { SupabaseRepository } from './supabase/repositories';
@@ -155,6 +184,11 @@ async function createHackInConvex(viewer: ViewerContext, input: CreateHackInput)
     assetType: input.assetType,
     visibility: input.visibility,
     content: input.content,
+    demoUrl: input.demoUrl,
+    teamMembers: input.teamMembers,
+    sourceEventId: input.sourceEventId,
+    tags: input.tags,
+    linkedArtifactIds: input.linkedArtifactIds,
   })) as CreateHackResult;
 }
 
@@ -189,6 +223,34 @@ async function updateMentorInConvex(
   })) as UpdateMentorProfileResult;
 }
 
+function unsupportedRegistryBackendError(): never {
+  throw new Error(
+    '[REGISTRY_UNSUPPORTED_BACKEND] Registry operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
+function unsupportedProblemExchangeBackendError(): never {
+  throw new Error(
+    '[PROBLEM_EXCHANGE_UNSUPPORTED_BACKEND] Problem Exchange operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
+function unsupportedPipelineBackendError(): never {
+  throw new Error(
+    '[PIPELINE_UNSUPPORTED_BACKEND] Pipeline operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
+function unsupportedShowcaseBackendError(): never {
+  throw new Error(
+    '[SHOWCASE_UNSUPPORTED_BACKEND] Showcase operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
+function getProblemExchangeModerationMode(): ProblemExchangeCapabilitiesResult['moderationMode'] {
+  return 'allowlist';
+}
+
 export async function getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
   const data = await withConfiguredBackend(
     () => repository.getBootstrapData(viewer),
@@ -211,6 +273,46 @@ export async function createHack(
   );
 }
 
+export async function createArtifact(
+  viewer: ViewerContext,
+  input: CreateArtifactInput
+): Promise<CreateArtifactResult> {
+  return withConfiguredBackend(
+    () => repository.createArtifact(viewer, input),
+    () => Promise.resolve(unsupportedRegistryBackendError())
+  );
+}
+
+export async function listArtifacts(
+  viewer: ViewerContext,
+  input: ListArtifactsInput
+): Promise<ListArtifactsResult> {
+  return withConfiguredBackend(
+    () => repository.listArtifacts(viewer, input),
+    () => Promise.resolve(unsupportedRegistryBackendError())
+  );
+}
+
+export async function getArtifact(
+  viewer: ViewerContext,
+  artifactId: string
+): Promise<GetArtifactResult> {
+  return withConfiguredBackend(
+    () => repository.getArtifact(viewer, artifactId),
+    () => Promise.resolve(unsupportedRegistryBackendError())
+  );
+}
+
+export async function markArtifactReuse(
+  viewer: ViewerContext,
+  artifactId: string
+): Promise<MarkArtifactReuseResult> {
+  return withConfiguredBackend(
+    () => repository.markArtifactReuse(viewer, artifactId),
+    () => Promise.resolve(unsupportedRegistryBackendError())
+  );
+}
+
 export async function createProject(
   viewer: ViewerContext,
   input: CreateProjectInput
@@ -228,5 +330,175 @@ export async function updateMentorProfile(
   return withConfiguredBackend(
     () => repository.updateMentorProfile(viewer, input),
     () => updateMentorInConvex(viewer, input)
+  );
+}
+
+export async function createProblem(
+  viewer: ViewerContext,
+  input: CreateProblemInput
+): Promise<CreateProblemResult> {
+  return withConfiguredBackend(
+    () => repository.createProblem(viewer, input),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function listProblems(
+  viewer: ViewerContext,
+  input: ListProblemsInput
+): Promise<ListProblemsResult> {
+  return withConfiguredBackend(
+    () => repository.listProblems(viewer, input),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function voteProblem(
+  viewer: ViewerContext,
+  problemId: string
+): Promise<VoteProblemResult> {
+  return withConfiguredBackend(
+    () => repository.voteProblem(viewer, problemId),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function updateProblemStatus(
+  viewer: ViewerContext,
+  input: UpdateProblemStatusInput
+): Promise<UpdateProblemStatusResult> {
+  return withConfiguredBackend(
+    () => repository.updateProblemStatus(viewer, input),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function flagProblem(
+  viewer: ViewerContext,
+  input: FlagProblemInput
+): Promise<FlagProblemResult> {
+  return withConfiguredBackend(
+    () => repository.flagProblem(viewer, input),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function moderateProblem(
+  viewer: ViewerContext,
+  input: ModerateProblemInput
+): Promise<ModerateProblemResult> {
+  return withConfiguredBackend(
+    async () => {
+      const canModerate = await repository.canUserModerateProblemExchange(viewer);
+      if (!canModerate) {
+        throw new Error(
+          `[PROBLEM_MODERATION_FORBIDDEN] Moderator access required via org admin role/capability tags. accountId=${viewer.accountId}`
+        );
+      }
+      return repository.moderateProblem(viewer, input);
+    },
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function getProblemExchangeCapabilities(
+  viewer: ViewerContext
+): Promise<ProblemExchangeCapabilitiesResult> {
+  const moderationMode = getProblemExchangeModerationMode();
+
+  return withConfiguredBackend(
+    async () => ({
+      canModerate: await repository.canUserModerateProblemExchange(viewer),
+      moderationMode,
+    }),
+    () =>
+      Promise.resolve({
+        canModerate: false,
+        moderationMode: 'none',
+      })
+  );
+}
+
+export async function getPipelineBoard(
+  viewer: ViewerContext,
+  input: GetPipelineBoardInput
+): Promise<GetPipelineBoardResult> {
+  return withConfiguredBackend(
+    () => repository.getPipelineBoard(viewer, input),
+    () => Promise.resolve(unsupportedPipelineBackendError())
+  );
+}
+
+export async function movePipelineItem(
+  viewer: ViewerContext,
+  input: MovePipelineItemInput
+): Promise<MovePipelineItemResult> {
+  return withConfiguredBackend(
+    async () => {
+      const canManage = await repository.canUserManagePipeline(viewer);
+      if (!canManage) {
+        throw new Error(
+          `[PIPELINE_FORBIDDEN] Pipeline admin access required via org admin role/capability tags. accountId=${viewer.accountId}`
+        );
+      }
+      return repository.movePipelineItem(viewer, input);
+    },
+    () => Promise.resolve(unsupportedPipelineBackendError())
+  );
+}
+
+export async function updatePipelineStageCriteria(
+  viewer: ViewerContext,
+  input: UpdatePipelineStageCriteriaInput
+): Promise<UpdatePipelineStageCriteriaResult> {
+  return withConfiguredBackend(
+    async () => {
+      const canManage = await repository.canUserManagePipeline(viewer);
+      if (!canManage) {
+        throw new Error(
+          `[PIPELINE_FORBIDDEN] Pipeline admin access required via org admin role/capability tags. accountId=${viewer.accountId}`
+        );
+      }
+      return repository.updatePipelineStageCriteria(viewer, input);
+    },
+    () => Promise.resolve(unsupportedPipelineBackendError())
+  );
+}
+
+export async function listShowcaseHacks(
+  viewer: ViewerContext,
+  input: ListShowcaseHacksInput
+): Promise<ListShowcaseHacksResult> {
+  return withConfiguredBackend(
+    () => repository.listShowcaseHacks(viewer, input),
+    () => Promise.resolve(unsupportedShowcaseBackendError())
+  );
+}
+
+export async function getShowcaseHackDetail(
+  viewer: ViewerContext,
+  projectId: string
+): Promise<GetShowcaseHackDetailResult> {
+  return withConfiguredBackend(
+    () => repository.getShowcaseHackDetail(viewer, projectId),
+    () => Promise.resolve(unsupportedShowcaseBackendError())
+  );
+}
+
+export async function setShowcaseFeatured(
+  viewer: ViewerContext,
+  input: SetShowcaseFeaturedInput
+): Promise<SetShowcaseFeaturedResult> {
+  return withConfiguredBackend(
+    async () => {
+      const canManage = await repository.canUserManagePipeline(viewer);
+      if (!canManage) {
+        throw new Error(
+          `[SHOWCASE_FORBIDDEN] Showcase admin access required via org admin role/capability tags. accountId=${viewer.accountId}`
+        );
+      }
+      return repository.setShowcaseFeatured(viewer, input);
+    },
+    () => Promise.resolve(unsupportedShowcaseBackendError())
   );
 }

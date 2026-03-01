@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { ALLOWED_EMAIL_DOMAIN, DEFAULT_TIMEZONE } from '../../shared/types';
 import type {
+  ArtifactListItem,
+  ArtifactType,
+  ArtifactVisibility,
   BootstrapData,
+  CreateProblemInput,
+  CreateProblemResult,
+  CreateArtifactInput,
+  CreateArtifactResult,
   CreateHackInput,
   CreateHackResult,
   CreateProjectInput,
@@ -14,9 +21,40 @@ import type {
   ScheduleCustomEvent,
   ScheduleEventSignal,
   EventSyncState,
+  FlagProblemInput,
+  FlagProblemResult,
+  GetArtifactResult,
   InstanceRuntime,
   LifecycleStatus,
+  ListProblemsInput,
+  ListProblemsResult,
+  ModerateProblemInput,
+  ModerateProblemResult,
+  ListArtifactsInput,
+  ListArtifactsResult,
+  MarkArtifactReuseResult,
+  GetPipelineBoardInput,
+  GetPipelineBoardResult,
+  MovePipelineItemInput,
+  MovePipelineItemResult,
+  ListShowcaseHacksInput,
+  ListShowcaseHacksResult,
+  ShowcaseHackListItem,
+  ShowcaseHackStatus,
+  GetShowcaseHackDetailResult,
+  SetShowcaseFeaturedInput,
+  SetShowcaseFeaturedResult,
+  UpdatePipelineStageCriteriaInput,
+  UpdatePipelineStageCriteriaResult,
+  PipelineBoardItem,
+  PipelineMetrics,
+  PipelineStage,
+  PipelineStageCriteria,
   PersonSnapshot,
+  ProblemFrequency,
+  ProblemListItem,
+  ProblemModerationState,
+  ProblemStatus,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -24,8 +62,11 @@ import type {
   SyncErrorCategory,
   SyncStatus,
   ThemePreference,
+  UpdateProblemStatusInput,
+  UpdateProblemStatusResult,
   UpdateMentorProfileInput,
   UpdateMentorProfileResult,
+  VoteProblemResult,
   ViewerContext,
 } from '../../shared/types';
 import { SupabaseRestClient, type QueryFilter } from './client';
@@ -39,6 +80,16 @@ const EVENT_SYNC_STATE_TABLE = 'EventSyncState';
 const EVENT_AUDIT_LOG_TABLE = 'EventAuditLog';
 const HACKDAY_TEMPLATE_SEED_TABLE = 'HackdayTemplateSeed';
 const MILESTONE_TABLE = 'Milestone';
+const ARTIFACT_TABLE = 'Artifact';
+const ARTIFACT_REUSE_TABLE = 'ArtifactReuse';
+const PROBLEM_TABLE = 'Problem';
+const PROBLEM_VOTE_TABLE = 'ProblemVote';
+const PROBLEM_FLAG_TABLE = 'ProblemFlag';
+const PROBLEM_STATUS_HISTORY_TABLE = 'ProblemStatusHistory';
+const PROBLEM_MODERATION_LOG_TABLE = 'ProblemModerationLog';
+const PIPELINE_STAGE_CRITERIA_TABLE = 'PipelineStageCriteria';
+const PIPELINE_TRANSITION_LOG_TABLE = 'PipelineTransitionLog';
+const SHOWCASE_HACK_TABLE = 'ShowcaseHack';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
 const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
 
@@ -62,6 +113,13 @@ const STATUS_LABELS: Record<string, string> = {
   archived: 'Archived',
 };
 
+const PIPELINE_STAGES: PipelineStage[] = [
+  'hack',
+  'validated_prototype',
+  'incubating_project',
+  'product_candidate',
+];
+
 type Visibility = 'private' | 'org' | 'public';
 
 interface DbUser {
@@ -69,12 +127,25 @@ interface DbUser {
   email: string;
   full_name: string | null;
   atlassian_account_id: string | null;
+  role?: string | null;
   experience_level: string | null;
   mentor_capacity: number | null;
   mentor_sessions_used: number | null;
   happy_to_mentor: boolean | null;
   seeking_mentor: boolean | null;
   capability_tags: string[] | null;
+}
+
+interface DbProblemExchangeModeratorLookup {
+  id: string;
+  role?: string | null;
+  capability_tags?: string[] | null;
+}
+
+interface DbPipelineAdminLookup {
+  id: string;
+  role?: string | null;
+  capability_tags?: string[] | null;
 }
 
 interface DbProject {
@@ -93,9 +164,132 @@ interface DbProject {
   source_type: 'hack_submission' | 'project' | null;
   synced_to_library_at: string | null;
   event_id: string | null;
+  pipeline_stage: PipelineStage | null;
+  pipeline_stage_entered_at: string | null;
   created_at: string | null;
 }
 type DbProjectRow = Record<string, unknown>;
+
+interface DbShowcaseHack {
+  project_id: string;
+  featured: boolean | null;
+  demo_url: string | null;
+  team_members: string[] | null;
+  source_event_id: string | null;
+  tags: string[] | null;
+  linked_artifact_ids: string[] | null;
+  context: string | null;
+  limitations: string | null;
+  risk_notes: string | null;
+  source_repo_url: string | null;
+  created_by_user_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface DbPipelineStageCriteriaRow {
+  stage: string;
+  label: string;
+  description: string | null;
+  criteria: string[] | null;
+  updated_at: string | null;
+}
+
+interface DbPipelineTransitionLog {
+  id: string;
+  project_id: string;
+  from_stage: PipelineStage;
+  to_stage: PipelineStage;
+  note: string;
+  changed_by_user_id: string;
+  changed_at: string;
+}
+
+interface DbArtifact {
+  id: string;
+  title: string;
+  description: string;
+  artifact_type: ArtifactType;
+  tags: string[] | null;
+  source_url: string;
+  source_label: string | null;
+  source_hack_project_id: string | null;
+  source_hackday_event_id: string | null;
+  created_by_user_id: string;
+  visibility: ArtifactVisibility | null;
+  reuse_count: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  archived_at: string | null;
+}
+
+interface DbArtifactReuse {
+  id: string;
+  artifact_id: string;
+  user_id: string;
+  used_at: string;
+  context_note: string | null;
+}
+
+interface DbProblem {
+  id: string;
+  title: string;
+  description: string;
+  frequency: ProblemFrequency;
+  estimated_time_wasted_hours: number | null;
+  team: string;
+  domain: string;
+  contact_details: string;
+  status: ProblemStatus | null;
+  moderation_state: ProblemModerationState | null;
+  vote_count: number | null;
+  flag_count: number | null;
+  created_by_user_id: string;
+  claimed_by_user_id: string | null;
+  linked_hack_project_id: string | null;
+  linked_artifact_id: string | null;
+  auto_hidden_at: string | null;
+  hidden_at: string | null;
+  closed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface DbProblemVote {
+  id: string;
+  problem_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+interface DbProblemFlag {
+  id: string;
+  problem_id: string;
+  user_id: string;
+  reason: string | null;
+  created_at: string;
+}
+
+interface DbProblemStatusHistory {
+  id: string;
+  problem_id: string;
+  from_status: ProblemStatus | null;
+  to_status: ProblemStatus;
+  changed_by_user_id: string;
+  change_note: string | null;
+  linked_hack_project_id: string | null;
+  linked_artifact_id: string | null;
+  created_at: string;
+}
+
+interface DbProblemModerationLog {
+  id: string;
+  problem_id: string;
+  action: 'auto_hidden' | 'remove' | 'reinstate';
+  changed_by_user_id: string | null;
+  note: string | null;
+  created_at: string;
+}
 
 interface DbEvent {
   id: string;
@@ -212,6 +406,344 @@ function toStatusLabel(status: string): string {
 function toExperienceLabel(level: string | null): string | null {
   if (!level) return null;
   return EXPERIENCE_LABELS[level] ?? level;
+}
+
+function isArtifactType(value: unknown): value is ArtifactType {
+  return (
+    value === 'skill' ||
+    value === 'prompt' ||
+    value === 'template' ||
+    value === 'learning' ||
+    value === 'code_snippet' ||
+    value === 'other'
+  );
+}
+
+function isProblemFrequency(value: unknown): value is ProblemFrequency {
+  return value === 'daily' || value === 'weekly' || value === 'monthly';
+}
+
+function isProblemStatus(value: unknown): value is ProblemStatus {
+  return value === 'open' || value === 'claimed' || value === 'solved' || value === 'closed';
+}
+
+function normalizeProblemModerationState(value: unknown): ProblemModerationState {
+  if (value === 'hidden_pending_review' || value === 'removed') {
+    return value;
+  }
+  return 'visible';
+}
+
+function normalizeArtifactVisibility(value: unknown): ArtifactVisibility {
+  if (value === 'private' || value === 'public') return value;
+  return 'org';
+}
+
+function isPipelineStage(value: unknown): value is PipelineStage {
+  return (
+    value === 'hack' ||
+    value === 'validated_prototype' ||
+    value === 'incubating_project' ||
+    value === 'product_candidate'
+  );
+}
+
+function mapProjectStatusToPipelineStage(status: string | null | undefined): PipelineStage {
+  const normalized = (status ?? '').trim().toLowerCase();
+  if (normalized === 'incubation') return 'incubating_project';
+  if (normalized === 'building' || normalized === 'in_progress') return 'validated_prototype';
+  if (normalized === 'completed' || normalized === 'verified') return 'product_candidate';
+  return 'hack';
+}
+
+function resolveProjectPipelineStage(project: DbProject): PipelineStage {
+  if (isPipelineStage(project.pipeline_stage)) return project.pipeline_stage;
+  return mapProjectStatusToPipelineStage(project.status);
+}
+
+function defaultPipelineStageCriteria(): PipelineStageCriteria[] {
+  return [
+    {
+      stage: 'hack',
+      label: 'Hack',
+      description: 'Submitted and demoed.',
+      criteria: ['Demo exists', 'Problem Exchange link if applicable'],
+    },
+    {
+      stage: 'validated_prototype',
+      label: 'Validated Prototype',
+      description: 'Tested with real users and evidence of value.',
+      criteria: ['At least 3 people outside the original team have tried it', 'At least 1 piece of qualitative feedback collected'],
+    },
+    {
+      stage: 'incubating_project',
+      label: 'Incubating Project',
+      description: 'Allocated time/resources with active development.',
+      criteria: ['Evidence of repeated use (not only demo usage)', 'Named owner committed to ongoing development', 'Endorsement from at least 1 team lead outside the builder team'],
+    },
+    {
+      stage: 'product_candidate',
+      label: 'Product Candidate',
+      description: 'Business case, sponsor, and roadmap identified.',
+      criteria: ['Business case drafted', 'Target internal user base or market identified', 'Technical feasibility confirmed', 'Named leadership sponsor'],
+    },
+  ];
+}
+
+function defaultPipelineStageCriteriaByStage(): Record<PipelineStage, PipelineStageCriteria> {
+  const defaults = defaultPipelineStageCriteria();
+  const map = {} as Record<PipelineStage, PipelineStageCriteria>;
+  for (const item of defaults) {
+    map[item.stage] = item;
+  }
+  return map;
+}
+
+function normalizeArtifactTag(tag: string): string {
+  return tag
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function normalizeArtifactTags(tags: string[]): string[] {
+  const normalized = tags
+    .map((tag) => normalizeArtifactTag(tag))
+    .filter((tag) => tag.length >= 2 && tag.length <= 32);
+  return [...new Set(normalized)].slice(0, 12);
+}
+
+function normalizeShowcaseTags(tags: string[]): string[] {
+  return normalizeArtifactTags(tags).slice(0, 16);
+}
+
+function normalizeShowcaseTeamMembers(teamMembers: string[]): string[] {
+  const normalized = teamMembers
+    .map((member) => member.trim())
+    .filter((member) => member.length >= 2 && member.length <= 80);
+  return [...new Set(normalized)].slice(0, 12);
+}
+
+function normalizeShowcaseLinkedArtifactIds(linkedArtifactIds: string[]): string[] {
+  const normalized = linkedArtifactIds
+    .map((artifactId) => artifactId.trim())
+    .filter((artifactId) => artifactId.length > 0);
+  return [...new Set(normalized)].slice(0, 24);
+}
+
+function normalizeShowcaseStatus(project: DbProject): ShowcaseHackStatus {
+  const status = project.status.trim().toLowerCase();
+  if (status === 'completed' || status === 'verified') {
+    return 'completed';
+  }
+  return 'in_progress';
+}
+
+function isShowcaseHackStatus(value: unknown): value is ShowcaseHackStatus {
+  return value === 'completed' || value === 'in_progress';
+}
+
+function isDuplicateArtifactReuseError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return normalized.includes('duplicate key value violates unique constraint');
+}
+
+function isDuplicateProblemVoteError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return (
+    normalized.includes('duplicate key value violates unique constraint') &&
+    (normalized.includes('problemvote') || normalized.includes('problem_vote'))
+  );
+}
+
+function isDuplicateProblemFlagError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return (
+    normalized.includes('duplicate key value violates unique constraint') &&
+    (normalized.includes('problemflag') || normalized.includes('problem_flag'))
+  );
+}
+
+function createRegistryValidationError(message: string): Error {
+  return new Error(`[ARTIFACT_VALIDATION_FAILED] ${message}`);
+}
+
+function createProblemValidationError(message: string): Error {
+  return new Error(`[PROBLEM_VALIDATION_FAILED] ${message}`);
+}
+
+function createPipelineValidationError(message: string): Error {
+  return new Error(`[PIPELINE_VALIDATION_FAILED] ${message}`);
+}
+
+function createShowcaseValidationError(message: string): Error {
+  return new Error(`[SHOWCASE_VALIDATION_FAILED] ${message}`);
+}
+
+function logProblemExchangeTelemetry(
+  metric: string,
+  payload: Record<string, unknown>
+): void {
+  console.info(
+    '[hdc-problem-exchange-telemetry]',
+    JSON.stringify({
+      metric,
+      source: 'supabase_repository',
+      ...payload,
+    })
+  );
+}
+
+function logPipelineTelemetry(metric: string, payload: Record<string, unknown>): void {
+  console.info(
+    '[hdc-pipeline-telemetry]',
+    JSON.stringify({
+      metric,
+      source: 'supabase_repository',
+      ...payload,
+    })
+  );
+}
+
+function createArtifactListItem(row: DbArtifact, authorName: string): ArtifactListItem {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    artifactType: row.artifact_type,
+    tags: row.tags ?? [],
+    sourceUrl: row.source_url,
+    sourceLabel: row.source_label ?? undefined,
+    sourceHackProjectId: row.source_hack_project_id ?? undefined,
+    sourceHackdayEventId: row.source_hackday_event_id ?? undefined,
+    visibility: normalizeArtifactVisibility(row.visibility),
+    reuseCount: row.reuse_count ?? 0,
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+    authorName,
+  };
+}
+
+function createProblemListItem(row: DbProblem, createdByName: string): ProblemListItem {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    frequency: isProblemFrequency(row.frequency) ? row.frequency : 'weekly',
+    estimatedTimeWastedHours: row.estimated_time_wasted_hours ?? 0,
+    team: row.team,
+    domain: row.domain,
+    contactDetails: row.contact_details,
+    status: isProblemStatus(row.status) ? row.status : 'open',
+    moderationState: normalizeProblemModerationState(row.moderation_state),
+    voteCount: row.vote_count ?? 0,
+    flagCount: row.flag_count ?? 0,
+    linkedHackProjectId: row.linked_hack_project_id ?? undefined,
+    linkedArtifactId: row.linked_artifact_id ?? undefined,
+    createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+    createdByName,
+  };
+}
+
+function createPipelineBoardItem(project: DbProject, ownerName: string): PipelineBoardItem {
+  const stage = resolveProjectPipelineStage(project);
+  const enteredStageAt = project.pipeline_stage_entered_at ?? project.created_at ?? nowIso();
+  const enteredMs = Date.parse(enteredStageAt);
+  const daysInStage = Number.isNaN(enteredMs)
+    ? 0
+    : Math.max(0, Math.floor((Date.now() - enteredMs) / (24 * 60 * 60 * 1000)));
+
+  return {
+    projectId: project.id,
+    title: project.title,
+    description: project.description ?? '',
+    ownerName,
+    stage,
+    status: project.status,
+    statusLabel: toStatusLabel(project.status),
+    daysInStage,
+    attachedHacksCount: 0,
+    commentCount: 0,
+    timeSavedEstimate: project.time_saved_estimate ?? null,
+    visibility: asVisibility(project.visibility),
+    enteredStageAt,
+    updatedAt: project.created_at ?? enteredStageAt,
+  };
+}
+
+function createShowcaseHackListItem(input: {
+  project: DbProject;
+  metadata: DbShowcaseHack | null;
+  authorName: string;
+  reuseCount: number;
+}): ShowcaseHackListItem {
+  const { project, metadata, authorName, reuseCount } = input;
+  const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(metadata?.linked_artifact_ids ?? []);
+  return {
+    projectId: project.id,
+    title: project.title,
+    description: project.description ?? '',
+    assetType: (project.hack_type ?? 'prompt') as ShowcaseHackListItem['assetType'],
+    status: normalizeShowcaseStatus(project),
+    featured: metadata?.featured === true,
+    authorName,
+    visibility: asVisibility(project.visibility),
+    tags: normalizeShowcaseTags(metadata?.tags ?? []),
+    sourceEventId: metadata?.source_event_id ?? project.event_id ?? undefined,
+    demoUrl: metadata?.demo_url ?? undefined,
+    pipelineStage: resolveProjectPipelineStage(project),
+    reuseCount: Math.max(0, Math.floor(reuseCount)),
+    teamMembersCount: normalizeShowcaseTeamMembers(metadata?.team_members ?? []).length,
+    linkedArtifactsCount: linkedArtifactIds.length,
+    createdAt: project.created_at ?? metadata?.created_at ?? nowIso(),
+    updatedAt: metadata?.updated_at ?? project.created_at ?? nowIso(),
+  };
+}
+
+function buildPipelineMetrics(items: PipelineBoardItem[]): PipelineMetrics {
+  const counts: Record<PipelineStage, number> = {
+    hack: 0,
+    validated_prototype: 0,
+    incubating_project: 0,
+    product_candidate: 0,
+  };
+  const days: Record<PipelineStage, number[]> = {
+    hack: [],
+    validated_prototype: [],
+    incubating_project: [],
+    product_candidate: [],
+  };
+
+  for (const item of items) {
+    counts[item.stage] += 1;
+    days[item.stage].push(item.daysInStage);
+  }
+
+  const average = (values: number[]): number => {
+    if (values.length === 0) return 0;
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  };
+
+  const asRate = (numerator: number, denominator: number): number => {
+    if (denominator <= 0) return 0;
+    return (numerator / denominator) * 100;
+  };
+
+  return {
+    itemsPerStage: PIPELINE_STAGES.map((stage) => ({ stage, count: counts[stage] })),
+    averageDaysInStage: PIPELINE_STAGES.map((stage) => ({ stage, averageDays: average(days[stage]) })),
+    conversionHackToValidated: asRate(counts.validated_prototype, counts.hack),
+    conversionValidatedToIncubating: asRate(counts.incubating_project, counts.validated_prototype),
+    conversionIncubatingToCandidate: asRate(counts.product_candidate, counts.incubating_project),
+    totalEntered: items.length,
+    totalGraduated: counts.product_candidate,
+  };
 }
 
 function asSyncState(row: DbSyncState): EventSyncState {
@@ -464,6 +996,16 @@ function hasMissingProjectColumn(error: unknown): boolean {
   );
 }
 
+function hasMissingUserRoleColumn(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return (
+    (message.includes('does not exist') &&
+      (message.includes('user.role') || message.includes('"user"."role"'))) ||
+    message.includes("could not find the 'role' column of 'user' in the schema cache")
+  );
+}
+
 function extractMissingProjectColumn(error: unknown): string | null {
   if (!(error instanceof Error)) return null;
   const normalized = normalizeSupabaseErrorMessage(error);
@@ -683,6 +1225,8 @@ function normalizeProjectRow(row: DbProjectRow): DbProject {
     source_type: sourceType ?? 'project',
     synced_to_library_at: getStringField(row, ['synced_to_library_at']),
     event_id: getStringField(row, ['event_id']),
+    pipeline_stage: (getStringField(row, ['pipeline_stage']) as PipelineStage | null) ?? null,
+    pipeline_stage_entered_at: getStringField(row, ['pipeline_stage_entered_at']),
     created_at: getStringField(row, ['created_at']),
   };
 }
@@ -962,27 +1506,132 @@ export class SupabaseRepository {
   }
 
   async getUserByAccountId(accountId: string): Promise<DbUser | null> {
-    return this.client.selectOne<DbUser>(
-      USER_TABLE,
-      'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
-      [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
-    );
+    try {
+      return await this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,role,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+    } catch (error) {
+      if (!hasMissingUserRoleColumn(error)) throw error;
+      return this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+    }
   }
 
   async getUserByEmail(email: string): Promise<DbUser | null> {
-    return this.client.selectOne<DbUser>(
-      USER_TABLE,
-      'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
-      [{ field: 'email', op: 'eq', value: email.trim().toLowerCase() }]
-    );
+    try {
+      return await this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,role,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'email', op: 'eq', value: email.trim().toLowerCase() }]
+      );
+    } catch (error) {
+      if (!hasMissingUserRoleColumn(error)) throw error;
+      return this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'email', op: 'eq', value: email.trim().toLowerCase() }]
+      );
+    }
   }
 
   async getUserById(userId: string): Promise<DbUser | null> {
-    return this.client.selectOne<DbUser>(
-      USER_TABLE,
-      'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
-      [{ field: 'id', op: 'eq', value: userId }]
-    );
+    try {
+      return await this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,role,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'id', op: 'eq', value: userId }]
+      );
+    } catch (error) {
+      if (!hasMissingUserRoleColumn(error)) throw error;
+      return this.client.selectOne<DbUser>(
+        USER_TABLE,
+        'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
+        [{ field: 'id', op: 'eq', value: userId }]
+      );
+    }
+  }
+
+  async canUserModerateProblemExchange(viewer: ViewerContext): Promise<boolean> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      return false;
+    }
+
+    try {
+      const row = await this.client.selectOne<DbProblemExchangeModeratorLookup>(
+        USER_TABLE,
+        'id,role,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+      if (!row) return false;
+
+      const normalizedRole = typeof row.role === 'string' ? row.role.trim().toUpperCase() : '';
+      if (normalizedRole === 'ADMIN') {
+        return true;
+      }
+
+      const tags = Array.isArray(row.capability_tags)
+        ? row.capability_tags
+            .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+            .filter(Boolean)
+        : [];
+
+      return tags.includes('problem_exchange_moderator') || tags.includes('platform_admin');
+    } catch (error) {
+      if (hasMissingUserRoleColumn(error)) {
+        const fallbackUser = await this.getUserByAccountId(accountId);
+        if (!fallbackUser) return false;
+        const tags = (fallbackUser.capability_tags ?? [])
+          .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+          .filter(Boolean);
+        return tags.includes('problem_exchange_moderator') || tags.includes('platform_admin');
+      }
+      throw error;
+    }
+  }
+
+  async canUserManagePipeline(viewer: ViewerContext): Promise<boolean> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      return false;
+    }
+
+    try {
+      const row = await this.client.selectOne<DbPipelineAdminLookup>(
+        USER_TABLE,
+        'id,role,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+      if (!row) return false;
+
+      const normalizedRole = typeof row.role === 'string' ? row.role.trim().toUpperCase() : '';
+      if (normalizedRole === 'ADMIN') {
+        return true;
+      }
+
+      const tags = Array.isArray(row.capability_tags)
+        ? row.capability_tags
+            .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+            .filter(Boolean)
+        : [];
+
+      return tags.includes('pipeline_admin') || tags.includes('platform_admin');
+    } catch (error) {
+      if (hasMissingUserRoleColumn(error)) {
+        const fallbackUser = await this.getUserByAccountId(accountId);
+        if (!fallbackUser) return false;
+        const tags = (fallbackUser.capability_tags ?? [])
+          .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+          .filter(Boolean);
+        return tags.includes('pipeline_admin') || tags.includes('platform_admin');
+      }
+      throw error;
+    }
   }
 
   async ensureUser(viewer: ViewerContext, explicitEmail?: string): Promise<DbUser> {
@@ -1058,6 +1707,27 @@ export class SupabaseRepository {
       const projects = rows.map(normalizeProjectRow);
       return projects.filter((project) => filters.every((filter) => matchesProjectFilter(project, filter)));
     }
+  }
+
+  private async getProjectById(projectId: string): Promise<DbProject | null> {
+    const rows = await this.listProjects([{ field: 'id', op: 'eq', value: projectId }]);
+    return rows[0] ?? null;
+  }
+
+  private async getArtifactRowById(artifactId: string): Promise<DbArtifact | null> {
+    return this.client.selectOne<DbArtifact>(
+      ARTIFACT_TABLE,
+      'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at',
+      [{ field: 'id', op: 'eq', value: artifactId }]
+    );
+  }
+
+  private async getProblemById(problemId: string): Promise<DbProblem | null> {
+    return this.client.selectOne<DbProblem>(
+      PROBLEM_TABLE,
+      'id,title,description,frequency,estimated_time_wasted_hours,team,domain,contact_details,status,moderation_state,vote_count,flag_count,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id,auto_hidden_at,hidden_at,closed_at,created_at,updated_at',
+      [{ field: 'id', op: 'eq', value: problemId }]
+    );
   }
 
   private async insertProject(payload: Record<string, unknown> & { title: string }): Promise<{
@@ -1209,15 +1879,25 @@ export class SupabaseRepository {
     throw new Error('Supabase insert Project failed: no compatible payload variant succeeded.');
   }
 
-async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-    const [users, projects, registry] = await Promise.all([
+  async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
+    const [users, projects, registry, showcaseRows] = await Promise.all([
       this.client.selectMany<DbUser>(
         USER_TABLE,
         'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags'
       ),
       this.listProjects(),
       this.listAllEvents(),
+      this.client
+        .selectMany<DbShowcaseHack>(
+          SHOWCASE_HACK_TABLE,
+          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) return [];
+          throw error;
+        }),
     ]);
+    const showcaseByProjectId = new Map(showcaseRows.map((row) => [row.project_id, row]));
 
     const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
 
@@ -1232,24 +1912,32 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
     const featuredHacks = hackRows
       .slice()
-      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+      .sort((a, b) => {
+        const aFeatured = showcaseByProjectId.get(a.id)?.featured === true;
+        const bFeatured = showcaseByProjectId.get(b.id)?.featured === true;
+        if (aFeatured !== bFeatured) return aFeatured ? 1 : -1;
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      })
       .slice(0, 8)
-      .map((project) => ({
-        id: project.id,
-        title: project.title,
-        description: project.description ?? '',
-        assetType: (project.hack_type ?? 'prompt') as 'prompt' | 'skill' | 'app',
-        status: project.synced_to_library_at ? 'verified' : 'in_progress',
-        reuseCount: project.synced_to_library_at ? 1 : 0,
-        authorName: project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : 'Unknown',
-        visibility: asVisibility(project.visibility),
-        intendedUser: null,
-        context: null,
-        limitations: null,
-        riskNotes: null,
-        sourceRepoUrl: null,
-        demoUrl: null,
-      }));
+      .map((project) => {
+        const metadata = showcaseByProjectId.get(project.id) ?? null;
+        return {
+          id: project.id,
+          title: project.title,
+          description: project.description ?? '',
+          assetType: (project.hack_type ?? 'prompt') as 'prompt' | 'skill' | 'app',
+          status: project.synced_to_library_at ? 'verified' : 'in_progress',
+          reuseCount: project.synced_to_library_at ? 1 : 0,
+          authorName: project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : 'Unknown',
+          visibility: asVisibility(project.visibility),
+          intendedUser: null,
+          context: metadata?.context ?? null,
+          limitations: metadata?.limitations ?? null,
+          riskNotes: metadata?.risk_notes ?? null,
+          sourceRepoUrl: metadata?.source_repo_url ?? null,
+          demoUrl: metadata?.demo_url ?? null,
+        };
+      });
 
     const recentProjects = projectRows
       .slice()
@@ -1316,6 +2004,33 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
 
   async createHack(viewer: ViewerContext, input: CreateHackInput): Promise<CreateHackResult> {
     const user = await this.ensureUser(viewer);
+    const sourceEventId = input.sourceEventId?.trim() || null;
+    const demoUrl = input.demoUrl?.trim() || null;
+    const normalizedTags = normalizeShowcaseTags(input.tags ?? []);
+    const normalizedTeamMembers = normalizeShowcaseTeamMembers(input.teamMembers ?? []);
+    const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(input.linkedArtifactIds ?? []);
+
+    if (!demoUrl) {
+      throw createShowcaseValidationError('demoUrl is required.');
+    }
+    try {
+      const parsed = new URL(demoUrl);
+      if (parsed.protocol !== 'https:') {
+        throw new Error('invalid protocol');
+      }
+    } catch {
+      throw createShowcaseValidationError('demoUrl must be a valid https URL.');
+    }
+
+    if (linkedArtifactIds.length > 0) {
+      for (const artifactId of linkedArtifactIds) {
+        const artifact = await this.getArtifactRowById(artifactId);
+        if (!artifact || artifact.archived_at) {
+          throw createShowcaseValidationError(`linkedArtifactId "${artifactId}" was not found.`);
+        }
+      }
+    }
+
     const inserted = await this.insertProject({
       title: input.title,
       name: input.title,
@@ -1326,13 +2041,1296 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       owner_id: user.id,
       workflow_transformed: false,
       source_type: 'hack_submission',
+      event_id: sourceEventId,
       synced_to_library_at: null,
+      pipeline_stage: 'hack',
+      pipeline_stage_entered_at: nowIso(),
     });
+
+    try {
+      await this.client.upsert<DbShowcaseHack>(
+        SHOWCASE_HACK_TABLE,
+        {
+          project_id: inserted.id,
+          featured: false,
+          demo_url: demoUrl,
+          team_members: normalizedTeamMembers,
+          source_event_id: sourceEventId,
+          tags: normalizedTags,
+          linked_artifact_ids: linkedArtifactIds,
+          context: null,
+          limitations: null,
+          risk_notes: null,
+          source_repo_url: null,
+          created_by_user_id: user.id,
+        },
+        'project_id'
+      );
+    } catch (error) {
+      // Best-effort rollback to avoid partially created showcase projects if metadata persistence fails.
+      await this.client
+        .deleteMany(PROJECT_TABLE, [{ field: 'id', op: 'eq', value: inserted.id }])
+        .catch(() => []);
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling createHack.`
+        );
+      }
+      throw error;
+    }
 
     return {
       assetId: inserted.id,
       title: inserted.title ?? inserted.name ?? input.title,
     };
+  }
+
+  async createArtifact(viewer: ViewerContext, input: CreateArtifactInput): Promise<CreateArtifactResult> {
+    const title = input.title?.trim();
+    if (!title || title.length < 3 || title.length > 120) {
+      throw createRegistryValidationError('title must be 3-120 characters.');
+    }
+
+    const description = input.description?.trim();
+    if (!description || description.length < 10 || description.length > 2000) {
+      throw createRegistryValidationError('description must be 10-2000 characters.');
+    }
+
+    if (!isArtifactType(input.artifactType)) {
+      throw createRegistryValidationError('artifactType is invalid.');
+    }
+
+    const tags = normalizeArtifactTags(input.tags ?? []);
+    if (tags.length === 0) {
+      throw createRegistryValidationError('at least one valid tag is required.');
+    }
+
+    const sourceUrl = input.sourceUrl?.trim();
+    if (!sourceUrl) {
+      throw createRegistryValidationError('sourceUrl is required.');
+    }
+    try {
+      const parsed = new URL(sourceUrl);
+      if (parsed.protocol !== 'https:') {
+        throw new Error('invalid protocol');
+      }
+    } catch {
+      throw createRegistryValidationError('sourceUrl must be a valid https URL.');
+    }
+
+    const sourceHackProjectId =
+      typeof input.sourceHackProjectId === 'string' && input.sourceHackProjectId.trim()
+        ? input.sourceHackProjectId.trim()
+        : null;
+
+    if (sourceHackProjectId) {
+      const sourceHack = await this.getProjectById(sourceHackProjectId);
+      if (!sourceHack || sourceHack.source_type !== 'hack_submission') {
+        throw new Error('[ARTIFACT_SOURCE_HACK_INVALID] sourceHackProjectId must reference a hack submission project.');
+      }
+    }
+
+    const user = await this.ensureUser(viewer);
+    const createdAt = nowIso();
+
+    try {
+      const inserted = await this.client.insert<DbArtifact>(ARTIFACT_TABLE, {
+        id: randomUUID(),
+        title,
+        description,
+        artifact_type: input.artifactType,
+        tags,
+        source_url: sourceUrl,
+        source_label: input.sourceLabel?.trim() || null,
+        source_hack_project_id: sourceHackProjectId,
+        source_hackday_event_id: input.sourceHackdayEventId?.trim() || null,
+        created_by_user_id: user.id,
+        visibility: normalizeArtifactVisibility(input.visibility),
+        reuse_count: 0,
+        created_at: createdAt,
+        updated_at: createdAt,
+        archived_at: null,
+      });
+
+      return {
+        artifactId: inserted.id,
+        createdAt: inserted.created_at ?? createdAt,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, ARTIFACT_TABLE)) {
+        throw new Error(
+          `Missing required table ${ARTIFACT_TABLE}. Apply the phase 1 registry migration before calling hdcCreateArtifact.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listArtifacts(_viewer: ViewerContext, input: ListArtifactsInput): Promise<ListArtifactsResult> {
+    const query = input.query?.trim().toLowerCase() || '';
+    const typeFilter = new Set((input.artifactTypes || []).filter((type) => isArtifactType(type)));
+    const tagFilter = new Set(normalizeArtifactTags(input.tags || []));
+    const sortBy = input.sortBy === 'reuse_count' ? 'reuse_count' : 'newest';
+    const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
+
+    try {
+      const [rows, users] = await Promise.all([
+        this.client.selectMany<DbArtifact>(
+          ARTIFACT_TABLE,
+          'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at'
+        ),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+      ]);
+
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+      let filtered = rows.filter((row) => !row.archived_at);
+
+      if (query) {
+        filtered = filtered.filter((row) =>
+          `${row.title} ${row.description}`.toLowerCase().includes(query)
+        );
+      }
+
+      if (typeFilter.size > 0) {
+        filtered = filtered.filter((row) => typeFilter.has(row.artifact_type));
+      }
+
+      if (tagFilter.size > 0) {
+        filtered = filtered.filter((row) => {
+          const tags = new Set((row.tags || []).map((tag) => normalizeArtifactTag(tag)));
+          for (const requested of tagFilter) {
+            if (!tags.has(requested)) return false;
+          }
+          return true;
+        });
+      }
+
+      filtered = filtered.slice().sort((a, b) => {
+        if (sortBy === 'reuse_count') {
+          const reuseDiff = (b.reuse_count ?? 0) - (a.reuse_count ?? 0);
+          if (reuseDiff !== 0) return reuseDiff;
+        }
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      });
+
+      return {
+        items: filtered
+          .slice(0, limit)
+          .map((row) => createArtifactListItem(row, userNameById.get(row.created_by_user_id) ?? 'Unknown')),
+        nextCursor: null,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, ARTIFACT_TABLE)) {
+        throw new Error(
+          `Missing required table ${ARTIFACT_TABLE}. Apply the phase 1 registry migration before calling hdcListArtifacts.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getArtifact(_viewer: ViewerContext, artifactId: string): Promise<GetArtifactResult> {
+    const normalizedId = artifactId.trim();
+    if (!normalizedId) {
+      throw createRegistryValidationError('artifactId is required.');
+    }
+
+    let artifact: DbArtifact | null = null;
+    try {
+      artifact = await this.client.selectOne<DbArtifact>(
+        ARTIFACT_TABLE,
+        'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at',
+        [{ field: 'id', op: 'eq', value: normalizedId }]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, ARTIFACT_TABLE)) {
+        throw new Error(
+          `Missing required table ${ARTIFACT_TABLE}. Apply the phase 1 registry migration before calling hdcGetArtifact.`
+        );
+      }
+      throw error;
+    }
+
+    if (!artifact || artifact.archived_at) {
+      throw new Error('[ARTIFACT_NOT_FOUND] Artifact not found.');
+    }
+
+    const [author, sourceHack] = await Promise.all([
+      this.getUserById(artifact.created_by_user_id),
+      artifact.source_hack_project_id ? this.getProjectById(artifact.source_hack_project_id) : Promise.resolve(null),
+    ]);
+
+    return {
+      artifact: createArtifactListItem(artifact, author?.full_name || author?.email || 'Unknown'),
+      sourceHack: sourceHack
+        ? {
+            projectId: sourceHack.id,
+            title: sourceHack.title,
+            status: sourceHack.status,
+            eventId: sourceHack.event_id ?? null,
+          }
+        : null,
+    };
+  }
+
+  async markArtifactReuse(viewer: ViewerContext, artifactId: string): Promise<MarkArtifactReuseResult> {
+    const normalizedId = artifactId.trim();
+    if (!normalizedId) {
+      throw createRegistryValidationError('artifactId is required.');
+    }
+    const user = await this.ensureUser(viewer);
+
+    const artifact = await this.client.selectOne<DbArtifact>(
+      ARTIFACT_TABLE,
+      'id,reuse_count',
+      [{ field: 'id', op: 'eq', value: normalizedId }]
+    );
+    if (!artifact) {
+      throw new Error('[ARTIFACT_NOT_FOUND] Artifact not found.');
+    }
+
+    const currentReuseCount = artifact.reuse_count ?? 0;
+    const now = nowIso();
+    try {
+      await this.client.insert<DbArtifactReuse>(ARTIFACT_REUSE_TABLE, {
+        id: randomUUID(),
+        artifact_id: normalizedId,
+        user_id: user.id,
+        used_at: now,
+      });
+
+      const rows = await this.client.patchMany<DbArtifact>(
+        ARTIFACT_TABLE,
+        { reuse_count: currentReuseCount + 1, updated_at: now },
+        [{ field: 'id', op: 'eq', value: normalizedId }]
+      );
+      const updatedReuseCount = rows[0]?.reuse_count ?? currentReuseCount + 1;
+      return {
+        artifactId: normalizedId,
+        reuseCount: updatedReuseCount,
+        alreadyMarked: false,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, ARTIFACT_REUSE_TABLE) || hasMissingTable(error, ARTIFACT_TABLE)) {
+        throw new Error(
+          `Missing required registry tables (${ARTIFACT_TABLE}/${ARTIFACT_REUSE_TABLE}). Apply the phase 1 registry migration before calling hdcMarkArtifactReuse.`
+        );
+      }
+      if (isDuplicateArtifactReuseError(error)) {
+        return {
+          artifactId: normalizedId,
+          reuseCount: currentReuseCount,
+          alreadyMarked: true,
+        };
+      }
+      throw error;
+    }
+  }
+
+  async createProblem(viewer: ViewerContext, input: CreateProblemInput): Promise<CreateProblemResult> {
+    const title = input.title?.trim();
+    if (!title || title.length < 5 || title.length > 180) {
+      throw createProblemValidationError('title must be 5-180 characters.');
+    }
+
+    const description = input.description?.trim();
+    if (!description || description.length < 20 || description.length > 4000) {
+      throw createProblemValidationError('description must be 20-4000 characters.');
+    }
+
+    if (!isProblemFrequency(input.frequency)) {
+      throw createProblemValidationError('frequency is invalid.');
+    }
+
+    const estimatedHours = Number(input.estimatedTimeWastedHours);
+    if (!Number.isFinite(estimatedHours) || estimatedHours <= 0 || estimatedHours > 500) {
+      throw createProblemValidationError('estimatedTimeWastedHours must be a number > 0 and <= 500.');
+    }
+
+    const team = input.team?.trim();
+    if (!team) {
+      throw createProblemValidationError('team is required.');
+    }
+
+    const domain = input.domain?.trim();
+    if (!domain) {
+      throw createProblemValidationError('domain is required.');
+    }
+
+    const contactDetails = input.contactDetails?.trim();
+    if (!contactDetails) {
+      throw createProblemValidationError('contactDetails is required.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const createdAt = nowIso();
+
+    try {
+      const inserted = await this.client.insert<DbProblem>(PROBLEM_TABLE, {
+        id: randomUUID(),
+        title,
+        description,
+        frequency: input.frequency,
+        estimated_time_wasted_hours: Math.round(estimatedHours * 100) / 100,
+        team,
+        domain,
+        contact_details: contactDetails,
+        status: 'open',
+        moderation_state: 'visible',
+        vote_count: 0,
+        flag_count: 0,
+        created_by_user_id: user.id,
+        claimed_by_user_id: null,
+        linked_hack_project_id: null,
+        linked_artifact_id: null,
+        auto_hidden_at: null,
+        hidden_at: null,
+        closed_at: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+      });
+
+      logProblemExchangeTelemetry('problem_created', {
+        problemId: inserted.id,
+        accountId: viewer.accountId,
+        frequency: input.frequency,
+        estimatedTimeWastedHours: Math.round(estimatedHours * 100) / 100,
+        team,
+        domain,
+      });
+
+      return {
+        problemId: inserted.id,
+        status: 'open',
+        moderationState: 'visible',
+        createdAt: inserted.created_at ?? createdAt,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE)) {
+        throw new Error(
+          `Missing required table ${PROBLEM_TABLE}. Apply the phase 1 problem exchange migration before calling hdcCreateProblem.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listProblems(_viewer: ViewerContext, input: ListProblemsInput): Promise<ListProblemsResult> {
+    const query = input.query?.trim().toLowerCase() || '';
+    const teamFilter = new Set((input.teams || []).map((team) => team.trim().toLowerCase()).filter(Boolean));
+    const domainFilter = new Set((input.domains || []).map((domain) => domain.trim().toLowerCase()).filter(Boolean));
+    const statusFilter = new Set((input.statuses || []).filter((status) => isProblemStatus(status)));
+    const sortBy = input.sortBy === 'time_wasted' || input.sortBy === 'newest' ? input.sortBy : 'votes';
+    const includeHidden = input.includeHidden === true;
+    const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
+
+    try {
+      const [rows, users] = await Promise.all([
+        this.client.selectMany<DbProblem>(
+          PROBLEM_TABLE,
+          'id,title,description,frequency,estimated_time_wasted_hours,team,domain,contact_details,status,moderation_state,vote_count,flag_count,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id,auto_hidden_at,hidden_at,closed_at,created_at,updated_at'
+        ),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+      ]);
+
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+      let filtered = rows.slice();
+
+      if (!includeHidden) {
+        filtered = filtered.filter((row) => normalizeProblemModerationState(row.moderation_state) === 'visible');
+      }
+
+      if (statusFilter.size > 0) {
+        filtered = filtered.filter((row) => row.status && statusFilter.has(row.status));
+      } else {
+        filtered = filtered.filter((row) => row.status === 'open');
+      }
+
+      if (query) {
+        filtered = filtered.filter((row) =>
+          `${row.title} ${row.description}`.toLowerCase().includes(query)
+        );
+      }
+
+      if (teamFilter.size > 0) {
+        filtered = filtered.filter((row) => teamFilter.has(row.team.trim().toLowerCase()));
+      }
+
+      if (domainFilter.size > 0) {
+        filtered = filtered.filter((row) => domainFilter.has(row.domain.trim().toLowerCase()));
+      }
+
+      filtered = filtered.slice().sort((a, b) => {
+        if (sortBy === 'time_wasted') {
+          const timeDiff = (b.estimated_time_wasted_hours ?? 0) - (a.estimated_time_wasted_hours ?? 0);
+          if (timeDiff !== 0) return timeDiff;
+          const voteDiff = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+          if (voteDiff !== 0) return voteDiff;
+          return (b.created_at || '').localeCompare(a.created_at || '');
+        }
+
+        if (sortBy === 'newest') {
+          return (b.created_at || '').localeCompare(a.created_at || '');
+        }
+
+        const voteDiff = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+        if (voteDiff !== 0) return voteDiff;
+        const timeDiff = (b.estimated_time_wasted_hours ?? 0) - (a.estimated_time_wasted_hours ?? 0);
+        if (timeDiff !== 0) return timeDiff;
+        return (b.created_at || '').localeCompare(a.created_at || '');
+      });
+
+      return {
+        items: filtered
+          .slice(0, limit)
+          .map((row) => createProblemListItem(row, userNameById.get(row.created_by_user_id) ?? 'Unknown')),
+        nextCursor: null,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE)) {
+        throw new Error(
+          `Missing required table ${PROBLEM_TABLE}. Apply the phase 1 problem exchange migration before calling hdcListProblems.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async voteProblem(viewer: ViewerContext, problemId: string): Promise<VoteProblemResult> {
+    const normalizedId = problemId.trim();
+    if (!normalizedId) {
+      throw createProblemValidationError('problemId is required.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const problem = await this.getProblemById(normalizedId);
+    if (!problem) {
+      throw new Error('[PROBLEM_NOT_FOUND] Problem not found.');
+    }
+    if (normalizeProblemModerationState(problem.moderation_state) === 'removed') {
+      throw new Error('[PROBLEM_MODERATION_INVALID] Removed problems cannot be voted on.');
+    }
+
+    const currentVoteCount = problem.vote_count ?? 0;
+    const now = nowIso();
+    try {
+      await this.client.insert<DbProblemVote>(PROBLEM_VOTE_TABLE, {
+        id: randomUUID(),
+        problem_id: normalizedId,
+        user_id: user.id,
+        created_at: now,
+      });
+
+      const rows = await this.client.patchMany<DbProblem>(
+        PROBLEM_TABLE,
+        { vote_count: currentVoteCount + 1, updated_at: now },
+        [{ field: 'id', op: 'eq', value: normalizedId }]
+      );
+      const updatedVoteCount = rows[0]?.vote_count ?? currentVoteCount + 1;
+      logProblemExchangeTelemetry('problem_voted', {
+        problemId: normalizedId,
+        accountId: viewer.accountId,
+        voteCount: updatedVoteCount,
+        alreadyVoted: false,
+      });
+      return {
+        problemId: normalizedId,
+        voteCount: updatedVoteCount,
+        alreadyVoted: false,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE) || hasMissingTable(error, PROBLEM_VOTE_TABLE)) {
+        throw new Error(
+          `Missing required problem exchange tables (${PROBLEM_TABLE}/${PROBLEM_VOTE_TABLE}). Apply the phase 1 problem exchange migration before calling hdcVoteProblem.`
+        );
+      }
+      if (isDuplicateProblemVoteError(error)) {
+        logProblemExchangeTelemetry('problem_voted', {
+          problemId: normalizedId,
+          accountId: viewer.accountId,
+          voteCount: currentVoteCount,
+          alreadyVoted: true,
+        });
+        return {
+          problemId: normalizedId,
+          voteCount: currentVoteCount,
+          alreadyVoted: true,
+        };
+      }
+      throw error;
+    }
+  }
+
+  async updateProblemStatus(
+    viewer: ViewerContext,
+    input: UpdateProblemStatusInput
+  ): Promise<UpdateProblemStatusResult> {
+    const problemId = input.problemId?.trim();
+    if (!problemId) {
+      throw createProblemValidationError('problemId is required.');
+    }
+    if (!isProblemStatus(input.status)) {
+      throw createProblemValidationError('status is invalid.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const problem = await this.getProblemById(problemId);
+    if (!problem) {
+      throw new Error('[PROBLEM_NOT_FOUND] Problem not found.');
+    }
+
+    const linkedHackProjectId = input.linkedHackProjectId?.trim() || problem.linked_hack_project_id || null;
+    const linkedArtifactId = input.linkedArtifactId?.trim() || problem.linked_artifact_id || null;
+
+    if (input.status === 'solved' && !linkedHackProjectId && !linkedArtifactId) {
+      throw createProblemValidationError('solved status requires linkedHackProjectId or linkedArtifactId.');
+    }
+
+    if (linkedHackProjectId) {
+      const sourceHack = await this.getProjectById(linkedHackProjectId);
+      if (!sourceHack || sourceHack.source_type !== 'hack_submission') {
+        throw new Error('[PROBLEM_SOURCE_LINK_INVALID] linkedHackProjectId must reference a hack submission project.');
+      }
+    }
+
+    if (linkedArtifactId) {
+      const sourceArtifact = await this.getArtifactRowById(linkedArtifactId);
+      if (!sourceArtifact || sourceArtifact.archived_at) {
+        throw new Error('[PROBLEM_SOURCE_LINK_INVALID] linkedArtifactId must reference an active Artifact.');
+      }
+    }
+
+    const now = nowIso();
+    const patchPayload: Record<string, unknown> = {
+      status: input.status,
+      linked_hack_project_id: linkedHackProjectId,
+      linked_artifact_id: linkedArtifactId,
+      updated_at: now,
+    };
+
+    if (input.status === 'claimed') {
+      patchPayload.claimed_by_user_id = user.id;
+    }
+    if (input.status === 'closed') {
+      patchPayload.closed_at = now;
+    }
+
+    try {
+      const updatedRows = await this.client.patchMany<DbProblem>(
+        PROBLEM_TABLE,
+        patchPayload,
+        [{ field: 'id', op: 'eq', value: problemId }]
+      );
+      const updated = updatedRows[0];
+      if (!updated) {
+        throw new Error('[PROBLEM_NOT_FOUND] Problem not found.');
+      }
+
+      await this.client.insert<DbProblemStatusHistory>(PROBLEM_STATUS_HISTORY_TABLE, {
+        id: randomUUID(),
+        problem_id: problemId,
+        from_status: problem.status,
+        to_status: input.status,
+        changed_by_user_id: user.id,
+        change_note: input.note?.trim() || null,
+        linked_hack_project_id: linkedHackProjectId,
+        linked_artifact_id: linkedArtifactId,
+        created_at: now,
+      });
+
+      logProblemExchangeTelemetry('problem_status_updated', {
+        problemId,
+        accountId: viewer.accountId,
+        fromStatus: problem.status,
+        toStatus: input.status,
+        linkedHackProjectId: linkedHackProjectId ?? null,
+        linkedArtifactId: linkedArtifactId ?? null,
+      });
+
+      return {
+        problemId,
+        status: isProblemStatus(updated.status) ? updated.status : input.status,
+        linkedHackProjectId: updated.linked_hack_project_id ?? undefined,
+        linkedArtifactId: updated.linked_artifact_id ?? undefined,
+        updatedAt: updated.updated_at ?? now,
+      };
+    } catch (error) {
+      if (
+        hasMissingTable(error, PROBLEM_TABLE) ||
+        hasMissingTable(error, PROBLEM_STATUS_HISTORY_TABLE) ||
+        hasMissingTable(error, ARTIFACT_TABLE)
+      ) {
+        throw new Error(
+          `Missing required problem exchange tables. Apply the phase 1 problem exchange migration before calling hdcUpdateProblemStatus.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async flagProblem(viewer: ViewerContext, input: FlagProblemInput): Promise<FlagProblemResult> {
+    const problemId = input.problemId?.trim();
+    if (!problemId) {
+      throw createProblemValidationError('problemId is required.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const problem = await this.getProblemById(problemId);
+    if (!problem) {
+      throw new Error('[PROBLEM_NOT_FOUND] Problem not found.');
+    }
+
+    const moderationState = normalizeProblemModerationState(problem.moderation_state);
+    if (moderationState === 'removed') {
+      throw new Error('[PROBLEM_MODERATION_INVALID] Removed problems cannot be flagged.');
+    }
+
+    const currentFlagCount = problem.flag_count ?? 0;
+    const now = nowIso();
+    try {
+      await this.client.insert<DbProblemFlag>(PROBLEM_FLAG_TABLE, {
+        id: randomUUID(),
+        problem_id: problemId,
+        user_id: user.id,
+        reason: input.reason?.trim() || null,
+        created_at: now,
+      });
+
+      const rows = await this.client.patchMany<DbProblem>(
+        PROBLEM_TABLE,
+        { flag_count: currentFlagCount + 1, updated_at: now },
+        [{ field: 'id', op: 'eq', value: problemId }]
+      );
+      const updated = rows[0] ?? problem;
+      const updatedFlagCount = updated.flag_count ?? currentFlagCount + 1;
+
+      let nextModerationState = normalizeProblemModerationState(updated.moderation_state);
+      let autoHidden = false;
+      if (updatedFlagCount >= 3 && nextModerationState === 'visible') {
+        await this.client.patchMany<DbProblem>(
+          PROBLEM_TABLE,
+          {
+            moderation_state: 'hidden_pending_review',
+            auto_hidden_at: now,
+            hidden_at: now,
+            updated_at: now,
+          },
+          [{ field: 'id', op: 'eq', value: problemId }]
+        );
+        await this.client.insert<DbProblemModerationLog>(PROBLEM_MODERATION_LOG_TABLE, {
+          id: randomUUID(),
+          problem_id: problemId,
+          action: 'auto_hidden',
+          changed_by_user_id: null,
+          note: 'Auto-hidden after 3 distinct community flags.',
+          created_at: now,
+        });
+        nextModerationState = 'hidden_pending_review';
+        autoHidden = true;
+      }
+
+      logProblemExchangeTelemetry('problem_flagged', {
+        problemId,
+        accountId: viewer.accountId,
+        flagCount: updatedFlagCount,
+        alreadyFlagged: false,
+        moderationState: nextModerationState,
+        autoHidden,
+      });
+
+      return {
+        problemId,
+        flagCount: updatedFlagCount,
+        alreadyFlagged: false,
+        moderationState: nextModerationState,
+        autoHidden,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE) || hasMissingTable(error, PROBLEM_FLAG_TABLE)) {
+        throw new Error(
+          `Missing required problem exchange tables (${PROBLEM_TABLE}/${PROBLEM_FLAG_TABLE}). Apply the phase 1 problem exchange migration before calling hdcFlagProblem.`
+        );
+      }
+      if (isDuplicateProblemFlagError(error)) {
+        logProblemExchangeTelemetry('problem_flagged', {
+          problemId,
+          accountId: viewer.accountId,
+          flagCount: currentFlagCount,
+          alreadyFlagged: true,
+          moderationState,
+          autoHidden: false,
+        });
+        return {
+          problemId,
+          flagCount: currentFlagCount,
+          alreadyFlagged: true,
+          moderationState,
+          autoHidden: false,
+        };
+      }
+      throw error;
+    }
+  }
+
+  async moderateProblem(
+    viewer: ViewerContext,
+    input: ModerateProblemInput
+  ): Promise<ModerateProblemResult> {
+    const problemId = input.problemId?.trim();
+    if (!problemId) {
+      throw createProblemValidationError('problemId is required.');
+    }
+    if (input.decision !== 'remove' && input.decision !== 'reinstate') {
+      throw createProblemValidationError('decision must be remove or reinstate.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const problem = await this.getProblemById(problemId);
+    if (!problem) {
+      throw new Error('[PROBLEM_NOT_FOUND] Problem not found.');
+    }
+
+    const now = nowIso();
+    const nextState: ProblemModerationState =
+      input.decision === 'remove' ? 'removed' : 'visible';
+    const patchPayload: Record<string, unknown> = {
+      moderation_state: nextState,
+      updated_at: now,
+    };
+    if (input.decision === 'remove') {
+      patchPayload.hidden_at = now;
+    } else {
+      patchPayload.hidden_at = null;
+    }
+
+    try {
+      await this.client.patchMany<DbProblem>(
+        PROBLEM_TABLE,
+        patchPayload,
+        [{ field: 'id', op: 'eq', value: problemId }]
+      );
+      await this.client.insert<DbProblemModerationLog>(PROBLEM_MODERATION_LOG_TABLE, {
+        id: randomUUID(),
+        problem_id: problemId,
+        action: input.decision,
+        changed_by_user_id: user.id,
+        note: input.note?.trim() || null,
+        created_at: now,
+      });
+      logProblemExchangeTelemetry('problem_moderated', {
+        problemId,
+        accountId: viewer.accountId,
+        decision: input.decision,
+        moderationState: nextState,
+      });
+      return {
+        problemId,
+        moderationState: nextState,
+        reviewedAt: now,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE) || hasMissingTable(error, PROBLEM_MODERATION_LOG_TABLE)) {
+        throw new Error(
+          `Missing required problem exchange tables (${PROBLEM_TABLE}/${PROBLEM_MODERATION_LOG_TABLE}). Apply the phase 1 problem exchange migration before calling hdcModerateProblem.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getPipelineBoard(
+    viewer: ViewerContext,
+    input: GetPipelineBoardInput = {}
+  ): Promise<GetPipelineBoardResult> {
+    const query = input.query?.trim().toLowerCase() || '';
+    const stageFilter = new Set((input.stages || []).filter((stage) => isPipelineStage(stage)));
+    const limit = Math.max(1, Math.min(200, Math.floor(input.limit ?? 200)));
+
+    const canManage = await this.canUserManagePipeline(viewer);
+
+    try {
+      const [projects, users] = await Promise.all([
+        this.listProjects(),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+      ]);
+
+      let stageCriteria: PipelineStageCriteria[] = defaultPipelineStageCriteria();
+      try {
+        const rows = await this.client.selectMany<DbPipelineStageCriteriaRow>(
+          PIPELINE_STAGE_CRITERIA_TABLE,
+          'stage,label,description,criteria,updated_at'
+        );
+        if (rows.length > 0) {
+          stageCriteria = rows
+            .filter((row) => isPipelineStage(row.stage))
+            .map((row) => ({
+              stage: row.stage as PipelineStage,
+              label: row.label?.trim() || row.stage,
+              description: row.description?.trim() || '',
+              criteria: Array.isArray(row.criteria) ? row.criteria.filter((item): item is string => typeof item === 'string') : [],
+              updatedAt: row.updated_at ?? undefined,
+            }));
+        }
+      } catch (criteriaError) {
+        if (!hasMissingTable(criteriaError, PIPELINE_STAGE_CRITERIA_TABLE)) {
+          throw criteriaError;
+        }
+      }
+
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+      let items = projects
+        .filter((project) => project.id.trim().length > 0)
+        .map((project) => createPipelineBoardItem(project, userNameById.get(project.owner_id ?? '') ?? 'Unknown'));
+
+      if (query) {
+        items = items.filter((item) =>
+          `${item.title} ${item.description} ${item.ownerName}`.toLowerCase().includes(query)
+        );
+      }
+
+      if (stageFilter.size > 0) {
+        items = items.filter((item) => stageFilter.has(item.stage));
+      }
+
+      items = items
+        .slice()
+        .sort((a, b) => {
+          const stageDiff = PIPELINE_STAGES.indexOf(a.stage) - PIPELINE_STAGES.indexOf(b.stage);
+          if (stageDiff !== 0) return stageDiff;
+          return b.daysInStage - a.daysInStage;
+        })
+        .slice(0, limit);
+
+      const metrics = buildPipelineMetrics(items);
+
+      return {
+        items,
+        stageCriteria: stageCriteria
+          .slice()
+          .sort((a, b) => PIPELINE_STAGES.indexOf(a.stage) - PIPELINE_STAGES.indexOf(b.stage)),
+        metrics,
+        canManage,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROJECT_TABLE)) {
+        throw new Error(
+          `Missing required table ${PROJECT_TABLE}. Apply the phase 1 baseline migrations before calling hdcGetPipelineBoard.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async movePipelineItem(viewer: ViewerContext, input: MovePipelineItemInput): Promise<MovePipelineItemResult> {
+    const projectId = input.projectId?.trim();
+    if (!projectId) {
+      throw createPipelineValidationError('projectId is required.');
+    }
+    if (!isPipelineStage(input.toStage)) {
+      throw createPipelineValidationError('toStage is invalid.');
+    }
+    const note = input.note?.trim() ?? '';
+    if (note.length < 6 || note.length > 1000) {
+      throw createPipelineValidationError('note must be 6-1000 characters.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const project = await this.getProjectById(projectId);
+    if (!project) {
+      throw new Error('[PIPELINE_ITEM_NOT_FOUND] Project not found.');
+    }
+
+    const fromStage = resolveProjectPipelineStage(project);
+    if (fromStage === input.toStage) {
+      throw createPipelineValidationError('toStage must differ from current stage.');
+    }
+
+    const movedAt = nowIso();
+
+    try {
+      await this.client.patchMany<DbProject>(
+        PROJECT_TABLE,
+        {
+          pipeline_stage: input.toStage,
+          pipeline_stage_entered_at: movedAt,
+        },
+        [{ field: 'id', op: 'eq', value: projectId }]
+      );
+
+      await this.client.insert<DbPipelineTransitionLog>(PIPELINE_TRANSITION_LOG_TABLE, {
+        id: randomUUID(),
+        project_id: projectId,
+        from_stage: fromStage,
+        to_stage: input.toStage,
+        note,
+        changed_by_user_id: user.id,
+        changed_at: movedAt,
+      });
+
+      logPipelineTelemetry('pipeline_stage_moved', {
+        projectId,
+        accountId: viewer.accountId,
+        fromStage,
+        toStage: input.toStage,
+      });
+
+      return {
+        projectId,
+        fromStage,
+        toStage: input.toStage,
+        movedAt,
+        note,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PIPELINE_TRANSITION_LOG_TABLE) || hasMissingTable(error, PROJECT_TABLE)) {
+        throw new Error(
+          `Missing required pipeline tables. Apply phase 1 pipeline migration before calling hdcMovePipelineItem.`
+        );
+      }
+      if (hasMissingProjectColumn(error)) {
+        const missingColumn = extractMissingProjectColumn(error);
+        if (missingColumn === 'pipeline_stage' || missingColumn === 'pipeline_stage_entered_at') {
+          throw new Error(
+            'Missing required Project pipeline columns. Apply phase 1 pipeline migration before calling hdcMovePipelineItem.'
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  async updatePipelineStageCriteria(
+    viewer: ViewerContext,
+    input: UpdatePipelineStageCriteriaInput
+  ): Promise<UpdatePipelineStageCriteriaResult> {
+    if (!isPipelineStage(input.stage)) {
+      throw createPipelineValidationError('stage is invalid.');
+    }
+
+    const normalizedCriteria = [...new Set((input.criteria ?? []).map((item) => item.trim()).filter(Boolean))];
+    if (normalizedCriteria.length === 0) {
+      throw createPipelineValidationError('criteria must include at least one item.');
+    }
+    if (normalizedCriteria.length > 12) {
+      throw createPipelineValidationError('criteria cannot exceed 12 items.');
+    }
+    if (normalizedCriteria.some((item) => item.length < 3 || item.length > 240)) {
+      throw createPipelineValidationError('each criteria item must be 3-240 characters.');
+    }
+
+    const existing = await this.client.selectOne<DbPipelineStageCriteriaRow>(
+      PIPELINE_STAGE_CRITERIA_TABLE,
+      'stage,label,description,criteria,updated_at',
+      [{ field: 'stage', op: 'eq', value: input.stage }]
+    );
+    const defaultsByStage = defaultPipelineStageCriteriaByStage();
+    const defaults = defaultsByStage[input.stage];
+
+    const rawLabel = (input.label ?? existing?.label ?? defaults.label).trim();
+    if (rawLabel.length < 2 || rawLabel.length > 80) {
+      throw createPipelineValidationError('label must be 2-80 characters.');
+    }
+
+    const rawDescription = (input.description ?? existing?.description ?? defaults.description).trim();
+    if (rawDescription.length > 500) {
+      throw createPipelineValidationError('description must be 0-500 characters.');
+    }
+
+    const user = await this.ensureUser(viewer);
+
+    try {
+      const row = await this.client.upsert<DbPipelineStageCriteriaRow>(
+        PIPELINE_STAGE_CRITERIA_TABLE,
+        {
+          stage: input.stage,
+          label: rawLabel,
+          description: rawDescription,
+          criteria: normalizedCriteria,
+          updated_by_user_id: user.id,
+        },
+        'stage'
+      );
+
+      return {
+        stageCriteria: {
+          stage: input.stage,
+          label: row.label || rawLabel,
+          description: row.description ?? rawDescription,
+          criteria: row.criteria ?? normalizedCriteria,
+          updatedAt: row.updated_at ?? nowIso(),
+        },
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PIPELINE_STAGE_CRITERIA_TABLE)) {
+        throw new Error(
+          'Missing required PipelineStageCriteria table. Apply phase 1 pipeline migration before calling hdcUpdatePipelineStageCriteria.'
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listShowcaseHacks(
+    viewer: ViewerContext,
+    input: ListShowcaseHacksInput = {}
+  ): Promise<ListShowcaseHacksResult> {
+    const query = input.query?.trim().toLowerCase() || '';
+    const assetTypeFilter = new Set(
+      (input.assetTypes ?? []).filter(
+        (assetType): assetType is ShowcaseHackListItem['assetType'] =>
+          assetType === 'prompt' || assetType === 'skill' || assetType === 'app'
+      )
+    );
+    const statusFilter = new Set(
+      (input.statuses ?? []).filter((status): status is ShowcaseHackStatus => isShowcaseHackStatus(status))
+    );
+    const tagFilter = new Set(normalizeShowcaseTags(input.tags ?? []));
+    const sourceEventIdFilter = input.sourceEventId?.trim() || null;
+    const featuredOnly = input.featuredOnly === true;
+    const sortBy = input.sortBy === 'featured' || input.sortBy === 'reuse_count' ? input.sortBy : 'newest';
+    const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
+    const canManage = await this.canUserManagePipeline(viewer);
+
+    try {
+      const [projects, users, showcaseRows, artifacts] = await Promise.all([
+        this.listProjects(),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+        this.client.selectMany<DbShowcaseHack>(
+          SHOWCASE_HACK_TABLE,
+          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
+        ),
+        this.client
+          .selectMany<DbArtifact>(
+            ARTIFACT_TABLE,
+            'id,source_hack_project_id,reuse_count,archived_at'
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+            throw error;
+          }),
+      ]);
+
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+      const showcaseByProjectId = new Map(showcaseRows.map((row) => [row.project_id, row]));
+      const reuseCountByProjectId = new Map<string, number>();
+      for (const artifact of artifacts) {
+        if (!artifact.source_hack_project_id || artifact.archived_at) continue;
+        const current = reuseCountByProjectId.get(artifact.source_hack_project_id) ?? 0;
+        reuseCountByProjectId.set(artifact.source_hack_project_id, current + Math.max(0, artifact.reuse_count ?? 0));
+      }
+
+      let hackRows = projects.filter((project) => project.source_type === 'hack_submission');
+      if (hackRows.length === 0 && projects.length > 0) {
+        // Legacy schema/data can classify everything as generic projects; surface those as hacks instead of an empty UI.
+        hackRows = projects;
+      }
+
+      let items = hackRows
+        .filter((project) => project.id.trim().length > 0)
+        .map((project) =>
+          createShowcaseHackListItem({
+            project,
+            metadata: showcaseByProjectId.get(project.id) ?? null,
+            authorName: project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : 'Unknown',
+            reuseCount: reuseCountByProjectId.get(project.id) ?? 0,
+          })
+        );
+
+      if (query) {
+        items = items.filter((item) =>
+          `${item.title} ${item.description} ${item.authorName}`.toLowerCase().includes(query)
+        );
+      }
+      if (assetTypeFilter.size > 0) {
+        items = items.filter((item) => assetTypeFilter.has(item.assetType));
+      }
+      if (statusFilter.size > 0) {
+        items = items.filter((item) => statusFilter.has(item.status));
+      }
+      if (tagFilter.size > 0) {
+        items = items.filter((item) => {
+          const itemTags = new Set(item.tags);
+          for (const tag of tagFilter) {
+            if (!itemTags.has(tag)) return false;
+          }
+          return true;
+        });
+      }
+      if (sourceEventIdFilter) {
+        items = items.filter((item) => (item.sourceEventId ?? '') === sourceEventIdFilter);
+      }
+      if (featuredOnly) {
+        items = items.filter((item) => item.featured);
+      }
+
+      items = items
+        .slice()
+        .sort((a, b) => {
+          if (sortBy === 'featured') {
+            if (a.featured !== b.featured) return a.featured ? -1 : 1;
+            const reuseDiff = b.reuseCount - a.reuseCount;
+            if (reuseDiff !== 0) return reuseDiff;
+            return b.createdAt.localeCompare(a.createdAt);
+          }
+          if (sortBy === 'reuse_count') {
+            const reuseDiff = b.reuseCount - a.reuseCount;
+            if (reuseDiff !== 0) return reuseDiff;
+            return b.createdAt.localeCompare(a.createdAt);
+          }
+          return b.createdAt.localeCompare(a.createdAt);
+        })
+        .slice(0, limit);
+
+      return { items, canManage };
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling hdcListShowcaseHacks.`
+        );
+      }
+      if (hasMissingTable(error, PROJECT_TABLE)) {
+        throw new Error(
+          `Missing required table ${PROJECT_TABLE}. Apply the phase 1 baseline migrations before calling hdcListShowcaseHacks.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getShowcaseHackDetail(
+    _viewer: ViewerContext,
+    projectId: string
+  ): Promise<GetShowcaseHackDetailResult> {
+    const normalizedProjectId = projectId.trim();
+    if (!normalizedProjectId) {
+      throw createShowcaseValidationError('projectId is required.');
+    }
+
+    const project = await this.getProjectById(normalizedProjectId);
+    if (!project) {
+      throw new Error('[SHOWCASE_NOT_FOUND] Hack not found.');
+    }
+
+    try {
+      const [showcaseRow, artifacts, problems, owner] = await Promise.all([
+        this.client.selectOne<DbShowcaseHack>(
+          SHOWCASE_HACK_TABLE,
+          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
+          [{ field: 'project_id', op: 'eq', value: normalizedProjectId }]
+        ),
+        this.client
+          .selectMany<DbArtifact>(
+            ARTIFACT_TABLE,
+            'id,title,artifact_type,visibility,reuse_count,source_hack_project_id,archived_at',
+            [{ field: 'source_hack_project_id', op: 'eq', value: normalizedProjectId }]
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+            throw error;
+          }),
+        this.client
+          .selectMany<DbProblem>(
+            PROBLEM_TABLE,
+            'id,title,status,updated_at,linked_hack_project_id',
+            [{ field: 'linked_hack_project_id', op: 'eq', value: normalizedProjectId }]
+          )
+          .catch((error) => {
+            if (hasMissingTable(error, PROBLEM_TABLE)) return [];
+            throw error;
+          }),
+        project.owner_id ? this.getUserById(project.owner_id) : Promise.resolve(null),
+      ]);
+
+      const publishedArtifacts = artifacts.filter((artifact) => !artifact.archived_at);
+      const reuseCount = publishedArtifacts.reduce((sum, artifact) => sum + Math.max(0, artifact.reuse_count ?? 0), 0);
+      const listItem = createShowcaseHackListItem({
+        project,
+        metadata: showcaseRow ?? null,
+        authorName: owner?.full_name || owner?.email || 'Unknown',
+        reuseCount,
+      });
+
+      const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(showcaseRow?.linked_artifact_ids ?? []);
+
+      return {
+        hack: {
+          ...listItem,
+          teamMembers: normalizeShowcaseTeamMembers(showcaseRow?.team_members ?? []),
+          linkedArtifactIds,
+          context: showcaseRow?.context ?? null,
+          limitations: showcaseRow?.limitations ?? null,
+          riskNotes: showcaseRow?.risk_notes ?? null,
+          sourceRepoUrl: showcaseRow?.source_repo_url ?? null,
+        },
+        artifactsProduced: publishedArtifacts
+          .map((artifact) => ({
+            artifactId: artifact.id,
+            title: artifact.title,
+            artifactType: artifact.artifact_type,
+            visibility: normalizeArtifactVisibility(artifact.visibility),
+            reuseCount: artifact.reuse_count ?? 0,
+          }))
+          .sort((a, b) => b.reuseCount - a.reuseCount),
+        problemsSolved: problems
+          .filter((problem) => problem.status === 'solved' || problem.status === 'closed')
+          .map((problem) => ({
+            problemId: problem.id,
+            title: problem.title,
+            status: isProblemStatus(problem.status) ? problem.status : 'open',
+            updatedAt: problem.updated_at ?? nowIso(),
+          }))
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      };
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling hdcGetShowcaseHackDetail.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async setShowcaseFeatured(
+    viewer: ViewerContext,
+    input: SetShowcaseFeaturedInput
+  ): Promise<SetShowcaseFeaturedResult> {
+    const normalizedProjectId = input.projectId?.trim();
+    if (!normalizedProjectId) {
+      throw createShowcaseValidationError('projectId is required.');
+    }
+
+    const project = await this.getProjectById(normalizedProjectId);
+    if (!project) {
+      throw new Error('[SHOWCASE_NOT_FOUND] Hack not found.');
+    }
+
+    const user = await this.ensureUser(viewer);
+
+    try {
+      const row = await this.client.upsert<DbShowcaseHack>(
+        SHOWCASE_HACK_TABLE,
+        {
+          project_id: normalizedProjectId,
+          featured: input.featured === true,
+          source_event_id: project.event_id,
+          created_by_user_id: user.id,
+        },
+        'project_id'
+      );
+      return {
+        projectId: normalizedProjectId,
+        featured: row.featured === true,
+        updatedAt: row.updated_at ?? nowIso(),
+      };
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling hdcSetShowcaseFeatured.`
+        );
+      }
+      throw error;
+    }
   }
 
   async createProject(viewer: ViewerContext, input: CreateProjectInput): Promise<CreateProjectResult> {
@@ -1348,6 +3346,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       workflow_transformed: false,
       source_type: 'project',
       synced_to_library_at: null,
+      pipeline_stage: 'hack',
+      pipeline_stage_entered_at: nowIso(),
     });
 
     return {
@@ -1921,6 +3921,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       workflow_transformed: false,
       event_id: payload.eventId,
       synced_to_library_at: null,
+      pipeline_stage: 'hack',
+      pipeline_stage_entered_at: nowIso(),
     });
 
     return { projectId: inserted.id };
@@ -1943,6 +3945,8 @@ async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
       workflow_transformed: false,
       event_id: input.eventId,
       synced_to_library_at: null,
+      pipeline_stage: 'hack',
+      pipeline_stage_entered_at: nowIso(),
     });
     return { projectId: inserted.id };
   }

@@ -2,17 +2,36 @@ import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMe
 import { router } from './utils/forgeBridge';
 import { DEFAULT_TIMEZONE } from './types';
 import type {
+  ArtifactListItem,
+  ArtifactType,
+  ArtifactVisibility,
   BootstrapData,
+  CreateArtifactInput,
   CreateHackInput,
   CreateInstanceDraftInput,
+  CreateProblemInput,
   CreateProjectInput,
   EventDuration,
+  FlagProblemInput,
   FeaturedHack,
+  GetShowcaseHackDetailResult,
+  GetArtifactResult,
   LifecycleStatus,
+  MovePipelineItemInput,
   PersonSnapshot,
+  PipelineBoardItem,
+  PipelineMetrics,
+  PipelineStage,
+  PipelineStageCriteria,
+  ProblemFrequency,
+  ProblemListItem,
+  ProblemStatus,
   ProjectSnapshot,
   ScheduleEventType,
+  ShowcaseHackListItem,
   ThemePreference,
+  UpdatePipelineStageCriteriaInput,
+  UpdateProblemStatusInput,
   UpdateMentorProfileInput,
   WizardStep,
 } from './types';
@@ -32,7 +51,31 @@ import { NAV_ITEMS, type View, type HackTab, type HackTypeFilter, type HackStatu
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
-import { getInitials } from './utils/format';
+import { formatLabel, getInitials } from './utils/format';
+import {
+  isValidHttpsUrl,
+  mapFeaturedHackToArtifact,
+  parseRegistryTags,
+  REGISTRY_ARTIFACT_TYPES,
+  type RegistrySortBy,
+} from './utils/registry';
+import {
+  applyPreviewFlagMutation,
+  applyPreviewVoteMutation,
+  applyProblemFilters,
+  buildProblemAppliedFilters,
+  createPreviewProblemListItem,
+  DEFAULT_PROBLEM_FILTER_DRAFT,
+  getDefaultProblemFilterDraft,
+  getDefaultProblemFilterSet,
+  PROBLEM_FREQUENCIES,
+  PROBLEM_STATUSES,
+  resolveProblemModerationAction,
+  seedPreviewProblems,
+  type ProblemSortBy,
+  validateProblemCreateDraft,
+  validateProblemStatusDraft,
+} from './utils/problemExchange';
 import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
 import type {
   ScheduleBuilderOutput as ScheduleBuilderV2Output,
@@ -844,6 +887,49 @@ function computeGini(values: number[]): number {
   return (2 * weighted) / (n * sum) - (n + 1) / n;
 }
 
+const PIPELINE_STAGE_DEFINITIONS: PipelineStageCriteria[] = [
+  {
+    stage: 'hack',
+    label: 'Hack',
+    description: 'Submitted and demoed.',
+    criteria: ['Demo exists', 'Problem Exchange link if applicable'],
+  },
+  {
+    stage: 'validated_prototype',
+    label: 'Validated Prototype',
+    description: 'Tested with real users and value evidence.',
+    criteria: ['3+ users outside team tried it', 'At least one qualitative feedback note'],
+  },
+  {
+    stage: 'incubating_project',
+    label: 'Incubating Project',
+    description: 'Allocated time/resources and active development.',
+    criteria: ['Repeated usage evidence', 'Named owner + external lead endorsement'],
+  },
+  {
+    stage: 'product_candidate',
+    label: 'Product Candidate',
+    description: 'Business case, sponsor, and roadmap identified.',
+    criteria: ['Business case drafted', 'Sponsor identified from leadership'],
+  },
+];
+
+function mapProjectStatusToPipelineStage(project: ProjectSnapshot): PipelineStage {
+  const normalized = project.status.trim().toLowerCase();
+  if (normalized === 'incubation') return 'incubating_project';
+  if (normalized === 'building' || normalized === 'in_progress') return 'validated_prototype';
+  if (normalized === 'completed' || normalized === 'verified') return 'product_candidate';
+  return 'hack';
+}
+
+function parsePipelineCriteriaText(value: string): string[] {
+  return [...new Set(value.split('\n').map((line) => line.trim()).filter(Boolean))];
+}
+
+function parseCommaSeparatedList(value: string): string[] {
+  return [...new Set(value.split(',').map((token) => token.trim()).filter(Boolean))];
+}
+
 function classifyExperience(level: string | null): 'frontline' | 'leader' | 'other' {
   if (level === 'newbie' || level === 'curious' || level === 'comfortable') {
     return 'frontline';
@@ -866,6 +952,47 @@ function downloadJson(filename: string, payload: unknown): void {
 
 function isDeprecated(status: string): boolean {
   return status.toLowerCase() === 'deprecated';
+}
+
+function mapShowcaseItemToFeaturedHack(item: ShowcaseHackListItem): FeaturedHack {
+  return {
+    id: item.projectId,
+    title: item.title,
+    description: item.description,
+    assetType: item.assetType,
+    status: item.status === 'completed' ? 'verified' : 'in_progress',
+    reuseCount: item.reuseCount,
+    authorName: item.authorName,
+    visibility: item.visibility,
+    intendedUser: null,
+    context: null,
+    limitations: null,
+    riskNotes: null,
+    sourceRepoUrl: null,
+    demoUrl: item.demoUrl ?? null,
+  };
+}
+
+function mapFeaturedHackToShowcaseItem(hack: FeaturedHack): ShowcaseHackListItem {
+  const now = new Date().toISOString();
+  return {
+    projectId: hack.id,
+    title: hack.title,
+    description: hack.description,
+    assetType: hack.assetType,
+    status: hack.status === 'in_progress' ? 'in_progress' : 'completed',
+    featured: hack.status === 'verified',
+    authorName: hack.authorName,
+    visibility: hack.visibility,
+    tags: [],
+    demoUrl: hack.demoUrl ?? undefined,
+    pipelineStage: 'hack',
+    reuseCount: hack.reuseCount,
+    teamMembersCount: 0,
+    linkedArtifactsCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
@@ -896,8 +1023,114 @@ export function App(): JSX.Element {
   const [hackTypeFilter, setHackTypeFilter] = useState<HackTypeFilter>('all');
   const [hackStatusFilter, setHackStatusFilter] = useState<HackStatusFilter>('all');
   const [showDeprecated, setShowDeprecated] = useState(false);
+  const [showcaseTagsInput, setShowcaseTagsInput] = useState('');
+  const [showcaseSourceEventInput, setShowcaseSourceEventInput] = useState('');
+  const [showcaseFeaturedOnly, setShowcaseFeaturedOnly] = useState(false);
+  const [showcaseItems, setShowcaseItems] = useState<ShowcaseHackListItem[]>([]);
+  const [showcaseCanManage, setShowcaseCanManage] = useState(false);
+  const [showcaseLoading, setShowcaseLoading] = useState(false);
+  const [showcaseLoaded, setShowcaseLoaded] = useState(false);
+  const [showcaseError, setShowcaseError] = useState('');
+  const [showcaseFeaturePendingProjectId, setShowcaseFeaturePendingProjectId] = useState<string | null>(null);
+  const [showcaseSelectedProjectId, setShowcaseSelectedProjectId] = useState<string | null>(null);
+  const [showcaseDetail, setShowcaseDetail] = useState<GetShowcaseHackDetailResult | null>(null);
+  const [showcaseDetailLoading, setShowcaseDetailLoading] = useState(false);
+  const [showcaseDetailError, setShowcaseDetailError] = useState('');
+  const [registrySearchInput, setRegistrySearchInput] = useState('');
+  const [registryTagsInput, setRegistryTagsInput] = useState('');
+  const [registryTypeFilter, setRegistryTypeFilter] = useState<ArtifactType | 'all'>('all');
+  const [registrySortBy, setRegistrySortBy] = useState<RegistrySortBy>('newest');
+  const [registryAppliedFilters, setRegistryAppliedFilters] = useState<{
+    query?: string;
+    artifactTypes?: ArtifactType[];
+    tags?: string[];
+    sortBy: RegistrySortBy;
+  }>({ sortBy: 'newest' });
+  const [registryItems, setRegistryItems] = useState<ArtifactListItem[]>([]);
+  const [registryLoading, setRegistryLoading] = useState(false);
+  const [registryLoaded, setRegistryLoaded] = useState(false);
+  const [registryError, setRegistryError] = useState('');
+  const [reusePendingArtifactId, setReusePendingArtifactId] = useState<string | null>(null);
+  const [detailLoadingArtifactId, setDetailLoadingArtifactId] = useState<string | null>(null);
+  const [registryDetailsById, setRegistryDetailsById] = useState<Record<string, GetArtifactResult>>({});
+  const [showCreateArtifactForm, setShowCreateArtifactForm] = useState(false);
+  const [artifactTitle, setArtifactTitle] = useState('');
+  const [artifactDescription, setArtifactDescription] = useState('');
+  const [artifactType, setArtifactType] = useState<ArtifactType>('prompt');
+  const [artifactTagsInput, setArtifactTagsInput] = useState('');
+  const [artifactSourceUrl, setArtifactSourceUrl] = useState('');
+  const [artifactSourceLabel, setArtifactSourceLabel] = useState('');
+  const [artifactSourceHackProjectId, setArtifactSourceHackProjectId] = useState('');
+  const [artifactSourceHackdayEventId, setArtifactSourceHackdayEventId] = useState('');
+  const [artifactVisibility, setArtifactVisibility] = useState<ArtifactVisibility>('org');
+  const [artifactSubmitting, setArtifactSubmitting] = useState(false);
+  const [problemSearchInput, setProblemSearchInput] = useState('');
+  const [problemTeamsInput, setProblemTeamsInput] = useState('');
+  const [problemDomainsInput, setProblemDomainsInput] = useState('');
+  const [problemStatusFilter, setProblemStatusFilter] = useState<ProblemStatus | 'all'>(DEFAULT_PROBLEM_FILTER_DRAFT.status);
+  const [problemSortBy, setProblemSortBy] = useState<ProblemSortBy>(DEFAULT_PROBLEM_FILTER_DRAFT.sortBy);
+  const [problemIncludeHidden, setProblemIncludeHidden] = useState(DEFAULT_PROBLEM_FILTER_DRAFT.includeHidden);
+  const [problemAppliedFilters, setProblemAppliedFilters] = useState<{
+    query?: string;
+    teams?: string[];
+    domains?: string[];
+    statuses?: ProblemStatus[];
+    sortBy: ProblemSortBy;
+    includeHidden: boolean;
+  }>(() => getDefaultProblemFilterSet());
+  const [problemItems, setProblemItems] = useState<ProblemListItem[]>([]);
+  const [problemPreviewItems, setProblemPreviewItems] = useState<ProblemListItem[]>([]);
+  const [problemPreviewVotedIds, setProblemPreviewVotedIds] = useState<string[]>([]);
+  const [problemPreviewFlaggedIds, setProblemPreviewFlaggedIds] = useState<string[]>([]);
+  const [problemLoading, setProblemLoading] = useState(false);
+  const [problemLoaded, setProblemLoaded] = useState(false);
+  const [problemError, setProblemError] = useState('');
+  const [showCreateProblemForm, setShowCreateProblemForm] = useState(false);
+  const [problemTitle, setProblemTitle] = useState('');
+  const [problemDescription, setProblemDescription] = useState('');
+  const [problemFrequency, setProblemFrequency] = useState<ProblemFrequency>('weekly');
+  const [problemTimeWastedHours, setProblemTimeWastedHours] = useState('');
+  const [problemTeam, setProblemTeam] = useState('');
+  const [problemDomain, setProblemDomain] = useState('');
+  const [problemContactDetails, setProblemContactDetails] = useState('');
+  const [problemSubmitting, setProblemSubmitting] = useState(false);
+  const [problemStatusDraftById, setProblemStatusDraftById] = useState<Record<string, ProblemStatus>>({});
+  const [problemLinkHackProjectById, setProblemLinkHackProjectById] = useState<Record<string, string>>({});
+  const [problemLinkArtifactById, setProblemLinkArtifactById] = useState<Record<string, string>>({});
+  const [problemStatusNoteById, setProblemStatusNoteById] = useState<Record<string, string>>({});
+  const [problemFlagReasonById, setProblemFlagReasonById] = useState<Record<string, string>>({});
+  const [problemVotePendingId, setProblemVotePendingId] = useState<string | null>(null);
+  const [problemFlagPendingId, setProblemFlagPendingId] = useState<string | null>(null);
+  const [problemStatusPendingId, setProblemStatusPendingId] = useState<string | null>(null);
+  const [problemModerationPendingId, setProblemModerationPendingId] = useState<string | null>(null);
+  const [problemCanModerate, setProblemCanModerate] = useState(false);
+  const [problemModerationMode, setProblemModerationMode] = useState<'allowlist' | 'none'>('none');
 
-  const [projectSearch, setProjectSearch] = useState('');
+  const [pipelineItems, setPipelineItems] = useState<PipelineBoardItem[]>([]);
+  const [pipelineStageCriteria, setPipelineStageCriteria] = useState<PipelineStageCriteria[]>([]);
+  const [pipelineMetrics, setPipelineMetrics] = useState<PipelineMetrics | null>(null);
+  const [pipelineCanManage, setPipelineCanManage] = useState(false);
+  const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [pipelineLoaded, setPipelineLoaded] = useState(false);
+  const [pipelineError, setPipelineError] = useState('');
+  const [pipelineMovePendingProjectId, setPipelineMovePendingProjectId] = useState<string | null>(null);
+  const [pipelineMoveStageByProjectId, setPipelineMoveStageByProjectId] = useState<Record<string, PipelineStage>>({});
+  const [pipelineMoveNoteByProjectId, setPipelineMoveNoteByProjectId] = useState<Record<string, string>>({});
+  const [pipelineCriteriaDescriptionDraftByStage, setPipelineCriteriaDescriptionDraftByStage] = useState<
+    Record<PipelineStage, string>
+  >({
+    hack: PIPELINE_STAGE_DEFINITIONS[0].description,
+    validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].description,
+    incubating_project: PIPELINE_STAGE_DEFINITIONS[2].description,
+    product_candidate: PIPELINE_STAGE_DEFINITIONS[3].description,
+  });
+  const [pipelineCriteriaTextDraftByStage, setPipelineCriteriaTextDraftByStage] = useState<Record<PipelineStage, string>>({
+    hack: PIPELINE_STAGE_DEFINITIONS[0].criteria.join('\n'),
+    validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].criteria.join('\n'),
+    incubating_project: PIPELINE_STAGE_DEFINITIONS[2].criteria.join('\n'),
+    product_candidate: PIPELINE_STAGE_DEFINITIONS[3].criteria.join('\n'),
+  });
+  const [pipelineCriteriaSavePendingStage, setPipelineCriteriaSavePendingStage] = useState<PipelineStage | null>(null);
 
   const [teamSearch, setTeamSearch] = useState('');
   const [teamExperienceFilter, setTeamExperienceFilter] = useState('all');
@@ -912,6 +1145,11 @@ export function App(): JSX.Element {
   const [hackContent, setHackContent] = useState('');
   const [hackAssetType, setHackAssetType] = useState<'prompt' | 'skill' | 'app'>('prompt');
   const [hackVisibility, setHackVisibility] = useState<'private' | 'org' | 'public'>('org');
+  const [hackDemoUrl, setHackDemoUrl] = useState('');
+  const [hackTeamMembersInput, setHackTeamMembersInput] = useState('');
+  const [hackSourceEventId, setHackSourceEventId] = useState('');
+  const [hackTagsInput, setHackTagsInput] = useState('');
+  const [hackLinkedArtifactIdsInput, setHackLinkedArtifactIdsInput] = useState('');
 
   const [projectTitle, setProjectTitle] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
@@ -1040,6 +1278,1123 @@ export function App(): JSX.Element {
     { title: 'Upcoming', items: switcherSections.upcoming },
     { title: 'Recent', items: switcherSections.recent },
   ];
+  const fallbackPipelineItems = useMemo<PipelineBoardItem[]>(
+    () =>
+      allProjects.map((project) => ({
+        projectId: project.id,
+        title: project.title,
+        description: project.description,
+        ownerName: project.ownerName,
+        stage: mapProjectStatusToPipelineStage(project),
+        status: project.status,
+        statusLabel: project.statusLabel,
+        daysInStage: 0,
+        attachedHacksCount: project.attachedHacksCount,
+        commentCount: project.commentCount,
+        timeSavedEstimate: project.timeSavedEstimate,
+        visibility: project.visibility,
+        enteredStageAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })),
+    [allProjects]
+  );
+  const fallbackPipelineMetrics = useMemo<PipelineMetrics>(() => {
+    const counts: Record<PipelineStage, number> = {
+      hack: 0,
+      validated_prototype: 0,
+      incubating_project: 0,
+      product_candidate: 0,
+    };
+    for (const item of fallbackPipelineItems) {
+      counts[item.stage] += 1;
+    }
+    return {
+      itemsPerStage: PIPELINE_STAGE_DEFINITIONS.map((stage) => ({
+        stage: stage.stage,
+        count: counts[stage.stage],
+      })),
+      averageDaysInStage: PIPELINE_STAGE_DEFINITIONS.map((stage) => ({
+        stage: stage.stage,
+        averageDays: 0,
+      })),
+      conversionHackToValidated: percent(counts.validated_prototype, Math.max(counts.hack, 1)),
+      conversionValidatedToIncubating: percent(counts.incubating_project, Math.max(counts.validated_prototype, 1)),
+      conversionIncubatingToCandidate: percent(counts.product_candidate, Math.max(counts.incubating_project, 1)),
+      totalEntered: fallbackPipelineItems.length,
+      totalGraduated: counts.product_candidate,
+    };
+  }, [fallbackPipelineItems]);
+  const effectivePipelineStageCriteria = pipelineStageCriteria.length > 0 ? pipelineStageCriteria : PIPELINE_STAGE_DEFINITIONS;
+  const effectivePipelineItems = pipelineLoaded ? pipelineItems : fallbackPipelineItems;
+  const effectivePipelineMetrics = pipelineMetrics ?? fallbackPipelineMetrics;
+  const pipelineItemsByStage = useMemo(() => {
+    const map: Record<PipelineStage, PipelineBoardItem[]> = {
+      hack: [],
+      validated_prototype: [],
+      incubating_project: [],
+      product_candidate: [],
+    };
+    for (const item of effectivePipelineItems) {
+      map[item.stage].push(item);
+    }
+    return map;
+  }, [effectivePipelineItems]);
+
+  useEffect(() => {
+    const nextDescriptions: Record<PipelineStage, string> = {
+      hack: PIPELINE_STAGE_DEFINITIONS[0].description,
+      validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].description,
+      incubating_project: PIPELINE_STAGE_DEFINITIONS[2].description,
+      product_candidate: PIPELINE_STAGE_DEFINITIONS[3].description,
+    };
+    const nextCriteriaText: Record<PipelineStage, string> = {
+      hack: PIPELINE_STAGE_DEFINITIONS[0].criteria.join('\n'),
+      validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].criteria.join('\n'),
+      incubating_project: PIPELINE_STAGE_DEFINITIONS[2].criteria.join('\n'),
+      product_candidate: PIPELINE_STAGE_DEFINITIONS[3].criteria.join('\n'),
+    };
+    for (const stage of effectivePipelineStageCriteria) {
+      nextDescriptions[stage.stage] = stage.description;
+      nextCriteriaText[stage.stage] = stage.criteria.join('\n');
+    }
+    setPipelineCriteriaDescriptionDraftByStage(nextDescriptions);
+    setPipelineCriteriaTextDraftByStage(nextCriteriaText);
+  }, [effectivePipelineStageCriteria]);
+
+  useEffect(() => {
+    if (view !== 'projects') return;
+    setView('pipeline');
+  }, [view]);
+
+  const loadPipelineBoard = useCallback(async () => {
+    setPipelineLoading(true);
+    setPipelineError('');
+    try {
+      if (previewMode) {
+        setPipelineItems(fallbackPipelineItems);
+        setPipelineStageCriteria(PIPELINE_STAGE_DEFINITIONS);
+        setPipelineMetrics(fallbackPipelineMetrics);
+        setPipelineCanManage(true);
+        setPipelineLoaded(true);
+        return;
+      }
+
+      const result = await invokeTyped('hdcGetPipelineBoard', {});
+      setPipelineItems(result.items);
+      setPipelineStageCriteria(result.stageCriteria.length > 0 ? result.stageCriteria : PIPELINE_STAGE_DEFINITIONS);
+      setPipelineMetrics(result.metrics);
+      setPipelineCanManage(result.canManage);
+      setPipelineLoaded(true);
+    } catch (error) {
+      setPipelineError(error instanceof Error ? error.message : 'Failed to load pipeline board.');
+    } finally {
+      setPipelineLoading(false);
+    }
+  }, [fallbackPipelineItems, fallbackPipelineMetrics, previewMode]);
+
+  useEffect(() => {
+    if (view !== 'pipeline') return;
+    void loadPipelineBoard();
+  }, [view, loadPipelineBoard]);
+
+  const handleMovePipelineItem = useCallback(
+    async (item: PipelineBoardItem) => {
+      const targetStage = pipelineMoveStageByProjectId[item.projectId] ?? item.stage;
+      const note = (pipelineMoveNoteByProjectId[item.projectId] || '').trim();
+      if (targetStage === item.stage) {
+        setActionError('Choose a different target stage before moving this item.');
+        return;
+      }
+      if (note.length < 6) {
+        setActionError('Transition note must be at least 6 characters.');
+        return;
+      }
+
+      setPipelineMovePendingProjectId(item.projectId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          setPipelineItems((current) =>
+            current.map((candidate) =>
+              candidate.projectId === item.projectId
+                ? {
+                    ...candidate,
+                    stage: targetStage,
+                    enteredStageAt: new Date().toISOString(),
+                    daysInStage: 0,
+                  }
+                : candidate
+            )
+          );
+          setActionMessage(`Pipeline item moved to ${formatLabel(targetStage)} (preview mode).`);
+          return;
+        }
+
+        const payload: MovePipelineItemInput = {
+          projectId: item.projectId,
+          toStage: targetStage,
+          note,
+        };
+        const result = await invokeTyped('hdcMovePipelineItem', payload);
+        setActionMessage(
+          `Pipeline item moved from ${formatLabel(result.fromStage)} to ${formatLabel(result.toStage)}.`
+        );
+        setPipelineMoveNoteByProjectId((current) => ({
+          ...current,
+          [item.projectId]: '',
+        }));
+        await loadPipelineBoard();
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to move pipeline item.');
+      } finally {
+        setPipelineMovePendingProjectId(null);
+      }
+    },
+    [loadPipelineBoard, pipelineMoveNoteByProjectId, pipelineMoveStageByProjectId, previewMode]
+  );
+
+  const handleSavePipelineCriteria = useCallback(
+    async (stage: PipelineStage) => {
+      const existing = effectivePipelineStageCriteria.find((item) => item.stage === stage);
+      if (!existing) return;
+
+      const description = (pipelineCriteriaDescriptionDraftByStage[stage] ?? existing.description).trim();
+      const criteria = parsePipelineCriteriaText(
+        pipelineCriteriaTextDraftByStage[stage] ?? existing.criteria.join('\n')
+      );
+      if (criteria.length === 0) {
+        setActionError('Stage criteria must include at least one item.');
+        return;
+      }
+      if (criteria.some((item) => item.length < 3 || item.length > 240)) {
+        setActionError('Each stage criteria item must be 3-240 characters.');
+        return;
+      }
+
+      setPipelineCriteriaSavePendingStage(stage);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          setPipelineStageCriteria((current) =>
+            current.map((item) =>
+              item.stage === stage
+                ? {
+                    ...item,
+                    description,
+                    criteria,
+                  }
+                : item
+            )
+          );
+          setActionMessage(`Stage criteria saved for ${existing.label} (preview mode).`);
+          return;
+        }
+
+        const payload: UpdatePipelineStageCriteriaInput = {
+          stage,
+          label: existing.label,
+          description,
+          criteria,
+        };
+        const result = await invokeTyped('hdcUpdatePipelineStageCriteria', payload);
+        setPipelineStageCriteria((current) =>
+          current.map((item) => (item.stage === stage ? result.stageCriteria : item))
+        );
+        setPipelineCriteriaDescriptionDraftByStage((current) => ({
+          ...current,
+          [stage]: result.stageCriteria.description,
+        }));
+        setPipelineCriteriaTextDraftByStage((current) => ({
+          ...current,
+          [stage]: result.stageCriteria.criteria.join('\n'),
+        }));
+        setActionMessage(`Stage criteria updated for ${result.stageCriteria.label}.`);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to update stage criteria.');
+      } finally {
+        setPipelineCriteriaSavePendingStage(null);
+      }
+    },
+    [
+      effectivePipelineStageCriteria,
+      pipelineCriteriaDescriptionDraftByStage,
+      pipelineCriteriaTextDraftByStage,
+      previewMode,
+    ]
+  );
+
+  const loadShowcaseHacks = useCallback(async () => {
+    setShowcaseLoading(true);
+    setShowcaseError('');
+    try {
+      const requestedAssetTypes = hackTypeFilter === 'all' ? undefined : [hackTypeFilter];
+      const requestedStatuses: Array<'completed' | 'in_progress'> =
+        hackStatusFilter === 'verified'
+          ? ['completed' as const]
+          : hackStatusFilter === 'in_progress'
+            ? ['in_progress' as const]
+            : [hackTab === 'in_progress' ? 'in_progress' : 'completed'];
+      const requestedTags = parseRegistryTags(showcaseTagsInput);
+      const sourceEventId = showcaseSourceEventInput.trim() || undefined;
+
+      if (previewMode) {
+        let items = featuredHacks.map(mapFeaturedHackToShowcaseItem);
+        const query = hackSearch.trim().toLowerCase();
+        if (query) {
+          items = items.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(query));
+        }
+        if (requestedAssetTypes && requestedAssetTypes.length > 0) {
+          const types = new Set(requestedAssetTypes);
+          items = items.filter((item) => types.has(item.assetType));
+        }
+        if (requestedStatuses.length > 0) {
+          const statuses = new Set(requestedStatuses);
+          items = items.filter((item) => statuses.has(item.status));
+        }
+        if (requestedTags.length > 0) {
+          items = items.filter((item) => {
+            const tags = new Set(item.tags);
+            for (const tag of requestedTags) {
+              if (!tags.has(tag)) return false;
+            }
+            return true;
+          });
+        }
+        if (sourceEventId) {
+          items = items.filter((item) => item.sourceEventId === sourceEventId);
+        }
+        if (showcaseFeaturedOnly) {
+          items = items.filter((item) => item.featured);
+        }
+        setShowcaseItems(items);
+        setShowcaseCanManage(true);
+        setShowcaseLoaded(true);
+        return;
+      }
+
+      const result = await invokeTyped('hdcListShowcaseHacks', {
+        query: hackSearch.trim() || undefined,
+        assetTypes: requestedAssetTypes,
+        statuses: requestedStatuses,
+        tags: requestedTags.length > 0 ? requestedTags : undefined,
+        sourceEventId,
+        featuredOnly: showcaseFeaturedOnly || undefined,
+        sortBy: 'featured',
+        limit: 100,
+      });
+      setShowcaseItems(result.items);
+      setShowcaseCanManage(result.canManage);
+      setShowcaseLoaded(true);
+    } catch (error) {
+      setShowcaseError(error instanceof Error ? error.message : 'Failed to load Showcase hacks.');
+    } finally {
+      setShowcaseLoading(false);
+    }
+  }, [
+    featuredHacks,
+    hackSearch,
+    hackStatusFilter,
+    hackTab,
+    hackTypeFilter,
+    previewMode,
+    showcaseFeaturedOnly,
+    showcaseSourceEventInput,
+    showcaseTagsInput,
+  ]);
+
+  useEffect(() => {
+    if (view !== 'hacks') return;
+    void loadShowcaseHacks();
+  }, [loadShowcaseHacks, view]);
+
+  useEffect(() => {
+    if (view !== 'hacks') return;
+    if (!showcaseSelectedProjectId) return;
+
+    const loadDetail = async (): Promise<void> => {
+      setShowcaseDetailLoading(true);
+      setShowcaseDetailError('');
+      try {
+        if (previewMode) {
+          const previewItem = showcaseItems.find((item) => item.projectId === showcaseSelectedProjectId);
+          if (previewItem) {
+            setShowcaseDetail({
+              hack: {
+                ...previewItem,
+                teamMembers: [],
+                linkedArtifactIds: [],
+                context: null,
+                limitations: null,
+                riskNotes: null,
+                sourceRepoUrl: null,
+              },
+              artifactsProduced: [],
+              problemsSolved: [],
+            });
+          }
+          return;
+        }
+        const result = await invokeTyped('hdcGetShowcaseHackDetail', {
+          projectId: showcaseSelectedProjectId,
+        });
+        setShowcaseDetail(result);
+      } catch (error) {
+        setShowcaseDetailError(error instanceof Error ? error.message : 'Failed to load showcase detail.');
+      } finally {
+        setShowcaseDetailLoading(false);
+      }
+    };
+
+    void loadDetail();
+  }, [previewMode, showcaseItems, showcaseSelectedProjectId, view]);
+
+  const handleToggleShowcaseFeatured = useCallback(
+    async (item: ShowcaseHackListItem) => {
+      if (!showcaseCanManage) return;
+      const nextFeatured = !item.featured;
+      setShowcaseFeaturePendingProjectId(item.projectId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          setShowcaseItems((current) =>
+            current.map((candidate) =>
+              candidate.projectId === item.projectId ? { ...candidate, featured: nextFeatured } : candidate
+            )
+          );
+          setActionMessage(nextFeatured ? 'Marked featured (preview mode).' : 'Removed featured flag (preview mode).');
+          return;
+        }
+
+        const result = await invokeTyped('hdcSetShowcaseFeatured', {
+          projectId: item.projectId,
+          featured: nextFeatured,
+        });
+        setShowcaseItems((current) =>
+          current.map((candidate) =>
+            candidate.projectId === result.projectId
+              ? { ...candidate, featured: result.featured, updatedAt: result.updatedAt }
+              : candidate
+          )
+        );
+        setShowcaseDetail((current) => {
+          if (!current || current.hack.projectId !== result.projectId) return current;
+          return {
+            ...current,
+            hack: {
+              ...current.hack,
+              featured: result.featured,
+              updatedAt: result.updatedAt,
+            },
+          };
+        });
+        setActionMessage(result.featured ? 'Hack marked as featured.' : 'Hack removed from featured section.');
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to update featured flag.');
+      } finally {
+        setShowcaseFeaturePendingProjectId(null);
+      }
+    },
+    [previewMode, showcaseCanManage]
+  );
+
+  const loadRegistryArtifacts = useCallback(
+    async (filters: {
+      query?: string;
+      artifactTypes?: ArtifactType[];
+      tags?: string[];
+      sortBy: RegistrySortBy;
+    }) => {
+      setRegistryLoading(true);
+      setRegistryError('');
+      try {
+        if (previewMode) {
+          let previewItems = featuredHacks.map(mapFeaturedHackToArtifact);
+          if (filters.query) {
+            const q = filters.query.toLowerCase();
+            previewItems = previewItems.filter((item) =>
+              `${item.title} ${item.description}`.toLowerCase().includes(q)
+            );
+          }
+          if (filters.artifactTypes && filters.artifactTypes.length > 0) {
+            const typeSet = new Set(filters.artifactTypes);
+            previewItems = previewItems.filter((item) => typeSet.has(item.artifactType));
+          }
+          if (filters.tags && filters.tags.length > 0) {
+            const tagSet = new Set(filters.tags);
+            previewItems = previewItems.filter((item) => {
+              const itemTags = new Set(item.tags.map((tag) => tag.toLowerCase()));
+              for (const requestedTag of tagSet) {
+                if (!itemTags.has(requestedTag)) return false;
+              }
+              return true;
+            });
+          }
+          if (filters.sortBy === 'reuse_count') {
+            previewItems = previewItems.slice().sort((a, b) => b.reuseCount - a.reuseCount);
+          }
+          setRegistryItems(previewItems);
+          setRegistryLoaded(true);
+          return;
+        }
+
+        const result = await invokeTyped('hdcListArtifacts', {
+          query: filters.query || undefined,
+          artifactTypes: filters.artifactTypes && filters.artifactTypes.length > 0 ? filters.artifactTypes : undefined,
+          tags: filters.tags && filters.tags.length > 0 ? filters.tags : undefined,
+          sortBy: filters.sortBy,
+          limit: 50,
+        });
+        setRegistryItems(result.items);
+        setRegistryLoaded(true);
+      } catch (error) {
+        setRegistryError(error instanceof Error ? error.message : 'Failed to load Registry artifacts.');
+      } finally {
+        setRegistryLoading(false);
+      }
+    },
+    [featuredHacks, previewMode]
+  );
+
+  const applyRegistryFilters = useCallback(() => {
+    const query = registrySearchInput.trim();
+    const tags = parseRegistryTags(registryTagsInput);
+    const nextFilters = {
+      query: query || undefined,
+      artifactTypes: registryTypeFilter === 'all' ? undefined : [registryTypeFilter],
+      tags: tags.length > 0 ? tags : undefined,
+      sortBy: registrySortBy,
+    };
+    setRegistryAppliedFilters(nextFilters);
+    setRegistryDetailsById({});
+  }, [registrySearchInput, registrySortBy, registryTagsInput, registryTypeFilter]);
+
+  const clearRegistryFilters = useCallback(() => {
+    setRegistrySearchInput('');
+    setRegistryTagsInput('');
+    setRegistryTypeFilter('all');
+    setRegistrySortBy('newest');
+    setRegistryAppliedFilters({ sortBy: 'newest' });
+    setRegistryDetailsById({});
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'library') return;
+    void loadRegistryArtifacts(registryAppliedFilters);
+  }, [view, loadRegistryArtifacts, registryAppliedFilters]);
+
+  const handleRegistrySearchKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        applyRegistryFilters();
+      }
+    },
+    [applyRegistryFilters]
+  );
+
+  const resetArtifactForm = useCallback(() => {
+    setArtifactTitle('');
+    setArtifactDescription('');
+    setArtifactType('prompt');
+    setArtifactTagsInput('');
+    setArtifactSourceUrl('');
+    setArtifactSourceLabel('');
+    setArtifactSourceHackProjectId('');
+    setArtifactSourceHackdayEventId('');
+    setArtifactVisibility('org');
+  }, []);
+
+  const handleCreateArtifact = useCallback(async () => {
+    const title = artifactTitle.trim();
+    if (title.length < 3 || title.length > 120) {
+      setActionError('Artifact title must be 3-120 characters.');
+      return;
+    }
+
+    const description = artifactDescription.trim();
+    if (description.length < 10 || description.length > 2000) {
+      setActionError('Artifact description must be 10-2000 characters.');
+      return;
+    }
+
+    const tags = parseRegistryTags(artifactTagsInput);
+    if (tags.length === 0) {
+      setActionError('At least one artifact tag is required (comma-separated).');
+      return;
+    }
+
+    const sourceUrl = artifactSourceUrl.trim();
+    if (!isValidHttpsUrl(sourceUrl)) {
+      setActionError('Source URL must be a valid https URL.');
+      return;
+    }
+
+    setArtifactSubmitting(true);
+    setActionError('');
+    setActionMessage('');
+
+    const payload: CreateArtifactInput = {
+      title,
+      description,
+      artifactType,
+      tags,
+      sourceUrl,
+      sourceLabel: artifactSourceLabel.trim() || undefined,
+      sourceHackProjectId: artifactSourceHackProjectId.trim() || undefined,
+      sourceHackdayEventId: artifactSourceHackdayEventId.trim() || undefined,
+      visibility: artifactVisibility,
+    };
+
+    try {
+      if (previewMode) {
+        const now = new Date().toISOString();
+        const previewItem: ArtifactListItem = {
+          id: `preview-created-${Date.now()}`,
+          title: payload.title,
+          description: payload.description,
+          artifactType: payload.artifactType,
+          tags: payload.tags,
+          sourceUrl: payload.sourceUrl,
+          sourceLabel: payload.sourceLabel,
+          sourceHackProjectId: payload.sourceHackProjectId,
+          sourceHackdayEventId: payload.sourceHackdayEventId,
+          visibility: payload.visibility ?? 'org',
+          reuseCount: 0,
+          createdAt: now,
+          updatedAt: now,
+          authorName: bootstrap?.viewer.accountId ?? 'Local Preview User',
+        };
+        setRegistryItems((current) => [previewItem, ...current]);
+      } else {
+        await invokeTyped('hdcCreateArtifact', payload);
+        await loadRegistryArtifacts(registryAppliedFilters);
+      }
+      setActionMessage(`Artifact submitted to Registry: ${payload.title}`);
+      resetArtifactForm();
+      setShowCreateArtifactForm(false);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to create artifact.');
+    } finally {
+      setArtifactSubmitting(false);
+    }
+  }, [
+    artifactDescription,
+    artifactSourceHackProjectId,
+    artifactSourceHackdayEventId,
+    artifactSourceLabel,
+    artifactSourceUrl,
+    artifactTagsInput,
+    artifactTitle,
+    artifactType,
+    artifactVisibility,
+    bootstrap?.viewer.accountId,
+    loadRegistryArtifacts,
+    previewMode,
+    registryAppliedFilters,
+    resetArtifactForm,
+  ]);
+
+  const handleMarkArtifactReuse = useCallback(
+    async (artifactId: string) => {
+      setActionError('');
+      setActionMessage('');
+      setReusePendingArtifactId(artifactId);
+      try {
+        if (previewMode) {
+          setRegistryItems((current) =>
+            current.map((item) => (item.id === artifactId ? { ...item, reuseCount: item.reuseCount + 1 } : item))
+          );
+          setActionMessage('Reuse count updated (preview mode).');
+          return;
+        }
+
+        const result = await invokeTyped('hdcMarkArtifactReuse', { artifactId });
+        setRegistryItems((current) =>
+          current.map((item) => (item.id === artifactId ? { ...item, reuseCount: result.reuseCount } : item))
+        );
+        setActionMessage(
+          result.alreadyMarked
+            ? 'Reuse already recorded for your account.'
+            : 'Thanks. Reuse has been recorded.'
+        );
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to mark artifact reuse.');
+      } finally {
+        setReusePendingArtifactId(null);
+      }
+    },
+    [previewMode]
+  );
+
+  const handleToggleArtifactDetails = useCallback(
+    async (artifactId: string) => {
+      if (registryDetailsById[artifactId]) {
+        setRegistryDetailsById((current) => {
+          const next = { ...current };
+          delete next[artifactId];
+          return next;
+        });
+        return;
+      }
+
+      setDetailLoadingArtifactId(artifactId);
+      try {
+        if (previewMode) {
+          const previewItem = registryItems.find((item) => item.id === artifactId);
+          if (!previewItem) return;
+          setRegistryDetailsById((current) => ({
+            ...current,
+            [artifactId]: {
+              artifact: previewItem,
+              sourceHack: null,
+            },
+          }));
+          return;
+        }
+
+        const result = await invokeTyped('hdcGetArtifact', { artifactId });
+        setRegistryDetailsById((current) => ({ ...current, [artifactId]: result }));
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to fetch artifact details.');
+      } finally {
+        setDetailLoadingArtifactId(null);
+      }
+    },
+    [previewMode, registryDetailsById, registryItems]
+  );
+
+  useEffect(() => {
+    if (!previewMode) return;
+    if (problemPreviewItems.length > 0) return;
+    const fallbackAuthor = bootstrap?.viewer.accountId ?? 'Local Preview User';
+    setProblemPreviewItems(seedPreviewProblems(featuredHacks, fallbackAuthor));
+  }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems.length]);
+
+  const loadProblemExchangeCapabilities = useCallback(async () => {
+    if (previewMode) {
+      setProblemCanModerate(true);
+      setProblemModerationMode('allowlist');
+      return;
+    }
+    try {
+      const result = await invokeTyped('hdcGetProblemExchangeCapabilities');
+      setProblemCanModerate(result.canModerate);
+      setProblemModerationMode(result.moderationMode);
+      if (!result.canModerate) {
+        setProblemIncludeHidden(false);
+      }
+    } catch {
+      setProblemCanModerate(false);
+      setProblemModerationMode('none');
+      setProblemIncludeHidden(false);
+    }
+  }, [previewMode]);
+
+  const loadProblemExchangeItems = useCallback(
+    async (filters: {
+      query?: string;
+      teams?: string[];
+      domains?: string[];
+      statuses?: ProblemStatus[];
+      sortBy: ProblemSortBy;
+      includeHidden: boolean;
+    }) => {
+      setProblemLoading(true);
+      setProblemError('');
+      try {
+        if (previewMode) {
+          const fallbackAuthor = bootstrap?.viewer.accountId ?? 'Local Preview User';
+          const seed = problemPreviewItems.length > 0 ? problemPreviewItems : seedPreviewProblems(featuredHacks, fallbackAuthor);
+          const filtered = applyProblemFilters(seed, filters);
+          setProblemPreviewItems(seed);
+          setProblemItems(filtered);
+          setProblemLoaded(true);
+          return;
+        }
+
+        const result = await invokeTyped('hdcListProblems', {
+          query: filters.query || undefined,
+          teams: filters.teams && filters.teams.length > 0 ? filters.teams : undefined,
+          domains: filters.domains && filters.domains.length > 0 ? filters.domains : undefined,
+          statuses: filters.statuses && filters.statuses.length > 0 ? filters.statuses : undefined,
+          sortBy: filters.sortBy,
+          includeHidden: filters.includeHidden,
+          limit: 50,
+        });
+        setProblemItems(result.items);
+        setProblemLoaded(true);
+      } catch (error) {
+        setProblemError(error instanceof Error ? error.message : 'Failed to load Problem Exchange items.');
+      } finally {
+        setProblemLoading(false);
+      }
+    },
+    [applyProblemFilters, bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]
+  );
+
+  useEffect(() => {
+    if (view !== 'problem_exchange') return;
+    void loadProblemExchangeCapabilities();
+  }, [view, loadProblemExchangeCapabilities]);
+
+  useEffect(() => {
+    if (problemCanModerate) return;
+    if (!problemAppliedFilters.includeHidden) return;
+    setProblemAppliedFilters((current) => ({ ...current, includeHidden: false }));
+  }, [problemAppliedFilters.includeHidden, problemCanModerate]);
+
+  const applyPreviewProblemMutation = useCallback(
+    (mutation: (items: ProblemListItem[]) => ProblemListItem[]) => {
+      const fallbackAuthor = bootstrap?.viewer.accountId ?? 'Local Preview User';
+      setProblemPreviewItems((current) => {
+        const source = current.length > 0 ? current : seedPreviewProblems(featuredHacks, fallbackAuthor);
+        const next = mutation(source);
+        setProblemItems(applyProblemFilters(next, problemAppliedFilters));
+        setProblemLoaded(true);
+        return next;
+      });
+    },
+    [applyProblemFilters, bootstrap?.viewer.accountId, featuredHacks, problemAppliedFilters]
+  );
+
+  const applyProblemFiltersToList = useCallback(() => {
+    const nextFilters = buildProblemAppliedFilters(
+      {
+        query: problemSearchInput,
+        teamsInput: problemTeamsInput,
+        domainsInput: problemDomainsInput,
+        status: problemStatusFilter,
+        sortBy: problemSortBy,
+        includeHidden: problemIncludeHidden,
+      },
+      problemCanModerate
+    );
+    setProblemAppliedFilters(nextFilters);
+  }, [problemCanModerate, problemDomainsInput, problemIncludeHidden, problemSearchInput, problemSortBy, problemStatusFilter, problemTeamsInput]);
+
+  const clearProblemFilters = useCallback(() => {
+    const defaults = getDefaultProblemFilterDraft();
+    setProblemSearchInput(defaults.query);
+    setProblemTeamsInput(defaults.teamsInput);
+    setProblemDomainsInput(defaults.domainsInput);
+    setProblemStatusFilter(defaults.status);
+    setProblemSortBy(defaults.sortBy);
+    setProblemIncludeHidden(defaults.includeHidden);
+    setProblemAppliedFilters(getDefaultProblemFilterSet());
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'problem_exchange') return;
+    void loadProblemExchangeItems(problemAppliedFilters);
+  }, [view, loadProblemExchangeItems, problemAppliedFilters]);
+
+  const handleProblemSearchKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      applyProblemFiltersToList();
+    },
+    [applyProblemFiltersToList]
+  );
+
+  const resetProblemForm = useCallback(() => {
+    setProblemTitle('');
+    setProblemDescription('');
+    setProblemFrequency('weekly');
+    setProblemTimeWastedHours('');
+    setProblemTeam('');
+    setProblemDomain('');
+    setProblemContactDetails('');
+  }, []);
+
+  const handleCreateProblem = useCallback(async () => {
+    const validationError = validateProblemCreateDraft({
+      title: problemTitle,
+      description: problemDescription,
+      frequency: problemFrequency,
+      estimatedTimeWastedHours: problemTimeWastedHours,
+      team: problemTeam,
+      domain: problemDomain,
+      contactDetails: problemContactDetails,
+    });
+    if (validationError) {
+      setActionError(validationError);
+      return;
+    }
+
+    setProblemSubmitting(true);
+    setActionError('');
+    setActionMessage('');
+
+    const payload: CreateProblemInput = {
+      title: problemTitle.trim(),
+      description: problemDescription.trim(),
+      frequency: problemFrequency,
+      estimatedTimeWastedHours: Number(problemTimeWastedHours),
+      team: problemTeam.trim(),
+      domain: problemDomain.trim(),
+      contactDetails: problemContactDetails.trim(),
+    };
+
+    try {
+      if (previewMode) {
+        const authorName = bootstrap?.viewer.accountId ?? 'Local Preview User';
+        applyPreviewProblemMutation((items) => [createPreviewProblemListItem(payload, authorName), ...items]);
+      } else {
+        await invokeTyped('hdcCreateProblem', payload);
+        await loadProblemExchangeItems(problemAppliedFilters);
+      }
+      setActionMessage(`Problem posted: ${payload.title}`);
+      resetProblemForm();
+      setShowCreateProblemForm(false);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to create problem.');
+    } finally {
+      setProblemSubmitting(false);
+    }
+  }, [
+    applyPreviewProblemMutation,
+    bootstrap?.viewer.accountId,
+    loadProblemExchangeItems,
+    previewMode,
+    problemAppliedFilters,
+    problemContactDetails,
+    problemDescription,
+    problemDomain,
+    problemFrequency,
+    problemTeam,
+    problemTimeWastedHours,
+    problemTitle,
+    resetProblemForm,
+    validateProblemCreateDraft,
+  ]);
+
+  const handleVoteProblem = useCallback(
+    async (problemId: string) => {
+      setProblemVotePendingId(problemId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          let previewResult:
+            | {
+                nextItems: ProblemListItem[];
+                nextVotedIds: string[];
+                alreadyVoted: boolean;
+              }
+            | undefined;
+          applyPreviewProblemMutation((items) => {
+            previewResult = applyPreviewVoteMutation(items, problemPreviewVotedIds, problemId);
+            return previewResult.nextItems;
+          });
+          if (!previewResult) return;
+          if (previewResult.alreadyVoted) {
+            setActionMessage('Vote already recorded for your account (preview mode).');
+            return;
+          }
+          setProblemPreviewVotedIds(previewResult.nextVotedIds);
+          setActionMessage('Vote recorded (preview mode).');
+          return;
+        }
+
+        const result = await invokeTyped('hdcVoteProblem', { problemId });
+        setProblemItems((current) =>
+          current.map((item) => (item.id === problemId ? { ...item, voteCount: result.voteCount } : item))
+        );
+        setActionMessage(result.alreadyVoted ? 'You already voted for this problem.' : 'Vote recorded.');
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to vote for problem.');
+      } finally {
+        setProblemVotePendingId(null);
+      }
+    },
+    [applyPreviewProblemMutation, previewMode, problemPreviewVotedIds]
+  );
+
+  const handleUpdateProblemStatus = useCallback(
+    async (problem: ProblemListItem) => {
+      const status = problemStatusDraftById[problem.id] ?? problem.status;
+      const linkedHackProjectId = problemLinkHackProjectById[problem.id]?.trim() || undefined;
+      const linkedArtifactId = problemLinkArtifactById[problem.id]?.trim() || undefined;
+      const note = problemStatusNoteById[problem.id]?.trim() || undefined;
+
+      const statusValidationError = validateProblemStatusDraft({
+        status,
+        linkedHackProjectId,
+        linkedArtifactId,
+      });
+      if (statusValidationError) {
+        setActionError(statusValidationError);
+        return;
+      }
+
+      setProblemStatusPendingId(problem.id);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          applyPreviewProblemMutation((items) =>
+            items.map((item) =>
+              item.id === problem.id
+                ? {
+                    ...item,
+                    status,
+                    linkedHackProjectId,
+                    linkedArtifactId,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : item
+            )
+          );
+          setActionMessage(`Problem status updated to ${formatLabel(status)} (preview mode).`);
+          return;
+        }
+
+        const payload: UpdateProblemStatusInput = {
+          problemId: problem.id,
+          status,
+          linkedHackProjectId,
+          linkedArtifactId,
+          note,
+        };
+        const result = await invokeTyped('hdcUpdateProblemStatus', payload);
+        setProblemItems((current) =>
+          current.map((item) =>
+            item.id === problem.id
+              ? {
+                  ...item,
+                  status: result.status,
+                  linkedHackProjectId: result.linkedHackProjectId,
+                  linkedArtifactId: result.linkedArtifactId,
+                  updatedAt: result.updatedAt,
+                }
+              : item
+          )
+        );
+        setActionMessage(`Problem status updated to ${formatLabel(result.status)}.`);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to update problem status.');
+      } finally {
+        setProblemStatusPendingId(null);
+      }
+    },
+    [applyPreviewProblemMutation, previewMode, problemLinkArtifactById, problemLinkHackProjectById, problemStatusDraftById, problemStatusNoteById]
+  );
+
+  const handleFlagProblem = useCallback(
+    async (problem: ProblemListItem) => {
+      const reason = problemFlagReasonById[problem.id]?.trim() || undefined;
+      setProblemFlagPendingId(problem.id);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          let previewResult:
+            | {
+                nextItems: ProblemListItem[];
+                nextFlaggedIds: string[];
+                alreadyFlagged: boolean;
+                autoHidden: boolean;
+              }
+            | undefined;
+          applyPreviewProblemMutation((items) => {
+            previewResult = applyPreviewFlagMutation(items, problemPreviewFlaggedIds, problem.id);
+            return previewResult.nextItems;
+          });
+          if (!previewResult) return;
+          if (previewResult.alreadyFlagged) {
+            setActionMessage('You already flagged this problem (preview mode).');
+            return;
+          }
+          setProblemPreviewFlaggedIds(previewResult.nextFlaggedIds);
+          setActionMessage(
+            previewResult.autoHidden
+              ? 'Flag recorded. Problem auto-hidden pending moderation.'
+              : 'Flag recorded (preview mode).'
+          );
+          return;
+        }
+
+        const payload: FlagProblemInput = {
+          problemId: problem.id,
+          reason,
+        };
+        const result = await invokeTyped('hdcFlagProblem', payload);
+        setProblemItems((current) =>
+          current.map((item) =>
+            item.id === problem.id
+              ? {
+                  ...item,
+                  flagCount: result.flagCount,
+                  moderationState: result.moderationState,
+                }
+              : item
+          )
+        );
+        if (result.autoHidden) {
+          setActionMessage('Flag recorded. Problem auto-hidden pending moderation.');
+        } else {
+          setActionMessage(result.alreadyFlagged ? 'You already flagged this problem.' : 'Flag recorded.');
+        }
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to flag problem.');
+      } finally {
+        setProblemFlagPendingId(null);
+      }
+    },
+    [applyPreviewProblemMutation, previewMode, problemFlagReasonById, problemPreviewFlaggedIds]
+  );
+
+  const handleModerateProblem = useCallback(
+    async (problem: ProblemListItem, decision: 'remove' | 'reinstate') => {
+      if (!problemCanModerate) {
+        setActionError('Moderator access is required for remove/reinstate actions.');
+        return;
+      }
+      setProblemModerationPendingId(problem.id);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          const moderationState = decision === 'remove' ? 'removed' : 'visible';
+          applyPreviewProblemMutation((items) =>
+            items.map((item) =>
+              item.id === problem.id
+                ? { ...item, moderationState, updatedAt: new Date().toISOString() }
+                : item
+            )
+          );
+          setActionMessage(
+            decision === 'remove'
+              ? 'Problem removed by moderator (preview mode).'
+              : 'Problem reinstated (preview mode).'
+          );
+          return;
+        }
+
+        const result = await invokeTyped('hdcModerateProblem', {
+          problemId: problem.id,
+          decision,
+        });
+        setProblemItems((current) =>
+          current.map((item) =>
+            item.id === problem.id
+              ? { ...item, moderationState: result.moderationState, updatedAt: result.reviewedAt }
+              : item
+          )
+        );
+        setActionMessage(decision === 'remove' ? 'Problem removed by moderator.' : 'Problem reinstated.');
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to moderate problem.');
+      } finally {
+        setProblemModerationPendingId(null);
+      }
+    },
+    [applyPreviewProblemMutation, previewMode, problemCanModerate]
+  );
 
   useEffect(() => {
     if (!switcherOpen) return;
@@ -1071,8 +2426,13 @@ export function App(): JSX.Element {
     firstOption?.focus();
   }, [switcherOpen]);
 
+  const showcaseAsFeaturedHacks = useMemo(
+    () => showcaseItems.map((item) => mapShowcaseItemToFeaturedHack(item)),
+    [showcaseItems]
+  );
+
   const filteredHacks = useMemo(() => {
-    return featuredHacks.filter((hack) => {
+    return showcaseAsFeaturedHacks.filter((hack) => {
       const search = hackSearch.trim().toLowerCase();
       if (search && !`${hack.title} ${hack.description}`.toLowerCase().includes(search)) return false;
       if (hackTypeFilter !== 'all' && hack.assetType !== hackTypeFilter) return false;
@@ -1080,17 +2440,13 @@ export function App(): JSX.Element {
       if (!showDeprecated && isDeprecated(hack.status)) return false;
       return true;
     });
-  }, [featuredHacks, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated]);
+  }, [showcaseAsFeaturedHacks, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated]);
 
-  const featuredTop = filteredHacks.slice(0, 4);
-
-  const filteredProjects = useMemo(() => {
-    const search = projectSearch.trim().toLowerCase();
-    return allProjects.filter((project) => {
-      if (!search) return true;
-      return `${project.title} ${project.description}`.toLowerCase().includes(search);
-    });
-  }, [allProjects, projectSearch]);
+  const featuredTop = useMemo(() => {
+    const featured = showcaseItems.filter((item) => item.featured).slice(0, 4).map(mapShowcaseItemToFeaturedHack);
+    if (featured.length > 0) return featured;
+    return filteredHacks.slice(0, 4);
+  }, [filteredHacks, showcaseItems]);
 
   const globalSearchResults = useMemo(() => {
     const q = globalSearch.trim().toLowerCase();
@@ -1186,6 +2542,10 @@ export function App(): JSX.Element {
       setActionError('Hack title is required.');
       return;
     }
+    if (!hackDemoUrl.trim()) {
+      setActionError('Demo URL is required.');
+      return;
+    }
 
     if (previewMode) {
       setActionError('');
@@ -1193,6 +2553,11 @@ export function App(): JSX.Element {
       setHackTitle('');
       setHackDescription('');
       setHackContent('');
+      setHackDemoUrl('');
+      setHackTeamMembersInput('');
+      setHackSourceEventId('');
+      setHackTagsInput('');
+      setHackLinkedArtifactIdsInput('');
       closeModal();
       return;
     }
@@ -1207,6 +2572,11 @@ export function App(): JSX.Element {
       assetType: hackAssetType,
       visibility: hackVisibility,
       content: hackContent.trim() || undefined,
+      demoUrl: hackDemoUrl.trim(),
+      teamMembers: parseCommaSeparatedList(hackTeamMembersInput),
+      sourceEventId: hackSourceEventId.trim() || undefined,
+      tags: parseRegistryTags(hackTagsInput),
+      linkedArtifactIds: parseCommaSeparatedList(hackLinkedArtifactIdsInput),
     };
 
     try {
@@ -1215,6 +2585,11 @@ export function App(): JSX.Element {
       setHackTitle('');
       setHackDescription('');
       setHackContent('');
+      setHackDemoUrl('');
+      setHackTeamMembersInput('');
+      setHackSourceEventId('');
+      setHackTagsInput('');
+      setHackLinkedArtifactIdsInput('');
       closeModal();
       await loadBootstrap();
     } catch (error) {
@@ -1222,7 +2597,20 @@ export function App(): JSX.Element {
     } finally {
       setSaving(false);
     }
-  }, [hackAssetType, hackContent, hackDescription, hackTitle, hackVisibility, loadBootstrap, previewMode]);
+  }, [
+    hackAssetType,
+    hackContent,
+    hackDemoUrl,
+    hackDescription,
+    hackLinkedArtifactIdsInput,
+    hackSourceEventId,
+    hackTagsInput,
+    hackTeamMembersInput,
+    hackTitle,
+    hackVisibility,
+    loadBootstrap,
+    previewMode,
+  ]);
 
   const handleCreateProject = useCallback(async () => {
     if (!projectTitle.trim()) {
@@ -1876,10 +3264,23 @@ export function App(): JSX.Element {
           {view === 'hacks' ? (
             <section className="page-stack">
               <section className="title-row">
-                <h1>Featured Hacks & Projects</h1>
-                <button type="button" className="btn btn-primary" onClick={() => setModalView('submit_hack')}>
-                  + Submit Hack
-                </button>
+                <div>
+                  <h1>Showcase</h1>
+                  <p className="subtitle">Curated and searchable hacks with demo context and delivery evidence.</p>
+                </div>
+                <div className="registry-title-actions">
+                  <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
+                    + Submit Hack
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void loadShowcaseHacks()}
+                    disabled={showcaseLoading}
+                  >
+                    {showcaseLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
               </section>
 
               {hackTab === 'completed' && HACKS_SCOPE_NOTE ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
@@ -1887,47 +3288,48 @@ export function App(): JSX.Element {
               <section className="filter-row">
                 <input
                   type="search"
-                  placeholder={hackTab === 'completed' ? 'Search featured hacks...' : 'Search hacks in progress...'}
-                  value={hackTab === 'completed' ? hackSearch : projectSearch}
-                  onChange={(event) => {
-                    if (hackTab === 'completed') {
-                      setHackSearch(event.target.value);
-                    } else {
-                      setProjectSearch(event.target.value);
-                    }
-                  }}
+                  placeholder={hackTab === 'completed' ? 'Search completed hacks...' : 'Search in-progress hacks...'}
+                  value={hackSearch}
+                  onChange={(event) => setHackSearch(event.target.value)}
                 />
 
-                {hackTab === 'completed' ? (
-                  <>
-                    <select
-                      value={hackTypeFilter}
-                      onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
-                    >
-                      <option value="all">All Types</option>
-                      <option value="prompt">Prompts</option>
-                      <option value="skill">Skills</option>
-                      <option value="app">Apps</option>
-                    </select>
-                    <select
-                      value={hackStatusFilter}
-                      onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="verified">Verified</option>
-                      <option value="deprecated">Deprecated</option>
-                    </select>
-                    <label className="check-label">
-                      <input
-                        type="checkbox"
-                        checked={showDeprecated}
-                        onChange={(event) => setShowDeprecated(event.target.checked)}
-                      />
-                      Show Deprecated
-                    </label>
-                  </>
-                ) : null}
+                <select
+                  value={hackTypeFilter}
+                  onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
+                >
+                  <option value="all">All Types</option>
+                  <option value="prompt">Prompts</option>
+                  <option value="skill">Skills</option>
+                  <option value="app">Apps</option>
+                </select>
+                <select
+                  value={hackStatusFilter}
+                  onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
+                >
+                  <option value="all">Tab Default Status</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="verified">Completed</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Tags (comma separated)"
+                  value={showcaseTagsInput}
+                  onChange={(event) => setShowcaseTagsInput(event.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="HackDay event ID"
+                  value={showcaseSourceEventInput}
+                  onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
+                />
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={showcaseFeaturedOnly}
+                    onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                  />
+                  Featured only
+                </label>
               </section>
 
               <section className="tab-row" aria-label="Hacks tabs">
@@ -1947,33 +3349,129 @@ export function App(): JSX.Element {
                 </button>
               </section>
 
-              {hackTab === 'completed' ? (
-                <>
-                  <article className="card featured-block">
-                    <h2>Featured Hacks</h2>
-                    <p>High-trust, curated collection of proven AI hacks</p>
-                    <div className="grid featured-grid">
-                      {featuredTop.map((hack) => (
-                        <HackCard key={`featured-${hack.id}`} item={hack} />
-                      ))}
-                    </div>
-                  </article>
+              {showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
 
-                  <section className="grid hacks-grid">
-                    {filteredHacks.map((hack) => (
-                      <HackCard key={hack.id} item={hack} />
+              {hackTab === 'completed' ? (
+                <article className="card featured-block">
+                  <h2>Featured Hacks</h2>
+                  <p>High-trust, curated collection of proven AI hacks</p>
+                  <div className="grid featured-grid">
+                    {featuredTop.map((hack) => (
+                      <HackCard key={`featured-${hack.id}`} item={hack} />
                     ))}
-                    {filteredHacks.length === 0 ? <p className="empty-copy">No featured hacks match your filters.</p> : null}
+                    {featuredTop.length === 0 ? <p className="empty-copy">No featured hacks in this filter set yet.</p> : null}
+                  </div>
+                </article>
+              ) : null}
+
+              <section className="grid hacks-grid">
+                {filteredHacks.map((hack) => {
+                  const showcaseItem = showcaseItems.find((item) => item.projectId === hack.id);
+                  if (!showcaseItem) return null;
+                  return (
+                    <article key={hack.id} className="card">
+                      <HackCard item={hack} />
+                      <div className="registry-actions">
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() => setShowcaseSelectedProjectId(showcaseItem.projectId)}
+                        >
+                          View details
+                        </button>
+                        {showcaseCanManage ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
+                            disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                          >
+                            {showcaseFeaturePendingProjectId === showcaseItem.projectId
+                              ? 'Saving...'
+                              : showcaseItem.featured
+                                ? 'Unfeature'
+                                : 'Mark featured'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+              {!showcaseLoading && filteredHacks.length === 0 && showcaseLoaded ? (
+                <p className="empty-copy">No showcase hacks match your filters.</p>
+              ) : null}
+              {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
+
+              {showcaseSelectedProjectId ? (
+                <article className="card registry-detail-block">
+                  <section className="section-head-row">
+                    <div>
+                      <h2>Hack Detail</h2>
+                      <p>Project ID: {showcaseSelectedProjectId}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => {
+                        setShowcaseSelectedProjectId(null);
+                        setShowcaseDetail(null);
+                        setShowcaseDetailError('');
+                      }}
+                    >
+                      Close
+                    </button>
                   </section>
-                </>
-              ) : (
-                <section className="grid hacks-grid">
-                  {filteredProjects.map((project) => (
-                    <ProjectCard key={project.id} item={project} />
-                  ))}
-                  {filteredProjects.length === 0 ? <p className="empty-copy">No projects match your search.</p> : null}
-                </section>
-              )}
+                  {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
+                  {showcaseDetailError ? <p className="message message-error">{showcaseDetailError}</p> : null}
+                  {showcaseDetail ? (
+                    <div className="grid showcase-detail-grid">
+                      <div>
+                        <h3>{showcaseDetail.hack.title}</h3>
+                        <p>{showcaseDetail.hack.description || 'No description provided.'}</p>
+                        <p className="meta">Pipeline stage: {formatLabel(showcaseDetail.hack.pipelineStage)}</p>
+                        <p className="meta">
+                          Demo:{' '}
+                          {showcaseDetail.hack.demoUrl ? (
+                            <a href={showcaseDetail.hack.demoUrl} target="_blank" rel="noreferrer">
+                              {showcaseDetail.hack.demoUrl}
+                            </a>
+                          ) : (
+                            'Not provided'
+                          )}
+                        </p>
+                        <p className="meta">Team: {showcaseDetail.hack.teamMembers.length > 0 ? showcaseDetail.hack.teamMembers.join(', ') : 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <h3>Artifacts Produced ({showcaseDetail.artifactsProduced.length})</h3>
+                        {showcaseDetail.artifactsProduced.length > 0 ? (
+                          <ul className="showcase-meta-list">
+                            {showcaseDetail.artifactsProduced.map((artifact) => (
+                              <li key={artifact.artifactId}>
+                                {artifact.title} ({formatLabel(artifact.artifactType)}) · {artifact.reuseCount} reuses
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="empty-copy">No linked artifacts yet.</p>
+                        )}
+                        <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
+                        {showcaseDetail.problemsSolved.length > 0 ? (
+                          <ul className="showcase-meta-list">
+                            {showcaseDetail.problemsSolved.map((problem) => (
+                              <li key={problem.problemId}>
+                                {problem.title} ({formatLabel(problem.status)})
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="empty-copy">No linked solved problems yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              ) : null}
             </section>
           ) : null}
 
@@ -2209,24 +3707,674 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Library</h1>
-                  <p className="subtitle">Reusable AI assets — prompts, skills, and apps</p>
+                  <h1>Discover Registry</h1>
+                  <p className="subtitle">Reusable AI artifacts from shipped hacks: prompts, skills, templates, and learnings</p>
+                </div>
+                <div className="registry-title-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setShowCreateArtifactForm((current) => !current)}
+                  >
+                    {showCreateArtifactForm ? 'Close Form' : '+ Submit Artifact'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      void loadRegistryArtifacts(registryAppliedFilters);
+                    }}
+                    disabled={registryLoading}
+                  >
+                    {registryLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
                 </div>
               </section>
-              <section className="section-head-row">
-                <div>
-                  <h2>Featured Hacks</h2>
-                  <p>High-trust, curated collection</p>
-                </div>
-              </section>
-              {featuredHacks.length > 0 ? (
-                <section className="grid hacks-grid">
-                  {featuredHacks.map((hack) => (
-                    <HackCard key={hack.id} item={hack} />
+
+              <section className="filter-row">
+                <input
+                  type="search"
+                  placeholder="Search artifacts by title or description..."
+                  value={registrySearchInput}
+                  onChange={(event) => setRegistrySearchInput(event.target.value)}
+                  onKeyDown={handleRegistrySearchKeyDown}
+                />
+                <select
+                  value={registryTypeFilter}
+                  onChange={(event) => setRegistryTypeFilter(event.target.value as ArtifactType | 'all')}
+                >
+                  <option value="all">All Types</option>
+                  {REGISTRY_ARTIFACT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {formatLabel(type)}
+                    </option>
                   ))}
+                </select>
+                <select
+                  value={registrySortBy}
+                  onChange={(event) => setRegistrySortBy(event.target.value as RegistrySortBy)}
+                >
+                  <option value="newest">Newest</option>
+                  <option value="reuse_count">Most Reused</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Tags (comma separated)"
+                  value={registryTagsInput}
+                  onChange={(event) => setRegistryTagsInput(event.target.value)}
+                />
+              </section>
+
+              <section className="registry-filter-actions">
+                <button type="button" className="btn btn-primary" onClick={applyRegistryFilters}>
+                  Apply Filters
+                </button>
+                <button type="button" className="btn btn-outline" onClick={clearRegistryFilters}>
+                  Reset
+                </button>
+                <span className="meta">
+                  Showing {registryItems.length} artifact{registryItems.length === 1 ? '' : 's'}
+                </span>
+              </section>
+
+              {showCreateArtifactForm ? (
+                <article className="card registry-form-card">
+                  <section className="section-head-row">
+                    <div>
+                      <h2>Submit Registry Artifact</h2>
+                      <p>Requires title, description, tags, and source URL (`https`). Optional source-hack linkage supported.</p>
+                    </div>
+                  </section>
+
+                  <form
+                    className="modal-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleCreateArtifact();
+                    }}
+                  >
+                    <label htmlFor="artifact-title">Title</label>
+                    <input
+                      id="artifact-title"
+                      value={artifactTitle}
+                      onChange={(event) => setArtifactTitle(event.target.value)}
+                      placeholder="E.g. Jira Epic Breakdown Prompt"
+                    />
+
+                    <label htmlFor="artifact-description">Description</label>
+                    <textarea
+                      id="artifact-description"
+                      value={artifactDescription}
+                      onChange={(event) => setArtifactDescription(event.target.value)}
+                      placeholder="10-2000 chars explaining what the artifact does and where it works."
+                    />
+
+                    <section className="split-form">
+                      <div>
+                        <label htmlFor="artifact-type">Type</label>
+                        <select
+                          id="artifact-type"
+                          value={artifactType}
+                          onChange={(event) => setArtifactType(event.target.value as ArtifactType)}
+                        >
+                          {REGISTRY_ARTIFACT_TYPES.map((type) => (
+                            <option key={type} value={type}>
+                              {formatLabel(type)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="artifact-visibility">Visibility</label>
+                        <select
+                          id="artifact-visibility"
+                          value={artifactVisibility}
+                          onChange={(event) => setArtifactVisibility(event.target.value as ArtifactVisibility)}
+                        >
+                          <option value="private">Private</option>
+                          <option value="org">Org</option>
+                          <option value="public">Public</option>
+                        </select>
+                      </div>
+                    </section>
+
+                    <label htmlFor="artifact-tags">Tags</label>
+                    <input
+                      id="artifact-tags"
+                      value={artifactTagsInput}
+                      onChange={(event) => setArtifactTagsInput(event.target.value)}
+                      placeholder="E.g. jira, planning, prompt-engineering"
+                    />
+
+                    <section className="split-form">
+                      <div>
+                        <label htmlFor="artifact-source-url">Source URL</label>
+                        <input
+                          id="artifact-source-url"
+                          value={artifactSourceUrl}
+                          onChange={(event) => setArtifactSourceUrl(event.target.value)}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="artifact-source-label">Source Label (optional)</label>
+                        <input
+                          id="artifact-source-label"
+                          value={artifactSourceLabel}
+                          onChange={(event) => setArtifactSourceLabel(event.target.value)}
+                          placeholder="Confluence doc, repo, demo"
+                        />
+                      </div>
+                    </section>
+
+                    <section className="split-form">
+                      <div>
+                        <label htmlFor="artifact-source-hack-project-id">Source Hack Project ID (optional)</label>
+                        <input
+                          id="artifact-source-hack-project-id"
+                          value={artifactSourceHackProjectId}
+                          onChange={(event) => setArtifactSourceHackProjectId(event.target.value)}
+                          placeholder="UUID"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="artifact-source-hackday-id">Source HackDay Event ID (optional)</label>
+                        <input
+                          id="artifact-source-hackday-id"
+                          value={artifactSourceHackdayEventId}
+                          onChange={(event) => setArtifactSourceHackdayEventId(event.target.value)}
+                          placeholder="UUID"
+                        />
+                      </div>
+                    </section>
+
+                    <section className="modal-actions">
+                      <button type="button" className="btn btn-outline" onClick={resetArtifactForm} disabled={artifactSubmitting}>
+                        Reset
+                      </button>
+                      <button type="submit" className="btn btn-primary" disabled={artifactSubmitting}>
+                        {artifactSubmitting ? 'Submitting...' : 'Submit Artifact'}
+                      </button>
+                    </section>
+                  </form>
+                </article>
+              ) : null}
+
+              {registryError ? <section className="message message-error">{registryError}</section> : null}
+
+              {registryLoading ? (
+                <section className="card">
+                  <p className="empty-copy">Loading Registry artifacts...</p>
+                </section>
+              ) : null}
+
+              {!registryLoading && registryLoaded && registryItems.length > 0 ? (
+                <section className="grid hacks-grid">
+                  {registryItems.map((item) => {
+                    const detail = registryDetailsById[item.id];
+                    return (
+                      <article key={item.id} className="card hack-card registry-card">
+                        <div className="hack-card-head">
+                          <div className="hack-card-title-wrap">
+                            <h3>{item.title}</h3>
+                          </div>
+                          <span className={`pill pill-${item.artifactType}`}>
+                            {formatLabel(item.artifactType)}
+                          </span>
+                        </div>
+
+                        <p className="hack-card-copy">{item.description}</p>
+
+                        {item.tags.length > 0 ? (
+                          <div className="registry-tags">
+                            {item.tags.slice(0, 5).map((tag) => (
+                              <span key={`${item.id}-${tag}`} className="soft-tag">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="registry-meta">
+                          <span className="meta">By {item.authorName}</span>
+                          <span className="meta">{new Date(item.createdAt).toLocaleDateString()}</span>
+                          <span className="meta">Visibility: {formatLabel(item.visibility)}</span>
+                        </div>
+
+                        <div className="hack-card-foot">
+                          <div className="registry-actions">
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => {
+                                void handleToggleArtifactDetails(item.id);
+                              }}
+                              disabled={detailLoadingArtifactId === item.id}
+                            >
+                              {registryDetailsById[item.id]
+                                ? 'Hide Details'
+                                : detailLoadingArtifactId === item.id
+                                  ? 'Loading...'
+                                  : 'View Details'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                void handleMarkArtifactReuse(item.id);
+                              }}
+                              disabled={reusePendingArtifactId === item.id}
+                            >
+                              {reusePendingArtifactId === item.id ? 'Saving...' : 'Mark Reuse'}
+                            </button>
+                            <a
+                              className="btn btn-ghost"
+                              href={item.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Source
+                            </a>
+                          </div>
+                          <span className="meta">{item.reuseCount} reuses</span>
+                        </div>
+
+                        {detail ? (
+                          <section className="registry-detail-block">
+                            {item.sourceLabel ? <p className="meta">Source label: {item.sourceLabel}</p> : null}
+                            {detail.sourceHack ? (
+                              <p className="meta">
+                                Linked hack: {detail.sourceHack.title} (
+                                {detail.sourceHack.status})
+                              </p>
+                            ) : (
+                              <p className="meta">No linked hack metadata.</p>
+                            )}
+                          </section>
+                        ) : null}
+                      </article>
+                    );
+                  })}
                 </section>
               ) : (
-                <p className="empty-copy">No library assets yet. Submit a hack to get started.</p>
+                !registryLoading && registryLoaded ? (
+                  <p className="empty-copy">No registry artifacts match these filters yet.</p>
+                ) : null
+              )}
+            </section>
+          ) : null}
+
+          {view === 'problem_exchange' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>Problem Exchange</h1>
+                  <p className="subtitle">Surface repeat pain points, vote for impact, and connect solved problems to shipped hacks.</p>
+                </div>
+                <div className="problem-title-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setShowCreateProblemForm((current) => !current)}
+                  >
+                    {showCreateProblemForm ? 'Close Form' : '+ Submit Problem'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      void loadProblemExchangeItems(problemAppliedFilters);
+                    }}
+                    disabled={problemLoading}
+                  >
+                    {problemLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </section>
+
+              <section className="filter-row">
+                <input
+                  type="search"
+                  placeholder="Search problems by title or description..."
+                  value={problemSearchInput}
+                  onChange={(event) => setProblemSearchInput(event.target.value)}
+                  onKeyDown={handleProblemSearchKeyDown}
+                />
+                <input
+                  type="text"
+                  placeholder="Teams (comma separated)"
+                  value={problemTeamsInput}
+                  onChange={(event) => setProblemTeamsInput(event.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Domains (comma separated)"
+                  value={problemDomainsInput}
+                  onChange={(event) => setProblemDomainsInput(event.target.value)}
+                />
+                <select
+                  value={problemStatusFilter}
+                  onChange={(event) => setProblemStatusFilter(event.target.value as ProblemStatus | 'all')}
+                >
+                  <option value="all">All Statuses</option>
+                  {PROBLEM_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {formatLabel(status)}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={problemSortBy}
+                  onChange={(event) => setProblemSortBy(event.target.value as ProblemSortBy)}
+                >
+                  <option value="votes">Top Votes</option>
+                  <option value="time_wasted">Highest Time Wasted</option>
+                  <option value="newest">Newest</option>
+                </select>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={problemIncludeHidden}
+                    onChange={(event) => setProblemIncludeHidden(event.target.checked)}
+                    disabled={!problemCanModerate}
+                  />
+                  Include hidden/removed
+                </label>
+              </section>
+
+              <section className="problem-filter-actions">
+                <button type="button" className="btn btn-primary" onClick={applyProblemFiltersToList}>
+                  Apply Filters
+                </button>
+                <button type="button" className="btn btn-outline" onClick={clearProblemFilters}>
+                  Reset
+                </button>
+                <span className="meta">
+                  Showing {problemItems.length} problem{problemItems.length === 1 ? '' : 's'}
+                </span>
+                {!problemCanModerate ? (
+                  <span className="meta">
+                    Moderation mode: {formatLabel(problemModerationMode)}. Remove/Reinstate actions are restricted.
+                  </span>
+                ) : null}
+              </section>
+
+              {showCreateProblemForm ? (
+                <article className="card problem-form-card">
+                  <section className="section-head-row">
+                    <div>
+                      <h2>Submit Problem</h2>
+                      <p>Share a repeated workflow pain point. Add enough context for others to vote, claim, and solve.</p>
+                    </div>
+                  </section>
+                  <form
+                    className="modal-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleCreateProblem();
+                    }}
+                  >
+                    <label htmlFor="problem-title">Title</label>
+                    <input
+                      id="problem-title"
+                      value={problemTitle}
+                      onChange={(event) => setProblemTitle(event.target.value)}
+                      placeholder="E.g. Manual reporting reconciliation takes half a day weekly"
+                    />
+
+                    <label htmlFor="problem-description">Description</label>
+                    <textarea
+                      id="problem-description"
+                      value={problemDescription}
+                      onChange={(event) => setProblemDescription(event.target.value)}
+                      placeholder="Describe current steps, bottlenecks, and impact."
+                    />
+
+                    <section className="split-form">
+                      <div>
+                        <label htmlFor="problem-frequency">Frequency</label>
+                        <select
+                          id="problem-frequency"
+                          value={problemFrequency}
+                          onChange={(event) => setProblemFrequency(event.target.value as ProblemFrequency)}
+                        >
+                          {PROBLEM_FREQUENCIES.map((frequency) => (
+                            <option key={frequency} value={frequency}>
+                              {formatLabel(frequency)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="problem-time-wasted">Estimated Time Wasted (hours)</label>
+                        <input
+                          id="problem-time-wasted"
+                          inputMode="decimal"
+                          value={problemTimeWastedHours}
+                          onChange={(event) => setProblemTimeWastedHours(event.target.value)}
+                          placeholder="E.g. 6"
+                        />
+                      </div>
+                    </section>
+
+                    <section className="split-form">
+                      <div>
+                        <label htmlFor="problem-team">Team</label>
+                        <input
+                          id="problem-team"
+                          value={problemTeam}
+                          onChange={(event) => setProblemTeam(event.target.value)}
+                          placeholder="E.g. RevOps"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="problem-domain">Domain</label>
+                        <input
+                          id="problem-domain"
+                          value={problemDomain}
+                          onChange={(event) => setProblemDomain(event.target.value)}
+                          placeholder="E.g. Reporting"
+                        />
+                      </div>
+                    </section>
+
+                    <label htmlFor="problem-contact-details">Contact Details</label>
+                    <input
+                      id="problem-contact-details"
+                      value={problemContactDetails}
+                      onChange={(event) => setProblemContactDetails(event.target.value)}
+                      placeholder="E.g. name/email/Slack channel"
+                    />
+
+                    <section className="modal-actions">
+                      <button type="button" className="btn btn-outline" onClick={resetProblemForm} disabled={problemSubmitting}>
+                        Reset
+                      </button>
+                      <button type="submit" className="btn btn-primary" disabled={problemSubmitting}>
+                        {problemSubmitting ? 'Submitting...' : 'Submit Problem'}
+                      </button>
+                    </section>
+                  </form>
+                </article>
+              ) : null}
+
+              {problemError ? <section className="message message-error">{problemError}</section> : null}
+
+              {problemLoading ? (
+                <section className="card">
+                  <p className="empty-copy">Loading Problem Exchange items...</p>
+                </section>
+              ) : null}
+
+              {!problemLoading && problemLoaded && problemItems.length > 0 ? (
+                <section className="grid hacks-grid">
+                  {problemItems.map((problem) => {
+                    const statusValue = problemStatusDraftById[problem.id] ?? problem.status;
+                    const linkedHackProjectValue = problemLinkHackProjectById[problem.id] ?? problem.linkedHackProjectId ?? '';
+                    const linkedArtifactValue = problemLinkArtifactById[problem.id] ?? problem.linkedArtifactId ?? '';
+                    const statusNoteValue = problemStatusNoteById[problem.id] ?? '';
+                    const flagReasonValue = problemFlagReasonById[problem.id] ?? '';
+                    const moderationAction = resolveProblemModerationAction(problemCanModerate, problem.moderationState);
+                    return (
+                      <article key={problem.id} className="card hack-card problem-card">
+                        <div className="hack-card-head">
+                          <div className="hack-card-title-wrap">
+                            <h3>{problem.title}</h3>
+                          </div>
+                          <div className="problem-pill-row">
+                            <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
+                            {problem.moderationState !== 'visible' ? (
+                              <span className={`pill pill-moderation-${problem.moderationState}`}>
+                                {formatLabel(problem.moderationState)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <p className="hack-card-copy">{problem.description}</p>
+
+                        <div className="problem-meta-grid">
+                          <span className="meta">Team: {problem.team}</span>
+                          <span className="meta">Domain: {problem.domain}</span>
+                          <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
+                          <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
+                          <span className="meta">Submitted by {problem.createdByName}</span>
+                          <span className="meta">Contact: {problem.contactDetails}</span>
+                        </div>
+
+                        <div className="hack-card-foot">
+                          <div className="problem-actions">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                void handleVoteProblem(problem.id);
+                              }}
+                              disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
+                            >
+                              {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => {
+                                void handleFlagProblem(problem);
+                              }}
+                              disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
+                            >
+                              {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
+                            </button>
+                            {moderationAction ? (
+                              <button
+                                type="button"
+                                className="btn btn-outline"
+                                onClick={() => {
+                                  void handleModerateProblem(problem, moderationAction);
+                                }}
+                                disabled={problemModerationPendingId === problem.id}
+                              >
+                                {problemModerationPendingId === problem.id
+                                  ? 'Saving...'
+                                  : moderationAction === 'reinstate'
+                                    ? 'Reinstate'
+                                    : 'Remove'}
+                              </button>
+                            ) : null}
+                          </div>
+                          <span className="meta">
+                            {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
+                          </span>
+                        </div>
+
+                        <section className="problem-inline-section">
+                          <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
+                          <input
+                            id={`problem-flag-reason-${problem.id}`}
+                            value={flagReasonValue}
+                            onChange={(event) =>
+                              setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
+                            }
+                            placeholder="Reason to help moderators review"
+                          />
+                        </section>
+
+                        <section className="problem-status-panel">
+                          <h4>Update status</h4>
+                          <div className="problem-status-grid">
+                            <select
+                              value={statusValue}
+                              onChange={(event) =>
+                                setProblemStatusDraftById((current) => ({
+                                  ...current,
+                                  [problem.id]: event.target.value as ProblemStatus,
+                                }))
+                              }
+                            >
+                              {PROBLEM_STATUSES.map((status) => (
+                                <option key={status} value={status}>
+                                  {formatLabel(status)}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              value={linkedHackProjectValue}
+                              onChange={(event) =>
+                                setProblemLinkHackProjectById((current) => ({
+                                  ...current,
+                                  [problem.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Linked hack project ID (required for solved unless artifact linked)"
+                            />
+                            <input
+                              value={linkedArtifactValue}
+                              onChange={(event) =>
+                                setProblemLinkArtifactById((current) => ({
+                                  ...current,
+                                  [problem.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Linked artifact ID (required for solved unless project linked)"
+                            />
+                            <input
+                              value={statusNoteValue}
+                              onChange={(event) =>
+                                setProblemStatusNoteById((current) => ({
+                                  ...current,
+                                  [problem.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="Transition note (optional)"
+                            />
+                          </div>
+                          <div className="problem-status-actions">
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                void handleUpdateProblemStatus(problem);
+                              }}
+                              disabled={problemStatusPendingId === problem.id}
+                            >
+                              {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
+                            </button>
+                          </div>
+                          {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
+                            <p className="meta">
+                              Linked sources:
+                              {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
+                              {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
+                            </p>
+                          ) : null}
+                        </section>
+                      </article>
+                    );
+                  })}
+                </section>
+              ) : (
+                !problemLoading && problemLoaded ? (
+                  <p className="empty-copy">No problems match these filters yet.</p>
+                ) : null
               )}
             </section>
           ) : null}
@@ -2818,23 +4966,189 @@ export function App(): JSX.Element {
             </section>
           ) : null}
 
-          {view === 'projects' ? (
+          {view === 'pipeline' ? (
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Projects</h1>
-                  <p className="subtitle">Recent projects</p>
+                  <h1>Pipeline</h1>
+                  <p className="subtitle">Structured stage-gate board from hack to product candidate.</p>
                 </div>
               </section>
-              {allProjects.length > 0 ? (
-                <section className="grid hacks-grid">
-                  {allProjects.map((project) => (
-                    <ProjectCard key={project.id} item={project} />
-                  ))}
-                </section>
-              ) : (
-                <p className="empty-copy">No projects yet.</p>
-              )}
+              <section className="pipeline-metrics-grid">
+                <article className="card">
+                  <h2 className="list-title">Items Per Stage</h2>
+                  <ul className="pipeline-metric-list">
+                    {effectivePipelineMetrics.itemsPerStage.map((metric) => (
+                      <li key={metric.stage}>
+                        <span>{formatLabel(metric.stage)}</span>
+                        <strong>{metric.count}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="card">
+                  <h2 className="list-title">Average Time In Stage (days)</h2>
+                  <ul className="pipeline-metric-list">
+                    {effectivePipelineMetrics.averageDaysInStage.map((metric) => (
+                      <li key={metric.stage}>
+                        <span>{formatLabel(metric.stage)}</span>
+                        <strong>{metric.averageDays}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="card">
+                  <h2 className="list-title">Conversion And Throughput</h2>
+                  <ul className="pipeline-metric-list">
+                    <li>
+                      <span>Hack → Validated</span>
+                      <strong>{effectivePipelineMetrics.conversionHackToValidated.toFixed(1)}%</strong>
+                    </li>
+                    <li>
+                      <span>Validated → Incubating</span>
+                      <strong>{effectivePipelineMetrics.conversionValidatedToIncubating.toFixed(1)}%</strong>
+                    </li>
+                    <li>
+                      <span>Incubating → Candidate</span>
+                      <strong>{effectivePipelineMetrics.conversionIncubatingToCandidate.toFixed(1)}%</strong>
+                    </li>
+                    <li>
+                      <span>Total entered / graduated</span>
+                      <strong>
+                        {effectivePipelineMetrics.totalEntered} / {effectivePipelineMetrics.totalGraduated}
+                      </strong>
+                    </li>
+                  </ul>
+                </article>
+              </section>
+
+              {pipelineLoading ? <p className="empty-copy">Loading pipeline board…</p> : null}
+              {pipelineError ? <p className="error-text">{pipelineError}</p> : null}
+
+              <section className="pipeline-board" aria-label="Pipeline board">
+                {effectivePipelineStageCriteria.map((stage) => {
+                  const items = pipelineItemsByStage[stage.stage];
+                  return (
+                    <article key={stage.stage} className="pipeline-column">
+                      <header className="pipeline-column-header">
+                        <h2>{stage.label}</h2>
+                        <span>{items.length}</span>
+                      </header>
+                      <p className="pipeline-column-description">{stage.description}</p>
+                      <ul className="pipeline-criteria-list">
+                        {stage.criteria.map((criterion) => (
+                          <li key={criterion}>{criterion}</li>
+                        ))}
+                      </ul>
+                      {pipelineCanManage ? (
+                        <div className="pipeline-stage-editor">
+                          <label>
+                            Stage description
+                            <input
+                              type="text"
+                              value={pipelineCriteriaDescriptionDraftByStage[stage.stage] ?? stage.description}
+                              onChange={(event) =>
+                                setPipelineCriteriaDescriptionDraftByStage((current) => ({
+                                  ...current,
+                                  [stage.stage]: event.target.value,
+                                }))
+                              }
+                              placeholder="Short stage definition"
+                            />
+                          </label>
+                          <label>
+                            Stage criteria (one per line)
+                            <textarea
+                              value={pipelineCriteriaTextDraftByStage[stage.stage] ?? stage.criteria.join('\n')}
+                              onChange={(event) =>
+                                setPipelineCriteriaTextDraftByStage((current) => ({
+                                  ...current,
+                                  [stage.stage]: event.target.value,
+                                }))
+                              }
+                              rows={4}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => void handleSavePipelineCriteria(stage.stage)}
+                            disabled={pipelineCriteriaSavePendingStage === stage.stage}
+                          >
+                            {pipelineCriteriaSavePendingStage === stage.stage ? 'Saving…' : 'Save stage criteria'}
+                          </button>
+                        </div>
+                      ) : null}
+                      <div className="pipeline-column-body">
+                        {items.length > 0 ? (
+                          items.map((item) => (
+                            <article key={item.projectId} className="card pipeline-card">
+                              <h3>{item.title}</h3>
+                              <p>{item.description || 'No description provided.'}</p>
+                              <div className="pipeline-card-meta">
+                                <span>Owner: {item.ownerName}</span>
+                                <span>Days in stage: {item.daysInStage}</span>
+                                <span>Attached hacks: {item.attachedHacksCount}</span>
+                                <span>Comments: {item.commentCount}</span>
+                                <span>
+                                  Time saved estimate:{' '}
+                                  {item.timeSavedEstimate !== null ? `${item.timeSavedEstimate}h` : 'n/a'}
+                                </span>
+                              </div>
+                              {pipelineCanManage ? (
+                                <div className="pipeline-move-controls">
+                                  <label>
+                                    Target stage
+                                    <select
+                                      value={pipelineMoveStageByProjectId[item.projectId] ?? item.stage}
+                                      onChange={(event) =>
+                                        setPipelineMoveStageByProjectId((current) => ({
+                                          ...current,
+                                          [item.projectId]: event.target.value as PipelineStage,
+                                        }))
+                                      }
+                                    >
+                                      {effectivePipelineStageCriteria.map((option) => (
+                                        <option key={option.stage} value={option.stage}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label>
+                                    Transition note (required)
+                                    <input
+                                      type="text"
+                                      value={pipelineMoveNoteByProjectId[item.projectId] ?? ''}
+                                      onChange={(event) =>
+                                        setPipelineMoveNoteByProjectId((current) => ({
+                                          ...current,
+                                          [item.projectId]: event.target.value,
+                                        }))
+                                      }
+                                      placeholder="Reason for this stage move"
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => void handleMovePipelineItem(item)}
+                                    disabled={pipelineMovePendingProjectId === item.projectId}
+                                  >
+                                    {pipelineMovePendingProjectId === item.projectId ? 'Moving…' : 'Move stage'}
+                                  </button>
+                                </div>
+                              ) : null}
+                            </article>
+                          ))
+                        ) : (
+                          <p className="empty-copy">No items in this stage.</p>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
             </section>
           ) : null}
 
@@ -2957,12 +5271,53 @@ export function App(): JSX.Element {
                   placeholder="What does this solve?"
                 />
 
+                <label htmlFor="modal-hack-demo-url">Demo URL (required, https)</label>
+                <input
+                  id="modal-hack-demo-url"
+                  type="url"
+                  value={hackDemoUrl}
+                  onChange={(event) => setHackDemoUrl(event.target.value)}
+                  placeholder="https://..."
+                />
+
                 <label htmlFor="modal-hack-content">Content</label>
                 <textarea
                   id="modal-hack-content"
                   value={hackContent}
                   onChange={(event) => setHackContent(event.target.value)}
                   placeholder="Prompt or config"
+                />
+
+                <label htmlFor="modal-hack-team-members">Team Members (comma separated)</label>
+                <input
+                  id="modal-hack-team-members"
+                  value={hackTeamMembersInput}
+                  onChange={(event) => setHackTeamMembersInput(event.target.value)}
+                  placeholder="Alice, Ben, Priya"
+                />
+
+                <label htmlFor="modal-hack-source-event-id">Source HackDay Event ID (optional)</label>
+                <input
+                  id="modal-hack-source-event-id"
+                  value={hackSourceEventId}
+                  onChange={(event) => setHackSourceEventId(event.target.value)}
+                  placeholder="event UUID or ID"
+                />
+
+                <label htmlFor="modal-hack-tags">Tags (comma separated)</label>
+                <input
+                  id="modal-hack-tags"
+                  value={hackTagsInput}
+                  onChange={(event) => setHackTagsInput(event.target.value)}
+                  placeholder="ops-automation, reporting"
+                />
+
+                <label htmlFor="modal-hack-linked-artifacts">Linked Artifact IDs (comma separated)</label>
+                <input
+                  id="modal-hack-linked-artifacts"
+                  value={hackLinkedArtifactIdsInput}
+                  onChange={(event) => setHackLinkedArtifactIdsInput(event.target.value)}
+                  placeholder="artifact-1, artifact-2"
                 />
 
                 <div className="split-form">

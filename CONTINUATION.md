@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 11:12 GMT
+Last updated: 2026-03-01 11:42 GMT
 
 ## Current Snapshot
 
@@ -75,6 +75,22 @@ Last updated: 2026-03-01 11:12 GMT
     - `qa:p1:telemetry-static-check`
     - `qa:p1:go-gate`
   - checkpoint artifact: `docs/artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md`
+- Showcase (`P1.SHOW.01`) is now in progress with contract + migration + first UI wiring:
+  - contract spec: `docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`
+  - migration: `forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`
+  - resolvers: `hdcListShowcaseHacks`, `hdcGetShowcaseHackDetail`, `hdcSetShowcaseFeatured`
+  - backend: `forge-native/src/backend/supabase/repositories.ts` + `forge-native/src/backend/hackcentral.ts` + `forge-native/src/index.ts`
+  - shared/frontend contracts: `forge-native/src/shared/types.ts` + `forge-native/static/frontend/src/types.ts`
+  - Forge UI wiring in `forge-native/static/frontend/src/App.tsx`:
+    - Showcase list load + filters (query/type/status/tags/source event/featured-only)
+    - hack detail panel
+    - admin featured toggle controls
+    - submit-hack modal expanded to include required `demoUrl` and Showcase metadata fields
+  - Showcase targeted tests: `tests/forge-native-showcase-contract.spec.ts` + `tests/forge-native-showcase-runtime-modes.spec.ts` (`9/9` passing)
+  - rollout artifact: `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` (`CONDITIONAL GO`)
+  - Phase 1 regression pack updated to include Showcase suites:
+    - root `package.json` script `qa:p1:regression-pack` now runs Registry + Problem Exchange + Pipeline + Showcase suites (`56/56`)
+  - live migration applied to `ssafugtobsqxmqtphwch`; read-only resolver smoke passed (`listShowcaseHacks`, `getShowcaseHackDetail`)
 
 ## Active Task Pointer
 
@@ -87,9 +103,9 @@ Last updated: 2026-03-01 11:12 GMT
 
 ## Next 3 Atomic Actions
 
-1. Lock `P1.SHOW.01` contract spec and delivery slices against roadmap requirements `R4.1`-`R4.4`.
-2. Implement resolver/repository contracts and UI split for Showcase vs Registry boundaries.
-3. Add `P1.SHOW.01` targeted contract/runtime tests and create first rollout checkpoint artifact using `docs/HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md`.
+1. Execute live Forge UI smoke for `P1.SHOW.01` (submit hack with `demoUrl`, list filters, detail panel, featured toggle as admin/non-admin) and attach screenshot evidence.
+2. Run live telemetry sampling for Showcase rollout gate and update `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md` from `CONDITIONAL GO` to `GO` or `NO GO`.
+3. After Showcase gate closure, advance to `P1.CHILD.01` contract sequencing (`R5.1`-`R5.4`) with explicit dependency on finalized Showcase submission semantics.
 
 ## Blockers / Decisions Needed
 
@@ -165,6 +181,16 @@ ls -l /Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P1-PX-LIVE-UI-SMO
 # Pipeline UI shell validation completed in this session
 cd /Users/nickster/Downloads/HackCentral/forge-native/static/frontend && npm run typecheck
 cd /Users/nickster/Downloads/HackCentral/forge-native && npm run typecheck
+
+# Showcase targeted validation checks completed in this session
+cd /Users/nickster/Downloads/HackCentral && npm run test:run -- tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts
+cd /Users/nickster/Downloads/HackCentral/forge-native/static/frontend && npm run typecheck
+cd /Users/nickster/Downloads/HackCentral/forge-native && npm run typecheck
+
+# Showcase live migration + schema verification completed in this session
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects api-keys --project-ref ssafugtobsqxmqtphwch --output json
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" curl -sS -X POST "https://api.supabase.com/v1/projects/ssafugtobsqxmqtphwch/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg query \"select count(*)::int as showcase_rows from \\\"ShowcaseHack\\\";\" '{query:$query}')"
 ```
 
 ## Fresh Chat Startup Checklist

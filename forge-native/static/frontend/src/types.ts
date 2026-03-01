@@ -98,11 +98,346 @@ export interface CreateHackInput {
   assetType: 'prompt' | 'skill' | 'app';
   visibility?: 'private' | 'org' | 'public';
   content?: string;
+  demoUrl?: string;
+  teamMembers?: string[];
+  sourceEventId?: string;
+  tags?: string[];
+  linkedArtifactIds?: string[];
 }
 
 export interface CreateHackResult {
   assetId: string;
   title: string;
+}
+
+export type ArtifactType = 'skill' | 'prompt' | 'template' | 'learning' | 'code_snippet' | 'other';
+export type ArtifactVisibility = 'private' | 'org' | 'public';
+
+export interface CreateArtifactInput {
+  title: string;
+  description: string;
+  artifactType: ArtifactType;
+  tags: string[];
+  sourceUrl: string;
+  sourceLabel?: string;
+  sourceHackProjectId?: string;
+  sourceHackdayEventId?: string;
+  visibility?: ArtifactVisibility;
+}
+
+export interface CreateArtifactResult {
+  artifactId: string;
+  createdAt: string;
+}
+
+export interface ListArtifactsInput {
+  query?: string;
+  artifactTypes?: ArtifactType[];
+  tags?: string[];
+  sortBy?: 'newest' | 'reuse_count';
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ArtifactListItem {
+  id: string;
+  title: string;
+  description: string;
+  artifactType: ArtifactType;
+  tags: string[];
+  sourceUrl: string;
+  sourceLabel?: string;
+  sourceHackProjectId?: string;
+  sourceHackdayEventId?: string;
+  visibility: ArtifactVisibility;
+  reuseCount: number;
+  createdAt: string;
+  updatedAt: string;
+  authorName: string;
+}
+
+export interface ListArtifactsResult {
+  items: ArtifactListItem[];
+  nextCursor: string | null;
+}
+
+export interface GetArtifactResult {
+  artifact: ArtifactListItem;
+  sourceHack: null | {
+    projectId: string;
+    title: string;
+    status: string;
+    eventId: string | null;
+  };
+}
+
+export interface MarkArtifactReuseResult {
+  artifactId: string;
+  reuseCount: number;
+  alreadyMarked: boolean;
+}
+
+export type ProblemFrequency = 'daily' | 'weekly' | 'monthly';
+export type ProblemStatus = 'open' | 'claimed' | 'solved' | 'closed';
+export type ProblemModerationState = 'visible' | 'hidden_pending_review' | 'removed';
+
+export interface CreateProblemInput {
+  title: string;
+  description: string;
+  frequency: ProblemFrequency;
+  estimatedTimeWastedHours: number;
+  team: string;
+  domain: string;
+  contactDetails: string;
+}
+
+export interface CreateProblemResult {
+  problemId: string;
+  status: ProblemStatus;
+  moderationState: ProblemModerationState;
+  createdAt: string;
+}
+
+export interface ListProblemsInput {
+  query?: string;
+  teams?: string[];
+  domains?: string[];
+  statuses?: ProblemStatus[];
+  sortBy?: 'votes' | 'time_wasted' | 'newest';
+  includeHidden?: boolean;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ProblemListItem {
+  id: string;
+  title: string;
+  description: string;
+  frequency: ProblemFrequency;
+  estimatedTimeWastedHours: number;
+  team: string;
+  domain: string;
+  contactDetails: string;
+  status: ProblemStatus;
+  moderationState: ProblemModerationState;
+  voteCount: number;
+  flagCount: number;
+  linkedHackProjectId?: string;
+  linkedArtifactId?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdByName: string;
+}
+
+export interface ListProblemsResult {
+  items: ProblemListItem[];
+  nextCursor: string | null;
+}
+
+export interface VoteProblemResult {
+  problemId: string;
+  voteCount: number;
+  alreadyVoted: boolean;
+}
+
+export interface UpdateProblemStatusInput {
+  problemId: string;
+  status: ProblemStatus;
+  linkedHackProjectId?: string;
+  linkedArtifactId?: string;
+  note?: string;
+}
+
+export interface UpdateProblemStatusResult {
+  problemId: string;
+  status: ProblemStatus;
+  linkedHackProjectId?: string;
+  linkedArtifactId?: string;
+  updatedAt: string;
+}
+
+export interface FlagProblemInput {
+  problemId: string;
+  reason?: string;
+}
+
+export interface FlagProblemResult {
+  problemId: string;
+  flagCount: number;
+  alreadyFlagged: boolean;
+  moderationState: ProblemModerationState;
+  autoHidden: boolean;
+}
+
+export interface ModerateProblemInput {
+  problemId: string;
+  decision: 'remove' | 'reinstate';
+  note?: string;
+}
+
+export interface ModerateProblemResult {
+  problemId: string;
+  moderationState: ProblemModerationState;
+  reviewedAt: string;
+}
+
+export interface ProblemExchangeCapabilitiesResult {
+  canModerate: boolean;
+  moderationMode: 'allowlist' | 'none';
+}
+
+export type PipelineStage = 'hack' | 'validated_prototype' | 'incubating_project' | 'product_candidate';
+
+export interface PipelineStageCriteria {
+  stage: PipelineStage;
+  label: string;
+  description: string;
+  criteria: string[];
+  updatedAt?: string;
+}
+
+export interface PipelineBoardItem {
+  projectId: string;
+  title: string;
+  description: string;
+  ownerName: string;
+  stage: PipelineStage;
+  status: string;
+  statusLabel: string;
+  daysInStage: number;
+  attachedHacksCount: number;
+  commentCount: number;
+  timeSavedEstimate: number | null;
+  visibility: 'private' | 'org' | 'public';
+  enteredStageAt: string;
+  updatedAt: string;
+}
+
+export interface PipelineMetrics {
+  itemsPerStage: Array<{
+    stage: PipelineStage;
+    count: number;
+  }>;
+  averageDaysInStage: Array<{
+    stage: PipelineStage;
+    averageDays: number;
+  }>;
+  conversionHackToValidated: number;
+  conversionValidatedToIncubating: number;
+  conversionIncubatingToCandidate: number;
+  totalEntered: number;
+  totalGraduated: number;
+}
+
+export interface GetPipelineBoardInput {
+  query?: string;
+  stages?: PipelineStage[];
+  limit?: number;
+}
+
+export interface GetPipelineBoardResult {
+  items: PipelineBoardItem[];
+  stageCriteria: PipelineStageCriteria[];
+  metrics: PipelineMetrics;
+  canManage: boolean;
+}
+
+export interface MovePipelineItemInput {
+  projectId: string;
+  toStage: PipelineStage;
+  note: string;
+}
+
+export interface MovePipelineItemResult {
+  projectId: string;
+  fromStage: PipelineStage;
+  toStage: PipelineStage;
+  movedAt: string;
+  note: string;
+}
+
+export type ShowcaseHackStatus = 'completed' | 'in_progress';
+
+export interface ShowcaseHackListItem {
+  projectId: string;
+  title: string;
+  description: string;
+  assetType: 'prompt' | 'skill' | 'app';
+  status: ShowcaseHackStatus;
+  featured: boolean;
+  authorName: string;
+  visibility: 'private' | 'org' | 'public';
+  tags: string[];
+  sourceEventId?: string;
+  demoUrl?: string;
+  pipelineStage: PipelineStage;
+  reuseCount: number;
+  teamMembersCount: number;
+  linkedArtifactsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListShowcaseHacksInput {
+  query?: string;
+  assetTypes?: Array<'prompt' | 'skill' | 'app'>;
+  statuses?: ShowcaseHackStatus[];
+  tags?: string[];
+  sourceEventId?: string;
+  featuredOnly?: boolean;
+  sortBy?: 'newest' | 'featured' | 'reuse_count';
+  limit?: number;
+}
+
+export interface ListShowcaseHacksResult {
+  items: ShowcaseHackListItem[];
+  canManage: boolean;
+}
+
+export interface GetShowcaseHackDetailResult {
+  hack: ShowcaseHackListItem & {
+    teamMembers: string[];
+    linkedArtifactIds: string[];
+    context: string | null;
+    limitations: string | null;
+    riskNotes: string | null;
+    sourceRepoUrl: string | null;
+  };
+  artifactsProduced: Array<{
+    artifactId: string;
+    title: string;
+    artifactType: ArtifactType;
+    visibility: ArtifactVisibility;
+    reuseCount: number;
+  }>;
+  problemsSolved: Array<{
+    problemId: string;
+    title: string;
+    status: ProblemStatus;
+    updatedAt: string;
+  }>;
+}
+
+export interface SetShowcaseFeaturedInput {
+  projectId: string;
+  featured: boolean;
+}
+
+export interface SetShowcaseFeaturedResult {
+  projectId: string;
+  featured: boolean;
+  updatedAt: string;
+}
+
+export interface UpdatePipelineStageCriteriaInput {
+  stage: PipelineStage;
+  label?: string;
+  description?: string;
+  criteria: string[];
+}
+
+export interface UpdatePipelineStageCriteriaResult {
+  stageCriteria: PipelineStageCriteria;
 }
 
 export interface CreateProjectInput {
@@ -396,6 +731,23 @@ export interface SyncResult {
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   createHack: (payload: CreateHackInput) => CreateHackResult;
+  hdcCreateArtifact: (payload: CreateArtifactInput) => CreateArtifactResult;
+  hdcListArtifacts: (payload: ListArtifactsInput) => ListArtifactsResult;
+  hdcGetArtifact: (payload: { artifactId: string }) => GetArtifactResult;
+  hdcMarkArtifactReuse: (payload: { artifactId: string }) => MarkArtifactReuseResult;
+  hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
+  hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
+  hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;
+  hdcUpdateProblemStatus: (payload: UpdateProblemStatusInput) => UpdateProblemStatusResult;
+  hdcFlagProblem: (payload: FlagProblemInput) => FlagProblemResult;
+  hdcModerateProblem: (payload: ModerateProblemInput) => ModerateProblemResult;
+  hdcGetProblemExchangeCapabilities: () => ProblemExchangeCapabilitiesResult;
+  hdcGetPipelineBoard: (payload: GetPipelineBoardInput) => GetPipelineBoardResult;
+  hdcMovePipelineItem: (payload: MovePipelineItemInput) => MovePipelineItemResult;
+  hdcUpdatePipelineStageCriteria: (payload: UpdatePipelineStageCriteriaInput) => UpdatePipelineStageCriteriaResult;
+  hdcListShowcaseHacks: (payload: ListShowcaseHacksInput) => ListShowcaseHacksResult;
+  hdcGetShowcaseHackDetail: (payload: { projectId: string }) => GetShowcaseHackDetailResult;
+  hdcSetShowcaseFeatured: (payload: SetShowcaseFeaturedInput) => SetShowcaseFeaturedResult;
   createProject: (payload: CreateProjectInput) => CreateProjectResult;
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;

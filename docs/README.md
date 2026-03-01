@@ -20,6 +20,7 @@ Canonical docs for HDC architecture, plans, and ops.
 | `HDC-P1-REGISTRY-CONTRACT-SPEC.md` | Phase 1 Knowledge Registry backend contract (`P1.REG.01`). |
 | `HDC-P1-PROBLEM-EXCHANGE-CONTRACT-SPEC.md` | Phase 1 Problem Exchange backend contract (`P1.PX.01`). |
 | `HDC-P1-PIPELINE-CONTRACT-SPEC.md` | Phase 1 Pipeline board contract (`P1.PIPE.01`). |
+| `HDC-P1-SHOWCASE-CONTRACT-SPEC.md` | Phase 1 Showcase contract (`P1.SHOW.01`). |
 | `HDC-P1-OBS-GUARDRAILS-PACK.md` | Phase 1 regression + telemetry gate pack (`P1.OBS.01`). |
 | `HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md` | Standard GO/NO-GO checkpoint template for Phase 1 modules (`P1.OBS.01`). |
 | `artifacts/HDC-P1-PIPE-ROLLOUT-CHECKPOINT-20260301-1108Z.md` | Phase 1 Pipeline rollout decision artifact (`P1.PIPE.01`). |

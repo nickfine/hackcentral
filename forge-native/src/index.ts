@@ -1,10 +1,44 @@
 import Resolver from '@forge/resolver';
 import { storage } from '@forge/api';
-import { createHack, createProject, getBootstrapData, updateMentorProfile } from './backend/hackcentral';
+import {
+  createProblem,
+  createArtifact,
+  createHack,
+  createProject,
+  flagProblem,
+  getArtifact,
+  getBootstrapData,
+  getPipelineBoard,
+  listShowcaseHacks,
+  getShowcaseHackDetail,
+  setShowcaseFeatured,
+  getProblemExchangeCapabilities,
+  listProblems,
+  listArtifacts,
+  movePipelineItem,
+  updatePipelineStageCriteria,
+  moderateProblem,
+  markArtifactReuse,
+  updateProblemStatus,
+  updateMentorProfile,
+  voteProblem,
+} from './backend/hackcentral';
 import { HdcService } from './backend/hdcService';
 import type {
+  CreateProblemInput,
+  CreateArtifactInput,
   ActivateAppModeContextResult,
   CreateInstanceDraftInput,
+  FlagProblemInput,
+  GetPipelineBoardInput,
+  ListShowcaseHacksInput,
+  SetShowcaseFeaturedInput,
+  MovePipelineItemInput,
+  UpdatePipelineStageCriteriaInput,
+  ModerateProblemInput,
+  UpdateProblemStatusInput,
+  ListArtifactsInput,
+  ListProblemsInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   ViewerContext,
@@ -83,10 +117,151 @@ resolver.define(
       assetType: 'prompt' | 'skill' | 'app';
       visibility?: 'private' | 'org' | 'public';
       content?: string;
+      demoUrl?: string;
+      teamMembers?: string[];
+      sourceEventId?: string;
+      tags?: string[];
+      linkedArtifactIds?: string[];
     };
   }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return createHack(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcCreateArtifact',
+  async (request: { context?: RawResolverContext; payload: CreateArtifactInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return createArtifact(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcListArtifacts',
+  async (request: { context?: RawResolverContext; payload: ListArtifactsInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listArtifacts(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcGetArtifact',
+  async (request: { context?: RawResolverContext; payload: { artifactId: string } }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getArtifact(viewer, request.payload.artifactId);
+  }
+);
+
+resolver.define(
+  'hdcMarkArtifactReuse',
+  async (request: { context?: RawResolverContext; payload: { artifactId: string } }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return markArtifactReuse(viewer, request.payload.artifactId);
+  }
+);
+
+resolver.define(
+  'hdcCreateProblem',
+  async (request: { context?: RawResolverContext; payload: CreateProblemInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return createProblem(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcListProblems',
+  async (request: { context?: RawResolverContext; payload: ListProblemsInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listProblems(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcVoteProblem',
+  async (request: { context?: RawResolverContext; payload: { problemId: string } }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return voteProblem(viewer, request.payload.problemId);
+  }
+);
+
+resolver.define(
+  'hdcUpdateProblemStatus',
+  async (request: { context?: RawResolverContext; payload: UpdateProblemStatusInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return updateProblemStatus(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcFlagProblem',
+  async (request: { context?: RawResolverContext; payload: FlagProblemInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return flagProblem(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcModerateProblem',
+  async (request: { context?: RawResolverContext; payload: ModerateProblemInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return moderateProblem(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcGetProblemExchangeCapabilities',
+  async (request: { context?: RawResolverContext }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getProblemExchangeCapabilities(viewer);
+  }
+);
+
+resolver.define(
+  'hdcGetPipelineBoard',
+  async (request: { context?: RawResolverContext; payload: GetPipelineBoardInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getPipelineBoard(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcMovePipelineItem',
+  async (request: { context?: RawResolverContext; payload: MovePipelineItemInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return movePipelineItem(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcListShowcaseHacks',
+  async (request: { context?: RawResolverContext; payload: ListShowcaseHacksInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listShowcaseHacks(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcGetShowcaseHackDetail',
+  async (request: { context?: RawResolverContext; payload: { projectId: string } }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getShowcaseHackDetail(viewer, request.payload.projectId);
+  }
+);
+
+resolver.define(
+  'hdcSetShowcaseFeatured',
+  async (request: { context?: RawResolverContext; payload: SetShowcaseFeaturedInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return setShowcaseFeatured(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcUpdatePipelineStageCriteria',
+  async (request: { context?: RawResolverContext; payload: UpdatePipelineStageCriteriaInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return updatePipelineStageCriteria(viewer, request.payload);
   }
 );
 
