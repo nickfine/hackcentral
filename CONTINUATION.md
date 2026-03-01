@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 16:36 GMT
+Last updated: 2026-03-01 16:45 GMT
 
 ## Current Snapshot
 
@@ -226,6 +226,28 @@ Last updated: 2026-03-01 16:36 GMT
     - `tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
     - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + recognition policy suite (`4/4`)
     - backend/frontend typechecks pass
+- Recognition segmented leaderboard + viewer badge baseline (`P2.RECOG.01`) is now landed:
+  - `recognition.leaderboards` now emits `R8.2` segments:
+    - `builders`
+    - `sharers`
+    - `solvers`
+    - `mentors`
+  - `recognition.viewerBadges` now emits `R8.1` viewer badge states:
+    - `firstArtifactPublished`
+    - `firstProblemSolved`
+    - `fiveArtifactsReused`
+    - `mentoredThreePeople`
+    - `contributedToPathway`
+  - backend wiring: `forge-native/src/backend/supabase/repositories.ts`
+  - frontend wiring: `forge-native/static/frontend/src/App.tsx` + `forge-native/static/frontend/src/constants/nav.ts`
+  - contract parity updates:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - updated spec: `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`
+  - targeted validation:
+    - `tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + recognition suite (`4/4`)
+    - backend/frontend typechecks pass
 
 ## Active Task Pointer
 
@@ -240,9 +262,9 @@ Last updated: 2026-03-01 16:36 GMT
 
 ## Next 3 Atomic Actions
 
-1. Extend `P2.RECOG.01` contract for full badge automation + segmented leaderboards (`R8.1`, `R8.2`) using locked mentor/pathway policies.
-2. Implement recognition resolver baseline for builders/sharers/solvers with deterministic ranking and authority-safe source mapping.
-3. Add targeted contract/runtime tests for full recognition payload and then wire remaining UI leaderboard/badge views.
+1. Run live Supabase verification for recognition signal sources (`Project`, `Artifact`, `Problem`, `PathwayProgress`, `User`) and capture payload snapshot evidence.
+2. Deploy/upgrade Forge production bundle and execute live Team Pulse recognition UI smoke for segmented leaderboard tabs + viewer badges.
+3. Record `P2.RECOG.01` rollout checkpoint artifact and move task status from in-progress to `GO` (or `CONDITIONAL GO` if any live gate fails).
 
 ## Blockers / Decisions Needed
 

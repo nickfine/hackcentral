@@ -19,7 +19,7 @@ export type HackTypeFilter = 'all' | 'prompt' | 'skill' | 'app';
 export type HackStatusFilter = 'all' | 'draft' | 'in_progress' | 'verified' | 'deprecated';
 export type MentorFilter = 'hackers' | 'available';
 export type ModalView = 'none' | 'submit_hack' | 'create_project' | 'mentor_profile';
-export type RecognitionTab = 'recent' | 'contributors' | 'mentors' | 'reused';
+export type RecognitionTab = 'builders' | 'sharers' | 'solvers' | 'mentors';
 
 export interface NavItem {
   id: View;

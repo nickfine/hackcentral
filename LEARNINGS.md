@@ -1845,3 +1845,42 @@ Use this template at the end of every work session:
 
 - `PathwayProgress` provides a stable user-level participation signal for pathway contribution without introducing new schema dependencies.
 - Separating pathway participation from pathway authoring avoids mixing adoption behavior with admin/editor curation behavior in recognition scoring.
+
+## Session Update - P2.RECOG.01 Segmented Leaderboards + Viewer Badges Baseline (Mar 1, 2026 16:45 GMT)
+
+### Completed
+
+- Extended recognition contract to cover full `R8` baseline payload:
+  - `recognition.leaderboards` with `builders`, `sharers`, `solvers`, `mentors`
+  - `recognition.viewerBadges` with:
+    - `firstArtifactPublished`
+    - `firstProblemSolved`
+    - `fiveArtifactsReused`
+    - `mentoredThreePeople`
+    - `contributedToPathway`
+- Implemented deterministic recognition aggregation in `forge-native/src/backend/supabase/repositories.ts` using:
+  - builders: hack submissions by owner (`Project.source_type='hack_submission'`)
+  - sharers: published artifact count (`Artifact.created_by_user_id`) with reuse count as tie-break
+  - solvers: solved problem count (`Problem.status='solved'` + `claimed_by_user_id`)
+  - mentors: `mentorSignal` session counts
+  - viewer badge derivation from existing source tables/signals.
+- Updated frontend recognition consumption:
+  - switched Team Pulse recognition tabs to `builders`/`sharers`/`solvers`/`mentors`
+  - mapped dashboard badge chips to `viewerBadges` + mentor/pathway qualified counts
+  - files: `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/constants/nav.ts`.
+- Updated contract docs and shared/frontend type parity:
+  - `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+
+### Validation Evidence
+
+- `npm run test:run -- tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+- `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`4/4`)
+- `npm --prefix forge-native run typecheck` (pass)
+- `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Keeping recognition policies versioned (`r8-mentor-sessions-used-v1`, `r8-pathway-completion-v1`) while expanding output shape allows safe iteration without breaking UI contract assumptions.
+- `Problem` reads for recognition need solved-ownership linkage fields (`claimed_by_user_id`, `linked_hack_project_id`, `linked_artifact_id`) in bootstrap query; minimal status-only selects are insufficient for `firstProblemSolved` badge derivation.

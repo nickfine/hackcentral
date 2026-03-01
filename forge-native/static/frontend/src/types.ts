@@ -97,9 +97,33 @@ export interface RecognitionPathwaySignal {
   qualifiedPathwayContributorCount: number;
 }
 
+export interface RecognitionSegmentLeaderboardEntry {
+  userId: string;
+  userName: string;
+  count: number;
+  rank: number;
+}
+
+export interface RecognitionSegmentLeaderboards {
+  builders: RecognitionSegmentLeaderboardEntry[];
+  sharers: RecognitionSegmentLeaderboardEntry[];
+  solvers: RecognitionSegmentLeaderboardEntry[];
+  mentors: RecognitionSegmentLeaderboardEntry[];
+}
+
+export interface RecognitionViewerBadges {
+  firstArtifactPublished: boolean;
+  firstProblemSolved: boolean;
+  fiveArtifactsReused: boolean;
+  mentoredThreePeople: boolean;
+  contributedToPathway: boolean;
+}
+
 export interface RecognitionSnapshot {
   mentorSignal: RecognitionMentorSignal;
   pathwaySignal: RecognitionPathwaySignal;
+  leaderboards: RecognitionSegmentLeaderboards;
+  viewerBadges: RecognitionViewerBadges;
 }
 
 export interface FeaturedHack {

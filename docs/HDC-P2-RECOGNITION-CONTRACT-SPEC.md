@@ -1,6 +1,6 @@
 # HDC P2 Recognition Contract Spec
 
-Last updated: 2026-03-01 16:38 GMT
+Last updated: 2026-03-01 16:48 GMT
 Owner: HackDay Central Engineering
 Task ID: `P2.RECOG.01`
 Roadmap refs: `R8.1`, `R8.2`
@@ -55,6 +55,19 @@ recognition?: RecognitionSnapshot | null
       qualifiesPathwayContributor: boolean;
     }>;
   };
+  leaderboards: {
+    builders: Array<{ userId: string; userName: string; count: number; rank: number }>;
+    sharers: Array<{ userId: string; userName: string; count: number; rank: number }>;
+    solvers: Array<{ userId: string; userName: string; count: number; rank: number }>;
+    mentors: Array<{ userId: string; userName: string; count: number; rank: number }>;
+  };
+  viewerBadges: {
+    firstArtifactPublished: boolean;
+    firstProblemSolved: boolean;
+    fiveArtifactsReused: boolean;
+    mentoredThreePeople: boolean;
+    contributedToPathway: boolean;
+  };
 }
 ```
 
@@ -99,6 +112,13 @@ Rationale:
 - Frontend Team Pulse recognition mentor list now consumes `bootstrap.recognition.mentorSignal.leaderboard` when present.
 - Dashboard mentor badge count now uses `qualifiedMentorChampionCount`.
 - Dashboard pathway badge count now uses `qualifiedPathwayContributorCount`.
+- Segmented leaderboard payload for `R8.2` is now emitted as:
+  - `recognition.leaderboards.builders`
+  - `recognition.leaderboards.sharers`
+  - `recognition.leaderboards.solvers`
+  - `recognition.leaderboards.mentors`
+- Viewer badge automation payload for `R8.1` is now emitted as:
+  - `recognition.viewerBadges`
 
 ## Validation
 

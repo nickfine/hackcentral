@@ -116,6 +116,7 @@ const RECOGNITION_MENTOR_BADGE_THRESHOLD = 3;
 const RECOGNITION_MENTOR_LEADERBOARD_LIMIT = 25;
 const RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS = 1;
 const RECOGNITION_PATHWAY_LEADERBOARD_LIMIT = 25;
+const RECOGNITION_SEGMENT_LEADERBOARD_LIMIT = 25;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -836,9 +837,13 @@ function createPathwayListItem(
 function buildRecognitionSnapshot(input: {
   calculatedAt: string;
   users: DbUser[];
+  projects: DbProject[];
+  artifacts: DbArtifact[];
+  problems: DbProblem[];
   pathwayProgressRows: Record<string, unknown>[];
+  viewerAccountId: string;
 }): RecognitionSnapshot {
-  const { calculatedAt, users, pathwayProgressRows } = input;
+  const { calculatedAt, users, projects, artifacts, problems, pathwayProgressRows, viewerAccountId } = input;
   const normalizedMentorRows = users.map((user) => {
     const mentorSessionsUsed = isFiniteNumber(user.mentor_sessions_used)
       ? Math.max(0, Math.floor(user.mentor_sessions_used))
@@ -861,7 +866,7 @@ function buildRecognitionSnapshot(input: {
       if (a.userName !== b.userName) return a.userName.localeCompare(b.userName);
       return a.userId.localeCompare(b.userId);
     })
-    .slice(0, RECOGNITION_MENTOR_LEADERBOARD_LIMIT)
+    .slice(0, RECOGNITION_SEGMENT_LEADERBOARD_LIMIT)
     .map((row, index) => ({
       userId: row.userId,
       userName: row.userName,
@@ -928,7 +933,7 @@ function buildRecognitionSnapshot(input: {
       if (a.userName !== b.userName) return a.userName.localeCompare(b.userName);
       return a.userId.localeCompare(b.userId);
     })
-    .slice(0, RECOGNITION_PATHWAY_LEADERBOARD_LIMIT)
+    .slice(0, RECOGNITION_SEGMENT_LEADERBOARD_LIMIT)
     .map((row, index) => ({
       userId: row.userId,
       userName: row.userName,
@@ -939,6 +944,86 @@ function buildRecognitionSnapshot(input: {
       qualifiesPathwayContributor:
         row.distinctPathwayCount >= RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS,
     }));
+
+  const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+
+  const buildersCounter = new Map<string, number>();
+  for (const project of projects) {
+    if (project.source_type !== 'hack_submission' || !project.owner_id) continue;
+    buildersCounter.set(project.owner_id, (buildersCounter.get(project.owner_id) ?? 0) + 1);
+  }
+
+  const sharersCounter = new Map<string, number>();
+  const artifactReuseByAuthorCounter = new Map<string, number>();
+  for (const artifact of artifacts) {
+    if (artifact.archived_at) continue;
+    sharersCounter.set(artifact.created_by_user_id, (sharersCounter.get(artifact.created_by_user_id) ?? 0) + 1);
+    artifactReuseByAuthorCounter.set(
+      artifact.created_by_user_id,
+      (artifactReuseByAuthorCounter.get(artifact.created_by_user_id) ?? 0) + Math.max(0, artifact.reuse_count ?? 0)
+    );
+  }
+
+  const solversCounter = new Map<string, number>();
+  for (const problem of problems) {
+    if (problem.status !== 'solved' || !problem.claimed_by_user_id) continue;
+    solversCounter.set(problem.claimed_by_user_id, (solversCounter.get(problem.claimed_by_user_id) ?? 0) + 1);
+  }
+
+  const buildSegmentLeaderboard = (counter: Map<string, number>, tieBreaker?: (userId: string) => number) =>
+    Array.from(counter.entries())
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => {
+        if (a[1] !== b[1]) return b[1] - a[1];
+        const tieA = tieBreaker ? tieBreaker(a[0]) : 0;
+        const tieB = tieBreaker ? tieBreaker(b[0]) : 0;
+        if (tieA !== tieB) return tieB - tieA;
+        const nameA = userNameById.get(a[0]) ?? a[0];
+        const nameB = userNameById.get(b[0]) ?? b[0];
+        if (nameA !== nameB) return nameA.localeCompare(nameB);
+        return a[0].localeCompare(b[0]);
+      })
+      .slice(0, RECOGNITION_SEGMENT_LEADERBOARD_LIMIT)
+      .map(([userId, count], index) => ({
+        userId,
+        userName: userNameById.get(userId) ?? userId,
+        count,
+        rank: index + 1,
+      }));
+
+  const buildersLeaderboard = buildSegmentLeaderboard(buildersCounter);
+  const sharersLeaderboard = buildSegmentLeaderboard(sharersCounter, (userId) =>
+    artifactReuseByAuthorCounter.get(userId) ?? 0
+  );
+  const solversLeaderboard = buildSegmentLeaderboard(solversCounter);
+  const mentorsLeaderboard = leaderboardRows.map((entry) => ({
+    userId: entry.userId,
+    userName: entry.userName,
+    count: entry.mentorSessionsUsed,
+    rank: entry.rank,
+  }));
+
+  const viewerUser =
+    users.find((user) => user.id === viewerAccountId) ??
+    users.find((user) => user.atlassian_account_id === viewerAccountId) ??
+    null;
+  const viewerUserId = viewerUser?.id ?? null;
+
+  const viewerArtifactCount = viewerUserId
+    ? artifacts.filter((artifact) => !artifact.archived_at && artifact.created_by_user_id === viewerUserId).length
+    : 0;
+  const viewerArtifactReuseCount = viewerUserId ? artifactReuseByAuthorCounter.get(viewerUserId) ?? 0 : 0;
+  const viewerSolvedLinkedProblemCount = viewerUserId
+    ? problems.filter(
+        (problem) =>
+          problem.status === 'solved' &&
+          problem.claimed_by_user_id === viewerUserId &&
+          Boolean(problem.linked_hack_project_id || problem.linked_artifact_id)
+      ).length
+    : 0;
+  const viewerMentorSessionsUsed =
+    viewerUser && isFiniteNumber(viewerUser.mentor_sessions_used) ? Math.max(0, Math.floor(viewerUser.mentor_sessions_used)) : 0;
+  const viewerPathwayDistinctCount = viewerUserId ? pathwayByUserId.get(viewerUserId)?.distinctPathwayIds.size ?? 0 : 0;
 
   return {
     mentorSignal: {
@@ -958,6 +1043,19 @@ function buildRecognitionSnapshot(input: {
       leaderboardLimit: RECOGNITION_PATHWAY_LEADERBOARD_LIMIT,
       leaderboard: pathwayLeaderboardRows,
       qualifiedPathwayContributorCount,
+    },
+    leaderboards: {
+      builders: buildersLeaderboard,
+      sharers: sharersLeaderboard,
+      solvers: solversLeaderboard,
+      mentors: mentorsLeaderboard,
+    },
+    viewerBadges: {
+      firstArtifactPublished: viewerArtifactCount >= 1,
+      firstProblemSolved: viewerSolvedLinkedProblemCount >= 1,
+      fiveArtifactsReused: viewerArtifactReuseCount >= 5,
+      mentoredThreePeople: viewerMentorSessionsUsed >= RECOGNITION_MENTOR_BADGE_THRESHOLD,
+      contributedToPathway: viewerPathwayDistinctCount >= RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS,
     },
   };
 }
@@ -2499,7 +2597,10 @@ export class SupabaseRepository {
           throw error;
         }),
       this.client
-        .selectMany<DbProblem>(PROBLEM_TABLE, 'id,status,moderation_state')
+        .selectMany<DbProblem>(
+          PROBLEM_TABLE,
+          'id,status,moderation_state,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id'
+        )
         .catch((error) => {
           if (hasMissingTable(error, PROBLEM_TABLE)) return [];
           throw error;
@@ -2623,7 +2724,11 @@ export class SupabaseRepository {
     const recognition = buildRecognitionSnapshot({
       calculatedAt,
       users,
+      projects,
+      artifacts,
+      problems: problemRows,
       pathwayProgressRows,
+      viewerAccountId: viewer.accountId,
     });
 
     return {

@@ -320,10 +320,10 @@ const BULLETIN_POSTS: BulletinPost[] = [
 ];
 
 const BADGES: Badge[] = [
-  { id: 'b-rising', label: 'Rising Star', badgeVariant: 'amber' },
-  { id: 'b-mentor', label: 'Mentor Champion', count: 3, badgeVariant: 'teal' },
-  { id: 'b-verify', label: 'Verifier', count: 5, badgeVariant: 'blue' },
-  { id: 'b-reused', label: 'Most Reused', count: 12, badgeVariant: 'blue' },
+  { id: 'b-artifact', label: 'First Artifact', badgeVariant: 'amber' },
+  { id: 'b-problem', label: 'First Problem Solved', badgeVariant: 'blue' },
+  { id: 'b-reused', label: '5x Reused', badgeVariant: 'blue' },
+  { id: 'b-mentor', label: 'Mentor Champion', badgeVariant: 'teal' },
   { id: 'b-pathway', label: 'Pathway Contributor', badgeVariant: 'amber' },
 ];
 
@@ -1197,7 +1197,7 @@ export function App(): JSX.Element {
   const [view, setView] = useState<View>('dashboard');
   const [modalView, setModalView] = useState<ModalView>('none');
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [recognitionTab, setRecognitionTab] = useState<RecognitionTab>('recent');
+  const [recognitionTab, setRecognitionTab] = useState<RecognitionTab>('builders');
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -3017,8 +3017,11 @@ export function App(): JSX.Element {
   const problemConversionPct = teamPulse?.problemConversionPct ?? 0;
   const crossTeamAdoptionEdges = teamPulse?.crossTeamAdoptionEdges ?? [];
   const timeToFirstHackTrend = teamPulse?.timeToFirstHackTrend ?? [];
+  const recognition = bootstrap?.recognition ?? null;
   const mentorSignal = bootstrap?.recognition?.mentorSignal ?? null;
   const pathwaySignal = bootstrap?.recognition?.pathwaySignal ?? null;
+  const recognitionLeaderboards = recognition?.leaderboards ?? null;
+  const viewerBadges = recognition?.viewerBadges ?? null;
   const mentorChampionCount = mentorSignal?.qualifiedMentorChampionCount ?? 0;
   const pathwayContributorCount = pathwaySignal?.qualifiedPathwayContributorCount ?? 0;
   const trendMaxMedianDays = Math.max(
@@ -3044,25 +3047,48 @@ export function App(): JSX.Element {
   const leaders = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'leader').length;
   const others = Math.max(0, allPeople.length - frontline - leaders);
 
-  const recentRecognitionRows = featuredHacks
-    .slice(0, 2)
-    .map((hack) => `${bootstrap?.viewer.accountId} — Library Asset (${hack.title})`);
-  const contributorRows = helpers.slice(0, 3).map((person) => `${person.fullName} — ${person.capabilities[0] ?? 'Contributor'}`);
+  const buildersRows =
+    recognitionLeaderboards && recognitionLeaderboards.builders.length > 0
+      ? recognitionLeaderboards.builders
+          .slice(0, 5)
+          .map((entry) => `${entry.userName} — ${entry.count} hacks`)
+      : helpers.slice(0, 3).map((person) => `${person.fullName} — ${person.capabilities[0] ?? 'Contributor'}`);
+  const sharersRows =
+    recognitionLeaderboards && recognitionLeaderboards.sharers.length > 0
+      ? recognitionLeaderboards.sharers
+          .slice(0, 5)
+          .map((entry) => `${entry.userName} — ${entry.count} artifacts`)
+      : [...featuredHacks]
+          .sort((a, b) => b.reuseCount - a.reuseCount)
+          .slice(0, 3)
+          .map((hack) => `${hack.authorName} — 1 artifact`);
+  const solversRows =
+    recognitionLeaderboards && recognitionLeaderboards.solvers.length > 0
+      ? recognitionLeaderboards.solvers
+          .slice(0, 5)
+          .map((entry) => `${entry.userName} — ${entry.count} solved`)
+      : [];
   const mentorRows =
-    mentorSignal && mentorSignal.leaderboard.length > 0
-      ? mentorSignal.leaderboard
-          .slice(0, 3)
-          .map((entry) => `${entry.userName} — ${entry.mentorSessionsUsed} sessions`)
-      : helpers
-          .filter((person) => person.mentorSlotsRemaining > 0)
-          .slice(0, 3)
-          .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
-  const reusedRows = [...featuredHacks]
-    .sort((a, b) => b.reuseCount - a.reuseCount)
-    .slice(0, 3)
-    .map((hack) => `${hack.title} — ${hack.reuseCount} reuses`);
+    recognitionLeaderboards && recognitionLeaderboards.mentors.length > 0
+      ? recognitionLeaderboards.mentors
+          .slice(0, 5)
+          .map((entry) => `${entry.userName} — ${entry.count} sessions`)
+      : mentorSignal && mentorSignal.leaderboard.length > 0
+          ? mentorSignal.leaderboard
+              .slice(0, 3)
+              .map((entry) => `${entry.userName} — ${entry.mentorSessionsUsed} sessions`)
+          : helpers
+              .filter((person) => person.mentorSlotsRemaining > 0)
+              .slice(0, 3)
+              .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
   const dashboardBadges = BADGES.map((badge) =>
-    badge.id === 'b-mentor'
+    badge.id === 'b-artifact'
+      ? { ...badge, count: viewerBadges?.firstArtifactPublished ? 1 : 0 }
+      : badge.id === 'b-problem'
+        ? { ...badge, count: viewerBadges?.firstProblemSolved ? 1 : 0 }
+        : badge.id === 'b-reused'
+          ? { ...badge, count: viewerBadges?.fiveArtifactsReused ? 1 : 0 }
+          : badge.id === 'b-mentor'
       ? { ...badge, count: mentorChampionCount }
       : badge.id === 'b-pathway'
         ? { ...badge, count: pathwayContributorCount }
@@ -3070,17 +3096,17 @@ export function App(): JSX.Element {
   );
 
   const recognitionRows: Record<RecognitionTab, string[]> = {
-    recent: recentRecognitionRows,
-    contributors: contributorRows,
+    builders: buildersRows,
+    sharers: sharersRows,
+    solvers: solversRows,
     mentors: mentorRows,
-    reused: reusedRows,
   };
 
   const recognitionTabLabel: Record<RecognitionTab, string> = {
-    recent: 'Recent Activity',
-    contributors: 'Top Contributors',
-    mentors: 'Top Mentors',
-    reused: 'Most Reused Hacks',
+    builders: 'Builders',
+    sharers: 'Sharers',
+    solvers: 'Solvers',
+    mentors: 'Mentors',
   };
 
   const closeModal = (): void => setModalView('none');
@@ -3940,7 +3966,7 @@ export function App(): JSX.Element {
 
                 <article className="card recognition-card dashboard-recognition-card">
                   <h3>Your recognition</h3>
-                  <p>Complete mentor sessions, verify hacks, or get reuses to earn badges.</p>
+                  <p>Publish artifacts, solve problems, mentor others, and complete pathways to earn badges.</p>
                   <div className="badge-wrap">
                     {dashboardBadges.map((badge) => (
                       <span key={badge.id} className="badge-pill" data-badge={badge.badgeVariant ?? undefined}>

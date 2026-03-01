@@ -3,7 +3,7 @@ import { SupabaseRepository } from '../forge-native/src/backend/supabase/reposit
 import type { ViewerContext } from '../forge-native/src/shared/types';
 
 const viewer: ViewerContext = {
-  accountId: 'acc-recognition',
+  accountId: 'u-a',
   siteUrl: 'https://example.atlassian.net',
   timezone: 'Europe/London',
 };
@@ -76,9 +76,135 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
         ];
       }
       if (table === 'ShowcaseHack') return [];
-      if (table === 'Artifact') return [];
+      if (table === 'Artifact') {
+        return [
+          {
+            id: 'artifact-a1',
+            title: 'Artifact A1',
+            description: '',
+            artifact_type: 'prompt',
+            tags: [],
+            source_url: 'https://example.com/a1',
+            source_label: null,
+            source_hack_project_id: 'p-a1',
+            source_hackday_event_id: null,
+            created_by_user_id: 'u-a',
+            visibility: 'org',
+            reuse_count: 4,
+            created_at: '2026-01-02T00:00:00.000Z',
+            updated_at: '2026-01-02T00:00:00.000Z',
+            archived_at: null,
+          },
+          {
+            id: 'artifact-a2',
+            title: 'Artifact A2',
+            description: '',
+            artifact_type: 'prompt',
+            tags: [],
+            source_url: 'https://example.com/a2',
+            source_label: null,
+            source_hack_project_id: 'p-a2',
+            source_hackday_event_id: null,
+            created_by_user_id: 'u-a',
+            visibility: 'org',
+            reuse_count: 1,
+            created_at: '2026-01-03T00:00:00.000Z',
+            updated_at: '2026-01-03T00:00:00.000Z',
+            archived_at: null,
+          },
+          {
+            id: 'artifact-b1',
+            title: 'Artifact B1',
+            description: '',
+            artifact_type: 'prompt',
+            tags: [],
+            source_url: 'https://example.com/b1',
+            source_label: null,
+            source_hack_project_id: 'p-b1',
+            source_hackday_event_id: null,
+            created_by_user_id: 'u-b',
+            visibility: 'org',
+            reuse_count: 2,
+            created_at: '2026-01-04T00:00:00.000Z',
+            updated_at: '2026-01-04T00:00:00.000Z',
+            archived_at: null,
+          },
+        ];
+      }
       if (table === 'ArtifactReuse') return [];
-      if (table === 'Problem') return [];
+      if (table === 'Problem') {
+        return [
+          {
+            id: 'pr-a',
+            title: 'Problem A',
+            description: '',
+            frequency: 'weekly',
+            estimated_time_wasted_hours: 0,
+            team: 'alpha',
+            domain: 'ops',
+            contact_details: '',
+            status: 'solved',
+            moderation_state: 'visible',
+            vote_count: 0,
+            flag_count: 0,
+            created_by_user_id: 'u-e',
+            claimed_by_user_id: 'u-a',
+            linked_hack_project_id: 'p-a1',
+            linked_artifact_id: null,
+            auto_hidden_at: null,
+            hidden_at: null,
+            closed_at: null,
+            created_at: '2026-01-08T00:00:00.000Z',
+            updated_at: '2026-01-08T00:00:00.000Z',
+          },
+          {
+            id: 'pr-b',
+            title: 'Problem B',
+            description: '',
+            frequency: 'weekly',
+            estimated_time_wasted_hours: 0,
+            team: 'beta',
+            domain: 'ops',
+            contact_details: '',
+            status: 'solved',
+            moderation_state: 'visible',
+            vote_count: 0,
+            flag_count: 0,
+            created_by_user_id: 'u-e',
+            claimed_by_user_id: 'u-b',
+            linked_hack_project_id: 'p-b1',
+            linked_artifact_id: null,
+            auto_hidden_at: null,
+            hidden_at: null,
+            closed_at: null,
+            created_at: '2026-01-09T00:00:00.000Z',
+            updated_at: '2026-01-09T00:00:00.000Z',
+          },
+          {
+            id: 'pr-c',
+            title: 'Problem C',
+            description: '',
+            frequency: 'weekly',
+            estimated_time_wasted_hours: 0,
+            team: 'beta',
+            domain: 'ops',
+            contact_details: '',
+            status: 'open',
+            moderation_state: 'visible',
+            vote_count: 0,
+            flag_count: 0,
+            created_by_user_id: 'u-e',
+            claimed_by_user_id: null,
+            linked_hack_project_id: null,
+            linked_artifact_id: null,
+            auto_hidden_at: null,
+            hidden_at: null,
+            closed_at: null,
+            created_at: '2026-01-10T00:00:00.000Z',
+            updated_at: '2026-01-10T00:00:00.000Z',
+          },
+        ];
+      }
       if (table === 'Team') return [];
       if (table === 'TeamMember') return [];
       if (table === 'PathwayProgress') {
@@ -97,7 +223,71 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([]);
+    (repo as any).listProjects = vi.fn().mockResolvedValue([
+      {
+        id: 'p-a1',
+        title: 'Hack A1',
+        description: '',
+        status: 'completed',
+        hack_type: 'prompt',
+        visibility: 'org',
+        owner_id: 'u-a',
+        workflow_transformed: false,
+        ai_impact_hypothesis: null,
+        ai_tools_used: [],
+        time_saved_estimate: null,
+        failures_and_lessons: null,
+        source_type: 'hack_submission',
+        team_id: 'team-a',
+        synced_to_library_at: null,
+        event_id: null,
+        pipeline_stage: 'hack',
+        pipeline_stage_entered_at: '2026-01-05T00:00:00.000Z',
+        created_at: '2026-01-05T00:00:00.000Z',
+      },
+      {
+        id: 'p-a2',
+        title: 'Hack A2',
+        description: '',
+        status: 'completed',
+        hack_type: 'prompt',
+        visibility: 'org',
+        owner_id: 'u-a',
+        workflow_transformed: false,
+        ai_impact_hypothesis: null,
+        ai_tools_used: [],
+        time_saved_estimate: null,
+        failures_and_lessons: null,
+        source_type: 'hack_submission',
+        team_id: 'team-a',
+        synced_to_library_at: null,
+        event_id: null,
+        pipeline_stage: 'hack',
+        pipeline_stage_entered_at: '2026-01-06T00:00:00.000Z',
+        created_at: '2026-01-06T00:00:00.000Z',
+      },
+      {
+        id: 'p-b1',
+        title: 'Hack B1',
+        description: '',
+        status: 'completed',
+        hack_type: 'prompt',
+        visibility: 'org',
+        owner_id: 'u-b',
+        workflow_transformed: false,
+        ai_impact_hypothesis: null,
+        ai_tools_used: [],
+        time_saved_estimate: null,
+        failures_and_lessons: null,
+        source_type: 'hack_submission',
+        team_id: 'team-b',
+        synced_to_library_at: null,
+        event_id: null,
+        pipeline_stage: 'hack',
+        pipeline_stage_entered_at: '2026-01-07T00:00:00.000Z',
+        created_at: '2026-01-07T00:00:00.000Z',
+      },
+    ]);
     (repo as any).listAllEvents = vi.fn().mockResolvedValue([]);
 
     const result = await repo.getBootstrapData(viewer);
@@ -178,5 +368,30 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
         qualifiesPathwayContributor: true,
       },
     ]);
+    expect(result.recognition?.leaderboards.builders).toEqual([
+      { userId: 'u-a', userName: 'Alpha', count: 2, rank: 1 },
+      { userId: 'u-b', userName: 'Bravo', count: 1, rank: 2 },
+    ]);
+    expect(result.recognition?.leaderboards.sharers).toEqual([
+      { userId: 'u-a', userName: 'Alpha', count: 2, rank: 1 },
+      { userId: 'u-b', userName: 'Bravo', count: 1, rank: 2 },
+    ]);
+    expect(result.recognition?.leaderboards.solvers).toEqual([
+      { userId: 'u-a', userName: 'Alpha', count: 1, rank: 1 },
+      { userId: 'u-b', userName: 'Bravo', count: 1, rank: 2 },
+    ]);
+    expect(result.recognition?.leaderboards.mentors).toEqual([
+      { userId: 'u-b', userName: 'Bravo', count: 5, rank: 1 },
+      { userId: 'u-c', userName: 'Charlie', count: 5, rank: 2 },
+      { userId: 'u-a', userName: 'Alpha', count: 3, rank: 3 },
+      { userId: 'u-d', userName: 'Delta', count: 1, rank: 4 },
+    ]);
+    expect(result.recognition?.viewerBadges).toEqual({
+      firstArtifactPublished: true,
+      firstProblemSolved: true,
+      fiveArtifactsReused: true,
+      mentoredThreePeople: true,
+      contributedToPathway: true,
+    });
   });
 });
