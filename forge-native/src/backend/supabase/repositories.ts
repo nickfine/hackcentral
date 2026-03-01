@@ -994,6 +994,7 @@ export class SupabaseRepository {
     if (existingByEmail) return existingByEmail;
 
     return this.client.insert<DbUser>(USER_TABLE, {
+      id: randomUUID(),
       email,
       full_name: `Atlassian User ${viewer.accountId.slice(0, 8)}`,
       atlassian_account_id: viewer.accountId,
@@ -1011,6 +1012,7 @@ export class SupabaseRepository {
     if (existing) return existing;
 
     return this.client.insert<DbUser>(USER_TABLE, {
+      id: randomUUID(),
       email: normalizedEmail,
       full_name: buildDisplayNameFromEmail(normalizedEmail),
       atlassian_account_id: null,
