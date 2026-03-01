@@ -58,6 +58,17 @@ import type {
   ProblemListItem,
   ProblemModerationState,
   ProblemStatus,
+  PathwayListItem,
+  PathwayProgressSnapshot,
+  PathwayStep,
+  PathwayStepType,
+  ListPathwaysInput,
+  ListPathwaysResult,
+  GetPathwayResult,
+  UpsertPathwayInput,
+  UpsertPathwayResult,
+  SetPathwayStepCompletionInput,
+  SetPathwayStepCompletionResult,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -90,6 +101,9 @@ const PROBLEM_VOTE_TABLE = 'ProblemVote';
 const PROBLEM_FLAG_TABLE = 'ProblemFlag';
 const PROBLEM_STATUS_HISTORY_TABLE = 'ProblemStatusHistory';
 const PROBLEM_MODERATION_LOG_TABLE = 'ProblemModerationLog';
+const PATHWAY_TABLE = 'Pathway';
+const PATHWAY_STEP_TABLE = 'PathwayStep';
+const PATHWAY_PROGRESS_TABLE = 'PathwayProgress';
 const PIPELINE_STAGE_CRITERIA_TABLE = 'PipelineStageCriteria';
 const PIPELINE_TRANSITION_LOG_TABLE = 'PipelineTransitionLog';
 const SHOWCASE_HACK_TABLE = 'ShowcaseHack';
@@ -149,6 +163,53 @@ interface DbPipelineAdminLookup {
   id: string;
   role?: string | null;
   capability_tags?: string[] | null;
+}
+
+interface DbPathwayEditorLookup {
+  id: string;
+  role?: string | null;
+  capability_tags?: string[] | null;
+}
+
+interface DbPathway {
+  id: string;
+  title: string;
+  summary: string | null;
+  intro_text: string | null;
+  domain: string | null;
+  role: string | null;
+  tags: string[] | null;
+  published: boolean | null;
+  recommended: boolean | null;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface DbPathwayStep {
+  id: string;
+  pathway_id: string;
+  position: number | null;
+  step_type: PathwayStepType | null;
+  title: string;
+  description: string | null;
+  linked_hack_project_id: string | null;
+  linked_artifact_id: string | null;
+  external_url: string | null;
+  challenge_prompt: string | null;
+  is_optional: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface DbPathwayProgress {
+  id: string;
+  pathway_id: string;
+  step_id: string;
+  user_id: string;
+  completed_at: string | null;
+  created_at: string | null;
 }
 
 interface DbProject {
@@ -430,6 +491,10 @@ function isProblemStatus(value: unknown): value is ProblemStatus {
   return value === 'open' || value === 'claimed' || value === 'solved' || value === 'closed';
 }
 
+function isPathwayStepType(value: unknown): value is PathwayStepType {
+  return value === 'read' || value === 'try' || value === 'build';
+}
+
 function normalizeProblemModerationState(value: unknown): ProblemModerationState {
   if (value === 'hidden_pending_review' || value === 'removed') {
     return value;
@@ -588,6 +653,10 @@ function createShowcaseValidationError(message: string): Error {
   return new Error(`[SHOWCASE_VALIDATION_FAILED] ${message}`);
 }
 
+function createPathwayValidationError(message: string): Error {
+  return new Error(`[PATHWAY_VALIDATION_FAILED] ${message}`);
+}
+
 function logProblemExchangeTelemetry(
   metric: string,
   payload: Record<string, unknown>
@@ -666,6 +735,61 @@ function createProblemImportCandidate(row: DbProblem, createdByName: string): Pr
     domain: row.domain,
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
     createdByName,
+  };
+}
+
+function createPathwayStep(row: DbPathwayStep): PathwayStep {
+  const position = Number.isFinite(row.position) ? Math.max(1, Number(row.position)) : 1;
+  return {
+    stepId: row.id,
+    position,
+    type: isPathwayStepType(row.step_type) ? row.step_type : 'read',
+    title: row.title,
+    description: row.description ?? '',
+    linkedHackProjectId: row.linked_hack_project_id ?? undefined,
+    linkedArtifactId: row.linked_artifact_id ?? undefined,
+    externalUrl: row.external_url ?? undefined,
+    challengePrompt: row.challenge_prompt ?? undefined,
+    isOptional: row.is_optional === true,
+  };
+}
+
+function createPathwayProgressSnapshot(steps: PathwayStep[], completions: DbPathwayProgress[]): PathwayProgressSnapshot {
+  const completedSet = new Set(completions.map((row) => row.step_id));
+  const completedStepIds = steps
+    .map((step) => step.stepId)
+    .filter((stepId) => completedSet.has(stepId));
+  const totalSteps = steps.length;
+  const completedSteps = completedStepIds.length;
+  const completionPercent = totalSteps === 0 ? 0 : Math.round((completedSteps / totalSteps) * 100);
+  return {
+    completedStepIds,
+    completedSteps,
+    totalSteps,
+    completionPercent,
+  };
+}
+
+function createPathwayListItem(
+  row: DbPathway,
+  steps: PathwayStep[],
+  updatedByName: string,
+  progress: PathwayProgressSnapshot
+): PathwayListItem {
+  return {
+    pathwayId: row.id,
+    title: row.title,
+    summary: row.summary ?? '',
+    introText: row.intro_text ?? '',
+    domain: row.domain ?? null,
+    role: row.role ?? null,
+    tags: row.tags ?? [],
+    stepCount: steps.length,
+    published: row.published !== false,
+    recommended: row.recommended === true,
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+    updatedByName,
+    progress,
   };
 }
 
@@ -1652,6 +1776,45 @@ export class SupabaseRepository {
     }
   }
 
+  async canUserManagePathways(viewer: ViewerContext): Promise<boolean> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      return false;
+    }
+
+    try {
+      const row = await this.client.selectOne<DbPathwayEditorLookup>(
+        USER_TABLE,
+        'id,role,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+      if (!row) return false;
+
+      const normalizedRole = typeof row.role === 'string' ? row.role.trim().toUpperCase() : '';
+      if (normalizedRole === 'ADMIN') {
+        return true;
+      }
+
+      const tags = Array.isArray(row.capability_tags)
+        ? row.capability_tags
+            .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+            .filter(Boolean)
+        : [];
+
+      return tags.includes('pathway_admin') || tags.includes('pathway_contributor') || tags.includes('platform_admin');
+    } catch (error) {
+      if (hasMissingUserRoleColumn(error)) {
+        const fallbackUser = await this.getUserByAccountId(accountId);
+        if (!fallbackUser) return false;
+        const tags = (fallbackUser.capability_tags ?? [])
+          .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+          .filter(Boolean);
+        return tags.includes('pathway_admin') || tags.includes('pathway_contributor') || tags.includes('platform_admin');
+      }
+      throw error;
+    }
+  }
+
   async ensureUser(viewer: ViewerContext, explicitEmail?: string): Promise<DbUser> {
     const existing = await this.getUserByAccountId(viewer.accountId);
     if (existing) return existing;
@@ -2566,6 +2729,426 @@ export class SupabaseRepository {
       if (hasMissingTable(error, PROBLEM_TABLE)) {
         throw new Error(
           `Missing required table ${PROBLEM_TABLE}. Apply the phase 1 problem exchange migration before calling hdcListProblemImportCandidates.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listPathways(
+    viewer: ViewerContext,
+    input: ListPathwaysInput = {}
+  ): Promise<ListPathwaysResult> {
+    const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
+    const query = input.query?.trim().toLowerCase() ?? '';
+    const domainFilter = input.domain?.trim().toLowerCase() ?? '';
+    const roleFilter = input.role?.trim().toLowerCase() ?? '';
+    const requestedTags = normalizeArtifactTags(input.tags ?? []);
+    const recommendedOnly = input.recommendedOnly === true;
+    const publishedOnly = input.publishedOnly !== false;
+
+    try {
+      const canManage = await this.canUserManagePathways(viewer);
+      const accountId = viewer.accountId?.trim();
+      const viewerUser =
+        accountId && accountId !== 'unknown-atlassian-account' ? await this.getUserByAccountId(accountId) : null;
+
+      const [pathways, stepRows, users, progressRows] = await Promise.all([
+        this.client.selectMany<DbPathway>(
+          PATHWAY_TABLE,
+          'id,title,summary,intro_text,domain,role,tags,published,recommended,created_by_user_id,updated_by_user_id,created_at,updated_at'
+        ),
+        this.client.selectMany<DbPathwayStep>(
+          PATHWAY_STEP_TABLE,
+          'id,pathway_id,position,step_type,title,description,linked_hack_project_id,linked_artifact_id,external_url,challenge_prompt,is_optional,created_at,updated_at'
+        ),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+        viewerUser
+          ? this.client.selectMany<DbPathwayProgress>(
+              PATHWAY_PROGRESS_TABLE,
+              'id,pathway_id,step_id,user_id,completed_at,created_at',
+              [{ field: 'user_id', op: 'eq', value: viewerUser.id }]
+            )
+          : Promise.resolve([] as DbPathwayProgress[]),
+      ]);
+
+      const preferredDomains = new Set<string>();
+      const preferredRoles = new Set<string>();
+      for (const tag of viewerUser?.capability_tags ?? []) {
+        const normalized = String(tag || '').trim().toLowerCase();
+        if (normalized.startsWith('domain:')) {
+          preferredDomains.add(normalized.slice('domain:'.length).trim());
+        }
+        if (normalized.startsWith('role:')) {
+          preferredRoles.add(normalized.slice('role:'.length).trim());
+        }
+      }
+
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+      const progressByPathwayId = new Map<string, DbPathwayProgress[]>();
+      for (const row of progressRows) {
+        const list = progressByPathwayId.get(row.pathway_id) ?? [];
+        list.push(row);
+        progressByPathwayId.set(row.pathway_id, list);
+      }
+
+      const stepsByPathwayId = new Map<string, PathwayStep[]>();
+      for (const row of stepRows) {
+        const list = stepsByPathwayId.get(row.pathway_id) ?? [];
+        list.push(createPathwayStep(row));
+        stepsByPathwayId.set(row.pathway_id, list);
+      }
+      for (const [pathwayId, steps] of stepsByPathwayId.entries()) {
+        steps.sort((a, b) => a.position - b.position);
+        stepsByPathwayId.set(pathwayId, steps);
+      }
+
+      const items = pathways
+        .filter((row) => (publishedOnly && !canManage ? row.published === true : true))
+        .filter((row) => (publishedOnly && canManage ? row.published !== false : true))
+        .filter((row) => (recommendedOnly ? row.recommended === true : true))
+        .filter((row) => (domainFilter ? (row.domain ?? '').trim().toLowerCase() === domainFilter : true))
+        .filter((row) => (roleFilter ? (row.role ?? '').trim().toLowerCase() === roleFilter : true))
+        .filter((row) => {
+          if (requestedTags.length === 0) return true;
+          const rowTags = new Set((row.tags ?? []).map((tag) => String(tag).trim().toLowerCase()));
+          return requestedTags.every((tag) => rowTags.has(tag));
+        })
+        .filter((row) => {
+          if (!query) return true;
+          const haystack = [
+            row.title,
+            row.summary ?? '',
+            row.intro_text ?? '',
+            ...(row.tags ?? []),
+            row.domain ?? '',
+            row.role ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(query);
+        })
+        .map((row) => {
+          const steps = stepsByPathwayId.get(row.id) ?? [];
+          const progress = createPathwayProgressSnapshot(steps, progressByPathwayId.get(row.id) ?? []);
+          const item = createPathwayListItem(
+            row,
+            steps,
+            userNameById.get(row.updated_by_user_id ?? row.created_by_user_id ?? '') ?? 'Unknown',
+            progress
+          );
+          const normalizedDomain = (item.domain ?? '').trim().toLowerCase();
+          const normalizedRole = (item.role ?? '').trim().toLowerCase();
+          let rankScore = 0;
+          if (item.recommended) rankScore += 1;
+          if (query && item.title.toLowerCase().includes(query)) rankScore += 3;
+          if (query && item.summary.toLowerCase().includes(query)) rankScore += 1;
+          if (normalizedDomain && preferredDomains.has(normalizedDomain)) rankScore += 4;
+          if (normalizedRole && preferredRoles.has(normalizedRole)) rankScore += 4;
+          return { item, rankScore };
+        })
+        .sort((a, b) => {
+          if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+          return b.item.updatedAt.localeCompare(a.item.updatedAt);
+        })
+        .slice(0, limit)
+        .map((row) => row.item);
+
+      return {
+        items,
+        canManage,
+      };
+    } catch (error) {
+      if (
+        hasMissingTable(error, PATHWAY_TABLE) ||
+        hasMissingTable(error, PATHWAY_STEP_TABLE) ||
+        hasMissingTable(error, PATHWAY_PROGRESS_TABLE)
+      ) {
+        throw new Error(
+          `Missing required pathways tables (${PATHWAY_TABLE}/${PATHWAY_STEP_TABLE}/${PATHWAY_PROGRESS_TABLE}). Apply the phase 2 pathways migration before calling pathway resolvers.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async getPathway(viewer: ViewerContext, pathwayId: string): Promise<GetPathwayResult> {
+    const normalizedPathwayId = pathwayId.trim();
+    if (!normalizedPathwayId) {
+      throw createPathwayValidationError('pathwayId is required.');
+    }
+
+    try {
+      const canManage = await this.canUserManagePathways(viewer);
+      const accountId = viewer.accountId?.trim();
+      const viewerUser =
+        accountId && accountId !== 'unknown-atlassian-account' ? await this.getUserByAccountId(accountId) : null;
+
+      const [row, stepRows, users, progressRows] = await Promise.all([
+        this.client.selectOne<DbPathway>(
+          PATHWAY_TABLE,
+          'id,title,summary,intro_text,domain,role,tags,published,recommended,created_by_user_id,updated_by_user_id,created_at,updated_at',
+          [{ field: 'id', op: 'eq', value: normalizedPathwayId }]
+        ),
+        this.client.selectMany<DbPathwayStep>(
+          PATHWAY_STEP_TABLE,
+          'id,pathway_id,position,step_type,title,description,linked_hack_project_id,linked_artifact_id,external_url,challenge_prompt,is_optional,created_at,updated_at',
+          [{ field: 'pathway_id', op: 'eq', value: normalizedPathwayId }]
+        ),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+        viewerUser
+          ? this.client.selectMany<DbPathwayProgress>(
+              PATHWAY_PROGRESS_TABLE,
+              'id,pathway_id,step_id,user_id,completed_at,created_at',
+              [
+                { field: 'pathway_id', op: 'eq', value: normalizedPathwayId },
+                { field: 'user_id', op: 'eq', value: viewerUser.id },
+              ]
+            )
+          : Promise.resolve([] as DbPathwayProgress[]),
+      ]);
+
+      if (!row || (!canManage && row.published !== true)) {
+        throw new Error('[PATHWAY_NOT_FOUND] Pathway not found.');
+      }
+
+      const steps = stepRows.map((step) => createPathwayStep(step)).sort((a, b) => a.position - b.position);
+      const progress = createPathwayProgressSnapshot(steps, progressRows);
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+
+      return {
+        pathway: createPathwayListItem(
+          row,
+          steps,
+          userNameById.get(row.updated_by_user_id ?? row.created_by_user_id ?? '') ?? 'Unknown',
+          progress
+        ),
+        steps,
+        canManage,
+      };
+    } catch (error) {
+      if (
+        hasMissingTable(error, PATHWAY_TABLE) ||
+        hasMissingTable(error, PATHWAY_STEP_TABLE) ||
+        hasMissingTable(error, PATHWAY_PROGRESS_TABLE)
+      ) {
+        throw new Error(
+          `Missing required pathways tables (${PATHWAY_TABLE}/${PATHWAY_STEP_TABLE}/${PATHWAY_PROGRESS_TABLE}). Apply the phase 2 pathways migration before calling pathway resolvers.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async upsertPathway(viewer: ViewerContext, input: UpsertPathwayInput): Promise<UpsertPathwayResult> {
+    const canManage = await this.canUserManagePathways(viewer);
+    if (!canManage) {
+      throw new Error(
+        `[PATHWAY_FORBIDDEN] Pathway editor access required via org admin role/capability tags. accountId=${viewer.accountId}`
+      );
+    }
+
+    const title = input.title?.trim();
+    if (!title || title.length < 3) {
+      throw createPathwayValidationError('title must be at least 3 characters.');
+    }
+
+    const stepsInput = Array.isArray(input.steps) ? input.steps : [];
+    if (stepsInput.length === 0) {
+      throw createPathwayValidationError('at least one pathway step is required.');
+    }
+    if (stepsInput.length > 50) {
+      throw createPathwayValidationError('no more than 50 steps are allowed.');
+    }
+
+    const normalizedPathwayId = input.pathwayId?.trim() || randomUUID();
+    const user = await this.ensureUser(viewer);
+    const now = nowIso();
+
+    const normalizedSteps = stepsInput.map((step, index) => {
+      const type = isPathwayStepType(step.type) ? step.type : null;
+      if (!type) {
+        throw createPathwayValidationError(`step ${index + 1}: type must be read, try, or build.`);
+      }
+      const stepTitle = step.title?.trim();
+      if (!stepTitle || stepTitle.length < 3) {
+        throw createPathwayValidationError(`step ${index + 1}: title must be at least 3 characters.`);
+      }
+      const externalUrl = step.externalUrl?.trim();
+      if (externalUrl && !/^https?:\/\//i.test(externalUrl)) {
+        throw createPathwayValidationError(`step ${index + 1}: externalUrl must be a valid http(s) URL.`);
+      }
+      return {
+        id: randomUUID(),
+        pathway_id: normalizedPathwayId,
+        position: index + 1,
+        step_type: type,
+        title: stepTitle,
+        description: step.description?.trim() || '',
+        linked_hack_project_id: step.linkedHackProjectId?.trim() || null,
+        linked_artifact_id: step.linkedArtifactId?.trim() || null,
+        external_url: externalUrl || null,
+        challenge_prompt: step.challengePrompt?.trim() || null,
+        is_optional: step.isOptional === true,
+        created_at: now,
+        updated_at: now,
+      };
+    });
+
+    try {
+      const existing =
+        input.pathwayId?.trim()
+          ? await this.client.selectOne<DbPathway>(
+              PATHWAY_TABLE,
+              'id,created_by_user_id,created_at',
+              [{ field: 'id', op: 'eq', value: normalizedPathwayId }]
+            )
+          : null;
+
+      await this.client.upsert<DbPathway>(
+        PATHWAY_TABLE,
+        {
+          id: normalizedPathwayId,
+          title,
+          summary: input.summary?.trim() || '',
+          intro_text: input.introText?.trim() || '',
+          domain: input.domain?.trim() || null,
+          role: input.role?.trim() || null,
+          tags: normalizeArtifactTags(input.tags ?? []),
+          published: input.published === true,
+          recommended: input.recommended === true,
+          created_by_user_id: existing?.created_by_user_id ?? user.id,
+          updated_by_user_id: user.id,
+          created_at: existing?.created_at ?? now,
+          updated_at: now,
+        },
+        'id'
+      );
+
+      await this.client.deleteMany(PATHWAY_STEP_TABLE, [{ field: 'pathway_id', op: 'eq', value: normalizedPathwayId }]);
+      await this.client.insertMany(PATHWAY_STEP_TABLE, normalizedSteps);
+
+      const result = await this.getPathway(viewer, normalizedPathwayId);
+      return {
+        pathway: result.pathway,
+        steps: result.steps,
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PATHWAY_TABLE) || hasMissingTable(error, PATHWAY_STEP_TABLE)) {
+        throw new Error(
+          `Missing required pathways tables (${PATHWAY_TABLE}/${PATHWAY_STEP_TABLE}). Apply the phase 2 pathways migration before calling hdcUpsertPathway.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async setPathwayStepCompletion(
+    viewer: ViewerContext,
+    input: SetPathwayStepCompletionInput
+  ): Promise<SetPathwayStepCompletionResult> {
+    const pathwayId = input.pathwayId?.trim();
+    const stepId = input.stepId?.trim();
+    if (!pathwayId) {
+      throw createPathwayValidationError('pathwayId is required.');
+    }
+    if (!stepId) {
+      throw createPathwayValidationError('stepId is required.');
+    }
+
+    const user = await this.ensureUser(viewer);
+    const canManage = await this.canUserManagePathways(viewer);
+
+    try {
+      const pathway = await this.client.selectOne<DbPathway>(
+        PATHWAY_TABLE,
+        'id,published',
+        [{ field: 'id', op: 'eq', value: pathwayId }]
+      );
+      if (!pathway || (!canManage && pathway.published !== true)) {
+        throw new Error('[PATHWAY_NOT_FOUND] Pathway not found.');
+      }
+
+      const step = await this.client.selectOne<DbPathwayStep>(
+        PATHWAY_STEP_TABLE,
+        'id,pathway_id,position,step_type,title,description,linked_hack_project_id,linked_artifact_id,external_url,challenge_prompt,is_optional,created_at,updated_at',
+        [
+          { field: 'id', op: 'eq', value: stepId },
+          { field: 'pathway_id', op: 'eq', value: pathwayId },
+        ]
+      );
+      if (!step) {
+        throw new Error('[PATHWAY_STEP_NOT_FOUND] Step not found for pathway.');
+      }
+
+      const existingProgress = await this.client.selectOne<DbPathwayProgress>(
+        PATHWAY_PROGRESS_TABLE,
+        'id,pathway_id,step_id,user_id,completed_at,created_at',
+        [
+          { field: 'pathway_id', op: 'eq', value: pathwayId },
+          { field: 'step_id', op: 'eq', value: stepId },
+          { field: 'user_id', op: 'eq', value: user.id },
+        ]
+      );
+
+      const completedAt = input.completed ? nowIso() : null;
+      if (input.completed) {
+        if (existingProgress) {
+          await this.client.patchMany(
+            PATHWAY_PROGRESS_TABLE,
+            { completed_at: completedAt },
+            [{ field: 'id', op: 'eq', value: existingProgress.id }]
+          );
+        } else {
+          await this.client.insert(PATHWAY_PROGRESS_TABLE, {
+            id: randomUUID(),
+            pathway_id: pathwayId,
+            step_id: stepId,
+            user_id: user.id,
+            completed_at: completedAt,
+            created_at: completedAt,
+          });
+        }
+      } else if (existingProgress) {
+        await this.client.deleteMany(PATHWAY_PROGRESS_TABLE, [{ field: 'id', op: 'eq', value: existingProgress.id }]);
+      }
+
+      const [allSteps, allProgress] = await Promise.all([
+        this.client.selectMany<DbPathwayStep>(
+          PATHWAY_STEP_TABLE,
+          'id,pathway_id,position,step_type,title,description,linked_hack_project_id,linked_artifact_id,external_url,challenge_prompt,is_optional,created_at,updated_at',
+          [{ field: 'pathway_id', op: 'eq', value: pathwayId }]
+        ),
+        this.client.selectMany<DbPathwayProgress>(
+          PATHWAY_PROGRESS_TABLE,
+          'id,pathway_id,step_id,user_id,completed_at,created_at',
+          [
+            { field: 'pathway_id', op: 'eq', value: pathwayId },
+            { field: 'user_id', op: 'eq', value: user.id },
+          ]
+        ),
+      ]);
+
+      const progress = createPathwayProgressSnapshot(
+        allSteps.map((row) => createPathwayStep(row)).sort((a, b) => a.position - b.position),
+        allProgress
+      );
+
+      return {
+        pathwayId,
+        stepId,
+        completed: input.completed,
+        completedAt,
+        progress,
+      };
+    } catch (error) {
+      if (
+        hasMissingTable(error, PATHWAY_TABLE) ||
+        hasMissingTable(error, PATHWAY_STEP_TABLE) ||
+        hasMissingTable(error, PATHWAY_PROGRESS_TABLE)
+      ) {
+        throw new Error(
+          `Missing required pathways tables (${PATHWAY_TABLE}/${PATHWAY_STEP_TABLE}/${PATHWAY_PROGRESS_TABLE}). Apply the phase 2 pathways migration before calling pathway progress APIs.`
         );
       }
       throw error;

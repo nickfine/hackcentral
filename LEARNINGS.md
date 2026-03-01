@@ -1447,3 +1447,75 @@ Use this template at the end of every work session:
 - Candidate threshold behavior is functioning as designed: step-6 import list defaults to vote threshold `>=3`; a candidate at vote `1` does not appear until vote count is raised.
 - Supabase REST table names are case-sensitive in this schema (`Problem`, `HackdayTemplateSeed`), not snake_case aliases.
 - In this environment, Supabase MCP admin calls remain unavailable; CLI + service-role fallback is still required for live admin verification steps.
+
+## Session Update - P2.PATH.01 Backend Baseline (Mar 1, 2026 13:17 GMT)
+
+### Completed
+
+- Started `P2.PATH.01` (`R6.1`-`R6.4`) with the first backend contract slice.
+- Added pathways schema migration:
+  - `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`
+  - tables: `Pathway`, `PathwayStep`, `PathwayProgress`
+  - step type enum: `read|try|build`
+  - unique progress key: `(pathway_id, step_id, user_id)`
+- Added shared/frontend contracts for pathways and progress:
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+- Added resolver and backend wiring:
+  - `hdcListPathways`
+  - `hdcGetPathway`
+  - `hdcUpsertPathway`
+  - `hdcSetPathwayStepCompletion`
+  - files: `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`
+- Added pathway editor authorization gate:
+  - `ADMIN` role OR capability tags `pathway_admin` / `pathway_contributor` / `platform_admin`
+- Locked this phase contract in:
+  - `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`
+
+### Validation Evidence
+
+- Tests:
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts`
+  - result: `5/5` passing
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Canonical `R6.1`-`R6.4` pathway requirements are present in `/Users/nickster/Downloads/HackCentral/HDC-PRODUCT-ROADMAP.md`; this child worktree does not include that roadmap file by default, so requirement mapping must explicitly reference the canonical root workspace copy.
+- Keeping pathway progress writes idempotent at `(pathway_id, step_id, user_id)` avoids duplicate completion records and simplifies progress recalculation.
+- Adding unsupported-backend errors (`[PATHWAYS_UNSUPPORTED_BACKEND]`) keeps runtime-mode behavior consistent with other module contracts and prevents silent convex fallbacks for Supabase-only features.
+
+## Session Update - P2.PATH.01 Guide UI + Manager Editor + Local Smoke (Mar 1, 2026 13:32 GMT)
+
+### Completed
+
+- Advanced `P2.PATH.01` Guide UI implementation in `forge-native/static/frontend/src/App.tsx`:
+  - replaced static Guide content with pathway list/detail contract rendering
+  - wired per-step completion toggles to `hdcSetPathwayStepCompletion`
+  - added manager-gated pathway editor (create + edit) with ordered step drafting and `hdcUpsertPathway` save path
+- Added Guide pathway layout and editor styles in `forge-native/static/frontend/src/styles.css`.
+- Fixed smoke-discovered preview consistency defects:
+  - preview list filtering now clears selected pathway when no results exist
+  - detail pane now clears when no pathway is selected (prevents stale detail render)
+- Captured local browser smoke evidence:
+  - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
+
+### Validation Evidence
+
+- Typechecks:
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix forge-native run typecheck` (pass)
+- Targeted tests:
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts`
+  - result: `5/5` passing
+- Browser smoke (local preview via DevTools MCP on `http://127.0.0.1:4173/`):
+  - Guide route opens
+  - step completion updates list/detail progress (`0/4` -> `1/4`, `25%`)
+  - empty filter result shows "No pathways matched your filters." and now clears detail to "Select a pathway to view details."
+
+### Operational Learnings
+
+- Local preview path always reports `canManage=false`, so manager-only controls (`Create pathway`, `Edit pathway`) require live manager authority validation in production runtime.
+- Dev server in this child workspace may log non-blocking Vite `server.fs.allow` warnings for font assets resolved through the parent workspace `node_modules`; this does not affect functional Guide-pathway smoke outcomes.

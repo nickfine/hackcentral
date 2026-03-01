@@ -14,10 +14,15 @@ import type {
   EventDuration,
   FlagProblemInput,
   FeaturedHack,
+  GetPathwayResult,
   GetShowcaseHackDetailResult,
   GetArtifactResult,
   LifecycleStatus,
+  ListPathwaysInput,
   MovePipelineItemInput,
+  PathwayListItem,
+  PathwayStep,
+  PathwayStepType,
   ListProblemImportCandidatesInput,
   PersonSnapshot,
   PipelineBoardItem,
@@ -32,6 +37,8 @@ import type {
   ScheduleEventType,
   ShowcaseHackListItem,
   ThemePreference,
+  UpsertPathwayInput,
+  UpsertPathwayStepInput,
   UpdatePipelineStageCriteriaInput,
   UpdateProblemStatusInput,
   UpdateMentorProfileInput,
@@ -103,6 +110,26 @@ const CHILD_IMPORT_MIN_VOTES_DEFAULT = 3;
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
+const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
+  { value: 'read', label: 'Read' },
+  { value: 'try', label: 'Try' },
+  { value: 'build', label: 'Build' },
+];
+
+type PathwayEditorMode = 'create' | 'edit';
+
+type PathwayStepDraft = {
+  localId: string;
+  stepId?: string;
+  type: PathwayStepType;
+  title: string;
+  description: string;
+  linkedHackProjectId: string;
+  linkedArtifactId: string;
+  externalUrl: string;
+  challengePrompt: string;
+  isOptional: boolean;
+};
 
 type RuntimeConfigErrorLike = {
   code?: unknown;
@@ -1013,6 +1040,116 @@ function mapProblemListItemToImportCandidate(problem: ProblemListItem): ProblemI
   };
 }
 
+function buildPreviewPathwayListItem(): PathwayListItem {
+  const now = new Date().toISOString();
+  return {
+    pathwayId: 'preview-pathway-ai-101',
+    title: 'AI 101 Micro-Pathway',
+    summary: 'Start with foundational concepts, then reuse and build.',
+    introText: 'Learn what AI hacks are, try one, then build your own contribution.',
+    domain: 'General',
+    role: 'All',
+    tags: ['onboarding', 'starter'],
+    stepCount: 4,
+    published: true,
+    recommended: true,
+    updatedAt: now,
+    updatedByName: 'HackCentral',
+    progress: {
+      completedStepIds: [],
+      completedSteps: 0,
+      totalSteps: 4,
+      completionPercent: 0,
+    },
+  };
+}
+
+function buildPreviewPathwayDetail(completedStepIds: string[] = []): GetPathwayResult {
+  const listItem = buildPreviewPathwayListItem();
+  const steps: PathwayStep[] = [
+    {
+      stepId: 'preview-step-1',
+      position: 1,
+      type: 'read',
+      title: 'Understand what an AI hack is',
+      description: 'Read the quick definitions and examples of prompts, skills, and apps.',
+      isOptional: false,
+    },
+    {
+      stepId: 'preview-step-2',
+      position: 2,
+      type: 'try',
+      title: 'Reuse a featured hack',
+      description: 'Open Completed Hacks and record one reuse with “I used this”.',
+      isOptional: false,
+    },
+    {
+      stepId: 'preview-step-3',
+      position: 3,
+      type: 'build',
+      title: 'Submit your first hack',
+      description: 'Publish a prompt, skill, or app with context and limitations.',
+      isOptional: false,
+    },
+    {
+      stepId: 'preview-step-4',
+      position: 4,
+      type: 'build',
+      title: 'Link it to a project',
+      description: 'Attach your hack to an in-progress project so impact is visible.',
+      isOptional: true,
+    },
+  ];
+  const completedSet = new Set(completedStepIds);
+  const completedSteps = steps.filter((step) => completedSet.has(step.stepId)).length;
+  const totalSteps = steps.length;
+  const completionPercent = Math.round((completedSteps / totalSteps) * 100);
+  return {
+    pathway: {
+      ...listItem,
+      progress: {
+        completedStepIds: steps.map((step) => step.stepId).filter((stepId) => completedSet.has(stepId)),
+        completedSteps,
+        totalSteps,
+        completionPercent,
+      },
+    },
+    steps,
+    canManage: false,
+  };
+}
+
+function createPathwayStepDraft(step?: PathwayStep): PathwayStepDraft {
+  const localId = step?.stepId || `pathway-step-${crypto.randomUUID()}`;
+  return {
+    localId,
+    stepId: step?.stepId,
+    type: step?.type ?? 'read',
+    title: step?.title ?? '',
+    description: step?.description ?? '',
+    linkedHackProjectId: step?.linkedHackProjectId ?? '',
+    linkedArtifactId: step?.linkedArtifactId ?? '',
+    externalUrl: step?.externalUrl ?? '',
+    challengePrompt: step?.challengePrompt ?? '',
+    isOptional: step?.isOptional ?? false,
+  };
+}
+
+function createDefaultPathwayStepDraft(): PathwayStepDraft {
+  return createPathwayStepDraft({
+    stepId: `draft-${crypto.randomUUID()}`,
+    position: 1,
+    type: 'read',
+    title: '',
+    description: '',
+    isOptional: false,
+  });
+}
+
+function isValidHttpUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
   const { total, nonNavigable, withMissingPageId } = summarizeSwitcherNavigability(registry);
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
@@ -1149,6 +1286,35 @@ export function App(): JSX.Element {
     product_candidate: PIPELINE_STAGE_DEFINITIONS[3].criteria.join('\n'),
   });
   const [pipelineCriteriaSavePendingStage, setPipelineCriteriaSavePendingStage] = useState<PipelineStage | null>(null);
+
+  const [pathwayQueryInput, setPathwayQueryInput] = useState('');
+  const [pathwayDomainInput, setPathwayDomainInput] = useState('');
+  const [pathwayRoleInput, setPathwayRoleInput] = useState('');
+  const [pathwayRecommendedOnly, setPathwayRecommendedOnly] = useState(false);
+  const [pathwayAppliedFilters, setPathwayAppliedFilters] = useState<ListPathwaysInput>({});
+  const [pathwayItems, setPathwayItems] = useState<PathwayListItem[]>([]);
+  const [pathwayCanManage, setPathwayCanManage] = useState(false);
+  const [pathwayLoading, setPathwayLoading] = useState(false);
+  const [pathwayLoaded, setPathwayLoaded] = useState(false);
+  const [pathwayError, setPathwayError] = useState('');
+  const [pathwaySelectedId, setPathwaySelectedId] = useState<string | null>(null);
+  const [pathwayDetail, setPathwayDetail] = useState<GetPathwayResult | null>(null);
+  const [pathwayDetailLoading, setPathwayDetailLoading] = useState(false);
+  const [pathwayDetailError, setPathwayDetailError] = useState('');
+  const [pathwayStepPendingId, setPathwayStepPendingId] = useState<string | null>(null);
+  const [pathwayEditorOpen, setPathwayEditorOpen] = useState(false);
+  const [pathwayEditorMode, setPathwayEditorMode] = useState<PathwayEditorMode>('create');
+  const [pathwayEditorPathwayId, setPathwayEditorPathwayId] = useState<string | null>(null);
+  const [pathwayEditorTitle, setPathwayEditorTitle] = useState('');
+  const [pathwayEditorSummary, setPathwayEditorSummary] = useState('');
+  const [pathwayEditorIntroText, setPathwayEditorIntroText] = useState('');
+  const [pathwayEditorDomain, setPathwayEditorDomain] = useState('');
+  const [pathwayEditorRole, setPathwayEditorRole] = useState('');
+  const [pathwayEditorTagsInput, setPathwayEditorTagsInput] = useState('');
+  const [pathwayEditorPublished, setPathwayEditorPublished] = useState(true);
+  const [pathwayEditorRecommended, setPathwayEditorRecommended] = useState(false);
+  const [pathwayEditorSteps, setPathwayEditorSteps] = useState<PathwayStepDraft[]>([createDefaultPathwayStepDraft()]);
+  const [pathwayEditorSaving, setPathwayEditorSaving] = useState(false);
 
   const [teamSearch, setTeamSearch] = useState('');
   const [teamExperienceFilter, setTeamExperienceFilter] = useState('all');
@@ -1549,6 +1715,307 @@ export function App(): JSX.Element {
       previewMode,
     ]
   );
+
+  const loadPathways = useCallback(
+    async (filters: ListPathwaysInput) => {
+      setPathwayLoading(true);
+      setPathwayError('');
+      try {
+        if (previewMode) {
+          const previewItem = buildPreviewPathwayListItem();
+          const matchesQuery = (filters.query ?? '').trim()
+            ? `${previewItem.title} ${previewItem.summary}`.toLowerCase().includes((filters.query ?? '').trim().toLowerCase())
+            : true;
+          const matchesDomain = filters.domain ? (previewItem.domain ?? '').toLowerCase() === filters.domain.toLowerCase() : true;
+          const matchesRole = filters.role ? (previewItem.role ?? '').toLowerCase() === filters.role.toLowerCase() : true;
+          const include = (!filters.recommendedOnly || previewItem.recommended) && matchesQuery && matchesDomain && matchesRole;
+          const nextItems = include ? [previewItem] : [];
+          setPathwayItems(nextItems);
+          setPathwayCanManage(false);
+          setPathwayLoaded(true);
+          setPathwaySelectedId((current) => {
+            if (nextItems.length === 0) return null;
+            if (!current) return nextItems[0]?.pathwayId ?? null;
+            return nextItems.some((item) => item.pathwayId === current) ? current : (nextItems[0]?.pathwayId ?? null);
+          });
+          return;
+        }
+
+        const result = await invokeTyped('hdcListPathways', {
+          ...filters,
+          limit: 50,
+        });
+        setPathwayItems(result.items);
+        setPathwayCanManage(result.canManage);
+        setPathwayLoaded(true);
+        setPathwaySelectedId((current) => {
+          if (!current) return result.items[0]?.pathwayId ?? null;
+          return result.items.some((item) => item.pathwayId === current) ? current : (result.items[0]?.pathwayId ?? null);
+        });
+      } catch (error) {
+        setPathwayError(error instanceof Error ? error.message : 'Failed to load pathways.');
+      } finally {
+        setPathwayLoading(false);
+      }
+    },
+    [previewMode]
+  );
+
+  const applyPathwayFilters = useCallback(() => {
+    const nextFilters: ListPathwaysInput = {
+      query: pathwayQueryInput.trim() || undefined,
+      domain: pathwayDomainInput.trim() || undefined,
+      role: pathwayRoleInput.trim() || undefined,
+      recommendedOnly: pathwayRecommendedOnly || undefined,
+      publishedOnly: true,
+    };
+    setPathwayAppliedFilters(nextFilters);
+  }, [pathwayDomainInput, pathwayQueryInput, pathwayRecommendedOnly, pathwayRoleInput]);
+
+  useEffect(() => {
+    if (view !== 'guide') return;
+    void loadPathways(pathwayAppliedFilters);
+  }, [loadPathways, pathwayAppliedFilters, view]);
+
+  useEffect(() => {
+    if (view !== 'guide') return;
+    if (!pathwaySelectedId) {
+      setPathwayDetail(null);
+      setPathwayDetailError('');
+      setPathwayDetailLoading(false);
+      return;
+    }
+
+    const loadDetail = async (): Promise<void> => {
+      setPathwayDetailLoading(true);
+      setPathwayDetailError('');
+      try {
+        if (previewMode) {
+          const existingCompleted = pathwayDetail?.pathway.pathwayId === pathwaySelectedId
+            ? pathwayDetail.pathway.progress.completedStepIds
+            : [];
+          setPathwayDetail(buildPreviewPathwayDetail(existingCompleted));
+          return;
+        }
+        const result = await invokeTyped('hdcGetPathway', { pathwayId: pathwaySelectedId });
+        setPathwayDetail(result);
+      } catch (error) {
+        setPathwayDetailError(error instanceof Error ? error.message : 'Failed to load pathway details.');
+      } finally {
+        setPathwayDetailLoading(false);
+      }
+    };
+
+    void loadDetail();
+  }, [pathwaySelectedId, previewMode, view]);
+
+  const handleTogglePathwayStepCompletion = useCallback(
+    async (step: PathwayStep) => {
+      if (!pathwayDetail) return;
+      const currentCompleted = new Set(pathwayDetail.pathway.progress.completedStepIds);
+      const nextCompleted = !currentCompleted.has(step.stepId);
+      setPathwayStepPendingId(step.stepId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        if (previewMode) {
+          const updatedCompletedIds = nextCompleted
+            ? [...currentCompleted, step.stepId]
+            : [...currentCompleted].filter((id) => id !== step.stepId);
+          const nextDetail = buildPreviewPathwayDetail(updatedCompletedIds);
+          setPathwayDetail(nextDetail);
+          setPathwayItems((current) =>
+            current.map((item) =>
+              item.pathwayId === nextDetail.pathway.pathwayId
+                ? { ...item, progress: nextDetail.pathway.progress }
+                : item
+            )
+          );
+          setActionMessage(nextCompleted ? 'Step marked complete (preview mode).' : 'Step marked incomplete (preview mode).');
+          return;
+        }
+
+        const result = await invokeTyped('hdcSetPathwayStepCompletion', {
+          pathwayId: pathwayDetail.pathway.pathwayId,
+          stepId: step.stepId,
+          completed: nextCompleted,
+        });
+        setPathwayDetail((current) => {
+          if (!current || current.pathway.pathwayId !== result.pathwayId) return current;
+          return {
+            ...current,
+            pathway: {
+              ...current.pathway,
+              progress: result.progress,
+            },
+          };
+        });
+        setPathwayItems((current) =>
+          current.map((item) =>
+            item.pathwayId === result.pathwayId
+              ? {
+                  ...item,
+                  progress: result.progress,
+                }
+              : item
+          )
+        );
+        setActionMessage(nextCompleted ? 'Step marked complete.' : 'Step marked incomplete.');
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Failed to update pathway progress.');
+      } finally {
+        setPathwayStepPendingId(null);
+      }
+    },
+    [pathwayDetail, previewMode]
+  );
+
+  const openCreatePathwayEditor = useCallback(() => {
+    setPathwayEditorMode('create');
+    setPathwayEditorPathwayId(null);
+    setPathwayEditorTitle('');
+    setPathwayEditorSummary('');
+    setPathwayEditorIntroText('');
+    setPathwayEditorDomain(pathwayDomainInput);
+    setPathwayEditorRole(pathwayRoleInput);
+    setPathwayEditorTagsInput('');
+    setPathwayEditorPublished(true);
+    setPathwayEditorRecommended(pathwayRecommendedOnly);
+    setPathwayEditorSteps([createDefaultPathwayStepDraft()]);
+    setPathwayEditorOpen(true);
+    setActionError('');
+    setActionMessage('');
+  }, [pathwayDomainInput, pathwayRecommendedOnly, pathwayRoleInput]);
+
+  const openEditPathwayEditor = useCallback(() => {
+    if (!pathwayDetail) return;
+    setPathwayEditorMode('edit');
+    setPathwayEditorPathwayId(pathwayDetail.pathway.pathwayId);
+    setPathwayEditorTitle(pathwayDetail.pathway.title);
+    setPathwayEditorSummary(pathwayDetail.pathway.summary ?? '');
+    setPathwayEditorIntroText(pathwayDetail.pathway.introText ?? '');
+    setPathwayEditorDomain(pathwayDetail.pathway.domain ?? '');
+    setPathwayEditorRole(pathwayDetail.pathway.role ?? '');
+    setPathwayEditorTagsInput(pathwayDetail.pathway.tags.join(', '));
+    setPathwayEditorPublished(pathwayDetail.pathway.published);
+    setPathwayEditorRecommended(pathwayDetail.pathway.recommended);
+    setPathwayEditorSteps(
+      pathwayDetail.steps.length > 0
+        ? pathwayDetail.steps.map((step) => createPathwayStepDraft(step))
+        : [createDefaultPathwayStepDraft()]
+    );
+    setPathwayEditorOpen(true);
+    setActionError('');
+    setActionMessage('');
+  }, [pathwayDetail]);
+
+  const closePathwayEditor = useCallback(() => {
+    if (pathwayEditorSaving) return;
+    setPathwayEditorOpen(false);
+  }, [pathwayEditorSaving]);
+
+  const handleUpdatePathwayStepDraft = useCallback((localId: string, patch: Partial<PathwayStepDraft>) => {
+    setPathwayEditorSteps((current) =>
+      current.map((step) => (step.localId === localId ? { ...step, ...patch } : step))
+    );
+  }, []);
+
+  const handleRemovePathwayStepDraft = useCallback((localId: string) => {
+    setPathwayEditorSteps((current) => {
+      if (current.length <= 1) {
+        return current;
+      }
+      return current.filter((step) => step.localId !== localId);
+    });
+  }, []);
+
+  const handleAddPathwayStepDraft = useCallback(() => {
+    setPathwayEditorSteps((current) => [...current, createDefaultPathwayStepDraft()]);
+  }, []);
+
+  const handleSavePathwayEditor = useCallback(async () => {
+    if (!pathwayCanManage) return;
+    const title = pathwayEditorTitle.trim();
+    if (title.length < 3) {
+      setActionError('Pathway title must be at least 3 characters.');
+      return;
+    }
+    if (pathwayEditorSteps.length === 0) {
+      setActionError('Add at least one pathway step.');
+      return;
+    }
+    const normalizedSteps: UpsertPathwayStepInput[] = [];
+    for (let index = 0; index < pathwayEditorSteps.length; index += 1) {
+      const step = pathwayEditorSteps[index];
+      const stepTitle = step.title.trim();
+      if (stepTitle.length < 3) {
+        setActionError(`Step ${index + 1} title must be at least 3 characters.`);
+        return;
+      }
+      const externalUrl = step.externalUrl.trim();
+      if (externalUrl && !isValidHttpUrl(externalUrl)) {
+        setActionError(`Step ${index + 1} URL must start with http:// or https://.`);
+        return;
+      }
+      normalizedSteps.push({
+        type: step.type,
+        title: stepTitle,
+        description: step.description.trim() || undefined,
+        linkedHackProjectId: step.linkedHackProjectId.trim() || undefined,
+        linkedArtifactId: step.linkedArtifactId.trim() || undefined,
+        externalUrl: externalUrl || undefined,
+        challengePrompt: step.challengePrompt.trim() || undefined,
+        isOptional: step.isOptional,
+      });
+    }
+    const payload: UpsertPathwayInput = {
+      pathwayId: pathwayEditorMode === 'edit' ? pathwayEditorPathwayId ?? undefined : undefined,
+      title,
+      summary: pathwayEditorSummary.trim() || undefined,
+      introText: pathwayEditorIntroText.trim() || undefined,
+      domain: pathwayEditorDomain.trim() || undefined,
+      role: pathwayEditorRole.trim() || undefined,
+      tags: parseRegistryTags(pathwayEditorTagsInput),
+      published: pathwayEditorPublished,
+      recommended: pathwayEditorRecommended,
+      steps: normalizedSteps,
+    };
+
+    setPathwayEditorSaving(true);
+    setActionError('');
+    setActionMessage('');
+    try {
+      const result = await invokeTyped('hdcUpsertPathway', payload);
+      setPathwayEditorOpen(false);
+      setPathwaySelectedId(result.pathway.pathwayId);
+      setPathwayDetail({
+        pathway: result.pathway,
+        steps: result.steps,
+        canManage: true,
+      });
+      await loadPathways(pathwayAppliedFilters);
+      setActionMessage(pathwayEditorMode === 'create' ? 'Pathway created.' : 'Pathway updated.');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to save pathway.');
+    } finally {
+      setPathwayEditorSaving(false);
+    }
+  }, [
+    loadPathways,
+    pathwayAppliedFilters,
+    pathwayCanManage,
+    pathwayEditorDomain,
+    pathwayEditorIntroText,
+    pathwayEditorMode,
+    pathwayEditorPathwayId,
+    pathwayEditorPublished,
+    pathwayEditorRecommended,
+    pathwayEditorRole,
+    pathwayEditorSteps,
+    pathwayEditorSummary,
+    pathwayEditorTagsInput,
+    pathwayEditorTitle,
+  ]);
 
   const loadShowcaseHacks = useCallback(async () => {
     setShowcaseLoading(true);
@@ -5378,30 +5845,366 @@ export function App(): JSX.Element {
               </section>
               <section className="title-row">
                 <div>
-                  <h1>AI 101 micro-guide</h1>
-                  <p className="subtitle">A short intro to AI hacks and how to use HackDay Central.</p>
+                  <h1>Guide Pathways</h1>
+                  <p className="subtitle">Structured learning paths by role and domain.</p>
                 </div>
               </section>
-              <article className="card guide-content">
-                <h2>What are AI hacks?</h2>
-                <p>AI hacks are reusable building blocks for AI-assisted work: prompts, skills, and apps. They live in <strong>Completed Hacks</strong> and can be attached to <strong>Hacks In Progress</strong> so your team reuses what works.</p>
-                <h2>How do I reuse a hack?</h2>
-                <p>Go to Completed Hacks and open Featured Hacks for curated, verified hacks. Use &quot;I used this&quot; to record that you copied or referenced it.</p>
-                <h2>How do I contribute?</h2>
-                <p>Submit a new hack from Completed Hacks. Start as In progress, then mark it verified when it&apos;s ready. Attach hacks to Hacks In Progress so your work is visible on the Dashboard.</p>
-                <h2>Where to go next</h2>
-                <ul>
-                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('completed'); }}>Completed Hacks</button> — Browse and submit AI hacks</li>
-                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('completed'); }}>Featured Hacks</button> — Curated, high-trust hacks</li>
-                  <li><button type="button" className="link-btn" onClick={() => { setView('hacks'); setHackTab('in_progress'); }}>Hacks In Progress</button> — Create projects and attach hacks</li>
-                  <li><button type="button" className="link-btn" onClick={() => setView('onboarding')}>Get started</button> — All onboarding paths</li>
-                </ul>
-                <div className="guide-actions">
-                  <button type="button" className="btn btn-primary" onClick={() => setView('dashboard')}>
-                    Back to Dashboard
-                  </button>
+              <article className="card">
+                <div className="guide-filter-grid">
+                  <label>
+                    Search
+                    <input
+                      value={pathwayQueryInput}
+                      onChange={(event) => setPathwayQueryInput(event.target.value)}
+                      placeholder="Search pathways"
+                    />
+                  </label>
+                  <label>
+                    Domain
+                    <input
+                      value={pathwayDomainInput}
+                      onChange={(event) => setPathwayDomainInput(event.target.value)}
+                      placeholder="e.g. Finance"
+                    />
+                  </label>
+                  <label>
+                    Role
+                    <input
+                      value={pathwayRoleInput}
+                      onChange={(event) => setPathwayRoleInput(event.target.value)}
+                      placeholder="e.g. Analyst"
+                    />
+                  </label>
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={pathwayRecommendedOnly}
+                      onChange={(event) => setPathwayRecommendedOnly(event.target.checked)}
+                    />
+                    Recommended only
+                  </label>
+                  <div className="guide-filter-actions">
+                    <button type="button" className="btn btn-primary" onClick={applyPathwayFilters}>
+                      Apply
+                    </button>
+                  </div>
                 </div>
               </article>
+
+              <section className="guide-layout">
+                <article className="card guide-list-card">
+                  <div className="guide-list-head">
+                    <h2>Pathways</h2>
+                    <div className="guide-list-head-actions">
+                      {pathwayCanManage ? <span className="status-pill">Editor</span> : null}
+                      {pathwayCanManage ? (
+                        <button type="button" className="btn btn-outline" onClick={openCreatePathwayEditor}>
+                          Create pathway
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {pathwayLoading ? <p className="empty-copy">Loading pathways…</p> : null}
+                  {!pathwayLoading && pathwayError ? <p className="error">{pathwayError}</p> : null}
+                  {!pathwayLoading && !pathwayError && pathwayItems.length === 0 ? (
+                    <p className="empty-copy">No pathways matched your filters.</p>
+                  ) : null}
+                  {!pathwayLoading && !pathwayError && pathwayItems.length > 0 ? (
+                    <div className="guide-list">
+                      {pathwayItems.map((item) => (
+                        <button
+                          type="button"
+                          key={item.pathwayId}
+                          className={`guide-list-item ${pathwaySelectedId === item.pathwayId ? 'is-active' : ''}`}
+                          onClick={() => setPathwaySelectedId(item.pathwayId)}
+                        >
+                          <strong>{item.title}</strong>
+                          <span>{item.summary || 'No summary provided.'}</span>
+                          <small>
+                            {item.progress.completedSteps}/{item.progress.totalSteps} steps • {item.progress.completionPercent}% complete
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+
+                <article className="card guide-content">
+                  {pathwayDetailLoading ? <p className="empty-copy">Loading pathway details…</p> : null}
+                  {!pathwayDetailLoading && pathwayDetailError ? <p className="error">{pathwayDetailError}</p> : null}
+                  {!pathwayDetailLoading && !pathwayDetailError && pathwayDetail ? (
+                    <>
+                      <h2>{pathwayDetail.pathway.title}</h2>
+                      <p>{pathwayDetail.pathway.introText || pathwayDetail.pathway.summary || 'No intro text yet.'}</p>
+                      <p className="subtitle">
+                        {pathwayDetail.pathway.domain || 'General'} • {pathwayDetail.pathway.role || 'All roles'} •{' '}
+                        {pathwayDetail.pathway.progress.completedSteps}/{pathwayDetail.pathway.progress.totalSteps} complete
+                      </p>
+                      {pathwayCanManage ? (
+                        <div className="guide-detail-actions">
+                          <button type="button" className="btn btn-outline" onClick={openEditPathwayEditor}>
+                            Edit pathway
+                          </button>
+                        </div>
+                      ) : null}
+                      <ol className="guide-step-list">
+                        {pathwayDetail.steps.map((step) => {
+                          const completed = pathwayDetail.pathway.progress.completedStepIds.includes(step.stepId);
+                          return (
+                            <li key={step.stepId} className={`guide-step ${completed ? 'is-complete' : ''}`}>
+                              <div>
+                                <strong>
+                                  {step.position}. {step.title}
+                                </strong>
+                                <p>{step.description || 'No step description provided.'}</p>
+                                <small>{step.type.toUpperCase()}{step.isOptional ? ' • Optional' : ''}</small>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-ghost"
+                                disabled={pathwayStepPendingId === step.stepId}
+                                onClick={() => void handleTogglePathwayStepCompletion(step)}
+                              >
+                                {pathwayStepPendingId === step.stepId
+                                  ? 'Saving…'
+                                  : completed
+                                    ? 'Mark incomplete'
+                                    : 'Mark complete'}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </>
+                  ) : null}
+                  {!pathwayDetailLoading && !pathwayDetailError && !pathwayDetail && pathwayLoaded ? (
+                    <p className="empty-copy">Select a pathway to view details.</p>
+                  ) : null}
+                  <div className="guide-actions">
+                    <button type="button" className="btn btn-primary" onClick={() => setView('dashboard')}>
+                      Back to Dashboard
+                    </button>
+                  </div>
+                </article>
+              </section>
+
+              {pathwayCanManage && pathwayEditorOpen ? (
+                <article className="card pathway-editor">
+                  <div className="pathway-editor-head">
+                    <h2>{pathwayEditorMode === 'create' ? 'Create pathway' : 'Edit pathway'}</h2>
+                    <p className="subtitle">
+                      Define pathway metadata and step sequence. Saving replaces the full step list.
+                    </p>
+                  </div>
+                  <form
+                    className="pathway-editor-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleSavePathwayEditor();
+                    }}
+                  >
+                    <div className="pathway-editor-grid">
+                      <label>
+                        Title
+                        <input
+                          value={pathwayEditorTitle}
+                          onChange={(event) => setPathwayEditorTitle(event.target.value)}
+                          placeholder="e.g. Prompt Engineering Foundations"
+                        />
+                      </label>
+                      <label>
+                        Domain
+                        <input
+                          value={pathwayEditorDomain}
+                          onChange={(event) => setPathwayEditorDomain(event.target.value)}
+                          placeholder="e.g. Finance"
+                        />
+                      </label>
+                      <label>
+                        Role
+                        <input
+                          value={pathwayEditorRole}
+                          onChange={(event) => setPathwayEditorRole(event.target.value)}
+                          placeholder="e.g. Analyst"
+                        />
+                      </label>
+                      <label>
+                        Tags (comma separated)
+                        <input
+                          value={pathwayEditorTagsInput}
+                          onChange={(event) => setPathwayEditorTagsInput(event.target.value)}
+                          placeholder="onboarding, prompts"
+                        />
+                      </label>
+                      <label className="pathway-editor-span-2">
+                        Summary
+                        <textarea
+                          rows={2}
+                          value={pathwayEditorSummary}
+                          onChange={(event) => setPathwayEditorSummary(event.target.value)}
+                          placeholder="Short summary shown in pathway list."
+                        />
+                      </label>
+                      <label className="pathway-editor-span-2">
+                        Intro text
+                        <textarea
+                          rows={3}
+                          value={pathwayEditorIntroText}
+                          onChange={(event) => setPathwayEditorIntroText(event.target.value)}
+                          placeholder="Detailed intro shown in pathway detail."
+                        />
+                      </label>
+                    </div>
+
+                    <div className="pathway-editor-flags">
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={pathwayEditorPublished}
+                          onChange={(event) => setPathwayEditorPublished(event.target.checked)}
+                        />
+                        Published
+                      </label>
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={pathwayEditorRecommended}
+                          onChange={(event) => setPathwayEditorRecommended(event.target.checked)}
+                        />
+                        Recommended
+                      </label>
+                    </div>
+
+                    <div className="pathway-editor-steps">
+                      <div className="pathway-editor-steps-head">
+                        <h3>Steps</h3>
+                        <button type="button" className="btn btn-outline" onClick={handleAddPathwayStepDraft}>
+                          Add step
+                        </button>
+                      </div>
+                      {pathwayEditorSteps.map((step, index) => (
+                        <section key={step.localId} className="pathway-editor-step">
+                          <div className="pathway-editor-step-head">
+                            <strong>Step {index + 1}</strong>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              onClick={() => handleRemovePathwayStepDraft(step.localId)}
+                              disabled={pathwayEditorSteps.length <= 1}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div className="pathway-editor-step-grid">
+                            <label>
+                              Type
+                              <select
+                                value={step.type}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { type: event.target.value as PathwayStepType })
+                                }
+                              >
+                                {PATHWAY_STEP_TYPE_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Title
+                              <input
+                                value={step.title}
+                                onChange={(event) => handleUpdatePathwayStepDraft(step.localId, { title: event.target.value })}
+                                placeholder="e.g. Read prompt writing basics"
+                              />
+                            </label>
+                            <label className="pathway-editor-step-span-2">
+                              Description
+                              <textarea
+                                rows={2}
+                                value={step.description}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { description: event.target.value })
+                                }
+                                placeholder="What should participants do in this step?"
+                              />
+                            </label>
+                            <label>
+                              External URL
+                              <input
+                                value={step.externalUrl}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { externalUrl: event.target.value })
+                                }
+                                placeholder="https://..."
+                              />
+                            </label>
+                            <label>
+                              Challenge prompt
+                              <input
+                                value={step.challengePrompt}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { challengePrompt: event.target.value })
+                                }
+                                placeholder="Optional challenge prompt"
+                              />
+                            </label>
+                            <label>
+                              Linked Project ID
+                              <input
+                                value={step.linkedHackProjectId}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { linkedHackProjectId: event.target.value })
+                                }
+                                placeholder="Optional project id"
+                              />
+                            </label>
+                            <label>
+                              Linked Artifact ID
+                              <input
+                                value={step.linkedArtifactId}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { linkedArtifactId: event.target.value })
+                                }
+                                placeholder="Optional artifact id"
+                              />
+                            </label>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={step.isOptional}
+                                onChange={(event) =>
+                                  handleUpdatePathwayStepDraft(step.localId, { isOptional: event.target.checked })
+                                }
+                              />
+                              Optional step
+                            </label>
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+
+                    <div className="pathway-editor-actions">
+                      <button type="button" className="btn btn-ghost" onClick={closePathwayEditor} disabled={pathwayEditorSaving}>
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn btn-primary" disabled={pathwayEditorSaving}>
+                        {pathwayEditorSaving ? 'Saving…' : pathwayEditorMode === 'create' ? 'Create pathway' : 'Save pathway'}
+                      </button>
+                    </div>
+                  </form>
+                </article>
+              ) : null}
+
+              {!pathwayLoading && pathwayItems.length === 0 ? (
+                <article className="card guide-content">
+                  <h2>AI 101 quick start</h2>
+                  <p>Browse Completed Hacks for reusable prompts, skills, and apps.</p>
+                  <p>Attach reused hacks to in-progress projects so impact remains visible.</p>
+                  <p>Publish your first contribution with context, limitations, and a demo link.</p>
+                </article>
+              ) : null}
             </section>
           ) : null}
 

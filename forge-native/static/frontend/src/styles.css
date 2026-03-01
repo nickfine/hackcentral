@@ -1479,6 +1479,256 @@ button {
   padding-left: 1.5em;
 }
 
+.guide-filter-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.guide-filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--tier3-size);
+  color: var(--text-soft);
+}
+
+.guide-filter-grid input[type='text'],
+.guide-filter-grid input:not([type]) {
+  width: 100%;
+}
+
+.guide-filter-grid .checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  margin-top: 22px;
+}
+
+.guide-filter-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.guide-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+}
+
+.guide-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guide-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.guide-list-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-list-head h2 {
+  margin: 0;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-list-item {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.guide-list-item:hover {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  box-shadow: var(--shadow-xs);
+}
+
+.guide-list-item.is-active {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--line));
+  background: color-mix(in srgb, var(--brand-soft) 30%, var(--surface));
+}
+
+.guide-list-item strong {
+  font-size: var(--tier3-size);
+}
+
+.guide-list-item span,
+.guide-list-item small {
+  color: var(--text-soft);
+}
+
+.guide-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.guide-step.is-complete {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok-soft) 60%, var(--surface));
+}
+
+.guide-step strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.guide-step p {
+  margin: 0 0 8px;
+}
+
+.guide-step small {
+  color: var(--text-soft);
+}
+
+.guide-step .btn {
+  flex-shrink: 0;
+}
+
+.guide-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+
+.pathway-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pathway-editor-head h2 {
+  margin: 0;
+}
+
+.pathway-editor-head .subtitle {
+  margin: 6px 0 0;
+}
+
+.pathway-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pathway-editor-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pathway-editor-grid label,
+.pathway-editor-step-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: var(--tier3-size);
+}
+
+.pathway-editor-span-2 {
+  grid-column: span 2;
+}
+
+.pathway-editor-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pathway-editor-flags .checkbox-row {
+  margin: 0;
+}
+
+.pathway-editor-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pathway-editor-steps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pathway-editor-steps-head h3 {
+  margin: 0;
+}
+
+.pathway-editor-step {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pathway-editor-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pathway-editor-step-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pathway-editor-step-span-2 {
+  grid-column: span 2;
+}
+
+.pathway-editor-step-grid .checkbox-row {
+  margin-top: 24px;
+}
+
+.pathway-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .link-btn {
   background: none;
   border: none;
@@ -1493,6 +1743,35 @@ button {
   margin-top: 1.5em;
   padding-top: 1em;
   border-top: 1px solid var(--line);
+}
+
+@media (max-width: 980px) {
+  .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-step {
+    flex-direction: column;
+  }
+
+  .guide-list-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pathway-editor-grid,
+  .pathway-editor-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pathway-editor-span-2,
+  .pathway-editor-step-span-2 {
+    grid-column: auto;
+  }
+
+  .pathway-editor-step-grid .checkbox-row {
+    margin-top: 0;
+  }
 }
 
 /* ── Schedule Builder ─────────────────────────────────────────────────── */

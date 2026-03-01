@@ -9,7 +9,10 @@ import type {
   FlagProblemResult,
   GetPipelineBoardInput,
   GetPipelineBoardResult,
+  GetPathwayResult,
   GetArtifactResult,
+  ListPathwaysInput,
+  ListPathwaysResult,
   ListProblemImportCandidatesInput,
   ListProblemImportCandidatesResult,
   ListProblemsInput,
@@ -27,6 +30,10 @@ import type {
   GetShowcaseHackDetailResult,
   SetShowcaseFeaturedInput,
   SetShowcaseFeaturedResult,
+  SetPathwayStepCompletionInput,
+  SetPathwayStepCompletionResult,
+  UpsertPathwayInput,
+  UpsertPathwayResult,
   UpdatePipelineStageCriteriaInput,
   UpdatePipelineStageCriteriaResult,
   UpdateProblemStatusInput,
@@ -249,6 +256,12 @@ function unsupportedShowcaseBackendError(): never {
   );
 }
 
+function unsupportedPathwaysBackendError(): never {
+  throw new Error(
+    '[PATHWAYS_UNSUPPORTED_BACKEND] Pathway operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
 function getProblemExchangeModerationMode(): ProblemExchangeCapabilitiesResult['moderationMode'] {
   return 'allowlist';
 }
@@ -362,6 +375,54 @@ export async function listProblemImportCandidates(
   return withConfiguredBackend(
     () => repository.listProblemImportCandidates(viewer, input),
     () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function listPathways(
+  viewer: ViewerContext,
+  input: ListPathwaysInput
+): Promise<ListPathwaysResult> {
+  return withConfiguredBackend(
+    () => repository.listPathways(viewer, input),
+    () => Promise.resolve(unsupportedPathwaysBackendError())
+  );
+}
+
+export async function getPathway(
+  viewer: ViewerContext,
+  pathwayId: string
+): Promise<GetPathwayResult> {
+  return withConfiguredBackend(
+    () => repository.getPathway(viewer, pathwayId),
+    () => Promise.resolve(unsupportedPathwaysBackendError())
+  );
+}
+
+export async function upsertPathway(
+  viewer: ViewerContext,
+  input: UpsertPathwayInput
+): Promise<UpsertPathwayResult> {
+  return withConfiguredBackend(
+    async () => {
+      const canManage = await repository.canUserManagePathways(viewer);
+      if (!canManage) {
+        throw new Error(
+          `[PATHWAY_FORBIDDEN] Pathway editor access required via org admin role/capability tags. accountId=${viewer.accountId}`
+        );
+      }
+      return repository.upsertPathway(viewer, input);
+    },
+    () => Promise.resolve(unsupportedPathwaysBackendError())
+  );
+}
+
+export async function setPathwayStepCompletion(
+  viewer: ViewerContext,
+  input: SetPathwayStepCompletionInput
+): Promise<SetPathwayStepCompletionResult> {
+  return withConfiguredBackend(
+    () => repository.setPathwayStepCompletion(viewer, input),
+    () => Promise.resolve(unsupportedPathwaysBackendError())
   );
 }
 

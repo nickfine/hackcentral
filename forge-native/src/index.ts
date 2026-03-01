@@ -9,14 +9,18 @@ import {
   getArtifact,
   getBootstrapData,
   getPipelineBoard,
+  getPathway,
   listShowcaseHacks,
+  listPathways,
   getShowcaseHackDetail,
   setShowcaseFeatured,
+  setPathwayStepCompletion,
   getProblemExchangeCapabilities,
   listProblemImportCandidates,
   listProblems,
   listArtifacts,
   movePipelineItem,
+  upsertPathway,
   updatePipelineStageCriteria,
   moderateProblem,
   markArtifactReuse,
@@ -33,10 +37,13 @@ import type {
   FlagProblemInput,
   GetPipelineBoardInput,
   ListShowcaseHacksInput,
+  ListPathwaysInput,
   SetShowcaseFeaturedInput,
   MovePipelineItemInput,
   UpdatePipelineStageCriteriaInput,
   ModerateProblemInput,
+  SetPathwayStepCompletionInput,
+  UpsertPathwayInput,
   UpdateProblemStatusInput,
   ListArtifactsInput,
   ListProblemsInput,
@@ -184,6 +191,38 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: ListProblemImportCandidatesInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return listProblemImportCandidates(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcListPathways',
+  async (request: { context?: RawResolverContext; payload: ListPathwaysInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listPathways(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcGetPathway',
+  async (request: { context?: RawResolverContext; payload: { pathwayId: string } }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getPathway(viewer, request.payload.pathwayId);
+  }
+);
+
+resolver.define(
+  'hdcUpsertPathway',
+  async (request: { context?: RawResolverContext; payload: UpsertPathwayInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return upsertPathway(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcSetPathwayStepCompletion',
+  async (request: { context?: RawResolverContext; payload: SetPathwayStepCompletionInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return setPathwayStepCompletion(viewer, request.payload);
   }
 );
 

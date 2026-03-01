@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 12:58 GMT
+Last updated: 2026-03-01 13:32 GMT
 
 ## Current Snapshot
 
@@ -123,6 +123,36 @@ Last updated: 2026-03-01 12:58 GMT
     - name: `P1 CHILD LIVE 20260301-1305`
     - child page id: `18120705`
     - persisted `HackdayTemplateSeed.seed_payload.childIntegration` contains selected import `819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2`, `templateMode=customized`, `autoPublishToShowcaseDrafts=false`
+- Pathways (`P2.PATH.01`) backend + Guide UI slice are now in progress:
+  - contract spec: `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`
+  - migration: `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`
+  - resolver contracts:
+    - `hdcListPathways`
+    - `hdcGetPathway`
+    - `hdcUpsertPathway`
+    - `hdcSetPathwayStepCompletion`
+  - backend wiring:
+    - `forge-native/src/backend/supabase/repositories.ts`
+    - `forge-native/src/backend/hackcentral.ts`
+    - `forge-native/src/index.ts`
+  - shared/frontend contract parity:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - guardrails:
+    - pathway editor access = `ADMIN` role OR capability tags `pathway_admin` / `pathway_contributor` / `platform_admin`
+  - targeted tests:
+    - `tests/forge-native-pathways-contract.spec.ts`
+    - `tests/forge-native-pathways-runtime-modes.spec.ts`
+    - result: `5/5` passing
+  - Guide UI now uses pathway contracts in `forge-native/static/frontend/src/App.tsx`:
+    - pathway list/detail rendering
+    - step completion with progress updates (`hdcSetPathwayStepCompletion`)
+    - manager-gated create/edit pathway editor (`hdcUpsertPathway`)
+  - Guide styles extended in `forge-native/static/frontend/src/styles.css`
+  - local browser smoke evidence:
+    - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
+  - local smoke fixed bug:
+    - empty filter result now clears stale selected pathway detail in preview mode
 
 ## Active Task Pointer
 
@@ -135,9 +165,9 @@ Last updated: 2026-03-01 12:58 GMT
 
 ## Next 3 Atomic Actions
 
-1. Lock `P2.PATH.01` contract/spec boundaries for Guide pathways (`R6.1`-`R6.4`) with implementation slices and resolver/UI contracts.
-2. Map dependencies from completed Phase 1 modules (Registry, Problem Exchange, Pipeline, Showcase, Child) into Pathways data/permission requirements.
-3. Stage first `P2.PATH.01` backend baseline (types + resolver stubs/repository contracts) with targeted validation scope.
+1. Apply pathways migration `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql` to production Supabase project (`ssafugtobsqxmqtphwch`) and verify schema objects.
+2. Seed/verify at least one published pathway via `hdcUpsertPathway` under manager authority and validate `hdcListPathways` / `hdcGetPathway` / `hdcSetPathwayStepCompletion` end-to-end on live data.
+3. Run production Playwright MCP smoke for Guide Pathways (participant + manager flows) and prepare `P2.PATH.01` rollout checkpoint artifact.
 
 ## Blockers / Decisions Needed
 
@@ -169,6 +199,7 @@ Last updated: 2026-03-01 12:58 GMT
   - `.../6ef543d7-4817-408a-ae19-1b466c81a797/hackday-central` (`Global page module was not found`)
 - Key smoke evidence from this session:
   - `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
+  - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
 
 ## Validation Commands
 

@@ -313,6 +313,108 @@ export interface ListProblemImportCandidatesResult {
   };
 }
 
+export type PathwayStepType = 'read' | 'try' | 'build';
+
+export interface PathwayStep {
+  stepId: string;
+  position: number;
+  type: PathwayStepType;
+  title: string;
+  description: string;
+  linkedHackProjectId?: string;
+  linkedArtifactId?: string;
+  externalUrl?: string;
+  challengePrompt?: string;
+  isOptional: boolean;
+}
+
+export interface PathwayProgressSnapshot {
+  completedStepIds: string[];
+  completedSteps: number;
+  totalSteps: number;
+  completionPercent: number;
+}
+
+export interface PathwayListItem {
+  pathwayId: string;
+  title: string;
+  summary: string;
+  introText: string;
+  domain: string | null;
+  role: string | null;
+  tags: string[];
+  stepCount: number;
+  published: boolean;
+  recommended: boolean;
+  updatedAt: string;
+  updatedByName: string;
+  progress: PathwayProgressSnapshot;
+}
+
+export interface ListPathwaysInput {
+  query?: string;
+  domain?: string;
+  role?: string;
+  tags?: string[];
+  recommendedOnly?: boolean;
+  publishedOnly?: boolean;
+  limit?: number;
+}
+
+export interface ListPathwaysResult {
+  items: PathwayListItem[];
+  canManage: boolean;
+}
+
+export interface GetPathwayResult {
+  pathway: PathwayListItem;
+  steps: PathwayStep[];
+  canManage: boolean;
+}
+
+export interface UpsertPathwayStepInput {
+  type: PathwayStepType;
+  title: string;
+  description?: string;
+  linkedHackProjectId?: string;
+  linkedArtifactId?: string;
+  externalUrl?: string;
+  challengePrompt?: string;
+  isOptional?: boolean;
+}
+
+export interface UpsertPathwayInput {
+  pathwayId?: string;
+  title: string;
+  summary?: string;
+  introText?: string;
+  domain?: string;
+  role?: string;
+  tags?: string[];
+  published?: boolean;
+  recommended?: boolean;
+  steps: UpsertPathwayStepInput[];
+}
+
+export interface UpsertPathwayResult {
+  pathway: PathwayListItem;
+  steps: PathwayStep[];
+}
+
+export interface SetPathwayStepCompletionInput {
+  pathwayId: string;
+  stepId: string;
+  completed: boolean;
+}
+
+export interface SetPathwayStepCompletionResult {
+  pathwayId: string;
+  stepId: string;
+  completed: boolean;
+  completedAt: string | null;
+  progress: PathwayProgressSnapshot;
+}
+
 export type PipelineStage = 'hack' | 'validated_prototype' | 'incubating_project' | 'product_candidate';
 
 export interface PipelineStageCriteria {
@@ -775,6 +877,10 @@ export type Defs = {
   hdcModerateProblem: (payload: ModerateProblemInput) => ModerateProblemResult;
   hdcGetProblemExchangeCapabilities: () => ProblemExchangeCapabilitiesResult;
   hdcListProblemImportCandidates: (payload: ListProblemImportCandidatesInput) => ListProblemImportCandidatesResult;
+  hdcListPathways: (payload: ListPathwaysInput) => ListPathwaysResult;
+  hdcGetPathway: (payload: { pathwayId: string }) => GetPathwayResult;
+  hdcUpsertPathway: (payload: UpsertPathwayInput) => UpsertPathwayResult;
+  hdcSetPathwayStepCompletion: (payload: SetPathwayStepCompletionInput) => SetPathwayStepCompletionResult;
   hdcGetPipelineBoard: (payload: GetPipelineBoardInput) => GetPipelineBoardResult;
   hdcMovePipelineItem: (payload: MovePipelineItemInput) => MovePipelineItemResult;
   hdcUpdatePipelineStageCriteria: (payload: UpdatePipelineStageCriteriaInput) => UpdatePipelineStageCriteriaResult;
