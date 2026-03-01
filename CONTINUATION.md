@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 23:50 GMT
+Last updated: 2026-03-01 23:55 GMT
 
 ## Current Snapshot
 
@@ -388,12 +388,12 @@ Last updated: 2026-03-01 23:50 GMT
     - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md` (`GO`)
   - transition:
     - active task advanced from `P3.FORK.01` to `P3.FEED.01`
-- Phase 3 Home feed baseline (`P3.FEED.01`) is now landed (in progress; live gate pending):
+- Phase 3 Home feed rollout (`P3.FEED.01`) is now complete (`GO`):
   - contract spec:
     - `docs/HDC-P3-FEED-CONTRACT-SPEC.md`
-  - backend resolver scaffold:
+  - backend resolver:
     - `hdcGetHomeFeed`
-    - activity + recommendation aggregation in `SupabaseRepository.getHomeFeed`
+    - activity + recommendation aggregation in `SupabaseRepository.getHomeFeed` (`r12-home-feed-v1`)
     - Supabase-first with Convex fallback behavior
   - shared/frontend contract parity:
     - `forge-native/src/shared/types.ts`
@@ -404,36 +404,43 @@ Last updated: 2026-03-01 23:50 GMT
     - dashboard now renders:
       - `What's happening` feed lane
       - `Recommended for you` lane
-  - validation:
+  - baseline validation:
     - `tests/forge-native-feed-contract.spec.ts` (`1/1`)
     - `npm --prefix forge-native run typecheck` (pass)
     - `npm --prefix forge-native/static/frontend run typecheck` (pass)
-  - baseline checkpoint:
+  - baseline checkpoint artifact:
     - `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md` (`IN_PROGRESS`)
+  - post-deploy live evidence:
+    - `docs/artifacts/HDC-P3-FEED-LIVE-RESOLVER-SMOKE-20260301-2352Z.json`
+    - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`
+    - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`
+  - final checkpoint:
+    - `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md` (`GO`)
+  - transition:
+    - active task advanced from `P3.FEED.01` to `P3.OBS.01`
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.FEED.01`
-- Task title: `Home feed and personalization rollout`
+- Active Task ID: `P3.OBS.01`
+- Task title: `Phase 3 telemetry and alerting rollout`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
-- Home feed requirements source: `HDC-PRODUCT-ROADMAP.md` (`R12.1`-`R12.2`)
-- Feed contract spec: `docs/HDC-P3-FEED-CONTRACT-SPEC.md`
+- Phase 3 telemetry requirements source: `HDC-PRODUCT-ROADMAP.md` (`Phase 3 observability`)
 
 ## Next 3 Atomic Actions
 
-1. Run live resolver smoke for `hdcGetHomeFeed` (Supabase MCP-first, CLI fallback if needed) and capture artifact evidence.
-2. Deploy production Forge bundle and capture Home feed/recommendation UI smoke in Confluence.
-3. Publish `P3.FEED.01` post-deploy checkpoint decision (`GO` target) and close task.
+1. Define `P3.OBS.01` telemetry contract for feed/ROI signal health, thresholds, and reporting cadence.
+2. Implement telemetry hooks + static telemetry gate command coverage for Phase 3.
+3. Run live telemetry sampling in production and publish `P3.OBS.01` checkpoint decision.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - No code blocker currently logged for `P3.FEED.01`.
+  - No code blocker currently logged for `P3.OBS.01`.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -497,6 +504,11 @@ Last updated: 2026-03-01 23:50 GMT
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
   - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
   - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`
+  - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md`
+  - `docs/artifacts/HDC-P3-FEED-LIVE-RESOLVER-SMOKE-20260301-2352Z.json`
+  - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`
+  - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`
+  - `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md`
 
 ## Validation Commands
 

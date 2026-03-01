@@ -1,0 +1,138 @@
+{
+  "capturedAt": "2026-03-01T23:52:34.105Z",
+  "viewer": "cmiukfwe1000807bj5ir1vpy4",
+  "policyVersion": "r12-home-feed-v1",
+  "itemCount": 11,
+  "recommendationCount": 2,
+  "itemTypes": [
+    "upcoming_hackday",
+    "new_artifact",
+    "new_hack",
+    "trending_problem",
+    "pipeline_movement"
+  ],
+  "recommendationTypes": [
+    "problem_domain",
+    "pathway_role"
+  ],
+  "activitySource": {
+    "status": "available",
+    "reason": "All R12.1 activity categories populated."
+  },
+  "recommendationSource": {
+    "status": "available_partial",
+    "reason": "Recommendation categories populated: 2/3."
+  },
+  "firstItems": [
+    {
+      "id": "upcoming_hackday:3f35ee35-a7fc-47d5-9143-6c5a48018455",
+      "type": "upcoming_hackday",
+      "title": "Upcoming HackDay: Another Test",
+      "description": "🚀 starts 09/03/2026",
+      "occurredAt": "2026-03-09T09:30:00.000Z",
+      "actorName": null,
+      "relatedId": "3f35ee35-a7fc-47d5-9143-6c5a48018455",
+      "teamId": null,
+      "teamLabel": null,
+      "domain": null,
+      "metadata": {
+        "lifecycleStatus": "draft",
+        "submissionDeadlineAt": "2026-03-09T14:00:00.000Z",
+        "confluencePageId": "12648457"
+      }
+    },
+    {
+      "id": "upcoming_hackday:1ac7ebcc-622f-457c-8aeb-dc98e5430f1a",
+      "type": "upcoming_hackday",
+      "title": "Upcoming HackDay: NICK 3 DAY TEST",
+      "description": "🚀 starts 09/03/2026",
+      "occurredAt": "2026-03-09T09:30:00.000Z",
+      "actorName": null,
+      "relatedId": "1ac7ebcc-622f-457c-8aeb-dc98e5430f1a",
+      "teamId": null,
+      "teamLabel": null,
+      "domain": null,
+      "metadata": {
+        "lifecycleStatus": "draft",
+        "submissionDeadlineAt": "2026-03-11T14:00:00.000Z",
+        "confluencePageId": "13500441"
+      }
+    },
+    {
+      "id": "upcoming_hackday:3b6eef66-b5c9-4b88-8310-a9780c6fb591",
+      "type": "upcoming_hackday",
+      "title": "Upcoming HackDay: Nick Test Wed Mid",
+      "description": "🚀 starts 09/03/2026",
+      "occurredAt": "2026-03-09T09:30:00.000Z",
+      "actorName": null,
+      "relatedId": "3b6eef66-b5c9-4b88-8310-a9780c6fb591",
+      "teamId": null,
+      "teamLabel": null,
+      "domain": null,
+      "metadata": {
+        "lifecycleStatus": "draft",
+        "submissionDeadlineAt": "2026-03-10T14:00:00.000Z",
+        "confluencePageId": "13565953"
+      }
+    },
+    {
+      "id": "upcoming_hackday:fb7c3254-415b-4727-98e8-544b102ca185",
+      "type": "upcoming_hackday",
+      "title": "Upcoming HackDay: Nick Weds Test 2",
+      "description": "aaaaa",
+      "occurredAt": "2026-03-09T09:30:00.000Z",
+      "actorName": null,
+      "relatedId": "fb7c3254-415b-4727-98e8-544b102ca185",
+      "teamId": null,
+      "teamLabel": null,
+      "domain": null,
+      "metadata": {
+        "lifecycleStatus": "draft",
+        "submissionDeadlineAt": "2026-03-09T14:00:00.000Z",
+        "confluencePageId": "13598721"
+      }
+    },
+    {
+      "id": "new_artifact:6de71ad2-907f-4107-8f8e-dff2ebbd269a",
+      "type": "new_artifact",
+      "title": "New artifact: Fork Artifact Smoke 2026-03-01 23:35",
+      "description": "0 reuses so far.",
+      "occurredAt": "2026-03-01T23:35:12.926Z",
+      "actorName": "Atlassian User cmiukfwe",
+      "relatedId": "6de71ad2-907f-4107-8f8e-dff2ebbd269a",
+      "teamId": null,
+      "teamLabel": null,
+      "domain": null,
+      "metadata": {
+        "sourceHackProjectId": null,
+        "reuseCount": 0
+      }
+    }
+  ],
+  "firstRecommendations": [
+    {
+      "id": "problem_domain:819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2",
+      "type": "problem_domain",
+      "title": "PX Smoke 2026-03-01 03:03 UTC",
+      "reason": "Trending in Problem Exchange.",
+      "score": 3,
+      "relatedId": "819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2",
+      "context": [
+        "Platform",
+        "Operations"
+      ]
+    },
+    {
+      "id": "pathway_role:e7928bd4-141a-4d33-b545-df27161698c6",
+      "type": "pathway_role",
+      "title": "Pathways Live Smoke 2026-03-01T13-36-50-536Z",
+      "reason": "Recommended pathway for role focus: All.",
+      "score": 3,
+      "relatedId": "e7928bd4-141a-4d33-b545-df27161698c6",
+      "context": [
+        "pathways-smoke",
+        "p2"
+      ]
+    }
+  ]
+}

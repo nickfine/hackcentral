@@ -2451,3 +2451,34 @@ Use this template at the end of every work session:
 - A dedicated typed feed resolver (`hdcGetHomeFeed`) keeps Home feed evolution isolated from bootstrap payload churn while still allowing fallback behavior in non-Supabase modes.
 - Explicit source-coverage status in feed payloads is useful for phased rollout: UI can communicate partial readiness without hard-failing the page.
 - Testing category coverage by asserting feed/recommendation type sets is a fast, stable guardrail for roadmap contract drift.
+
+## Session Update - P3.FEED.01 Live Rollout Closure (Mar 1, 2026 23:55 GMT)
+
+### Completed
+
+- Ran live `hdcGetHomeFeed` resolver smoke against production data (Supabase MCP-first, CLI fallback for project-scoped access).
+- Deployed production Forge bundle and refreshed install state.
+- Captured production Home UI smoke evidence for both new feed lanes.
+- Published post-deploy checkpoint and closed `P3.FEED.01` as `GO`.
+- Advanced active task to `P3.OBS.01`.
+
+### Validation Evidence
+
+- Resolver artifact:
+  - `docs/artifacts/HDC-P3-FEED-LIVE-RESOLVER-SMOKE-20260301-2352Z.json`
+  - confirms all `R12.1` activity categories present and recommendation source status reported as `available_partial`.
+- UI artifacts:
+  - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`
+  - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`
+- Checkpoint:
+  - `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md` (`GO`)
+- Deployment commands:
+  - `npm --prefix forge-native run custom-ui:build` (pass)
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (site already latest)
+
+### Operational Learnings
+
+- `R12.2` recommendation availability is naturally data-dependent; explicit `available_partial` source signaling keeps rollout decisions stable even when one recommendation family has sparse live inputs.
+- Element-level Playwright captures for each feed lane provide clearer post-deploy evidence than a single full-page screenshot when scroll containers are involved.
+- Continuing to use Supabase MCP-first with CLI fallback remains necessary in this workspace due project-admin scope differences despite MCP connectivity.
