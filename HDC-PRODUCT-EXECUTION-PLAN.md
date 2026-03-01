@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 23:40 GMT
+Last updated: 2026-03-01 23:50 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -50,22 +50,22 @@ Program: HackDay Central (HDC)
 | `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | Completed (2026-03-01; GO) | Phase 2 complete, token data source audit | ROI dashboard + export + token-volume mapping delivered with producer-backed non-zero spend evidence and final rollout checkpoint | `docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`, `docs/HDC-P3-ROI-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`, `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`, `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`, `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`, `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`, `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`, `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`, `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `tests/forge-native-roi-contract.spec.ts` |
 | `P3.FORK.01` | `R10.1` to `R10.2` | Eng | Completed (2026-03-01; GO) | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`, `docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md`, `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/tests/backend/fork-contract.test.mjs` |
 | `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | Planned | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | Pending |
-| `P3.FEED.01` | `R12.1` to `R12.2` | Eng | In progress (2026-03-01) | Phase 2 metrics available | Home feed + personalized recommendations delivered | Pending |
+| `P3.FEED.01` | `R12.1` to `R12.2` | Eng | In progress (2026-03-01; baseline contract/resolver/UI landed) | Phase 2 metrics available | Home feed + personalized recommendations delivered | `docs/HDC-P3-FEED-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-feed-contract.spec.ts` |
 | `P3.OBS.01` | Phase 3 telemetry | Eng + Data | Planned | `P3.ROI.01`, `P3.FEED.01` | Cost/output trend alerting with reporting cadence | Pending |
 
 ## Active Sprint Queue
 
 ### Now
 
-1. `P3.FEED.01` - define activity-feed event contract (new hacks, trending problems, new artifacts, pipeline movements, upcoming hackdays).
-2. `P3.FEED.01` - define personalization signal inputs from existing Phase 2/3 datasets.
-3. `P3.FEED.01` - implement backend feed resolver scaffold and initial UI lane wiring on Home.
+1. `P3.FEED.01` - run live resolver smoke for `hdcGetHomeFeed` and capture source-coverage evidence.
+2. `P3.FEED.01` - deploy production bundle and capture Home feed/recommendation UI smoke evidence.
+3. `P3.FEED.01` - publish module checkpoint decision (`GO` target) and close task.
 
 ### Next
 
-1. `P3.FEED.01` - run live resolver/UI smoke and publish module checkpoint.
-2. `P3.OBS.01` - pre-plan cost/output trend alert thresholds and reporting cadence.
-3. `P3.EXTRACT.01` - prep extraction/import trigger contract boundaries after feed baseline lands.
+1. `P3.OBS.01` - pre-plan cost/output trend alert thresholds and reporting cadence.
+2. `P3.EXTRACT.01` - prep extraction/import trigger contract boundaries after feed baseline lands.
+3. `P3.EXTRACT.01` - draft extraction/import resolver contract scaffolding after feed close.
 
 ### Blocked
 
@@ -141,3 +141,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Closed final `P3.ROI.01` gate to GO: captured production ROI UI smoke with visible non-zero spend (`docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`), published final rollout checkpoint (`docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`), marked `P3.ROI.01` completed, and advanced active task to `P3.FORK.01`. |
 | 2026-03-01 | Advanced `P3.FORK.01` baseline: added fork-relation migration (`20260301233000_phase3_fork_relations.sql`), implemented backend fork resolvers (`hdcForkShowcaseHack`, `hdcForkArtifact`) with attribution + audit logs, wired Showcase/Registry fork actions and fork counters in Forge UI, added fork contract coverage (`forge-native/tests/backend/fork-contract.test.mjs`), and recorded checkpoint `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md` (`CONDITIONAL GO`; live migration/smoke pending). |
 | 2026-03-01 | Closed `P3.FORK.01` to GO: applied production fork migration (`ForkRelation`), verified schema/constraint (`docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`), executed live resolver smoke for `hdcForkShowcaseHack` + `hdcForkArtifact` (`docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`), captured production UI smoke in Hacks/Registry (`docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`), published post-deploy checkpoint (`docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md`), and advanced active task to `P3.FEED.01`. |
+| 2026-03-01 | Advanced `P3.FEED.01` baseline: locked feed contract (`docs/HDC-P3-FEED-CONTRACT-SPEC.md`), added typed resolver scaffold (`hdcGetHomeFeed`) with Supabase-first + Convex fallback behavior, implemented R12 activity/recommendation aggregation in `SupabaseRepository.getHomeFeed`, wired Home feed + recommendation lanes in Forge UI, added feed contract regression (`tests/forge-native-feed-contract.spec.ts`), validated targeted test + backend/frontend typechecks, and recorded baseline checkpoint (`docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md`) with task status `IN_PROGRESS` pending live rollout evidence. |

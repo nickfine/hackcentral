@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 23:40 GMT
+Last updated: 2026-03-01 23:50 GMT
 
 ## Current Snapshot
 
@@ -388,6 +388,28 @@ Last updated: 2026-03-01 23:40 GMT
     - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md` (`GO`)
   - transition:
     - active task advanced from `P3.FORK.01` to `P3.FEED.01`
+- Phase 3 Home feed baseline (`P3.FEED.01`) is now landed (in progress; live gate pending):
+  - contract spec:
+    - `docs/HDC-P3-FEED-CONTRACT-SPEC.md`
+  - backend resolver scaffold:
+    - `hdcGetHomeFeed`
+    - activity + recommendation aggregation in `SupabaseRepository.getHomeFeed`
+    - Supabase-first with Convex fallback behavior
+  - shared/frontend contract parity:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - Home UI lane wiring:
+    - `forge-native/static/frontend/src/App.tsx`
+    - `forge-native/static/frontend/src/styles.css`
+    - dashboard now renders:
+      - `What's happening` feed lane
+      - `Recommended for you` lane
+  - validation:
+    - `tests/forge-native-feed-contract.spec.ts` (`1/1`)
+    - `npm --prefix forge-native run typecheck` (pass)
+    - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - baseline checkpoint:
+    - `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md` (`IN_PROGRESS`)
 
 ## Active Task Pointer
 
@@ -400,12 +422,13 @@ Last updated: 2026-03-01 23:40 GMT
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
 - Home feed requirements source: `HDC-PRODUCT-ROADMAP.md` (`R12.1`-`R12.2`)
+- Feed contract spec: `docs/HDC-P3-FEED-CONTRACT-SPEC.md`
 
 ## Next 3 Atomic Actions
 
-1. Define `P3.FEED.01` activity-feed event contract for new hacks, trending problems, new artifacts, pipeline movements, and upcoming hackdays.
-2. Define personalization signal inputs from existing Phase 2/3 datasets and lock fallback behavior for sparse histories.
-3. Implement backend feed resolver scaffold and initial Home feed lane wiring in Forge UI.
+1. Run live resolver smoke for `hdcGetHomeFeed` (Supabase MCP-first, CLI fallback if needed) and capture artifact evidence.
+2. Deploy production Forge bundle and capture Home feed/recommendation UI smoke in Confluence.
+3. Publish `P3.FEED.01` post-deploy checkpoint decision (`GO` target) and close task.
 
 ## Blockers / Decisions Needed
 

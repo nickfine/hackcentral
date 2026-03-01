@@ -9,6 +9,8 @@ import type {
   FlagProblemResult,
   GetPipelineBoardInput,
   GetPipelineBoardResult,
+  GetHomeFeedInput,
+  HomeFeedSnapshot,
   GetPathwayResult,
   GetArtifactResult,
   ListPathwaysInput,
@@ -92,6 +94,11 @@ function normalizeRegistryItemNavigability(
 }
 
 type ForgeDataBackendMode = 'supabase' | 'convex' | 'auto';
+
+function clampPositiveInt(value: unknown, fallback: number, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(1, Math.floor(value)));
+}
 
 function isSupabasePermissionError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -189,6 +196,85 @@ async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<Bootst
     recentProjects: payload.recentProjects,
     people: payload.people,
     registry: (payload.registry ?? []).map(normalizeRegistryItemNavigability),
+  };
+}
+
+async function getHomeFeedFromConvex(viewer: ViewerContext, input: GetHomeFeedInput): Promise<HomeFeedSnapshot> {
+  const bootstrap = await getBootstrapDataFromConvex(viewer);
+  const calculatedAt = new Date().toISOString();
+  const limit = clampPositiveInt(input.limit, 20, 50);
+  const recommendationLimit = clampPositiveInt(input.recommendationLimit, 6, 12);
+  const includeRecommendations = input.includeRecommendations !== false;
+
+  const feedItems = [
+    ...bootstrap.featuredHacks.slice(0, 8).map((hack) => ({
+      id: `new_hack:${hack.id}`,
+      type: 'new_hack' as const,
+      title: `New hack: ${hack.title}`,
+      description: `${hack.authorName} shared a ${hack.assetType} hack.`,
+      occurredAt: calculatedAt,
+      actorName: hack.authorName,
+      relatedId: hack.id,
+      metadata: { status: hack.status },
+    })),
+    ...bootstrap.registry
+      .filter((event) => event.hackingStartsAt && Date.parse(event.hackingStartsAt) >= Date.now())
+      .slice(0, 4)
+      .map((event) => ({
+        id: `upcoming_hackday:${event.id}`,
+        type: 'upcoming_hackday' as const,
+        title: `Upcoming HackDay: ${event.eventName}`,
+        description: event.tagline || `${event.icon || '🚀'} starts soon`,
+        occurredAt: event.hackingStartsAt as string,
+        actorName: null,
+        relatedId: event.id,
+        metadata: { lifecycleStatus: event.lifecycleStatus },
+      })),
+  ]
+    .sort((a, b) => {
+      if (a.type === 'upcoming_hackday' && b.type === 'upcoming_hackday') {
+        return a.occurredAt.localeCompare(b.occurredAt);
+      }
+      if (a.type === 'upcoming_hackday') return -1;
+      if (b.type === 'upcoming_hackday') return 1;
+      return b.occurredAt.localeCompare(a.occurredAt);
+    })
+    .slice(0, limit);
+
+  const recommendations = includeRecommendations
+    ? bootstrap.featuredHacks.slice(0, recommendationLimit).map((hack, index) => ({
+        id: `team_artifact:${hack.id}`,
+        type: 'team_artifact' as const,
+        title: hack.title,
+        reason: 'Convex fallback recommendation from featured hack activity.',
+        score: Math.max(1, recommendationLimit - index),
+        relatedId: hack.id,
+        context: [hack.assetType],
+      }))
+    : [];
+
+  return {
+    calculatedAt,
+    policyVersion: 'r12-home-feed-v1',
+    appliedFilters: {
+      limit,
+      recommendationLimit,
+      includeRecommendations,
+    },
+    items: feedItems,
+    recommendations,
+    sources: {
+      activities: {
+        status: feedItems.length > 0 ? 'available_partial' : 'available_partial',
+        reason: 'Convex fallback feed currently includes hacks and upcoming hackdays only.',
+      },
+      recommendations: {
+        status: includeRecommendations ? 'available_partial' : 'available_partial',
+        reason: includeRecommendations
+          ? 'Convex fallback recommendations are derived from featured hacks only.'
+          : 'Recommendations disabled by request.',
+      },
+    },
   };
 }
 
@@ -292,6 +378,16 @@ export async function getBootstrapData(viewer: ViewerContext): Promise<Bootstrap
   const parentPageUrl = process.env.CONFLUENCE_HDC_PARENT_PAGE_URL?.trim() || null;
   const parentPageId = process.env.CONFLUENCE_HDC_PARENT_PAGE_ID?.trim() || null;
   return { ...data, createAppUrl, parentPageUrl, parentPageId };
+}
+
+export async function getHomeFeed(
+  viewer: ViewerContext,
+  input: GetHomeFeedInput
+): Promise<HomeFeedSnapshot> {
+  return withConfiguredBackend(
+    () => repository.getHomeFeed(viewer, input),
+    () => getHomeFeedFromConvex(viewer, input)
+  );
 }
 
 export async function trackTeamPulseExport(

@@ -37,6 +37,10 @@ import type {
   MarkArtifactReuseResult,
   ForkArtifactInput,
   ForkArtifactResult,
+  GetHomeFeedInput,
+  HomeFeedSnapshot,
+  HomeFeedActivityItem,
+  HomeFeedRecommendation,
   GetPipelineBoardInput,
   GetPipelineBoardResult,
   MovePipelineItemInput,
@@ -133,6 +137,11 @@ const RECOGNITION_SEGMENT_LEADERBOARD_LIMIT = 25;
 const ROI_POLICY_VERSION = 'r9-roi-scaffold-v1';
 const ROI_BREAKDOWN_LIMIT = 25;
 const ROI_TREND_LIMIT = 6;
+const HOME_FEED_POLICY_VERSION = 'r12-home-feed-v1';
+const HOME_FEED_DEFAULT_LIMIT = 20;
+const HOME_FEED_MAX_LIMIT = 50;
+const HOME_FEED_DEFAULT_RECOMMENDATION_LIMIT = 6;
+const HOME_FEED_MAX_RECOMMENDATION_LIMIT = 12;
 const ROI_TOKEN_TOTAL_KEYS = ['tokenvolume', 'tokencount', 'totaltokens', 'tokensused', 'usagetokens'];
 const ROI_TOKEN_PROMPT_KEYS = ['prompttokens', 'inputtokens'];
 const ROI_TOKEN_COMPLETION_KEYS = ['completiontokens', 'outputtokens'];
@@ -698,6 +707,18 @@ function isAcceptedTeamMembershipStatus(status: string | null): boolean {
   if (!status) return true;
   const normalized = status.trim().toLowerCase();
   return normalized === 'accepted' || normalized === 'active';
+}
+
+function clampPositiveInt(value: unknown, fallback: number, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(1, Math.floor(value)));
+}
+
+function toFeedTimestamp(value: string | null | undefined, fallback: string): string {
+  if (!value || typeof value !== 'string') return fallback;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return fallback;
+  return new Date(parsed).toISOString();
 }
 
 function roundRoiCost(value: number): number {
@@ -3424,6 +3445,462 @@ export class SupabaseRepository {
       recentProjects,
       people,
       registry,
+    };
+  }
+
+  async getHomeFeed(viewer: ViewerContext, input: GetHomeFeedInput): Promise<HomeFeedSnapshot> {
+    const calculatedAt = nowIso();
+    const limit = clampPositiveInt(input.limit, HOME_FEED_DEFAULT_LIMIT, HOME_FEED_MAX_LIMIT);
+    const recommendationLimit = clampPositiveInt(
+      input.recommendationLimit,
+      HOME_FEED_DEFAULT_RECOMMENDATION_LIMIT,
+      HOME_FEED_MAX_RECOMMENDATION_LIMIT
+    );
+    const includeRecommendations = input.includeRecommendations !== false;
+
+    const [
+      users,
+      projects,
+      artifacts,
+      problemRows,
+      pipelineTransitions,
+      registry,
+      teamRows,
+      teamMemberRows,
+      artifactReuseRows,
+      pathwayRows,
+    ] = await Promise.all([
+      this.client
+        .selectMany<DbUser>(USER_TABLE, 'id,email,full_name,atlassian_account_id,experience_level,capability_tags')
+        .catch((error) => {
+          if (hasMissingTable(error, USER_TABLE)) return [];
+          throw error;
+        }),
+      this.listProjects().catch((error) => {
+        if (hasMissingTable(error, PROJECT_TABLE)) return [];
+        throw error;
+      }),
+      this.client
+        .selectMany<DbArtifact>(
+          ARTIFACT_TABLE,
+          'id,title,created_by_user_id,reuse_count,source_hack_project_id,created_at,updated_at,archived_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, ARTIFACT_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbProblem>(
+          PROBLEM_TABLE,
+          'id,title,domain,team,status,moderation_state,vote_count,created_by_user_id,claimed_by_user_id,created_at,updated_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, PROBLEM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbPipelineTransitionLog>(
+          PIPELINE_TRANSITION_LOG_TABLE,
+          'id,project_id,from_stage,to_stage,note,changed_by_user_id,changed_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, PIPELINE_TRANSITION_LOG_TABLE)) return [];
+          throw error;
+        }),
+      this.listAllEvents().catch((error) => {
+        if (hasMissingTable(error, EVENT_TABLE)) return [];
+        throw error;
+      }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(ARTIFACT_REUSE_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, ARTIFACT_REUSE_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<DbPathway>(
+          PATHWAY_TABLE,
+          'id,title,summary,domain,role,tags,published,recommended,updated_at'
+        )
+        .catch((error) => {
+          if (hasMissingTable(error, PATHWAY_TABLE)) return [];
+          throw error;
+        }),
+    ]);
+
+    const userNameById = new Map<string, string>();
+    const viewerUser =
+      users.find(
+        (user) =>
+          typeof user.atlassian_account_id === 'string' &&
+          user.atlassian_account_id.trim() === viewer.accountId.trim()
+      ) ?? null;
+    const viewerUserId = viewerUser?.id ?? null;
+    for (const user of users) {
+      if (!user.id) continue;
+      userNameById.set(user.id, user.full_name || user.email || 'Unknown');
+    }
+
+    const teamLabelById = new Map<string, string>();
+    for (const row of teamRows) {
+      const teamId = getStringField(row, ['id']);
+      if (!teamId) continue;
+      const label = getStringField(row, ['name', 'display_name', 'team_name']) ?? teamId;
+      teamLabelById.set(teamId, label);
+    }
+
+    const membershipsByUserId = new Map<string, Array<{ teamId: string; role: string | null; createdAt: string | null }>>();
+    for (const row of teamMemberRows) {
+      const userId = getStringField(row, ['user_id', 'userId']);
+      const teamId = getStringField(row, ['team_id', 'teamId']);
+      if (!userId || !teamId) continue;
+      const status = getStringField(row, ['status']);
+      if (!isAcceptedTeamMembershipStatus(status)) continue;
+      const role = getStringField(row, ['role']);
+      const createdAt = getStringField(row, ['created_at', 'createdAt']);
+      const list = membershipsByUserId.get(userId) ?? [];
+      list.push({ teamId, role, createdAt });
+      membershipsByUserId.set(userId, list);
+    }
+
+    const viewerTeamIds = viewerUserId
+      ? Array.from(new Set((membershipsByUserId.get(viewerUserId) ?? []).map((row) => row.teamId)))
+      : [];
+    const viewerTeamIdSet = new Set(viewerTeamIds);
+    const viewerTeamLabelsLower = new Set(
+      viewerTeamIds.map((teamId) => (teamLabelById.get(teamId) ?? teamId).trim().toLowerCase()).filter(Boolean)
+    );
+
+    const hackActivities: HomeFeedActivityItem[] = projects
+      .filter((project) => project.source_type === 'hack_submission')
+      .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      .slice(0, Math.max(6, Math.ceil(limit / 2)))
+      .map((project) => ({
+        id: `new_hack:${project.id}`,
+        type: 'new_hack',
+        title: `New hack: ${project.title}`,
+        description: `${project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : 'Unknown'} submitted a ${project.hack_type ?? 'hack'} project.`,
+        occurredAt: toFeedTimestamp(project.created_at, calculatedAt),
+        actorName: project.owner_id ? userNameById.get(project.owner_id) ?? 'Unknown' : null,
+        relatedId: project.id,
+        teamId: project.team_id,
+        teamLabel: project.team_id ? teamLabelById.get(project.team_id) ?? project.team_id : null,
+        domain: null,
+        metadata: {
+          status: project.status,
+          stage: project.pipeline_stage,
+        },
+      }));
+
+    const visibleProblems = problemRows.filter((problem) => problem.moderation_state !== 'removed');
+    const trendingProblemActivities: HomeFeedActivityItem[] = visibleProblems
+      .slice()
+      .sort((a, b) => {
+        const voteDiff = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+        if (voteDiff !== 0) return voteDiff;
+        return (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? '');
+      })
+      .slice(0, Math.max(4, Math.ceil(limit / 3)))
+      .map((problem) => ({
+        id: `trending_problem:${problem.id}`,
+        type: 'trending_problem',
+        title: `Trending problem: ${problem.title}`,
+        description: `${problem.vote_count ?? 0} votes · ${problem.team || 'Unknown team'} / ${problem.domain || 'General'}`,
+        occurredAt: toFeedTimestamp(problem.updated_at ?? problem.created_at, calculatedAt),
+        actorName: problem.created_by_user_id ? userNameById.get(problem.created_by_user_id) ?? 'Unknown' : null,
+        relatedId: problem.id,
+        teamId: null,
+        teamLabel: problem.team ?? null,
+        domain: problem.domain ?? null,
+        metadata: {
+          status: problem.status ?? 'open',
+          voteCount: problem.vote_count ?? 0,
+        },
+      }));
+
+    const artifactActivities: HomeFeedActivityItem[] = artifacts
+      .filter((artifact) => artifact.archived_at === null)
+      .slice()
+      .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      .slice(0, Math.max(4, Math.ceil(limit / 3)))
+      .map((artifact) => ({
+        id: `new_artifact:${artifact.id}`,
+        type: 'new_artifact',
+        title: `New artifact: ${artifact.title}`,
+        description: `${artifact.reuse_count ?? 0} reuses so far.`,
+        occurredAt: toFeedTimestamp(artifact.created_at, calculatedAt),
+        actorName: artifact.created_by_user_id ? userNameById.get(artifact.created_by_user_id) ?? 'Unknown' : null,
+        relatedId: artifact.id,
+        teamId: null,
+        teamLabel: null,
+        domain: null,
+        metadata: {
+          sourceHackProjectId: artifact.source_hack_project_id,
+          reuseCount: artifact.reuse_count ?? 0,
+        },
+      }));
+
+    const pipelineActivities: HomeFeedActivityItem[] = pipelineTransitions
+      .slice()
+      .sort((a, b) => (b.changed_at ?? '').localeCompare(a.changed_at ?? ''))
+      .slice(0, Math.max(4, Math.ceil(limit / 4)))
+      .map((row) => ({
+        id: `pipeline_movement:${row.id}`,
+        type: 'pipeline_movement',
+        title: `Pipeline moved: ${row.project_id}`,
+        description: `${row.from_stage} → ${row.to_stage}`,
+        occurredAt: toFeedTimestamp(row.changed_at, calculatedAt),
+        actorName: userNameById.get(row.changed_by_user_id) ?? 'Unknown',
+        relatedId: row.project_id,
+        teamId: null,
+        teamLabel: null,
+        domain: null,
+        metadata: {
+          note: row.note,
+          fromStage: row.from_stage,
+          toStage: row.to_stage,
+        },
+      }));
+
+    const upcomingHackdayActivities: HomeFeedActivityItem[] = registry
+      .filter((event) => {
+        if (!event.hackingStartsAt) return false;
+        if (event.lifecycleStatus === 'completed' || event.lifecycleStatus === 'archived') return false;
+        return Date.parse(event.hackingStartsAt) >= Date.now();
+      })
+      .sort((a, b) => (a.hackingStartsAt ?? '').localeCompare(b.hackingStartsAt ?? ''))
+      .slice(0, 4)
+      .map((event) => ({
+        id: `upcoming_hackday:${event.id}`,
+        type: 'upcoming_hackday',
+        title: `Upcoming HackDay: ${event.eventName}`,
+        description:
+          event.tagline?.trim() ||
+          `${event.icon || '🚀'} starts ${new Date(event.hackingStartsAt as string).toLocaleDateString('en-GB')}`,
+        occurredAt: toFeedTimestamp(event.hackingStartsAt, calculatedAt),
+        actorName: null,
+        relatedId: event.id,
+        teamId: null,
+        teamLabel: null,
+        domain: null,
+        metadata: {
+          lifecycleStatus: event.lifecycleStatus,
+          submissionDeadlineAt: event.submissionDeadlineAt,
+          confluencePageId: event.confluencePageId,
+        },
+      }));
+
+    const items = [
+      ...upcomingHackdayActivities,
+      ...hackActivities,
+      ...trendingProblemActivities,
+      ...artifactActivities,
+      ...pipelineActivities,
+    ]
+      .sort((a, b) => {
+        if (a.type === 'upcoming_hackday' && b.type === 'upcoming_hackday') {
+          return a.occurredAt.localeCompare(b.occurredAt);
+        }
+        if (a.type === 'upcoming_hackday') return -1;
+        if (b.type === 'upcoming_hackday') return 1;
+        return b.occurredAt.localeCompare(a.occurredAt);
+      })
+      .slice(0, limit);
+
+    const recommendations: HomeFeedRecommendation[] = [];
+
+    if (includeRecommendations) {
+      const domainSignals = new Map<string, number>();
+      for (const problem of visibleProblems) {
+        const domain = (problem.domain || '').trim();
+        if (!domain) continue;
+        let score = 0;
+        if (viewerUserId && (problem.created_by_user_id === viewerUserId || problem.claimed_by_user_id === viewerUserId)) {
+          score += 3;
+        }
+        if (viewerTeamLabelsLower.has((problem.team || '').trim().toLowerCase())) {
+          score += 1;
+        }
+        if (score > 0) {
+          domainSignals.set(domain, (domainSignals.get(domain) ?? 0) + score);
+        }
+      }
+
+      const preferredDomain = Array.from(domainSignals.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const domainProblems = visibleProblems
+        .filter((problem) => (preferredDomain ? problem.domain === preferredDomain : true))
+        .filter((problem) => problem.status === 'open' || problem.status === 'claimed')
+        .slice()
+        .sort((a, b) => {
+          const voteDiff = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+          if (voteDiff !== 0) return voteDiff;
+          return (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? '');
+        })
+        .slice(0, 2);
+
+      for (const problem of domainProblems) {
+        recommendations.push({
+          id: `problem_domain:${problem.id}`,
+          type: 'problem_domain',
+          title: problem.title,
+          reason: preferredDomain
+            ? `Matches your active domain signal (${preferredDomain}).`
+            : 'Trending in Problem Exchange.',
+          score: (problem.vote_count ?? 0) + (preferredDomain ? 2 : 0),
+          relatedId: problem.id,
+          context: [problem.team, problem.domain].filter((value): value is string => Boolean(value)),
+        });
+      }
+
+      const viewerTeamUserIds = new Set<string>();
+      for (const [userId, memberships] of membershipsByUserId.entries()) {
+        if (memberships.some((membership) => viewerTeamIdSet.has(membership.teamId))) {
+          viewerTeamUserIds.add(userId);
+        }
+      }
+      const teamReuseByArtifactId = new Map<string, number>();
+      for (const row of artifactReuseRows) {
+        const artifactId = getStringField(row, ['artifact_id', 'artifactId']);
+        const userId = getStringField(row, ['user_id', 'userId']);
+        if (!artifactId || !userId) continue;
+        if (!viewerTeamUserIds.has(userId)) continue;
+        teamReuseByArtifactId.set(artifactId, (teamReuseByArtifactId.get(artifactId) ?? 0) + 1);
+      }
+      const artifactById = new Map(artifacts.map((artifact) => [artifact.id, artifact]));
+      for (const [artifactId, teamUses] of Array.from(teamReuseByArtifactId.entries()).sort((a, b) => b[1] - a[1]).slice(0, 2)) {
+        const artifact = artifactById.get(artifactId);
+        if (!artifact) continue;
+        recommendations.push({
+          id: `team_artifact:${artifactId}`,
+          type: 'team_artifact',
+          title: artifact.title,
+          reason: `Used ${teamUses} time${teamUses === 1 ? '' : 's'} by members of your team.`,
+          score: teamUses,
+          relatedId: artifactId,
+          context: artifact.source_hack_project_id ? [`Source hack ${artifact.source_hack_project_id}`] : [],
+        });
+      }
+
+      const viewerRoleSignals = new Set<string>();
+      const experienceRaw = viewerUser?.experience_level?.trim();
+      if (experienceRaw) {
+        viewerRoleSignals.add(experienceRaw.toLowerCase());
+        const experienceLabel = toExperienceLabel(experienceRaw);
+        if (experienceLabel) {
+          viewerRoleSignals.add(experienceLabel.toLowerCase());
+        }
+      }
+      for (const tag of viewerUser?.capability_tags ?? []) {
+        if (typeof tag !== 'string') continue;
+        const normalized = tag.trim().toLowerCase();
+        if (normalized) {
+          viewerRoleSignals.add(normalized);
+          viewerRoleSignals.add(normalized.replace(/_/g, ' '));
+        }
+      }
+
+      const pathwayCandidates = pathwayRows
+        .filter((row) => row.published === true)
+        .filter((row) => {
+          if (viewerRoleSignals.size === 0) return true;
+          const role = (row.role || '').trim().toLowerCase();
+          if (!role) return false;
+          return Array.from(viewerRoleSignals).some((signal) => role.includes(signal));
+        })
+        .sort((a, b) => {
+          if ((a.recommended ?? false) !== (b.recommended ?? false)) {
+            return a.recommended ? -1 : 1;
+          }
+          return (b.updated_at ?? '').localeCompare(a.updated_at ?? '');
+        })
+        .slice(0, 2);
+
+      for (const pathway of pathwayCandidates) {
+        recommendations.push({
+          id: `pathway_role:${pathway.id}`,
+          type: 'pathway_role',
+          title: pathway.title,
+          reason: pathway.role
+            ? `Recommended pathway for role focus: ${pathway.role}.`
+            : 'Recommended pathway based on your participation profile.',
+          score: pathway.recommended ? 3 : 1,
+          relatedId: pathway.id,
+          context: (pathway.tags ?? []).slice(0, 3),
+        });
+      }
+    }
+
+    const dedupedRecommendations: HomeFeedRecommendation[] = [];
+    const seenRecommendationIds = new Set<string>();
+    for (const recommendation of recommendations.sort((a, b) => b.score - a.score)) {
+      if (seenRecommendationIds.has(recommendation.id)) continue;
+      seenRecommendationIds.add(recommendation.id);
+      dedupedRecommendations.push(recommendation);
+      if (dedupedRecommendations.length >= recommendationLimit) break;
+    }
+
+    const expectedActivityTypes = new Set<HomeFeedActivityItem['type']>([
+      'new_hack',
+      'trending_problem',
+      'new_artifact',
+      'pipeline_movement',
+      'upcoming_hackday',
+    ]);
+    const activityTypesPresent = new Set(items.map((item) => item.type));
+    const expectedRecommendationTypes = new Set<HomeFeedRecommendation['type']>([
+      'problem_domain',
+      'team_artifact',
+      'pathway_role',
+    ]);
+    const recommendationTypesPresent = new Set(dedupedRecommendations.map((item) => item.type));
+
+    const activityStatus: HomeFeedSnapshot['sources']['activities']['status'] =
+      activityTypesPresent.size === expectedActivityTypes.size ? 'available' : 'available_partial';
+    const recommendationStatus: HomeFeedSnapshot['sources']['recommendations']['status'] = includeRecommendations
+      ? recommendationTypesPresent.size === expectedRecommendationTypes.size
+        ? 'available'
+        : 'available_partial'
+      : 'available_partial';
+
+    return {
+      calculatedAt,
+      policyVersion: HOME_FEED_POLICY_VERSION,
+      appliedFilters: {
+        limit,
+        recommendationLimit,
+        includeRecommendations,
+      },
+      items,
+      recommendations: dedupedRecommendations,
+      sources: {
+        activities: {
+          status: activityStatus,
+          reason:
+            activityStatus === 'available'
+              ? 'All R12.1 activity categories populated.'
+              : `Activity categories populated: ${activityTypesPresent.size}/${expectedActivityTypes.size}.`,
+        },
+        recommendations: {
+          status: recommendationStatus,
+          reason: !includeRecommendations
+            ? 'Recommendations disabled by request.'
+            : recommendationStatus === 'available'
+              ? 'All R12.2 recommendation categories populated.'
+              : `Recommendation categories populated: ${recommendationTypesPresent.size}/${expectedRecommendationTypes.size}.`,
+        },
+      },
     };
   }
 

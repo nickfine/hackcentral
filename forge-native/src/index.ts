@@ -8,6 +8,7 @@ import {
   flagProblem,
   getArtifact,
   getBootstrapData,
+  getHomeFeed,
   getPipelineBoard,
   getPathway,
   listShowcaseHacks,
@@ -41,6 +42,7 @@ import type {
   CreateInstanceDraftInput,
   FlagProblemInput,
   GetRoiDashboardInput,
+  GetHomeFeedInput,
   GetPipelineBoardInput,
   LogRoiTokenUsageInput,
   ListShowcaseHacksInput,
@@ -125,6 +127,14 @@ resolver.define('getBootstrapData', async (request: { context?: RawResolverConte
   const viewer = getViewer(request.context as RawResolverContext | undefined);
   return getBootstrapData(viewer);
 });
+
+resolver.define(
+  'hdcGetHomeFeed',
+  async (request: { context?: RawResolverContext; payload: GetHomeFeedInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getHomeFeed(viewer, request.payload || {});
+  }
+);
 
 resolver.define(
   'createHack',

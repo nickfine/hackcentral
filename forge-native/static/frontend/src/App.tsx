@@ -14,6 +14,10 @@ import type {
   EventDuration,
   FlagProblemInput,
   FeaturedHack,
+  GetHomeFeedInput,
+  HomeFeedSnapshot,
+  HomeFeedActivityType,
+  HomeFeedRecommendationType,
   GetRoiDashboardInput,
   GetPathwayResult,
   GetShowcaseHackDetailResult,
@@ -119,6 +123,18 @@ const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }
   { value: 'try', label: 'Try' },
   { value: 'build', label: 'Build' },
 ];
+const HOME_FEED_ACTIVITY_LABELS: Record<HomeFeedActivityType, string> = {
+  new_hack: 'New hack',
+  trending_problem: 'Trending problem',
+  new_artifact: 'New artifact',
+  pipeline_movement: 'Pipeline movement',
+  upcoming_hackday: 'Upcoming HackDay',
+};
+const HOME_FEED_RECOMMENDATION_LABELS: Record<HomeFeedRecommendationType, string> = {
+  problem_domain: 'Problems in your domain',
+  team_artifact: 'Artifacts used by your team',
+  pathway_role: 'Pathways for your role',
+};
 
 type PathwayEditorMode = 'create' | 'edit';
 
@@ -1193,6 +1209,19 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function formatFeedOccurredAt(value: string): string {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return 'Unknown time';
+  const now = Date.now();
+  const diffHours = Math.round((now - parsed) / (1000 * 60 * 60));
+  if (diffHours >= 0 && diffHours < 24) {
+    if (diffHours === 0) return 'just now';
+    if (diffHours === 1) return '1h ago';
+    return `${diffHours}h ago`;
+  }
+  return new Date(parsed).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
   const { total, nonNavigable, withMissingPageId } = summarizeSwitcherNavigability(registry);
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
@@ -1375,6 +1404,10 @@ export function App(): JSX.Element {
   const [roiTeamFilterInput, setRoiTeamFilterInput] = useState('');
   const [roiBusinessUnitInput, setRoiBusinessUnitInput] = useState('');
   const [roiAppliedFilters, setRoiAppliedFilters] = useState<GetRoiDashboardInput>({ window: 'monthly' });
+  const [homeFeedSnapshot, setHomeFeedSnapshot] = useState<HomeFeedSnapshot | null>(null);
+  const [homeFeedLoading, setHomeFeedLoading] = useState(false);
+  const [homeFeedLoaded, setHomeFeedLoaded] = useState(false);
+  const [homeFeedError, setHomeFeedError] = useState('');
 
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
@@ -2257,6 +2290,99 @@ export function App(): JSX.Element {
     }
     void loadRoiDashboard(roiAppliedFilters);
   }, [loadRoiDashboard, roiAccessChecked, roiAppliedFilters, roiCanView, view]);
+
+  const loadHomeFeed = useCallback(async () => {
+    setHomeFeedLoading(true);
+    setHomeFeedError('');
+    try {
+      if (previewMode) {
+        const now = new Date().toISOString();
+        const previewItems = [
+          ...featuredHacks.slice(0, 6).map((hack) => ({
+            id: `new_hack:${hack.id}`,
+            type: 'new_hack' as const,
+            title: `New hack: ${hack.title}`,
+            description: `${hack.authorName} shared a ${hack.assetType} hack.`,
+            occurredAt: now,
+            actorName: hack.authorName,
+            relatedId: hack.id,
+            teamId: null,
+            teamLabel: null,
+            domain: null,
+            metadata: { status: hack.status },
+          })),
+          ...(bootstrap?.registry ?? [])
+            .filter((event) => event.hackingStartsAt)
+            .slice(0, 2)
+            .map((event) => ({
+              id: `upcoming_hackday:${event.id}`,
+              type: 'upcoming_hackday' as const,
+              title: `Upcoming HackDay: ${event.eventName}`,
+              description: event.tagline || `${event.icon || '🚀'} starts soon`,
+              occurredAt: event.hackingStartsAt as string,
+              actorName: null,
+              relatedId: event.id,
+              teamId: null,
+              teamLabel: null,
+              domain: null,
+              metadata: { lifecycleStatus: event.lifecycleStatus },
+            })),
+        ].slice(0, 20);
+
+        const previewRecommendations = featuredHacks.slice(0, 4).map((hack, index) => ({
+          id: `team_artifact:${hack.id}`,
+          type: 'team_artifact' as const,
+          title: hack.title,
+          reason: 'Preview recommendation from featured hack activity.',
+          score: 4 - index,
+          relatedId: hack.id,
+          context: [hack.assetType],
+        }));
+
+        setHomeFeedSnapshot({
+          calculatedAt: now,
+          policyVersion: 'r12-home-feed-v1',
+          appliedFilters: {
+            limit: 20,
+            recommendationLimit: 6,
+            includeRecommendations: true,
+          },
+          items: previewItems,
+          recommendations: previewRecommendations,
+          sources: {
+            activities: {
+              status: 'available_partial',
+              reason: 'Preview mode synthesizes feed events from local bootstrap data.',
+            },
+            recommendations: {
+              status: 'available_partial',
+              reason: 'Preview mode synthesizes recommendations from featured hacks.',
+            },
+          },
+        });
+        setHomeFeedLoaded(true);
+        return;
+      }
+
+      const payload: GetHomeFeedInput = {
+        limit: 24,
+        recommendationLimit: 6,
+        includeRecommendations: true,
+      };
+      const result = await invokeTyped('hdcGetHomeFeed', payload);
+      setHomeFeedSnapshot(result);
+      setHomeFeedLoaded(true);
+    } catch (error) {
+      setHomeFeedError(error instanceof Error ? error.message : 'Failed to load home feed.');
+    } finally {
+      setHomeFeedLoading(false);
+    }
+  }, [bootstrap?.registry, featuredHacks, previewMode]);
+
+  useEffect(() => {
+    if (view !== 'dashboard') return;
+    void loadHomeFeed();
+  }, [loadHomeFeed, view]);
 
   const loadShowcaseHacks = useCallback(async () => {
     setShowcaseLoading(true);
@@ -3331,6 +3457,8 @@ export function App(): JSX.Element {
     (person) => person.mentorSlotsRemaining > 0 || person.capabilities.length > 0
   );
   const hackers = filteredPeople;
+  const homeFeedItems = homeFeedSnapshot?.items ?? [];
+  const homeFeedRecommendations = homeFeedSnapshot?.recommendations ?? [];
 
   const teamPulse = bootstrap?.teamPulse ?? null;
   const reuseRatePct = teamPulse?.reuseRatePct ?? 0;
@@ -4376,6 +4504,79 @@ export function App(): JSX.Element {
                 {featuredHacks.slice(0, 8).map((hack) => (
                   <HackCard key={hack.id} item={hack} />
                 ))}
+              </section>
+
+              <section className="grid home-feed-grid">
+                <article className="card home-feed-card">
+                  <div className="section-head-row">
+                    <div>
+                      <h2>What&apos;s happening</h2>
+                      <p>R12.1 activity feed across hacks, problems, artifacts, pipeline, and upcoming events.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => void loadHomeFeed()}
+                      disabled={homeFeedLoading}
+                    >
+                      {homeFeedLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  {homeFeedError ? <p className="message message-error">{homeFeedError}</p> : null}
+                  {homeFeedItems.length > 0 ? (
+                    <div className="home-feed-list">
+                      {homeFeedItems.slice(0, 10).map((item) => (
+                        <div key={item.id} className="list-row home-feed-row">
+                          <div>
+                            <div className="home-feed-row-title">{item.title}</div>
+                            <div className="caption">{item.description}</div>
+                          </div>
+                          <div className="home-feed-row-meta">
+                            <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
+                            <span>{formatFeedOccurredAt(item.occurredAt)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : homeFeedLoading ? (
+                    <p className="empty-copy">Loading activity feed...</p>
+                  ) : (
+                    <p className="empty-copy">No activity yet. New hacks and project movement will appear here.</p>
+                  )}
+                  {homeFeedSnapshot ? (
+                    <p className="caption">Source: {homeFeedSnapshot.sources.activities.status}</p>
+                  ) : null}
+                </article>
+
+                <article className="card home-feed-card">
+                  <h2>Recommended for you</h2>
+                  <p className="caption">
+                    R12.2 includes domain problems, team artifact usage, and role pathways.
+                  </p>
+                  {homeFeedRecommendations.length > 0 ? (
+                    <div className="home-feed-list">
+                      {homeFeedRecommendations.slice(0, 8).map((item) => (
+                        <div key={item.id} className="list-row home-feed-row">
+                          <div>
+                            <div className="home-feed-row-title">{item.title}</div>
+                            <div className="caption">{item.reason}</div>
+                          </div>
+                          <div className="home-feed-row-meta">
+                            <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
+                            <span>score {item.score}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : homeFeedLoading ? (
+                    <p className="empty-copy">Loading recommendations...</p>
+                  ) : (
+                    <p className="empty-copy">Recommendations will appear once activity signals are available.</p>
+                  )}
+                  {homeFeedSnapshot ? (
+                    <p className="caption">Source: {homeFeedSnapshot.sources.recommendations.status}</p>
+                  ) : null}
+                </article>
               </section>
 
               <section className="grid dashboard-pods">

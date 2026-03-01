@@ -235,6 +235,67 @@ export interface RecognitionSnapshot {
   viewerBadges: RecognitionViewerBadges;
 }
 
+export type HomeFeedActivityType =
+  | "new_hack"
+  | "trending_problem"
+  | "new_artifact"
+  | "pipeline_movement"
+  | "upcoming_hackday";
+
+export interface HomeFeedActivityItem {
+  id: string;
+  type: HomeFeedActivityType;
+  title: string;
+  description: string;
+  occurredAt: string;
+  actorName?: string | null;
+  relatedId?: string | null;
+  teamId?: string | null;
+  teamLabel?: string | null;
+  domain?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export type HomeFeedRecommendationType = "problem_domain" | "team_artifact" | "pathway_role";
+
+export interface HomeFeedRecommendation {
+  id: string;
+  type: HomeFeedRecommendationType;
+  title: string;
+  reason: string;
+  score: number;
+  relatedId?: string | null;
+  context?: string[];
+}
+
+export interface GetHomeFeedInput {
+  limit?: number;
+  recommendationLimit?: number;
+  includeRecommendations?: boolean;
+}
+
+export interface HomeFeedSnapshot {
+  calculatedAt: string;
+  policyVersion: "r12-home-feed-v1";
+  appliedFilters: {
+    limit: number;
+    recommendationLimit: number;
+    includeRecommendations: boolean;
+  };
+  items: HomeFeedActivityItem[];
+  recommendations: HomeFeedRecommendation[];
+  sources: {
+    activities: {
+      status: "available" | "available_partial";
+      reason: string;
+    };
+    recommendations: {
+      status: "available" | "available_partial";
+      reason: string;
+    };
+  };
+}
+
 export interface FeaturedHack {
   id: string;
   title: string;
@@ -288,6 +349,7 @@ export interface BootstrapData {
   summary: SummaryStats;
   teamPulse?: TeamPulseMetrics | null;
   recognition?: RecognitionSnapshot | null;
+  homeFeed?: HomeFeedSnapshot | null;
   featuredHacks: FeaturedHack[];
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];
@@ -1110,6 +1172,7 @@ export interface TrackTeamPulseExportResult {
 
 export type Defs = {
   getBootstrapData: () => BootstrapData;
+  hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
   createHack: (payload: CreateHackInput) => CreateHackResult;
   hdcCreateArtifact: (payload: CreateArtifactInput) => CreateArtifactResult;
   hdcListArtifacts: (payload: ListArtifactsInput) => ListArtifactsResult;

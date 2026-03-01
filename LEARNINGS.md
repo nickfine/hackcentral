@@ -2422,3 +2422,32 @@ Use this template at the end of every work session:
 - Supabase MCP availability and Supabase MCP admin-scope permissions are separate concerns; in this workspace MCP is reachable but some management calls can still be permission-scoped.
 - For fork/remix rollout gates, pairing migration verification + resolver smoke + dual-surface UI smoke provides faster close confidence than any single signal.
 - Continuity docs should be updated in the same post-deploy slice as GO checkpoint publication to avoid stale active-task restarts.
+
+## Session Update - P3.FEED.01 Baseline Contract + Resolver + Home Lane (Mar 1, 2026 23:50 GMT)
+
+### Completed
+
+- Locked `P3.FEED.01` contract for `R12.1`/`R12.2` in:
+  - `docs/HDC-P3-FEED-CONTRACT-SPEC.md`
+- Added typed feed resolver scaffold:
+  - `hdcGetHomeFeed` wiring in backend + resolver index.
+  - `SupabaseRepository.getHomeFeed` now assembles activity feed categories and recommendation categories with explicit source-coverage status.
+- Added Home UI lane wiring:
+  - `What's happening` activity feed lane.
+  - `Recommended for you` recommendation lane.
+- Added feed contract regression test:
+  - `tests/forge-native-feed-contract.spec.ts`
+- Published baseline checkpoint:
+  - `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md` (`IN_PROGRESS`)
+
+### Validation Evidence
+
+- `npm run test:run -- tests/forge-native-feed-contract.spec.ts` (`1/1`)
+- `npm --prefix forge-native run typecheck` (pass)
+- `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- A dedicated typed feed resolver (`hdcGetHomeFeed`) keeps Home feed evolution isolated from bootstrap payload churn while still allowing fallback behavior in non-Supabase modes.
+- Explicit source-coverage status in feed payloads is useful for phased rollout: UI can communicate partial readiness without hard-failing the page.
+- Testing category coverage by asserting feed/recommendation type sets is a fast, stable guardrail for roadmap contract drift.

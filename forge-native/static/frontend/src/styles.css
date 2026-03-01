@@ -593,6 +593,10 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.home-feed-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .metric-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -613,8 +617,32 @@ button {
 .recognition-card,
 .bulletin-card,
 .recognition-tabs,
-.collective-card {
+.collective-card,
+.home-feed-card {
   padding: var(--spacing-card);
+}
+
+.home-feed-list {
+  display: grid;
+  gap: 10px;
+}
+
+.home-feed-row {
+  align-items: center;
+}
+
+.home-feed-row-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.home-feed-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 12px;
 }
 
 .hack-card-head,
@@ -3056,6 +3084,7 @@ button {
   .people-grid,
   .featured-grid,
   .metric-grid,
+  .home-feed-grid,
   .dashboard-pods,
   .bulletin-grid,
   .pulse-grid {
@@ -3132,6 +3161,7 @@ button {
   .people-grid,
   .featured-grid,
   .metric-grid,
+  .home-feed-grid,
   .dashboard-pods,
   .bulletin-grid,
   .pulse-grid,
