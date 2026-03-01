@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 13:32 GMT
+Last updated: 2026-03-01 13:39 GMT
 
 ## Current Snapshot
 
@@ -123,7 +123,7 @@ Last updated: 2026-03-01 13:32 GMT
     - name: `P1 CHILD LIVE 20260301-1305`
     - child page id: `18120705`
     - persisted `HackdayTemplateSeed.seed_payload.childIntegration` contains selected import `819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2`, `templateMode=customized`, `autoPublishToShowcaseDrafts=false`
-- Pathways (`P2.PATH.01`) backend + Guide UI slice are now in progress:
+- Pathways (`P2.PATH.01`) rollout is now complete (`GO`):
   - contract spec: `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`
   - migration: `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`
   - resolver contracts:
@@ -151,23 +151,31 @@ Last updated: 2026-03-01 13:32 GMT
   - Guide styles extended in `forge-native/static/frontend/src/styles.css`
   - local browser smoke evidence:
     - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
+  - production browser smoke evidence:
+    - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133829Z.png`
+    - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png`
+  - rollout checkpoint:
+    - `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md`
   - local smoke fixed bug:
     - empty filter result now clears stale selected pathway detail in preview mode
+  - live migration note:
+    - corrected `PathwayStep.linked_artifact_id` column type to `uuid` to align with `Artifact.id`
 
 ## Active Task Pointer
 
-- Active Task ID: `P2.PATH.01`
-- Task title: `Pathways in Guide (phase-2 dependency framing)`
+- Active Task ID: `P2.METRICS.01`
+- Task title: `Team Pulse metrics expansion`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
+- Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 
 ## Next 3 Atomic Actions
 
-1. Apply pathways migration `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql` to production Supabase project (`ssafugtobsqxmqtphwch`) and verify schema objects.
-2. Seed/verify at least one published pathway via `hdcUpsertPathway` under manager authority and validate `hdcListPathways` / `hdcGetPathway` / `hdcSetPathwayStepCompletion` end-to-end on live data.
-3. Run production Playwright MCP smoke for Guide Pathways (participant + manager flows) and prepare `P2.PATH.01` rollout checkpoint artifact.
+1. Lock `P2.METRICS.01` contract boundaries from `R7.1`-`R7.4` into an implementation spec (`Team Pulse KPI definitions, windows, filters, and role visibility`).
+2. Map metric data dependencies across existing entities (`Project`, `Artifact`, `ShowcaseHack`, `PathwayProgress`, Problem Exchange telemetry) and define required resolver/schema deltas.
+3. Implement backend baseline for Team Pulse metrics (`types`, `repository`, `resolver`) behind an explicit feature gate and add targeted contract/runtime tests.
 
 ## Blockers / Decisions Needed
 
@@ -180,6 +188,7 @@ Last updated: 2026-03-01 13:32 GMT
 - Preferred path: use Supabase MCP tools first.
 - Known behavior in this workspace:
   - `mcp__supabase__list_projects` may return empty even when project access exists.
+  - `mcp__supabase__list_tables` / `mcp__supabase__list_migrations` currently return permission errors for `ssafugtobsqxmqtphwch`; use CLI fallback with `SUPABASE_ACCESS_TOKEN`.
   - `/Users/nickster/Downloads/HD26Forge/.mcp.json` currently configures Supabase MCP with anon API key, which is insufficient for management/admin checks.
 - Fallback path for live authority audits:
   1. Use shell `SUPABASE_ACCESS_TOKEN` with Supabase CLI to discover/access project refs.
@@ -200,6 +209,7 @@ Last updated: 2026-03-01 13:32 GMT
 - Key smoke evidence from this session:
   - `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
   - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
+  - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png`
 
 ## Validation Commands
 

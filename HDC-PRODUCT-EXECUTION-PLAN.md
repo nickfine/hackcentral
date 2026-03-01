@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 13:32 GMT  
+Last updated: 2026-03-01 13:39 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 1 (Foundation Delivery) |
 | Program status | In execution |
-| Active task ID | `P2.PATH.01` |
+| Active task ID | `P2.METRICS.01` |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -43,8 +43,8 @@ Program: HackDay Central (HDC)
 | `P1.SHOW.01` | `R4.1` to `R4.4` | Eng | Completed (2026-03-01; GO) | `P1.IA.01` | Showcase split + hack detail pages live | `docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`, `forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-showcase-contract.spec.ts`, `tests/forge-native-showcase-runtime-modes.spec.ts`, `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md`, `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png` |
 | `P1.CHILD.01` | `R5.1` to `R5.4` | Eng | Completed (2026-03-01; GO) | `P1.PX.01`, `P1.SHOW.01` | Child integrations (problem import + auto-draft publish) live | `docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md`, `docs/artifacts/p1-child-step6-live-20260301-1257.png`, `docs/artifacts/p1-child-create-success-20260301-1258.png`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/backend/hdcService.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `tests/forge-native-hdcService.spec.ts` |
 | `P1.OBS.01` | Phase 1 telemetry | Eng | Completed (2026-03-01; GO) | `P1.REG.01`, `P1.PX.01`, `P1.PIPE.01` | Regression and telemetry guardrails standardized for Phase 1 loops, with reusable gate template for pending modules | `docs/HDC-P1-OBS-GUARDRAILS-PACK.md`, `docs/HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md`, `docs/artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md`, `package.json` |
-| `P2.PATH.01` | `R6.1` to `R6.4` | Eng | In Progress (2026-03-01 backend + Guide UI slice landed) | Phase 1 complete | Pathways delivered in Guide | `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`, `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-pathways-contract.spec.ts`, `tests/forge-native-pathways-runtime-modes.spec.ts`, `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png` |
-| `P2.METRICS.01` | `R7.1` to `R7.4` | Eng | Planned | Phase 1 data availability | Team Pulse metrics expansion delivered | Pending |
+| `P2.PATH.01` | `R6.1` to `R6.4` | Eng | Completed (2026-03-01; GO) | Phase 1 complete | Pathways delivered in Guide | `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`, `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-pathways-contract.spec.ts`, `tests/forge-native-pathways-runtime-modes.spec.ts`, `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md`, `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png` |
+| `P2.METRICS.01` | `R7.1` to `R7.4` | Eng | In Progress (2026-03-01 planning kickoff) | Phase 1 data availability | Team Pulse metrics expansion delivered | Pending |
 | `P2.RECOG.01` | `R8.1` to `R8.2` | Eng | Planned | `P2.METRICS.01` | Recognition rules + leaderboard segmentation delivered | Pending |
 | `P2.OBS.01` | Phase 2 telemetry | Eng | Planned | `P2.PATH.01`, `P2.METRICS.01`, `P2.RECOG.01` | Adoption KPI trend instrumentation active | Pending |
 | `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | Planned | Phase 2 complete, token data source audit | ROI dashboard + export delivered | Pending |
@@ -57,9 +57,9 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P2.PATH.01` - run live Supabase migration + seeded pathway verification against production project.
-2. `P2.PATH.01` - execute production Guide Pathways browser smoke (manager + participant authority paths).
-3. `P2.PATH.01` - produce rollout checkpoint artifact and decide GO/NO-GO closure.
+1. `P2.METRICS.01` - lock Team Pulse metrics contract (`R7.1`-`R7.4`) and baseline source mapping.
+2. `P2.METRICS.01` - define backend resolver additions and Supabase schema deltas for metric aggregation.
+3. `P2.METRICS.01` - stage frontend Team Pulse UX updates behind feature flag and prepare validation gate.
 
 ### Next
 
@@ -115,3 +115,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Completed `P1.CHILD.01`: deployed production child-integration bundle, verified live Create HackDay step-6 controls (`templateMode`, `autoPublishToShowcaseDrafts`, Problem Exchange import checklist), executed end-to-end create smoke (`P1 CHILD LIVE 20260301-1305`) with selected candidate import (`819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2`) and child page creation (`18120705`), and confirmed persisted `HackdayTemplateSeed.seed_payload.childIntegration` payload (`templateMode=customized`, `autoPublishToShowcaseDrafts=false`, imported problem snapshot). Checkpoint: `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md` (`GO`). Active task advanced to `P2.PATH.01`. |
 | 2026-03-01 | Started `P2.PATH.01` backend baseline: locked pathways contract spec (`docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`), added pathways migration (`forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`), implemented resolver contracts (`hdcListPathways`, `hdcGetPathway`, `hdcUpsertPathway`, `hdcSetPathwayStepCompletion`) with pathway editor guardrails (`pathway_admin` / `pathway_contributor` / `platform_admin`), and added targeted tests (`tests/forge-native-pathways-contract.spec.ts`, `tests/forge-native-pathways-runtime-modes.spec.ts`; 5/5 passing). |
 | 2026-03-01 | Advanced `P2.PATH.01` Guide UI slice: replaced static guide content with pathways list/detail + progress completion wiring, added manager-gated pathway create/edit form (including ordered step editing) in `forge-native/static/frontend/src/App.tsx`, added Guide pathway styles in `forge-native/static/frontend/src/styles.css`, fixed empty-filter stale-detail bug in preview selection handling, passed targeted tests/typechecks, and captured local browser smoke evidence (`docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`). |
+| 2026-03-01 | Completed `P2.PATH.01` rollout to GO: fixed migration type mismatch (`linked_artifact_id` now `uuid`), applied pathways migration in production (`ssafugtobsqxmqtphwch`), verified live resolver authority paths (manager upsert/list/get + participant completion + participant upsert denied), deployed Forge production bundle, executed live Guide Pathways smoke (`Create pathway`, `Edit pathway`, save success, completion progress `1/3 -> 33%`), and recorded checkpoint artifact `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md`. Active task advanced to `P2.METRICS.01`. |

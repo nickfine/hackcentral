@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS "PathwayStep" (
   title text NOT NULL,
   description text NOT NULL DEFAULT '',
   linked_hack_project_id text,
-  linked_artifact_id text,
+  linked_artifact_id uuid,
   external_url text,
   challenge_prompt text,
   is_optional boolean NOT NULL DEFAULT false,

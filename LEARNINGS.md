@@ -1519,3 +1519,41 @@ Use this template at the end of every work session:
 
 - Local preview path always reports `canManage=false`, so manager-only controls (`Create pathway`, `Edit pathway`) require live manager authority validation in production runtime.
 - Dev server in this child workspace may log non-blocking Vite `server.fs.allow` warnings for font assets resolved through the parent workspace `node_modules`; this does not affect functional Guide-pathway smoke outcomes.
+
+## Session Update - P2.PATH.01 Live Rollout GO Closure (Mar 1, 2026 13:39 GMT)
+
+### Completed
+
+- Applied `P2.PATH.01` migration to production Supabase project (`ssafugtobsqxmqtphwch`) and verified created schema objects (`Pathway`, `PathwayStep`, `PathwayProgress`).
+- Fixed migration defect discovered during first live apply:
+  - `PathwayStep.linked_artifact_id` changed from `text` to `uuid` to match `Artifact.id`.
+- Executed live resolver smoke via HackCentral backend contracts:
+  - manager `upsertPathway` + `listPathways` + `getPathway` pass
+  - participant `setPathwayStepCompletion` pass (`1/3`, `33%`)
+  - participant `upsertPathway` correctly denied with `[PATHWAY_FORBIDDEN]`
+- Deployed Forge production bundle and validated live Guide Pathways UI:
+  - editor role surfaces `Create pathway` and `Edit pathway`
+  - edit form opens and saves (`Pathway updated.` toast)
+  - step completion updates progress (`1/3 steps • 33% complete`)
+- Recorded rollout checkpoint:
+  - `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md` (`GO`)
+
+### Validation Evidence
+
+- Live screenshots:
+  - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133829Z.png`
+  - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png`
+- Live resolver smoke payload result:
+  - pathway id `e7928bd4-141a-4d33-b545-df27161698c6`
+  - manager list count `1`
+  - detail step count `3`
+  - participant completion persisted with `completionPercent=33`
+- Regression checks after fixes:
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts` (`5/5`)
+
+### Operational Learnings
+
+- Supabase MCP permissions for this project can intermittently block admin actions (`list_tables`, `list_migrations` with `MCP error -32600`); CLI fallback with `SUPABASE_ACCESS_TOKEN` remains required for live schema verification.
+- `forge-native` full `custom-ui:build` can fail on unrelated runtime-frontend Tailwind/PostCSS configuration in this workspace; frontend deploy for Guide Pathways was still achievable because the updated global-page bundle built/deployed successfully and production smoke confirmed behavior.
