@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 11:56 GMT  
+Last updated: 2026-03-01 12:58 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 1 (Foundation Delivery) |
 | Program status | In execution |
-| Active task ID | `P1.CHILD.01` |
+| Active task ID | `P2.PATH.01` |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -41,7 +41,7 @@ Program: HackDay Central (HDC)
 | `P1.PX.01` | `R2.1` to `R2.6` | Eng | Completed (2026-03-01; GO) | `P1.IA.01`, `P1.REG.01` | Problem Exchange P0 including moderation auto-hide | `docs/HDC-P1-PROBLEM-EXCHANGE-CONTRACT-SPEC.md`, `docs/HDC-P1-PROBLEM-EXCHANGE-ROLLOUT-CHECKLIST.md`, `docs/HDC-P1-PROBLEM-EXCHANGE-MODERATION-RUNBOOK.md`, `docs/artifacts/HDC-P1-PX-ROLLOUT-CHECKPOINT-20260301-022533Z.md`, `docs/artifacts/HDC-P1-PX-LIVE-UI-SMOKE-20260301-0303Z.png`, `forge-native/supabase/migrations/20260301020000_phase1_problem_exchange.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/utils/problemExchange.ts`, `tests/forge-native-problem-exchange-contract.spec.ts`, `tests/forge-native-problem-exchange-runtime-modes.spec.ts`, `tests/forge-native-problem-exchange-utils.spec.ts` |
 | `P1.PIPE.01` | `R3.1` to `R3.5` | Eng | Completed (2026-03-01; GO) | `P1.IA.01` | Pipeline board with stage gates, admin-editable criteria, and required transition notes | `docs/HDC-P1-PIPELINE-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P1-PIPE-ROLLOUT-CHECKPOINT-20260301-1108Z.md`, `forge-native/supabase/migrations/20260301033000_phase1_pipeline.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/constants/nav.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-pipeline-contract.spec.ts`, `tests/forge-native-pipeline-runtime-modes.spec.ts` |
 | `P1.SHOW.01` | `R4.1` to `R4.4` | Eng | Completed (2026-03-01; GO) | `P1.IA.01` | Showcase split + hack detail pages live | `docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`, `forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-showcase-contract.spec.ts`, `tests/forge-native-showcase-runtime-modes.spec.ts`, `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md`, `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png` |
-| `P1.CHILD.01` | `R5.1` to `R5.4` | Eng | Planned | `P1.PX.01`, `P1.SHOW.01` | Child integrations (problem import + auto-draft publish) live | Pending |
+| `P1.CHILD.01` | `R5.1` to `R5.4` | Eng | Completed (2026-03-01; GO) | `P1.PX.01`, `P1.SHOW.01` | Child integrations (problem import + auto-draft publish) live | `docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md`, `docs/artifacts/p1-child-step6-live-20260301-1257.png`, `docs/artifacts/p1-child-create-success-20260301-1258.png`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/backend/hdcService.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `tests/forge-native-hdcService.spec.ts` |
 | `P1.OBS.01` | Phase 1 telemetry | Eng | Completed (2026-03-01; GO) | `P1.REG.01`, `P1.PX.01`, `P1.PIPE.01` | Regression and telemetry guardrails standardized for Phase 1 loops, with reusable gate template for pending modules | `docs/HDC-P1-OBS-GUARDRAILS-PACK.md`, `docs/HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md`, `docs/artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md`, `package.json` |
 | `P2.PATH.01` | `R6.1` to `R6.4` | Eng | Planned | Phase 1 complete | Pathways delivered in Guide | Pending |
 | `P2.METRICS.01` | `R7.1` to `R7.4` | Eng | Planned | Phase 1 data availability | Team Pulse metrics expansion delivered | Pending |
@@ -57,9 +57,9 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P1.CHILD.01` - finalize Problem Exchange import-to-hack drafting interface contract.
-2. `P2.PATH.01` - prepare Guide pathways dependency framing.
-3. `P2.METRICS.01` - pre-plan Team Pulse expansion dependencies.
+1. `P2.PATH.01` - prepare Guide pathways dependency framing and implementation slices.
+2. `P2.METRICS.01` - pre-plan Team Pulse expansion dependencies.
+3. `P2.RECOG.01` - pre-plan recognition metrics prerequisites.
 
 ### Next
 
@@ -111,3 +111,5 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Completed `P1.OBS.01`: standardized Phase 1 regression + telemetry gates into `qa:p1:go-gate`, added shared guardrail runbook (`docs/HDC-P1-OBS-GUARDRAILS-PACK.md`), introduced reusable module checkpoint template (`docs/HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md`), and validated checkpoint `docs/artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md` (GO). Active task advanced to `P1.SHOW.01`. |
 | 2026-03-01 | Started `P1.SHOW.01`: locked Showcase contract spec (`docs/HDC-P1-SHOWCASE-CONTRACT-SPEC.md`), added Showcase migration (`forge-native/supabase/migrations/20260301122000_phase1_showcase.sql`) and repository/service/resolver contracts (`hdcListShowcaseHacks`, `hdcGetShowcaseHackDetail`, `hdcSetShowcaseFeatured`), expanded `createHack` metadata contract (`demoUrl`, team/tags/source/linked artifacts), wired Forge Showcase list/detail/featured controls in `App.tsx`, validated with Showcase targeted tests (`9/9`) plus full guardrail gate (`56/56`), and applied live migration + resolver smoke against `ssafugtobsqxmqtphwch`; checkpoint recorded as Conditional GO in `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md`. |
 | 2026-03-01 | Completed `P1.SHOW.01`: deployed production Forge app (`app version 5.29.0`), executed live Showcase UI smoke (submit modal `demoUrl` validation, valid submit, filters, detail panel, admin featured toggle), captured screenshot evidence (`docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`), sampled live Forge telemetry logs (`hdc-switcher-telemetry`, `hdc-performance-telemetry`), validated admin/non-admin featured authority (`[SHOWCASE_FORBIDDEN]` for non-admin), ran rollback dry-run (`hdcSetShowcaseFeatured(false)`), and upgraded checkpoint to GO in `docs/artifacts/HDC-P1-SHOW-ROLLOUT-CHECKPOINT-20260301-1142Z.md`. Active task advanced to `P1.CHILD.01`. |
+| 2026-03-01 | Started `P1.CHILD.01` implementation baseline: added child integration contract spec (`docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`), added resolver/repository contract `hdcListProblemImportCandidates` for high-vote Problem Exchange imports, extended `hdcCreateInstanceDraft` with `childIntegration` payload (`importProblemIds`, `autoPublishToShowcaseDrafts`, `templateMode`), persisted child integration metadata into `HackdayTemplateSeed.seed_payload` and `event_created` audit records, and wired Create HackDay step-6 UI controls for challenge import + auto-publish/template choices. Validation: `tests/forge-native-hdcService.spec.ts` + `tests/forge-native-createFromWeb.spec.ts` (31/31 passing), `forge-native` typecheck pass, `forge-native/static/frontend` typecheck pass. |
+| 2026-03-01 | Completed `P1.CHILD.01`: deployed production child-integration bundle, verified live Create HackDay step-6 controls (`templateMode`, `autoPublishToShowcaseDrafts`, Problem Exchange import checklist), executed end-to-end create smoke (`P1 CHILD LIVE 20260301-1305`) with selected candidate import (`819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2`) and child page creation (`18120705`), and confirmed persisted `HackdayTemplateSeed.seed_payload.childIntegration` payload (`templateMode=customized`, `autoPublishToShowcaseDrafts=false`, imported problem snapshot). Checkpoint: `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md` (`GO`). Active task advanced to `P2.PATH.01`. |

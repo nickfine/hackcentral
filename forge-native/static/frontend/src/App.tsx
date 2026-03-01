@@ -18,11 +18,13 @@ import type {
   GetArtifactResult,
   LifecycleStatus,
   MovePipelineItemInput,
+  ListProblemImportCandidatesInput,
   PersonSnapshot,
   PipelineBoardItem,
   PipelineMetrics,
   PipelineStage,
   PipelineStageCriteria,
+  ProblemImportCandidate,
   ProblemFrequency,
   ProblemListItem,
   ProblemStatus,
@@ -97,6 +99,7 @@ const TEAM_PULSE_PLACEHOLDER_NOTE = '';
 const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const ALLOWED_EMAIL_DOMAIN = '@adaptavist.com';
+const CHILD_IMPORT_MIN_VOTES_DEFAULT = 3;
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
@@ -995,6 +998,21 @@ function mapFeaturedHackToShowcaseItem(hack: FeaturedHack): ShowcaseHackListItem
   };
 }
 
+function mapProblemListItemToImportCandidate(problem: ProblemListItem): ProblemImportCandidate {
+  return {
+    problemId: problem.id,
+    title: problem.title,
+    description: problem.description,
+    status: problem.status,
+    voteCount: problem.voteCount,
+    estimatedTimeWastedHours: problem.estimatedTimeWastedHours,
+    team: problem.team,
+    domain: problem.domain,
+    updatedAt: problem.updatedAt,
+    createdByName: problem.createdByName,
+  };
+}
+
 function logSwitcherNavigabilityTelemetry(source: string, registry: BootstrapData['registry']): void {
   const { total, nonNavigable, withMissingPageId } = summarizeSwitcherNavigability(registry);
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
@@ -1191,6 +1209,13 @@ export function App(): JSX.Element {
   const [wBannerImageUrl, setWBannerImageUrl] = useState('');
   const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
+  const [wTemplateMode, setWTemplateMode] = useState<'default' | 'customized'>('default');
+  const [wAutoPublishToShowcaseDrafts, setWAutoPublishToShowcaseDrafts] = useState(true);
+  const [wProblemImportCandidateItems, setWProblemImportCandidateItems] = useState<ProblemImportCandidate[]>([]);
+  const [wSelectedProblemImportIds, setWSelectedProblemImportIds] = useState<string[]>([]);
+  const [wProblemImportLoading, setWProblemImportLoading] = useState(false);
+  const [wProblemImportLoaded, setWProblemImportLoaded] = useState(false);
+  const [wProblemImportError, setWProblemImportError] = useState('');
   const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderV2Output | null>(null);
   const [wScheduleBuilderState, setWScheduleBuilderState] = useState<ScheduleBuilderV2State | null>(null);
   const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
@@ -2719,6 +2744,13 @@ export function App(): JSX.Element {
     setWBannerImageUrl('');
     setWThemePreference('system');
     setWLaunchMode('draft');
+    setWTemplateMode('default');
+    setWAutoPublishToShowcaseDrafts(true);
+    setWProblemImportCandidateItems([]);
+    setWSelectedProblemImportIds([]);
+    setWProblemImportLoading(false);
+    setWProblemImportLoaded(false);
+    setWProblemImportError('');
     setWScheduleOutput(null);
     setWScheduleBuilderState(null);
   }, []);
@@ -2778,6 +2810,52 @@ export function App(): JSX.Element {
       return null;
     }
   }, [previewMode]);
+
+  const loadProblemImportCandidates = useCallback(async () => {
+    setWProblemImportLoading(true);
+    setWProblemImportError('');
+    try {
+      if (previewMode) {
+        const fallbackAuthor = bootstrap?.viewer.accountId || 'Preview User';
+        const source = problemPreviewItems.length > 0 ? problemPreviewItems : seedPreviewProblems(featuredHacks, fallbackAuthor);
+        const items = source
+          .filter((item) => item.moderationState === 'visible')
+          .filter((item) => item.status === 'open' || item.status === 'claimed')
+          .filter((item) => item.voteCount >= CHILD_IMPORT_MIN_VOTES_DEFAULT)
+          .sort((left, right) => right.voteCount - left.voteCount)
+          .slice(0, 20)
+          .map((item) => mapProblemListItemToImportCandidate(item));
+        setWProblemImportCandidateItems(items);
+        setWSelectedProblemImportIds((current) =>
+          current.filter((problemId) => items.some((item) => item.problemId === problemId))
+        );
+        setWProblemImportLoaded(true);
+        return;
+      }
+
+      const payload: ListProblemImportCandidatesInput = {
+        limit: 20,
+        minVoteCount: CHILD_IMPORT_MIN_VOTES_DEFAULT,
+        statuses: ['open', 'claimed'],
+      };
+      const result = await invokeTyped('hdcListProblemImportCandidates', payload);
+      setWProblemImportCandidateItems(result.items);
+      setWSelectedProblemImportIds((current) =>
+        current.filter((problemId) => result.items.some((item) => item.problemId === problemId))
+      );
+      setWProblemImportLoaded(true);
+    } catch (error) {
+      setWProblemImportError(error instanceof Error ? error.message : 'Failed to load Problem Exchange candidates.');
+    } finally {
+      setWProblemImportLoading(false);
+    }
+  }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]);
+
+  useEffect(() => {
+    if (view !== 'create_hackday' || wStep !== 6) return;
+    if (wProblemImportLoaded || wProblemImportLoading) return;
+    void loadProblemImportCandidates();
+  }, [loadProblemImportCandidates, view, wProblemImportLoaded, wProblemImportLoading, wStep]);
 
   const handleCreateHackDay = useCallback(async () => {
     const parentPageId = bootstrap?.parentPageId;
@@ -2864,6 +2942,11 @@ export function App(): JSX.Element {
         accentColor: wAccentColor.trim() || undefined,
         bannerImageUrl: wBannerImageUrl.trim() || undefined,
         themePreference: wThemePreference,
+      },
+      childIntegration: {
+        importProblemIds: wSelectedProblemImportIds.length > 0 ? wSelectedProblemImportIds : undefined,
+        autoPublishToShowcaseDrafts: wAutoPublishToShowcaseDrafts,
+        templateMode: wTemplateMode,
       },
     };
 
@@ -3029,7 +3112,7 @@ export function App(): JSX.Element {
       });
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wSelectedProblemImportIds, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wTemplateMode, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
 
   const exportTeamPulse = (): void => {
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
@@ -4818,6 +4901,105 @@ export function App(): JSX.Element {
                           <span className="review-k">Theme</span>
                           <span className="review-v">{wThemePreference}</span>
                         </div>
+                      </div>
+                      <div className="review-block">
+                        <p className="review-block-title">Child Integrations</p>
+                        <div className="review-kv-grid">
+                          <span className="review-k">Template preset</span>
+                          <span className="review-v">
+                            <label className="toggle-row">
+                              <input
+                                type="radio"
+                                name="wTemplateMode"
+                                value="default"
+                                checked={wTemplateMode === 'default'}
+                                onChange={() => setWTemplateMode('default')}
+                              />
+                              <span className="toggle-text">
+                                <span className="toggle-title">Default template</span>
+                              </span>
+                            </label>
+                            <label className="toggle-row">
+                              <input
+                                type="radio"
+                                name="wTemplateMode"
+                                value="customized"
+                                checked={wTemplateMode === 'customized'}
+                                onChange={() => setWTemplateMode('customized')}
+                              />
+                              <span className="toggle-text">
+                                <span className="toggle-title">Customized template</span>
+                              </span>
+                            </label>
+                          </span>
+                          <span className="review-k">Auto-publish</span>
+                          <span className="review-v">
+                            <label className="toggle-row">
+                              <input
+                                type="checkbox"
+                                checked={wAutoPublishToShowcaseDrafts}
+                                onChange={(event) => setWAutoPublishToShowcaseDrafts(event.target.checked)}
+                              />
+                              <span className="toggle-text">
+                                <span className="toggle-title">Create Showcase drafts on event completion</span>
+                              </span>
+                            </label>
+                          </span>
+                        </div>
+                        <div className="problem-title-actions">
+                          <p className="meta">
+                            Import high-voted Problem Exchange items as official challenges (vote threshold: {CHILD_IMPORT_MIN_VOTES_DEFAULT}+).
+                          </p>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            onClick={() => {
+                              void loadProblemImportCandidates();
+                            }}
+                            disabled={wProblemImportLoading}
+                          >
+                            {wProblemImportLoading ? 'Refreshing...' : 'Refresh candidates'}
+                          </button>
+                        </div>
+                        {wProblemImportError ? <p className="error-text">{wProblemImportError}</p> : null}
+                        {wProblemImportLoading ? <p className="meta">Loading Problem Exchange candidates…</p> : null}
+                        {!wProblemImportLoading && wProblemImportLoaded ? (
+                          wProblemImportCandidateItems.length > 0 ? (
+                            <div className="wizard-fields">
+                              {wProblemImportCandidateItems.map((problem) => {
+                                const isSelected = wSelectedProblemImportIds.includes(problem.problemId);
+                                return (
+                                  <label key={problem.problemId} className="toggle-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={(event) =>
+                                        setWSelectedProblemImportIds((current) => {
+                                          if (event.target.checked) {
+                                            return current.includes(problem.problemId)
+                                              ? current
+                                              : [...current, problem.problemId];
+                                          }
+                                          return current.filter((id) => id !== problem.problemId);
+                                        })
+                                      }
+                                    />
+                                    <span className="toggle-text">
+                                      <span className="toggle-title">
+                                        {problem.title}
+                                      </span>
+                                      <span className="toggle-desc">
+                                        {problem.voteCount} votes · {problem.team} / {problem.domain} · {formatLabel(problem.status)}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="meta">No import candidates match the current threshold yet.</p>
+                          )
+                        ) : null}
                       </div>
                       <div className="launch-mode-toggle" role="group" aria-label="Launch mode">
                         <label className={`launch-mode-option${wLaunchMode === 'draft' ? ' launch-mode-selected' : ''}`}>

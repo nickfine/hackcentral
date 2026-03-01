@@ -19,10 +19,12 @@ type RepoMock = {
   getEventNameConflicts: ReturnType<typeof vi.fn>;
   getEventByConfluencePageId: ReturnType<typeof vi.fn>;
   getEventById: ReturnType<typeof vi.fn>;
+  listProblemImportCandidates: ReturnType<typeof vi.fn>;
   listEventsByParentPageId: ReturnType<typeof vi.fn>;
   ensureUserByEmail: ReturnType<typeof vi.fn>;
   createEvent: ReturnType<typeof vi.fn>;
   createMilestones: ReturnType<typeof vi.fn>;
+  createMilestonesOneByOne: ReturnType<typeof vi.fn>;
   deleteMilestonesByEventId: ReturnType<typeof vi.fn>;
   addEventAdmin: ReturnType<typeof vi.fn>;
   upsertSyncState: ReturnType<typeof vi.fn>;
@@ -48,10 +50,12 @@ function createRepoMock(): RepoMock {
     getEventNameConflicts: vi.fn(),
     getEventByConfluencePageId: vi.fn(),
     getEventById: vi.fn(),
+    listProblemImportCandidates: vi.fn().mockResolvedValue({ items: [], criteria: { minVoteCount: 3, statuses: ['open', 'claimed'] } }),
     listEventsByParentPageId: vi.fn(),
     ensureUserByEmail: vi.fn(),
     createEvent: vi.fn(),
     createMilestones: vi.fn().mockResolvedValue(undefined),
+    createMilestonesOneByOne: vi.fn().mockResolvedValue(undefined),
     deleteMilestonesByEventId: vi.fn().mockResolvedValue(0),
     addEventAdmin: vi.fn(),
     upsertSyncState: vi.fn(),
@@ -78,6 +82,12 @@ function createRepoMock(): RepoMock {
     createHackdayTemplateSeed: vi.fn().mockResolvedValue({ provision_status: 'provisioned' }),
     getHackdayTemplateSeedByConfluencePageId: vi.fn().mockResolvedValue(null),
   };
+}
+
+function getInsertedMilestones(repo: RepoMock): Array<{ title: string; signal?: string | null; phase?: string; startTime?: string; description?: string | null }> {
+  return (repo.createMilestones.mock.calls[0]?.[0] ??
+    repo.createMilestonesOneByOne.mock.calls[0]?.[0] ??
+    []) as Array<{ title: string; signal?: string | null; phase?: string; startTime?: string; description?: string | null }>;
 }
 
 const viewer: ViewerContext = {
@@ -353,7 +363,7 @@ describe('HdcService hardening behavior', () => {
       })
     );
 
-    const insertedMilestones = repo.createMilestones.mock.calls[0]?.[0] ?? [];
+    const insertedMilestones = getInsertedMilestones(repo);
     const byTitle = new Map(insertedMilestones.map((m: { title: string }) => [m.title, m]));
 
     expect(byTitle.get('Opening Ceremony')).toBeDefined();
@@ -493,14 +503,12 @@ describe('HdcService hardening behavior', () => {
       })
     );
 
-    const milestoneTitles = (repo.createMilestones.mock.calls[0]?.[0] ?? []).map((m: { title: string }) => m.title);
+    const milestoneTitles = getInsertedMilestones(repo).map((m) => m.title);
     expect(milestoneTitles).toContain('Opening Ceremony');
     expect(milestoneTitles).toContain('Presentations');
     expect(milestoneTitles).toContain('Mentor Office Hours');
 
-    const mentorMilestone = (repo.createMilestones.mock.calls[0]?.[0] ?? []).find(
-      (m: { title: string }) => m.title === 'Mentor Office Hours'
-    );
+    const mentorMilestone = getInsertedMilestones(repo).find((m) => m.title === 'Mentor Office Hours');
     expect(mentorMilestone).toMatchObject({
       phase: 'HACKING',
       signal: 'neutral',
@@ -559,7 +567,7 @@ describe('HdcService hardening behavior', () => {
       })
     );
 
-    const milestoneTitles = (repo.createMilestones.mock.calls[0]?.[0] ?? []).map((m: { title: string }) => m.title);
+    const milestoneTitles = getInsertedMilestones(repo).map((m) => m.title);
     expect(milestoneTitles).toContain('Valid Custom Event');
     expect(milestoneTitles).not.toContain('Broken Timestamp Event');
     expect(warnSpy).toHaveBeenCalledWith(
@@ -568,6 +576,116 @@ describe('HdcService hardening behavior', () => {
     );
 
     warnSpy.mockRestore();
+  });
+
+  it('persists child integration seed payload with imported Problem Exchange challenges', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-child-import',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-import',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-import',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    repo.listProblemImportCandidates.mockResolvedValue({
+      items: [
+        {
+          problemId: 'problem-1',
+          title: 'Automate weekly report stitching',
+          description: 'Need to reduce repetitive reporting effort.',
+          status: 'open',
+          voteCount: 12,
+          estimatedTimeWastedHours: 6,
+          team: 'Delivery',
+          domain: 'Reporting',
+          updatedAt: '2026-03-01T10:00:00.000Z',
+          createdByName: 'Requester A',
+        },
+        {
+          problemId: 'problem-2',
+          title: 'Provision Jira templates quickly',
+          description: 'Teams need an easier setup flow.',
+          status: 'claimed',
+          voteCount: 9,
+          estimatedTimeWastedHours: 4,
+          team: 'Engineering',
+          domain: 'Workflow',
+          updatedAt: '2026-03-01T10:10:00.000Z',
+          createdByName: 'Requester B',
+        },
+      ],
+      criteria: {
+        minVoteCount: 3,
+        statuses: ['open', 'claimed'],
+      },
+    });
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-import',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-import',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      instanceRuntime: 'hackday_template',
+      childIntegration: {
+        importProblemIds: ['problem-1', 'problem-2'],
+        autoPublishToShowcaseDrafts: false,
+        templateMode: 'customized',
+      },
+    });
+
+    expect(repo.listProblemImportCandidates).toHaveBeenCalledWith(
+      viewer,
+      expect.objectContaining({
+        limit: 200,
+        minVoteCount: 0,
+        statuses: ['open', 'claimed'],
+      })
+    );
+
+    expect(repo.createHackdayTemplateSeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seedPayload: expect.objectContaining({
+          childIntegration: expect.objectContaining({
+            importProblemIds: ['problem-1', 'problem-2'],
+            autoPublishToShowcaseDrafts: false,
+            templateMode: 'customized',
+            importedProblems: [
+              expect.objectContaining({
+                problemId: 'problem-1',
+                voteCount: 12,
+                team: 'Delivery',
+              }),
+              expect.objectContaining({
+                problemId: 'problem-2',
+                voteCount: 9,
+                team: 'Engineering',
+              }),
+            ],
+          }),
+        }),
+      })
+    );
+
+    expect(repo.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        newValue: expect.objectContaining({
+          childIntegration: expect.objectContaining({
+            importProblemIds: ['problem-1', 'problem-2'],
+            importedProblemCount: 2,
+            autoPublishToShowcaseDrafts: false,
+            templateMode: 'customized',
+          }),
+        }),
+      })
+    );
   });
 
   it('rebuilds schedule milestones for existing hdc_native and hackday_template events with custom events', async () => {
@@ -629,7 +747,7 @@ describe('HdcService hardening behavior', () => {
     });
     expect(repo.deleteMilestonesByEventId).toHaveBeenCalledWith('event-existing-hdc');
 
-    const rebuiltMilestones = repo.createMilestones.mock.calls[0]?.[0] ?? [];
+    const rebuiltMilestones = getInsertedMilestones(repo);
     const rebuiltTitles = rebuiltMilestones.map((m: { title: string }) => m.title);
     expect(rebuiltTitles).toContain('Opening Ceremony');
     expect(rebuiltTitles).toContain('Hacking Begins');

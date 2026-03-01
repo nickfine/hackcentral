@@ -13,6 +13,7 @@ import {
   getShowcaseHackDetail,
   setShowcaseFeatured,
   getProblemExchangeCapabilities,
+  listProblemImportCandidates,
   listProblems,
   listArtifacts,
   movePipelineItem,
@@ -39,6 +40,7 @@ import type {
   UpdateProblemStatusInput,
   ListArtifactsInput,
   ListProblemsInput,
+  ListProblemImportCandidatesInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   ViewerContext,
@@ -174,6 +176,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: ListProblemsInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return listProblems(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcListProblemImportCandidates',
+  async (request: { context?: RawResolverContext; payload: ListProblemImportCandidatesInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listProblemImportCandidates(viewer, request.payload || {});
   }
 );
 

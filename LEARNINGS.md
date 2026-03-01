@@ -1357,3 +1357,93 @@ Use this template at the end of every work session:
 ### Next recommended step
 
 - Start `P1.CHILD.01` by locking import-to-child contract boundaries (`R5.1`-`R5.4`) using finalized Showcase submission semantics.
+
+## Session Update - P1.CHILD.01 Child Integration Baseline (Mar 1, 2026 12:32 GMT)
+
+### Completed
+
+- Started `P1.CHILD.01` implementation against roadmap `R5.1`-`R5.4` in branch `codex/p1-child-01`.
+- Locked child integration contract spec:
+  - `docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`
+- Added Problem Exchange import-candidate resolver contract:
+  - `hdcListProblemImportCandidates`
+  - backend/repository wiring:
+    - `forge-native/src/backend/supabase/repositories.ts`
+    - `forge-native/src/backend/hackcentral.ts`
+    - `forge-native/src/index.ts`
+- Extended child creation contract for integration metadata:
+  - `CreateInstanceDraftInput.childIntegration`
+  - fields:
+    - `importProblemIds`
+    - `autoPublishToShowcaseDrafts`
+    - `templateMode`
+  - updated in:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+- Implemented `hdcService.createInstanceDraft` child integration behavior:
+  - normalize and validate selected Problem Exchange IDs
+  - resolve selected items from importable candidate pool
+  - persist normalized child integration payload to:
+    - `HackdayTemplateSeed.seed_payload.childIntegration`
+    - `event_created` audit payload summary
+- Wired Create HackDay step-6 UI controls in `forge-native/static/frontend/src/App.tsx`:
+  - import candidates checklist (high-vote open/claimed problems)
+  - template mode selection (`default` / `customized`)
+  - auto-publish Showcase draft intent toggle
+- Restored missing frontend utility modules in this clean branch for compile parity:
+  - `forge-native/static/frontend/src/utils/problemExchange.ts`
+  - `forge-native/static/frontend/src/utils/registry.ts`
+- Updated navigation view unions in `forge-native/static/frontend/src/constants/nav.ts` to include active app views (`problem_exchange`, `pipeline`) so frontend typecheck aligns with `App.tsx` usage.
+
+### Validation Evidence
+
+- Tests:
+  - `npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-createFromWeb.spec.ts`
+  - Result: `31/31` passing
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Notes
+
+- This branch was created from clean tracked `main`; several previously untracked files from the original workspace were absent and had to be reintroduced where required for frontend compile/test continuity.
+- Supabase live validation + Playwright smoke for `P1.CHILD.01` still pending and tracked as next atomic actions in `CONTINUATION.md`.
+
+## Session Update - P1.CHILD.01 Live Gate Closure (Mar 1, 2026 12:58 GMT)
+
+### Completed
+
+- Closed `P1.CHILD.01` from in-progress baseline to `GO`.
+- Confirmed production Create HackDay step-6 child-integration controls are live after deploy:
+  - `templateMode` (`Default template` / `Customized template`)
+  - `autoPublishToShowcaseDrafts` checkbox
+  - Problem Exchange import candidate list and selection
+- Executed full live create flow with selected import:
+  - event: `P1 CHILD LIVE 20260301-1305`
+  - selected candidate: `819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2` (`PX Smoke 2026-03-01 03:03 UTC`)
+  - returned child page id: `18120705`
+- Verified persisted child integration payload in live DB:
+  - `HackdayTemplateSeed.seed_payload.childIntegration.templateMode = "customized"`
+  - `HackdayTemplateSeed.seed_payload.childIntegration.autoPublishToShowcaseDrafts = false`
+  - `HackdayTemplateSeed.seed_payload.childIntegration.importProblemIds` includes selected problem id
+  - `HackdayTemplateSeed.seed_payload.childIntegration.importedProblems` includes candidate snapshot (`voteCount=3`, `status=claimed`)
+- Recorded module checkpoint artifact:
+  - `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md`
+
+### Validation Evidence
+
+- Targeted tests and typechecks:
+  - `npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-createFromWeb.spec.ts` (`31/31`)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Live resolver smoke:
+  - `listProblemImportCandidates` returned selected candidate at threshold `minVoteCount=3`
+- Live UI artifacts:
+  - `docs/artifacts/p1-child-step6-live-20260301-1257.png`
+  - `docs/artifacts/p1-child-create-success-20260301-1258.png`
+
+### Operational Learnings
+
+- Candidate threshold behavior is functioning as designed: step-6 import list defaults to vote threshold `>=3`; a candidate at vote `1` does not appear until vote count is raised.
+- Supabase REST table names are case-sensitive in this schema (`Problem`, `HackdayTemplateSeed`), not snake_case aliases.
+- In this environment, Supabase MCP admin calls remain unavailable; CLI + service-role fallback is still required for live admin verification steps.

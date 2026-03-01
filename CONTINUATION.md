@@ -1,10 +1,10 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 11:56 GMT
+Last updated: 2026-03-01 12:58 GMT
 
 ## Current Snapshot
 
-- Branch: `main`
+- Branch: `codex/p1-child-01`
 - Product source of truth: `HDC-PRODUCT-ROADMAP.md`
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
@@ -99,21 +99,45 @@ Last updated: 2026-03-01 11:56 GMT
   - live telemetry sampling captured from `forge logs`:
     - `[hdc-switcher-telemetry]`
     - `[hdc-performance-telemetry]`
+- Child integrations (`P1.CHILD.01`) are now completed (GO):
+  - contract spec: `docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`
+  - new resolver: `hdcListProblemImportCandidates` (backend: `forge-native/src/backend/hackcentral.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/index.ts`)
+  - `CreateInstanceDraftInput` extension with `childIntegration` payload:
+    - `importProblemIds`
+    - `autoPublishToShowcaseDrafts`
+    - `templateMode`
+  - `hdcService.createInstanceDraft` now validates imported problem IDs against importable Problem Exchange items and persists child metadata to:
+    - `HackdayTemplateSeed.seed_payload.childIntegration`
+    - `event_created` audit log payload
+  - Forge Create HackDay step-6 UI in `forge-native/static/frontend/src/App.tsx` now supports:
+    - template mode selection (`default` / `customized`)
+    - auto-publish Showcase draft intent toggle
+    - Problem Exchange challenge import checklist (`hdcListProblemImportCandidates`)
+  - targeted tests: `tests/forge-native-hdcService.spec.ts` + `tests/forge-native-createFromWeb.spec.ts` (`31/31` passing)
+  - typechecks: `npm --prefix forge-native run typecheck` and `npm --prefix forge-native/static/frontend run typecheck` passing
+  - live rollout checkpoint: `docs/artifacts/HDC-P1-CHILD-ROLLOUT-CHECKPOINT-20260301-1258Z.md` (`GO`)
+  - live UI evidence:
+    - `docs/artifacts/p1-child-step6-live-20260301-1257.png`
+    - `docs/artifacts/p1-child-create-success-20260301-1258.png`
+  - live created smoke event:
+    - name: `P1 CHILD LIVE 20260301-1305`
+    - child page id: `18120705`
+    - persisted `HackdayTemplateSeed.seed_payload.childIntegration` contains selected import `819b3023-ec4d-4b22-8f9f-07ca7f7c2fa2`, `templateMode=customized`, `autoPublishToShowcaseDrafts=false`
 
 ## Active Task Pointer
 
-- Active Task ID: `P1.CHILD.01`
-- Task title: `Child integrations (problem import + auto-draft publish)`
+- Active Task ID: `P2.PATH.01`
+- Task title: `Pathways in Guide (phase-2 dependency framing)`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
-- Child integration requirements source: `HDC-PRODUCT-ROADMAP.md` (`R5.1`-`R5.4`)
+- Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 
 ## Next 3 Atomic Actions
 
-1. Lock `P1.CHILD.01` contract spec for Problem Exchange import into child HackDay drafts (`R5.1`-`R5.4`).
-2. Implement backend/resolver contracts for child import + auto-draft publish semantics with explicit source-linking to solved problems/hacks.
-3. Wire Forge UI baseline for child integration flow and add targeted contract/runtime suites before live rollout gate.
+1. Lock `P2.PATH.01` contract/spec boundaries for Guide pathways (`R6.1`-`R6.4`) with implementation slices and resolver/UI contracts.
+2. Map dependencies from completed Phase 1 modules (Registry, Problem Exchange, Pipeline, Showcase, Child) into Pathways data/permission requirements.
+3. Stage first `P2.PATH.01` backend baseline (types + resolver stubs/repository contracts) with targeted validation scope.
 
 ## Blockers / Decisions Needed
 

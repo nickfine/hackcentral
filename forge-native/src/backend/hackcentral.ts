@@ -10,6 +10,8 @@ import type {
   GetPipelineBoardInput,
   GetPipelineBoardResult,
   GetArtifactResult,
+  ListProblemImportCandidatesInput,
+  ListProblemImportCandidatesResult,
   ListProblemsInput,
   ListProblemsResult,
   ModerateProblemInput,
@@ -349,6 +351,16 @@ export async function listProblems(
 ): Promise<ListProblemsResult> {
   return withConfiguredBackend(
     () => repository.listProblems(viewer, input),
+    () => Promise.resolve(unsupportedProblemExchangeBackendError())
+  );
+}
+
+export async function listProblemImportCandidates(
+  viewer: ViewerContext,
+  input: ListProblemImportCandidatesInput
+): Promise<ListProblemImportCandidatesResult> {
+  return withConfiguredBackend(
+    () => repository.listProblemImportCandidates(viewer, input),
     () => Promise.resolve(unsupportedProblemExchangeBackendError())
   );
 }

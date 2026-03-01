@@ -26,6 +26,8 @@ import type {
   GetArtifactResult,
   InstanceRuntime,
   LifecycleStatus,
+  ListProblemImportCandidatesInput,
+  ListProblemImportCandidatesResult,
   ListProblemsInput,
   ListProblemsResult,
   ModerateProblemInput,
@@ -52,6 +54,7 @@ import type {
   PipelineStageCriteria,
   PersonSnapshot,
   ProblemFrequency,
+  ProblemImportCandidate,
   ProblemListItem,
   ProblemModerationState,
   ProblemStatus,
@@ -646,6 +649,21 @@ function createProblemListItem(row: DbProblem, createdByName: string): ProblemLi
     linkedHackProjectId: row.linked_hack_project_id ?? undefined,
     linkedArtifactId: row.linked_artifact_id ?? undefined,
     createdAt: row.created_at ?? nowIso(),
+    updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
+    createdByName,
+  };
+}
+
+function createProblemImportCandidate(row: DbProblem, createdByName: string): ProblemImportCandidate {
+  return {
+    problemId: row.id,
+    title: row.title,
+    description: row.description,
+    status: isProblemStatus(row.status) ? row.status : 'open',
+    voteCount: row.vote_count ?? 0,
+    estimatedTimeWastedHours: row.estimated_time_wasted_hours ?? 0,
+    team: row.team,
+    domain: row.domain,
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
     createdByName,
   };
@@ -2490,6 +2508,64 @@ export class SupabaseRepository {
       if (hasMissingTable(error, PROBLEM_TABLE)) {
         throw new Error(
           `Missing required table ${PROBLEM_TABLE}. Apply the phase 1 problem exchange migration before calling hdcListProblems.`
+        );
+      }
+      throw error;
+    }
+  }
+
+  async listProblemImportCandidates(
+    _viewer: ViewerContext,
+    input: ListProblemImportCandidatesInput = {}
+  ): Promise<ListProblemImportCandidatesResult> {
+    const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
+    const minVoteCount = Math.max(0, Math.floor(input.minVoteCount ?? 3));
+    const statusCandidates = (input.statuses || []).filter((status) => isProblemStatus(status));
+    const statuses: ProblemStatus[] =
+      statusCandidates.length > 0
+        ? statusCandidates
+        : ['open', 'claimed'];
+
+    try {
+      const [rows, users] = await Promise.all([
+        this.client.selectMany<DbProblem>(
+          PROBLEM_TABLE,
+          'id,title,description,frequency,estimated_time_wasted_hours,team,domain,contact_details,status,moderation_state,vote_count,flag_count,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id,auto_hidden_at,hidden_at,closed_at,created_at,updated_at'
+        ),
+        this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+      ]);
+
+      const allowedStatuses = new Set(statuses);
+      const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
+
+      const items = rows
+        .filter((row) => normalizeProblemModerationState(row.moderation_state) === 'visible')
+        .filter((row) => {
+          const status = isProblemStatus(row.status) ? row.status : 'open';
+          return allowedStatuses.has(status);
+        })
+        .filter((row) => (row.vote_count ?? 0) >= minVoteCount)
+        .sort((a, b) => {
+          const voteDiff = (b.vote_count ?? 0) - (a.vote_count ?? 0);
+          if (voteDiff !== 0) return voteDiff;
+          const hoursDiff = (b.estimated_time_wasted_hours ?? 0) - (a.estimated_time_wasted_hours ?? 0);
+          if (hoursDiff !== 0) return hoursDiff;
+          return (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? '');
+        })
+        .slice(0, limit)
+        .map((row) => createProblemImportCandidate(row, userNameById.get(row.created_by_user_id) ?? 'Unknown'));
+
+      return {
+        items,
+        criteria: {
+          minVoteCount,
+          statuses,
+        },
+      };
+    } catch (error) {
+      if (hasMissingTable(error, PROBLEM_TABLE)) {
+        throw new Error(
+          `Missing required table ${PROBLEM_TABLE}. Apply the phase 1 problem exchange migration before calling hdcListProblemImportCandidates.`
         );
       }
       throw error;

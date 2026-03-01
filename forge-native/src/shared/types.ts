@@ -283,6 +283,33 @@ export interface ProblemExchangeCapabilitiesResult {
   moderationMode: "allowlist" | "none";
 }
 
+export interface ListProblemImportCandidatesInput {
+  limit?: number;
+  minVoteCount?: number;
+  statuses?: ProblemStatus[];
+}
+
+export interface ProblemImportCandidate {
+  problemId: string;
+  title: string;
+  description: string;
+  status: ProblemStatus;
+  voteCount: number;
+  estimatedTimeWastedHours: number;
+  team: string;
+  domain: string;
+  updatedAt: string;
+  createdByName: string;
+}
+
+export interface ListProblemImportCandidatesResult {
+  items: ProblemImportCandidate[];
+  criteria: {
+    minVoteCount: number;
+    statuses: ProblemStatus[];
+  };
+}
+
 export type PipelineStage = "hack" | "validated_prototype" | "incubating_project" | "product_candidate";
 
 export interface PipelineStageCriteria {
@@ -639,6 +666,11 @@ export interface CreateInstanceDraftInput extends CreationWizardInput {
   launchMode?: "draft" | "go_live";
   instanceRuntime?: InstanceRuntime;
   templateTarget?: TemplateTarget;
+  childIntegration?: {
+    importProblemIds?: string[];
+    autoPublishToShowcaseDrafts?: boolean;
+    templateMode?: "default" | "customized";
+  };
 }
 
 export interface CreateInstanceDraftResult {
@@ -720,6 +752,7 @@ export type Defs = {
   hdcFlagProblem: (payload: FlagProblemInput) => FlagProblemResult;
   hdcModerateProblem: (payload: ModerateProblemInput) => ModerateProblemResult;
   hdcGetProblemExchangeCapabilities: () => ProblemExchangeCapabilitiesResult;
+  hdcListProblemImportCandidates: (payload: ListProblemImportCandidatesInput) => ListProblemImportCandidatesResult;
   createProject: (payload: CreateProjectInput) => CreateProjectResult;
   updateMentorProfile: (payload: UpdateMentorProfileInput) => UpdateMentorProfileResult;
   hdcGetContext: (payload: { pageId: string }) => HdcContextResponse;

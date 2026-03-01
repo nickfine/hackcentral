@@ -20,6 +20,7 @@ import type {
   HdcContextResponse,
   InstanceRuntime,
   LifecycleStatus,
+  ProblemImportCandidate,
   ScheduleCustomEvent,
   ScheduleEventSignal,
   SubmissionRequirement,
@@ -808,6 +809,51 @@ function validateWizardMetadata(input: CreateInstanceDraftInput): void {
   }
 }
 
+type NormalizedChildIntegrationConfig = {
+  importProblemIds: string[];
+  autoPublishToShowcaseDrafts: boolean;
+  templateMode: 'default' | 'customized';
+};
+
+type ImportedProblemSeedSnapshot = {
+  problemId: string;
+  title: string;
+  status: 'open' | 'claimed' | 'solved' | 'closed';
+  voteCount: number;
+  estimatedTimeWastedHours: number;
+  team: string;
+  domain: string;
+  updatedAt: string;
+};
+
+function normalizeChildIntegrationConfig(
+  input: CreateInstanceDraftInput['childIntegration'] | undefined
+): NormalizedChildIntegrationConfig {
+  const rawIds = Array.isArray(input?.importProblemIds) ? (input?.importProblemIds ?? []) : [];
+  const importProblemIds = [...new Set(rawIds.map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean))];
+  if (importProblemIds.length > 25) {
+    throw new Error('Select at most 25 Problem Exchange challenges for child import.');
+  }
+  return {
+    importProblemIds,
+    autoPublishToShowcaseDrafts: input?.autoPublishToShowcaseDrafts !== false,
+    templateMode: input?.templateMode === 'customized' ? 'customized' : 'default',
+  };
+}
+
+function createImportedProblemSeedSnapshot(problem: ProblemImportCandidate): ImportedProblemSeedSnapshot {
+  return {
+    problemId: problem.problemId,
+    title: problem.title,
+    status: problem.status,
+    voteCount: problem.voteCount,
+    estimatedTimeWastedHours: problem.estimatedTimeWastedHours,
+    team: problem.team,
+    domain: problem.domain,
+    updatedAt: problem.updatedAt,
+  };
+}
+
 function normalizeEventRules(
   input: CreateInstanceDraftInput['rules'] | EventRules | null | undefined
 ): EventRules {
@@ -1369,6 +1415,29 @@ export class HdcService {
       }
       markStage('user_resolution', userResolutionStartedAt);
 
+      const childIntegration = normalizeChildIntegrationConfig(input.childIntegration);
+      let importedProblemSnapshots: ImportedProblemSeedSnapshot[] = [];
+      if (childIntegration.importProblemIds.length > 0) {
+        const resolveImportProblemsStartedAt = Date.now();
+        const importCandidates = await this.repository.listProblemImportCandidates(viewer, {
+          limit: 200,
+          minVoteCount: 0,
+          statuses: ['open', 'claimed'],
+        });
+        const candidateById = new Map(importCandidates.items.map((item) => [item.problemId, item]));
+        const missingProblemIds = childIntegration.importProblemIds.filter((problemId) => !candidateById.has(problemId));
+        if (missingProblemIds.length > 0) {
+          throw new Error(
+            `[CHILD_IMPORT_INVALID] One or more selected Problem Exchange items are not importable: ${missingProblemIds.join(', ')}`
+          );
+        }
+        importedProblemSnapshots = childIntegration.importProblemIds
+          .map((problemId) => candidateById.get(problemId))
+          .filter((problem): problem is ProblemImportCandidate => Boolean(problem))
+          .map((problem) => createImportedProblemSeedSnapshot(problem));
+        markStage('resolve_problem_imports', resolveImportProblemsStartedAt);
+      }
+
       const eventRules = normalizeEventRules(input.rules);
       const eventBranding = normalizeEventBranding(input.branding);
 
@@ -1446,6 +1515,12 @@ export class HdcService {
             schedule: eventSchedule,
             rules: eventRules,
             branding: eventBranding,
+            childIntegration: {
+              importProblemIds: childIntegration.importProblemIds,
+              importedProblems: importedProblemSnapshots,
+              autoPublishToShowcaseDrafts: childIntegration.autoPublishToShowcaseDrafts,
+              templateMode: childIntegration.templateMode,
+            },
           },
           provisionStatus: 'provisioned',
         });
@@ -1492,6 +1567,12 @@ export class HdcService {
             schedule: eventSchedule,
             rules: eventRules,
             branding: eventBranding,
+            childIntegration: {
+              importProblemIds: childIntegration.importProblemIds,
+              importedProblemCount: importedProblemSnapshots.length,
+              autoPublishToShowcaseDrafts: childIntegration.autoPublishToShowcaseDrafts,
+              templateMode: childIntegration.templateMode,
+            },
           },
           enforceRetention: !HDC_PERF_CREATE_BACKEND_V1,
         }),
