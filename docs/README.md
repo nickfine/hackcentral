@@ -4,34 +4,40 @@ Canonical docs for HDC architecture, plans, and ops.
 
 ## Source-of-truth order (for continuation)
 
-1. **`../learnings.md`** – Cross-repo continuity and current status.
-2. **`../forge-native/CONTINUATION_HANDOFF.md`** – Handoff and next steps.
-3. **`../PLAN_HDC_V2_EXECUTION.md`** – Live execution plan (root).
-4. **`HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md`** – HackDay template spinout summary and completion status.
+1. `../CONTINUATION.md` - Compact session handoff and next actions.
+2. `../hdc-product-roadmap.hd` - Startup read-order and planning protocol.
+3. `../HDC-PRODUCT-ROADMAP.md` - Canonical product requirements.
+4. `../HDC-PRODUCT-EXECUTION-PLAN.md` - Live execution ledger (task IDs, status, evidence).
+5. `../LEARNINGS.md` - Append-only session learnings and evidence.
+6. `../forge-native/CONTINUATION_HANDOFF.md` - Forge-specific handoff details.
 
 ## Top-level docs
 
 | Doc | Purpose |
 |-----|--------|
-| **ADR-001-HDC-V2-ARCHITECTURE.md** | Architecture decision record. |
-| **HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md** | Spinout plan (compact); links to archive for full history. |
-| **HDC-CREATE-CHILD-HACKDAY-FLOW.md** | **Creating a child HackDay from HDC** — user flow, prerequisites, verification. |
-| **HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md** | Ops runbook for template provisioning. |
-| **HDC-HACKDAY-TEMPLATE-RELEASE-CHECKLIST.md** | Release checklist. |
-| **HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md** | Smoke test template. |
-| **HDC-V2-PHASE2-SCOPE-FREEZE.md** | Phase 2 scope and wizard contract. |
-| **HDC-V2-PHASE3-KICKOFF.md** | Phase 3 kickoff. |
-| **HDC-V2-PHASE3-MACRO-QA-RUNBOOK.md** | Macro QA runbook. |
-| **HDC-V2-PHASE4-PREP-SYNC-AUDIT.md** | Phase 4 prep. |
-| **HDC-V2-PHASE6-*** | Phase 6 kickoff, ops, regression triage, telemetry, weekly verification. |
-| **HDC-V2-PHASE7-KICKOFF.md** | Phase 7 kickoff. |
-| **HDC-V2-PHASE7-VALIDATION-GATES.md** | Validation gates. |
-| **HackDay_Design_system.md** | Design system reference. |
+| `ADR-001-HDC-V2-ARCHITECTURE.md` | Architecture decision record. |
+| `HDC-P1-IA-ROUTING-SPEC.md` | Phase 1 IA/routing implementation contract (`P1.IA.01`). |
+| `HDC-P1-REGISTRY-CONTRACT-SPEC.md` | Phase 1 Knowledge Registry backend contract (`P1.REG.01`). |
+| `HDC-P1-PROBLEM-EXCHANGE-CONTRACT-SPEC.md` | Phase 1 Problem Exchange backend contract (`P1.PX.01`). |
+| `HDC-P1-PIPELINE-CONTRACT-SPEC.md` | Phase 1 Pipeline board contract (`P1.PIPE.01`). |
+| `HDC-P1-OBS-GUARDRAILS-PACK.md` | Phase 1 regression + telemetry gate pack (`P1.OBS.01`). |
+| `HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md` | Standard GO/NO-GO checkpoint template for Phase 1 modules (`P1.OBS.01`). |
+| `artifacts/HDC-P1-PIPE-ROLLOUT-CHECKPOINT-20260301-1108Z.md` | Phase 1 Pipeline rollout decision artifact (`P1.PIPE.01`). |
+| `artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md` | Phase 1 observability guardrails checkpoint (`P1.OBS.01`). |
+| `HDC-P1-PROBLEM-EXCHANGE-ROLLOUT-CHECKLIST.md` | Phase 1 Problem Exchange rollout gates and rollback checklist (`P1.PX.01`). |
+| `HDC-P1-PROBLEM-EXCHANGE-MODERATION-RUNBOOK.md` | Phase 1 Problem Exchange moderation authority runbook (`P1.PX.01`). |
+| `HDC-HACKDAY-TEMPLATE-SPINOUT-PLAN.md` | HackDay template spinout summary and completion status. |
+| `HDC-CREATE-CHILD-HACKDAY-FLOW.md` | Creating a child HackDay from HDC. |
+| `HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md` | Ops runbook for template provisioning. |
+| `HDC-HACKDAY-TEMPLATE-RELEASE-CHECKLIST.md` | Release checklist. |
+| `HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md` | Smoke test template. |
+| `HDC-V2-PHASE*.md` | Historical phase plans and runbooks. |
+| `HackDay_Design_system.md` | Design system reference. |
 
 ## Folders
 
 | Folder | Purpose |
 |--------|---------|
-| **archive/** | Historical progress, code reviews, and old plans. See `archive/README.md`. |
-| **artifacts/** | Timestamped run outputs (dry runs, verifications). See `artifacts/README.md`. |
-| **components/** | Component docs. |
+| `archive/` | Historical progress, code reviews, and old plans. See `archive/README.md`. |
+| `artifacts/` | Timestamped run outputs (dry runs, verifications). See `artifacts/README.md`. |
+| `components/` | Component docs. |

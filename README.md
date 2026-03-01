@@ -2,7 +2,7 @@
 
 An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-**Current version:** `0.6.29` / forge-native `0.1.4` / Forge app `4.16.0`
+**Current version:** `0.6.44` / forge-native `0.3.12` / Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
 
 ## 🤖 New Claude Code Session?
 
@@ -10,7 +10,7 @@ Start with: `Read .claude/instructions.md` to get full project context, tech sta
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 (root app) + React 18 (Forge Custom UI) + TypeScript + Vite
 - **Backend**: Convex (Database, Real-time, Server Functions)
 - **Forge Native**: Atlassian Forge app for Confluence integration (global page + macro)
 - **Styling**: Tailwind CSS 4; UI follows [docs/HackDay_Design_system.md](docs/HackDay_Design_system.md)
@@ -87,7 +87,7 @@ HackCentral/
 │   ├── capabilityTags.ts   # Capability tag queries
 │   ├── auth.config.ts      # Clerk auth config (domain is hardcoded - see doc comment)
 │   └── seedData.ts         # Seed data functions
-├── forge-native/            # Atlassian Forge app (v0.1.4)
+├── forge-native/            # Atlassian Forge app (v0.3.12)
 │   ├── manifest.yml        # Forge manifest (global page + macro)
 │   ├── src/
 │   │   ├── backend/        # Forge resolvers
@@ -117,8 +117,10 @@ HackCentral/
 │   └── App.tsx            # Main app component
 ├── tests/                 # Test files
 ├── docs/                  # Runbooks, architecture docs, artifacts
-├── learnings.md           # Active cross-repo continuity notes
-└── PLAN_HDC_V2_EXECUTION.md # V2 execution plan
+├── LEARNINGS.md           # Append-only session continuity log (hardlinked with learnings.md)
+├── CONTINUATION.md        # Compact handoff + next actions
+├── hdc-product-roadmap.hd # Startup planning protocol and read order
+└── HDC-PRODUCT-EXECUTION-PLAN.md # Live product execution ledger
 ```
 
 ## Design system
@@ -194,12 +196,14 @@ Badges, leaderboards, and impact stories to create FOMO and measurable value vis
 
 ## Documentation
 
-- [Full Roadmap](./ROADMAP.md) - Complete project vision and technical architecture
-- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Phased development plan
+- [HDC Product Roadmap](./HDC-PRODUCT-ROADMAP.md) - Canonical product requirements and phases
+- [HDC Product Execution Plan](./HDC-PRODUCT-EXECUTION-PLAN.md) - Live task ledger with status/evidence
+- [Phase 1 Problem Exchange Contract](./docs/HDC-P1-PROBLEM-EXCHANGE-CONTRACT-SPEC.md) - `P1.PX.01` backend/domain contract
+- [Phase 1 Guardrails Pack](./docs/HDC-P1-OBS-GUARDRAILS-PACK.md) - Standardized regression + telemetry GO/NO-GO gate (`P1.OBS.01`)
 - [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
-- [Design System](./DESIGN_SYSTEM.md) - Shared UI components and patterns
+- [HackDay Design System](./docs/HackDay_Design_system.md) - Shared UI components and patterns
 - [Convex Docs](https://docs.convex.dev) - Official Convex documentation
-- **Active source-of-truth:** `learnings.md`, `PLAN_HDC_V2_EXECUTION.md`, and `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
+- **Active source-of-truth:** `CONTINUATION.md` -> `hdc-product-roadmap.hd` -> `HDC-PRODUCT-ROADMAP.md` -> `HDC-PRODUCT-EXECUTION-PLAN.md` -> latest `LEARNINGS.md` entry -> `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
 
 ## Success Metrics
 
