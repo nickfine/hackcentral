@@ -15,6 +15,7 @@ import {
   getShowcaseHackDetail,
   setShowcaseFeatured,
   setPathwayStepCompletion,
+  trackTeamPulseExport,
   getProblemExchangeCapabilities,
   listProblemImportCandidates,
   listProblems,
@@ -50,6 +51,7 @@ import type {
   ListProblemImportCandidatesInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
+  TrackTeamPulseExportInput,
   ViewerContext,
 } from './shared/types';
 
@@ -311,6 +313,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: UpdatePipelineStageCriteriaInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return updatePipelineStageCriteria(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcTrackTeamPulseExport',
+  async (request: { context?: RawResolverContext; payload: TrackTeamPulseExportInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return trackTeamPulseExport(viewer, request.payload);
   }
 );
 

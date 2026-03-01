@@ -962,6 +962,30 @@ export interface SyncResult {
   retryGuidance: string | null;
 }
 
+export type TeamPulseExportFormat = 'json' | 'csv';
+
+export interface TrackTeamPulseExportInput {
+  format: TeamPulseExportFormat;
+  exportedAt: string;
+  hasTeamPulseData: boolean;
+  reuseRatePct: number;
+  crossTeamAdoptionCount: number;
+  crossTeamEdgeCount: number;
+  timeToFirstHackMedianDays: number | null;
+  timeToFirstHackSampleSize: number;
+  timeToFirstHackTrendPointCount: number;
+  problemConversionPct: number;
+  solvedProblemCount: number;
+  totalProblemCount: number;
+  csvRowCount?: number;
+}
+
+export interface TrackTeamPulseExportResult {
+  logged: true;
+  metric: 'team_pulse_export';
+  loggedAt: string;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   createHack: (payload: CreateHackInput) => CreateHackResult;
@@ -997,6 +1021,7 @@ export type Defs = {
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
+  hdcTrackTeamPulseExport: (payload: TrackTeamPulseExportInput) => TrackTeamPulseExportResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
   hdcRetrySync: (payload: { eventId: string }) => SyncResult;
 };

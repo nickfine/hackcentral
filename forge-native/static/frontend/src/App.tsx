@@ -37,6 +37,7 @@ import type {
   ScheduleEventType,
   ShowcaseHackListItem,
   ThemePreference,
+  TrackTeamPulseExportInput,
   UpsertPathwayInput,
   UpsertPathwayStepInput,
   UpdatePipelineStageCriteriaInput,
@@ -3669,8 +3670,26 @@ export function App(): JSX.Element {
   }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wSelectedProblemImportIds, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wTemplateMode, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
 
   const exportTeamPulse = (): void => {
+    const exportedAt = new Date().toISOString();
+    const pulse = teamPulse ?? null;
+    const telemetryPayload: TrackTeamPulseExportInput = {
+      format: 'json',
+      exportedAt,
+      hasTeamPulseData: Boolean(pulse),
+      reuseRatePct: pulse?.reuseRatePct ?? 0,
+      crossTeamAdoptionCount: pulse?.crossTeamAdoptionCount ?? 0,
+      crossTeamEdgeCount: pulse?.crossTeamAdoptionEdges.length ?? 0,
+      timeToFirstHackMedianDays: pulse?.timeToFirstHackMedianDays ?? null,
+      timeToFirstHackSampleSize: pulse?.timeToFirstHackSampleSize ?? 0,
+      timeToFirstHackTrendPointCount: pulse?.timeToFirstHackTrend.length ?? 0,
+      problemConversionPct: pulse?.problemConversionPct ?? 0,
+      solvedProblemCount: pulse?.solvedProblemCount ?? 0,
+      totalProblemCount: pulse?.totalProblemCount ?? 0,
+    };
+    void invokeTyped('hdcTrackTeamPulseExport', telemetryPayload).catch(() => undefined);
+
     downloadJson(`team-pulse-${new Date().toISOString().slice(0, 10)}.json`, {
-      exportedAt: new Date().toISOString(),
+      exportedAt,
       summary: bootstrap?.summary ?? null,
       teamPulse: teamPulse ?? null,
       legacySnapshot: {
@@ -3793,6 +3812,23 @@ export function App(): JSX.Element {
         exportedAt,
       ]);
     }
+
+    const telemetryPayload: TrackTeamPulseExportInput = {
+      format: 'csv',
+      exportedAt,
+      hasTeamPulseData: Boolean(pulse),
+      reuseRatePct: pulse?.reuseRatePct ?? 0,
+      crossTeamAdoptionCount: pulse?.crossTeamAdoptionCount ?? 0,
+      crossTeamEdgeCount: pulse?.crossTeamAdoptionEdges.length ?? 0,
+      timeToFirstHackMedianDays: pulse?.timeToFirstHackMedianDays ?? null,
+      timeToFirstHackSampleSize: pulse?.timeToFirstHackSampleSize ?? 0,
+      timeToFirstHackTrendPointCount: pulse?.timeToFirstHackTrend.length ?? 0,
+      problemConversionPct: pulse?.problemConversionPct ?? 0,
+      solvedProblemCount: pulse?.solvedProblemCount ?? 0,
+      totalProblemCount: pulse?.totalProblemCount ?? 0,
+      csvRowCount: rows.length,
+    };
+    void invokeTyped('hdcTrackTeamPulseExport', telemetryPayload).catch(() => undefined);
 
     downloadCsv(`team-pulse-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };

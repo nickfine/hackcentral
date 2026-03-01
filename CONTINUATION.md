@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 16:52 GMT
+Last updated: 2026-03-01 17:08 GMT
 
 ## Current Snapshot
 
@@ -254,11 +254,22 @@ Last updated: 2026-03-01 16:52 GMT
   - live resolver payload evidence: `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`
   - live UI smoke evidence: `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`
   - production UI smoke confirms Team Pulse segmented recognition tabs (`Builders`, `Sharers`, `Solvers`, `Mentors`) and Home viewer badge lane rendering
+- Phase 2 observability hardening (`P2.OBS.01`) is now complete (`GO`):
+  - telemetry contract: `docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`
+  - backend telemetry hooks now emit:
+    - `recognition_snapshot_read` on bootstrap recognition reads
+    - `team_pulse_export` via resolver-backed export tracking (`hdcTrackTeamPulseExport`)
+  - rollout checkpoint: `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`
+  - live telemetry evidence: `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`
+  - live UI export smoke evidence: `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`
+  - validation coverage:
+    - `tests/forge-native-phase2-telemetry-contract.spec.ts`
+    - `qa:p2:telemetry-static-check`
 
 ## Active Task Pointer
 
-- Active Task ID: `P2.OBS.01`
-- Task title: `Phase 2 observability hardening`
+- Active Task ID: `P3.ROI.01`
+- Task title: `ROI metrics and token data-source audit`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
@@ -268,9 +279,9 @@ Last updated: 2026-03-01 16:52 GMT
 
 ## Next 3 Atomic Actions
 
-1. Define `P2.OBS.01` telemetry contract for adoption KPIs across Pathways, Team Pulse metrics, and Recognition interactions.
-2. Implement backend telemetry hooks for recognition reads and Team Pulse exports with deterministic event payload fields.
-3. Add targeted telemetry validation and record `P2.OBS.01` rollout checkpoint evidence.
+1. Run `P3.ROI.01` token and cost data-source audit against available Supabase/Forge surfaces.
+2. Lock ROI contract scaffold (`R9.1`-`R9.5`) with explicit source mapping and fallback rules.
+3. Implement initial ROI resolver payload skeleton and validate with targeted contract checks.
 
 ## Blockers / Decisions Needed
 
@@ -315,6 +326,9 @@ Last updated: 2026-03-01 16:52 GMT
   - `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`
   - `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`
   - `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`
+  - `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`
+  - `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`
+  - `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`
 
 ## Validation Commands
 

@@ -10,6 +10,7 @@ const viewer: ViewerContext = {
 
 describe('SupabaseRepository recognition signal policy contracts', () => {
   it('applies mentor_sessions_used policy and pathway completion policy with deterministic ranking', async () => {
+    const telemetrySpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const selectMany = vi.fn(async (table: string) => {
       if (table === 'User') {
         return [
@@ -393,5 +394,29 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
       mentoredThreePeople: true,
       contributedToPathway: true,
     });
+
+    const phase2TelemetryPayloads = telemetrySpy.mock.calls
+      .filter((call) => call[0] === '[hdc-phase2-telemetry]')
+      .map((call) => String(call[1] ?? ''));
+    const recognitionTelemetry = phase2TelemetryPayloads
+      .map((payload) => JSON.parse(payload) as Record<string, unknown>)
+      .find((payload) => payload.metric === 'recognition_snapshot_read');
+
+    expect(recognitionTelemetry).toMatchObject({
+      metric: 'recognition_snapshot_read',
+      source: 'supabase_repository',
+      provider: 'supabase',
+      mentorPolicyVersion: 'r8-mentor-sessions-used-v1',
+      pathwayPolicyVersion: 'r8-pathway-completion-v1',
+      buildersCount: 2,
+      sharersCount: 2,
+      solversCount: 2,
+      mentorsCount: 4,
+      qualifiedMentorChampionCount: 3,
+      qualifiedPathwayContributorCount: 4,
+      viewerBadgeCount: 5,
+    });
+
+    telemetrySpy.mockRestore();
   });
 });

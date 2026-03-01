@@ -1920,3 +1920,49 @@ Use this template at the end of every work session:
 
 - Resolver artifacts that are captured from ad-hoc scripts can include telemetry log lines before JSON payload; keep that in mind when machine-parsing evidence files.
 - UI smoke that proves segmented tabs should be captured from Team Pulse view (not only Home), while viewer badge rendering should be validated from Home; keeping both surfaces in one run avoids false GO confidence.
+
+## Session Update - P2.OBS.01 Phase 2 Telemetry Rollout Closure (Mar 1, 2026 17:08 GMT)
+
+### Completed
+
+- Locked Phase 2 telemetry contract in `docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`.
+- Added backend telemetry channel/events for adoption observability:
+  - `recognition_snapshot_read` emitted from `SupabaseRepository.getBootstrapData` after recognition snapshot assembly.
+  - `team_pulse_export` emitted through resolver-backed tracking path `hdcTrackTeamPulseExport`.
+- Added resolver/type wiring for export telemetry tracking:
+  - `forge-native/src/index.ts`
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+  - `forge-native/static/frontend/src/App.tsx` export actions (CSV + JSON).
+- Added validation coverage and static gate:
+  - `tests/forge-native-phase2-telemetry-contract.spec.ts`
+  - `tests/forge-native-recognition-mentor-policy-contract.spec.ts` now asserts `recognition_snapshot_read` payload.
+  - `package.json` script `qa:p2:telemetry-static-check`.
+- Deployed production bundle and captured live telemetry evidence after Team Pulse export actions.
+
+### Validation Evidence
+
+- Supabase MCP-first + fallback:
+  - `mcp__supabase__list_projects` returned `[]`.
+  - CLI fallback project discovery confirmed `ssafugtobsqxmqtphwch` active.
+- Targeted tests:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`6/6`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Static telemetry gate:
+  - `npm run qa:p2:telemetry-static-check` (pass)
+- Live UI smoke and telemetry artifacts:
+  - `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`
+  - `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`
+  - log lines include:
+    - `recognition_snapshot_read`
+    - `team_pulse_export` (`format=csv`, `csvRowCount=6`)
+    - `team_pulse_export` (`format=json`, `csvRowCount=null`)
+- Rollout checkpoint:
+  - `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md` (`GO`)
+
+### Operational Learnings
+
+- Resolver-backed telemetry tracking is the cleanest way to capture UI export actions in backend logs without coupling export behavior to additional data writes.
+- Phase-specific static telemetry scripts (`qa:p2:telemetry-static-check`) reduce drift risk when adding new channels without weakening existing Phase 1 telemetry gates.

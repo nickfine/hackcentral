@@ -71,6 +71,8 @@ import type {
   SetPathwayStepCompletionInput,
   SetPathwayStepCompletionResult,
   TeamPulseMetrics,
+  TrackTeamPulseExportInput,
+  TrackTeamPulseExportResult,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -715,6 +717,17 @@ function logProblemExchangeTelemetry(
 function logPipelineTelemetry(metric: string, payload: Record<string, unknown>): void {
   console.info(
     '[hdc-pipeline-telemetry]',
+    JSON.stringify({
+      metric,
+      source: 'supabase_repository',
+      ...payload,
+    })
+  );
+}
+
+function logPhase2Telemetry(metric: string, payload: Record<string, unknown>): void {
+  console.info(
+    '[hdc-phase2-telemetry]',
     JSON.stringify({
       metric,
       source: 'supabase_repository',
@@ -2730,6 +2743,19 @@ export class SupabaseRepository {
       pathwayProgressRows,
       viewerAccountId: viewer.accountId,
     });
+    const viewerBadgeCount = Object.values(recognition.viewerBadges).filter(Boolean).length;
+    logPhase2Telemetry('recognition_snapshot_read', {
+      provider: 'supabase',
+      mentorPolicyVersion: recognition.mentorSignal.policyVersion,
+      pathwayPolicyVersion: recognition.pathwaySignal.policyVersion,
+      buildersCount: recognition.leaderboards.builders.length,
+      sharersCount: recognition.leaderboards.sharers.length,
+      solversCount: recognition.leaderboards.solvers.length,
+      mentorsCount: recognition.leaderboards.mentors.length,
+      qualifiedMentorChampionCount: recognition.mentorSignal.qualifiedMentorChampionCount,
+      qualifiedPathwayContributorCount: recognition.pathwaySignal.qualifiedPathwayContributorCount,
+      viewerBadgeCount,
+    });
 
     return {
       viewer,
@@ -2748,6 +2774,38 @@ export class SupabaseRepository {
       recentProjects,
       people,
       registry,
+    };
+  }
+
+  async trackTeamPulseExport(
+    viewer: ViewerContext,
+    input: TrackTeamPulseExportInput
+  ): Promise<TrackTeamPulseExportResult> {
+    const loggedAt = nowIso();
+    const format = input.format === 'csv' ? 'csv' : 'json';
+    logPhase2Telemetry('team_pulse_export', {
+      provider: 'supabase',
+      format,
+      exportedAt: input.exportedAt,
+      hasTeamPulseData: input.hasTeamPulseData,
+      reuseRatePct: input.reuseRatePct,
+      crossTeamAdoptionCount: input.crossTeamAdoptionCount,
+      crossTeamEdgeCount: input.crossTeamEdgeCount,
+      timeToFirstHackMedianDays: input.timeToFirstHackMedianDays,
+      timeToFirstHackSampleSize: input.timeToFirstHackSampleSize,
+      timeToFirstHackTrendPointCount: input.timeToFirstHackTrendPointCount,
+      problemConversionPct: input.problemConversionPct,
+      solvedProblemCount: input.solvedProblemCount,
+      totalProblemCount: input.totalProblemCount,
+      csvRowCount: format === 'csv' ? Math.max(0, input.csvRowCount ?? 0) : null,
+      viewerTimezone: viewer.timezone,
+      viewerSiteUrl: viewer.siteUrl,
+      loggedAt,
+    });
+    return {
+      logged: true,
+      metric: 'team_pulse_export',
+      loggedAt,
     };
   }
 

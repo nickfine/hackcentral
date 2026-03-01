@@ -42,6 +42,8 @@ import type {
   CreateHackResult,
   CreateProjectInput,
   CreateProjectResult,
+  TrackTeamPulseExportInput,
+  TrackTeamPulseExportResult,
   UpdateMentorProfileInput,
   UpdateMentorProfileResult,
   VoteProblemResult,
@@ -276,6 +278,47 @@ export async function getBootstrapData(viewer: ViewerContext): Promise<Bootstrap
   const parentPageUrl = process.env.CONFLUENCE_HDC_PARENT_PAGE_URL?.trim() || null;
   const parentPageId = process.env.CONFLUENCE_HDC_PARENT_PAGE_ID?.trim() || null;
   return { ...data, createAppUrl, parentPageUrl, parentPageId };
+}
+
+export async function trackTeamPulseExport(
+  viewer: ViewerContext,
+  input: TrackTeamPulseExportInput
+): Promise<TrackTeamPulseExportResult> {
+  return withConfiguredBackend(
+    () => repository.trackTeamPulseExport(viewer, input),
+    async () => {
+      const loggedAt = new Date().toISOString();
+      console.info(
+        '[hdc-phase2-telemetry]',
+        JSON.stringify({
+          metric: 'team_pulse_export',
+          source: 'convex_fallback',
+          provider: 'convex',
+          format: input.format === 'csv' ? 'csv' : 'json',
+          exportedAt: input.exportedAt,
+          hasTeamPulseData: input.hasTeamPulseData,
+          reuseRatePct: input.reuseRatePct,
+          crossTeamAdoptionCount: input.crossTeamAdoptionCount,
+          crossTeamEdgeCount: input.crossTeamEdgeCount,
+          timeToFirstHackMedianDays: input.timeToFirstHackMedianDays,
+          timeToFirstHackSampleSize: input.timeToFirstHackSampleSize,
+          timeToFirstHackTrendPointCount: input.timeToFirstHackTrendPointCount,
+          problemConversionPct: input.problemConversionPct,
+          solvedProblemCount: input.solvedProblemCount,
+          totalProblemCount: input.totalProblemCount,
+          csvRowCount: input.format === 'csv' ? Math.max(0, input.csvRowCount ?? 0) : null,
+          viewerTimezone: viewer.timezone,
+          viewerSiteUrl: viewer.siteUrl,
+          loggedAt,
+        })
+      );
+      return {
+        logged: true,
+        metric: 'team_pulse_export',
+        loggedAt,
+      };
+    }
+  );
 }
 
 export async function createHack(

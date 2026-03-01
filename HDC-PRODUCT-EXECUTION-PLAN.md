@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-01 16:52 GMT  
+Last updated: 2026-03-01 17:08 GMT  
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 2 (Adoption Influence) |
 | Program status | In execution |
-| Active task ID | `P2.OBS.01` |
+| Active task ID | `P3.ROI.01` |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -46,8 +46,8 @@ Program: HackDay Central (HDC)
 | `P2.PATH.01` | `R6.1` to `R6.4` | Eng | Completed (2026-03-01; GO) | Phase 1 complete | Pathways delivered in Guide | `docs/HDC-P2-PATHWAYS-CONTRACT-SPEC.md`, `forge-native/supabase/migrations/20260301130000_phase2_pathways.sql`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-pathways-contract.spec.ts`, `tests/forge-native-pathways-runtime-modes.spec.ts`, `docs/artifacts/HDC-P2-PATH-ROLLOUT-CHECKPOINT-20260301-1339Z.md`, `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png` |
 | `P2.METRICS.01` | `R7.1` to `R7.4` | Eng | Completed (2026-03-01; GO) | Phase 1 data availability | Team Pulse metrics expansion delivered and live-validated | `docs/HDC-P2-TEAM-PULSE-METRICS-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-METRICS-ROLLOUT-CHECKPOINT-20260301-1547Z.md`, `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`, `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`, `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-team-pulse-metrics-contract.spec.ts` |
 | `P2.RECOG.01` | `R8.1` to `R8.2` | Eng | Completed (2026-03-01; GO) | `P2.METRICS.01` | Recognition rules + segmented leaderboards + viewer badges delivered and live-validated | `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`, `docs/artifacts/HDC-P2-RECOG-LIVE-SCHEMA-VERIFY-20260301-1647Z.json`, `docs/artifacts/HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`, `docs/artifacts/HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/constants/nav.ts`, `forge-native/static/frontend/src/App.tsx`, `tests/forge-native-recognition-mentor-policy-contract.spec.ts`, `tests/forge-native-team-pulse-metrics-contract.spec.ts` |
-| `P2.OBS.01` | Phase 2 telemetry | Eng | In progress (2026-03-01 kickoff) | `P2.PATH.01`, `P2.METRICS.01`, `P2.RECOG.01` | Adoption KPI trend instrumentation active | Pending |
-| `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | Planned | Phase 2 complete, token data source audit | ROI dashboard + export delivered | Pending |
+| `P2.OBS.01` | Phase 2 telemetry | Eng | Completed (2026-03-01; GO) | `P2.PATH.01`, `P2.METRICS.01`, `P2.RECOG.01` | Adoption KPI trend instrumentation active with live telemetry sampling | `docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`, `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`, `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`, `tests/forge-native-phase2-telemetry-contract.spec.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `package.json` |
+| `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | In progress (2026-03-01 kickoff) | Phase 2 complete, token data source audit | ROI dashboard + export delivered | Pending |
 | `P3.FORK.01` | `R10.1` to `R10.2` | Eng | Planned | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | Pending |
 | `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | Planned | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | Pending |
 | `P3.FEED.01` | `R12.1` to `R12.2` | Eng | Planned | Phase 2 metrics available | Home feed + personalized recommendations delivered | Pending |
@@ -57,15 +57,15 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P2.OBS.01` - lock telemetry event contract for Phase 2 adoption KPIs (`pathways`, `team_pulse`, `recognition`).
-2. `P2.OBS.01` - implement backend telemetry emission points for recognition leaderboard/badge reads and Team Pulse exports.
-3. `P2.OBS.01` - add validation coverage and rollout checkpoint artifact for Phase 2 observability gate.
+1. `P3.ROI.01` - run token/cost data-source audit across available platform tables and APIs.
+2. `P3.ROI.01` - lock ROI metrics contract (`R9.1`-`R9.5`) with source mapping and fallback rules.
+3. `P3.ROI.01` - implement baseline ROI resolver payload scaffold behind current admin surfaces.
 
 ### Next
 
-1. `P3.ROI.01` - start token data source audit prerequisites.
-2. `P3.FORK.01` - define fork/remix contract boundaries on top of registry/showcase models.
-3. `P3.FEED.01` - prepare personalization signal inventory from Phase 2 outputs.
+1. `P3.FORK.01` - define fork/remix contract boundaries on top of registry/showcase models.
+2. `P3.FEED.01` - prepare personalization signal inventory from Phase 2 outputs.
+3. `P3.OBS.01` - pre-plan cost/output trend alert thresholds and reporting cadence.
 
 ### Blocked
 
@@ -126,3 +126,4 @@ Program: HackDay Central (HDC)
 | 2026-03-01 | Landed `P2.RECOG.01` pathway contribution signal policy baseline: resolved decision gate to use `PathwayProgress` completion events (not pathway authoring fields), extended `recognition` contract with `pathwaySignal` (`r8-pathway-completion-v1`), implemented threshold (`distinct pathway_id >=1`) and deterministic ranking in Supabase repository, and wired dashboard pathway contributor badge count in frontend. Live readiness check (MCP-first + CLI fallback) confirmed `PathwayProgress` population in production (`pathway_progress_total=1`). Validation: updated recognition policy suite + Team Pulse suite (`4/4`), backend/frontend typechecks pass. |
 | 2026-03-01 | Advanced `P2.RECOG.01` to full backend+UI baseline: extended recognition contract with `leaderboards` segments (`builders`, `sharers`, `solvers`, `mentors`) and `viewerBadges` (`firstArtifactPublished`, `firstProblemSolved`, `fiveArtifactsReused`, `mentoredThreePeople`, `contributedToPathway`), implemented deterministic aggregation in Supabase repository, and wired Team Pulse recognition tabs + dashboard badges to live recognition payload in frontend. Validation: recognition policy suite (`1/1`), Team Pulse + recognition suites (`4/4`), backend/frontend typechecks pass. |
 | 2026-03-01 | Completed `P2.RECOG.01` rollout to GO: executed live Supabase recognition-source verification (`Project`, `Artifact`, `Problem`, `PathwayProgress`, `User`), captured production resolver payload evidence (`HDC-P2-RECOG-LIVE-RESOLVER-SMOKE-20260301-1647Z.json`), ran production Team Pulse UI smoke confirming segmented recognition tabs and dashboard badge lane (`HDC-P2-RECOG-LIVE-UI-SMOKE-20260301-1650Z.png`), recorded checkpoint `docs/artifacts/HDC-P2-RECOG-ROLLOUT-CHECKPOINT-20260301-1650Z.md`, and advanced active task to `P2.OBS.01`. |
+| 2026-03-01 | Completed `P2.OBS.01` rollout to GO: locked Phase 2 telemetry contract (`docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`), added backend telemetry hooks for `recognition_snapshot_read` and resolver-backed `team_pulse_export` events (`hdcTrackTeamPulseExport`), added contract coverage (`tests/forge-native-phase2-telemetry-contract.spec.ts`) and static telemetry gate (`qa:p2:telemetry-static-check`), deployed production bundle, triggered Team Pulse CSV/JSON exports in production UI, and captured live telemetry evidence in `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`; checkpoint recorded at `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`. Active task advanced to `P3.ROI.01`. |
