@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 14:05 GMT
+Last updated: 2026-03-01 16:36 GMT
 
 ## Current Snapshot
 
@@ -11,7 +11,7 @@ Last updated: 2026-03-01 14:05 GMT
 - Latest known release markers:
   - Root app version: `0.6.44`
   - Forge native package version: `0.3.12`
-- Current phase: `Phase 1 in execution`
+- Current phase: `Phase 2 in execution`
 - Registry (`P1.REG.01`) is complete and validated:
   - migration: `forge-native/supabase/migrations/20260301011000_phase1_registry.sql`
   - resolvers: `hdcCreateArtifact`, `hdcListArtifacts`, `hdcGetArtifact`, `hdcMarkArtifactReuse`
@@ -165,42 +165,84 @@ Last updated: 2026-03-01 14:05 GMT
     - frontend + backend now validate pathway-step `linkedArtifactId` as UUID before persistence
     - expanded contract coverage in `tests/forge-native-pathways-contract.spec.ts` for edit-id preservation and invalid artifact-id validation
     - validation rerun: `npm run test:run -- tests/forge-native-pathways-contract.spec.ts` (`4/4`), backend/frontend typechecks pass
-- Team Pulse metrics expansion (`P2.METRICS.01`) implementation baseline is now landed (in progress, not GO):
+- Team Pulse metrics expansion (`P2.METRICS.01`) is now completed (`GO`):
   - contract spec: `docs/HDC-P2-TEAM-PULSE-METRICS-CONTRACT-SPEC.md`
   - shared/frontend contracts:
     - `forge-native/src/shared/types.ts`
     - `forge-native/static/frontend/src/types.ts`
     - `BootstrapData.teamPulse` now carries `R7.1`-`R7.4` metric payload
+  - live source verification completed via Supabase MCP-first + CLI fallback:
+    - `mcp__supabase__list_projects` returned `[]` in this workspace (known behavior)
+    - schema compatibility verified for `ArtifactReuse`, `TeamMember`, `Problem` via management SQL
+    - service-role REST read checks succeeded for all three source tables
   - backend aggregation in `forge-native/src/backend/supabase/repositories.ts` now computes:
     - `R7.1` reuse rate (`reusedArtifactCount/totalArtifactCount`)
     - `R7.2` cross-team adoption edge counts from `ArtifactReuse` + source project teams
     - `R7.3` time-to-first-hack median and monthly trend (`User.created_at` -> first hack submission)
     - `R7.4` Problem Exchange solved conversion rate
+    - deterministic multi-team adopter attribution policy:
+      - accepted memberships only
+      - primary team precedence: role (`OWNER` > `ADMIN` > `LEAD` > `MEMBER`) -> earliest membership timestamp -> lexical team id tie-break
   - Team Pulse UI wiring in `forge-native/static/frontend/src/App.tsx` + `styles.css` now renders:
     - metric tiles for `R7.1`-`R7.4`
     - cross-team adoption matrix table
     - time-to-first-hack trend bars
-    - Team Pulse JSON export payload now includes live `teamPulse` contract
+    - Team Pulse exports now include both JSON contract payload and CSV reporting format
+  - production compatibility hardening:
+    - bootstrap user query now supports `User.created_at` and `User.createdAt` schema variants
+    - regression coverage added in `tests/forge-native-team-pulse-metrics-contract.spec.ts`
+  - live evidence artifacts:
+    - rollout checkpoint: `docs/artifacts/HDC-P2-METRICS-ROLLOUT-CHECKPOINT-20260301-1547Z.md` (`GO`)
+    - resolver payload snapshot: `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`
+    - UI smoke screenshot: `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`
+    - CSV export sample: `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`
   - targeted validation:
-    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` (`1/1`)
-    - cross-suite regression: pathways + showcase + Team Pulse contract (`17/17`)
+    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` (`3/3`)
+    - cross-suite regression: pathways + showcase + Team Pulse contract (`19/19`)
+    - backend/frontend typechecks pass
+- Runtime frontend build blocker is now resolved:
+  - issue: `forge-native/static/runtime-frontend` PostCSS/Tailwind build failure during `custom-ui:build`
+  - fix: moved runtime PostCSS plugin to `@tailwindcss/postcss` and removed v4-incompatible `@apply` utility usage in `src/index.css`
+  - validated:
+    - `npm --prefix forge-native run runtime:build` (pass)
+    - `npm --prefix forge-native run custom-ui:build` (pass)
+- Recognition mentor + pathway signal policy baseline (`P2.RECOG.01`) is now landed:
+  - contract spec: `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`
+  - bootstrap contract now includes `recognition.mentorSignal` + `recognition.pathwaySignal`:
+    - policy version: `r8-mentor-sessions-used-v1`
+    - policy source: `User.mentor_sessions_used`
+    - mentor badge threshold: `>= 3`
+    - deterministic leaderboard order: `mentor_sessions_used DESC` -> `userName ASC` -> `userId ASC`
+    - policy version: `r8-pathway-completion-v1`
+    - policy source: `PathwayProgress`
+    - pathway badge threshold: `distinct pathway_id >= 1`
+    - deterministic leaderboard order: `distinctPathwayCount DESC` -> `completedStepCount DESC` -> `userName ASC` -> `userId ASC`
+  - backend wiring: `forge-native/src/backend/supabase/repositories.ts`
+  - frontend consumption (mentor lane + mentor/pathway badge counts): `forge-native/static/frontend/src/App.tsx`
+  - contract parity updates:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - targeted validation:
+    - `tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+    - `tests/forge-native-team-pulse-metrics-contract.spec.ts` + recognition policy suite (`4/4`)
     - backend/frontend typechecks pass
 
 ## Active Task Pointer
 
-- Active Task ID: `P2.METRICS.01`
-- Task title: `Team Pulse metrics expansion`
+- Active Task ID: `P2.RECOG.01`
+- Task title: `Enhanced recognition`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
+- Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
 
 ## Next 3 Atomic Actions
 
-1. Run live Supabase verification for Team Pulse metric sources (`ArtifactReuse`, `TeamMember`, `Problem`) and confirm production schema compatibility/permissions.
-2. Harden cross-team attribution policy for multi-team users (deterministic primary-team selection) and capture decision in the contract spec.
-3. Add CSV export format for Team Pulse metrics and prepare a `P2.METRICS.01` rollout checkpoint artifact template.
+1. Extend `P2.RECOG.01` contract for full badge automation + segmented leaderboards (`R8.1`, `R8.2`) using locked mentor/pathway policies.
+2. Implement recognition resolver baseline for builders/sharers/solvers with deterministic ranking and authority-safe source mapping.
+3. Add targeted contract/runtime tests for full recognition payload and then wire remaining UI leaderboard/badge views.
 
 ## Blockers / Decisions Needed
 
@@ -220,7 +262,7 @@ Last updated: 2026-03-01 14:05 GMT
 - Fallback path for live authority audits:
   1. Use shell `SUPABASE_ACCESS_TOKEN` with Supabase CLI to discover/access project refs.
   2. Derive service-role key via `supabase projects api-keys --project-ref <ref>`.
-  3. Run read-only authority checks via Supabase REST (`/rest/v1/User`) with service-role auth.
+  3. Run read-only authority checks via Supabase REST (`/rest/v1/ArtifactReuse`, `/rest/v1/TeamMember`, `/rest/v1/Problem`) with service-role auth.
   4. Run resolver verification from HackCentral using:
      - `SUPABASE_URL`
      - `SUPABASE_SERVICE_ROLE_KEY`
@@ -237,6 +279,10 @@ Last updated: 2026-03-01 14:05 GMT
   - `docs/artifacts/HDC-P1-SHOW-LIVE-UI-SMOKE-20260301-1153Z.png`
   - `docs/artifacts/HDC-P2-PATH-LOCAL-UI-SMOKE-20260301-133139Z.png`
   - `docs/artifacts/HDC-P2-PATH-LIVE-UI-SMOKE-20260301-133904Z.png`
+  - `docs/artifacts/HDC-P2-METRICS-ROLLOUT-CHECKPOINT-20260301-1547Z.md`
+  - `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`
+  - `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`
+  - `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`
 
 ## Validation Commands
 
@@ -309,6 +355,18 @@ cd /Users/nickster/Downloads/HackCentral/forge-native && forge logs -e productio
 
 # Showcase live authority + rollback dry-run verification completed in this session
 cd /Users/nickster/Downloads/HackCentral && SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" SUPABASE_SCHEMA="public" FORGE_DATA_BACKEND="supabase" npx -y tsx -e "import { setShowcaseFeatured } from './forge-native/src/backend/hackcentral.ts'; ..."
+
+# Team Pulse live source verification + deterministic attribution + CSV export checks completed in this session
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects api-keys --project-ref ssafugtobsqxmqtphwch --output json
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" curl -sS -X POST "https://api.supabase.com/v1/projects/ssafugtobsqxmqtphwch/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg query \"select table_name, column_name, data_type from information_schema.columns where table_schema = 'public' and table_name in ('ArtifactReuse', 'TeamMember', 'Problem') order by table_name, ordinal_position;\" '{query:$query}')"
+cd /Users/nickster/Downloads/HackCentral-p1-child-01 && SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" SUPABASE_SCHEMA="public" FORGE_DATA_BACKEND="supabase" HDC_RUNTIME_OWNER="hackcentral" npx -y tsx -e "import { getBootstrapData } from './forge-native/src/backend/hackcentral.ts'; (async () => { const viewer={accountId:'cmiukfwe1000807bj5ir1vpy4',siteUrl:'https://hackdaytemp.atlassian.net',timezone:'Europe/London'}; const data=await getBootstrapData(viewer); console.log(JSON.stringify(data.teamPulse, null, 2)); })();"
+cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native && forge deploy --environment production --no-verify
+cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native && forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
+cd /Users/nickster/Downloads/HackCentral-p1-child-01 && npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts
+cd /Users/nickster/Downloads/HackCentral-p1-child-01 && npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts
+cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native && npm run typecheck
+cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend && npm run typecheck
 ```
 
 ## Fresh Chat Startup Checklist

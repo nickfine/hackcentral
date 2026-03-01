@@ -56,6 +56,49 @@ export interface TeamPulseMetrics {
   totalProblemCount: number;
 }
 
+export interface RecognitionMentorSignalEntry {
+  userId: string;
+  userName: string;
+  mentorSessionsUsed: number;
+  rank: number;
+  qualifiesMentorChampion: boolean;
+}
+
+export interface RecognitionMentorSignal {
+  calculatedAt: string;
+  policyVersion: 'r8-mentor-sessions-used-v1';
+  policySource: 'User.mentor_sessions_used';
+  badgeThreshold: number;
+  leaderboardLimit: number;
+  leaderboard: RecognitionMentorSignalEntry[];
+  qualifiedMentorChampionCount: number;
+}
+
+export interface RecognitionPathwaySignalEntry {
+  userId: string;
+  userName: string;
+  distinctPathwayCount: number;
+  completedStepCount: number;
+  lastCompletedAt: string | null;
+  rank: number;
+  qualifiesPathwayContributor: boolean;
+}
+
+export interface RecognitionPathwaySignal {
+  calculatedAt: string;
+  policyVersion: 'r8-pathway-completion-v1';
+  policySource: 'PathwayProgress';
+  badgeThresholdDistinctPathways: number;
+  leaderboardLimit: number;
+  leaderboard: RecognitionPathwaySignalEntry[];
+  qualifiedPathwayContributorCount: number;
+}
+
+export interface RecognitionSnapshot {
+  mentorSignal: RecognitionMentorSignal;
+  pathwaySignal: RecognitionPathwaySignal;
+}
+
 export interface FeaturedHack {
   id: string;
   title: string;
@@ -108,6 +151,7 @@ export interface BootstrapData {
   source: DataSourceInfo;
   summary: SummaryStats;
   teamPulse?: TeamPulseMetrics | null;
+  recognition?: RecognitionSnapshot | null;
   featuredHacks: FeaturedHack[];
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];

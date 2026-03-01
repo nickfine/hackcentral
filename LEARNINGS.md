@@ -1624,3 +1624,224 @@ Use this template at the end of every work session:
 
 - Team Pulse `R7` metrics can be added without a new resolver by extending `getBootstrapData`, which keeps frontend fetch behavior stable while feature scope evolves.
 - Cross-team adoption requires deterministic team attribution policy; fallback to user-level IDs avoids runtime failure but should be replaced by explicit product-approved multi-team precedence for GO.
+
+## Session Update - P2.METRICS.01 Live Source Verification + Attribution Hardening + CSV Export (Mar 1, 2026 15:50 GMT)
+
+### Completed
+
+- Executed Supabase MCP-first verification for Team Pulse metric source tables and used documented CLI fallback when MCP returned empty project list.
+- Verified production schema compatibility for `ArtifactReuse`, `TeamMember`, and `Problem` against `ssafugtobsqxmqtphwch`.
+- Added deterministic multi-team primary-team attribution in Team Pulse backend aggregation (`forge-native/src/backend/supabase/repositories.ts`):
+  - accepted memberships only
+  - role precedence (`OWNER` > `ADMIN` > `LEAD` > `MEMBER`)
+  - earliest membership timestamp (`createdAt`/`created_at`)
+  - lexical team-id tie-break
+- Added Team Pulse CSV export in the Team Pulse UI (`forge-native/static/frontend/src/App.tsx`) and supporting layout styles (`forge-native/static/frontend/src/styles.css`).
+- Updated Team Pulse contract spec with deterministic attribution policy + live verification outcomes:
+  - `docs/HDC-P2-TEAM-PULSE-METRICS-CONTRACT-SPEC.md`
+- Recorded rollout checkpoint artifact:
+  - `docs/artifacts/HDC-P2-METRICS-ROLLOUT-CHECKPOINT-20260301-1547Z.md` (`CONDITIONAL GO`)
+
+### Validation Evidence
+
+- Supabase project discovery fallback:
+  - `SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json`
+  - confirmed project ref `ssafugtobsqxmqtphwch`.
+- Live schema check (management SQL):
+  - `information_schema.columns` query for `ArtifactReuse`, `TeamMember`, `Problem` returned required fields used by Team Pulse metrics.
+- Live service-role REST read checks:
+  - `ArtifactReuse`: HTTP `200`, readable (`content_range=*/0`, zero-row state)
+  - `TeamMember`: HTTP `206`, readable (`teamId`, `userId`, `status`, `createdAt` sample row)
+  - `Problem`: HTTP `200`, readable (`id`, `status`, `moderation_state`, `created_at` sample row)
+- Targeted tests:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts` (`2/2` passing)
+  - includes new multi-team deterministic attribution test.
+- Cross-suite regression slice:
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts` (`18/18` passing)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- In this workspace, Supabase MCP management discovery (`list_projects`) can return empty even when CLI access is valid; keeping MCP-first + CLI fallback is required for reproducible live checks.
+- `TeamMember` uses camelCase identity fields in production (`teamId`, `userId`, `createdAt`), so backend normalization must continue supporting both camelCase and snake_case variants.
+- Deterministic team attribution must not rely on row-return order from `selectMany('*')`; explicit ordering policy in code and tests prevents silent metric drift as membership data grows.
+
+## Session Update - P2.METRICS.01 GO Closure (Mar 1, 2026 16:02 GMT)
+
+### Completed
+
+- Closed `P2.METRICS.01` from `CONDITIONAL GO` to `GO`.
+- Ran live production resolver smoke for `getBootstrapData` with production runtime config and captured Team Pulse payload snapshot.
+- Identified and fixed production compatibility defect during resolver smoke:
+  - `User.created_at` missing in live schema variant (`User.createdAt` present).
+  - Added bootstrap user-query fallback (`created_at` -> `createdAt`) in `forge-native/src/backend/supabase/repositories.ts`.
+  - Added regression test coverage in `tests/forge-native-team-pulse-metrics-contract.spec.ts`.
+- Deployed updated Forge bundle to production and validated live Team Pulse UI now exposes:
+  - `Export metrics (CSV)`
+  - `Export metrics (JSON)`
+- Executed live CSV export probe in browser and captured exported artifact.
+
+### Validation Evidence
+
+- Resolver smoke payload snapshot artifact:
+  - `docs/artifacts/HDC-P2-METRICS-LIVE-RESOLVER-SMOKE-20260301-1556Z.json`
+  - key output: `reuseRatePct=0`, `crossTeamAdoptionCount=0`, `timeToFirstHackMedianDays=41.8`, `problemConversionPct=0`
+- Live Team Pulse UI smoke screenshot:
+  - `docs/artifacts/HDC-P2-METRICS-LIVE-UI-SMOKE-20260301-1558Z.png`
+- Live CSV export evidence:
+  - exported file: `docs/artifacts/HDC-P2-METRICS-LIVE-CSV-EXPORT-20260301-1600Z.csv`
+  - probe output: blob `type=text/csv;charset=utf-8`, `size=497`, header row begins `section,metric,value,...`
+- Deployment commands:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (pass)
+- Tests and typechecks:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts` (`3/3`)
+  - `npm run test:run -- tests/forge-native-pathways-contract.spec.ts tests/forge-native-pathways-runtime-modes.spec.ts tests/forge-native-showcase-contract.spec.ts tests/forge-native-showcase-runtime-modes.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts` (`19/19`)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Live schema drift between `created_at` and `createdAt` for `User` can break Team Pulse lead-time metrics; compatibility fallbacks are required for stable resolver behavior across environments.
+- Playwright MCP can validate export behavior without filesystem hooks by instrumenting `URL.createObjectURL` inside the Forge iframe and reading blob metadata/text preview.
+- `custom-ui:build` remains blocked by unrelated `static/runtime-frontend` Tailwind/PostCSS configuration in this workspace; deploying `static/frontend` changes is still viable via `forge deploy` and confirmed by live smoke.
+
+## Session Update - P2.RECOG.01 Mentor Signal Policy Baseline (Mar 1, 2026 16:30 GMT)
+
+### Completed
+
+- Locked mentor signal policy for `R8.1`/`R8.2` and codified it in:
+  - `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`
+- Extended bootstrap contract to include recognition payload:
+  - `recognition.mentorSignal` in
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+- Implemented mentor signal baseline in Supabase repository:
+  - `forge-native/src/backend/supabase/repositories.ts` (`buildRecognitionSnapshot`)
+  - policy:
+    - source: `User.mentor_sessions_used`
+    - badge threshold: `>= 3`
+    - normalization: negative/non-finite -> `0`
+    - deterministic leaderboard ordering:
+      1. `mentor_sessions_used DESC`
+      2. `userName ASC`
+      3. `userId ASC`
+- Updated frontend to consume mentor policy output:
+  - `forge-native/static/frontend/src/App.tsx`
+  - recognition mentor lane now uses `bootstrap.recognition.mentorSignal.leaderboard` when available
+  - dashboard mentor badge count now uses `qualifiedMentorChampionCount`
+
+### Validation Evidence
+
+- New targeted policy contract:
+  - `npm run test:run -- tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+- Regression slice with Team Pulse:
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`4/4`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Locking the mentor policy as a versioned contract (`r8-mentor-sessions-used-v1`) before full recognition rollout avoids ambiguity when backend and UI evolve independently.
+- Existing `User.mentor_sessions_used` provides a stable P0 mentor signal without introducing schema migrations, but pathway contribution signal still needs an explicit policy decision before full `P2.RECOG.01` completion.
+
+## Session Update - Runtime Build Fix + `P2.RECOG.01` Pre-checks (Mar 1, 2026 16:21 GMT)
+
+### Completed
+
+- Fixed runtime frontend build path that was blocking `custom-ui:build`:
+  - updated `forge-native/static/runtime-frontend/postcss.config.js` to use `@tailwindcss/postcss`
+  - added runtime dependency in `forge-native/static/runtime-frontend/package.json` / `package-lock.json`
+  - replaced v4-incompatible `@apply` utility usage in `forge-native/static/runtime-frontend/src/index.css`
+- Ran `P2.RECOG.01` pre-checks against roadmap requirements (`R8.1`, `R8.2`) and current live schema readiness.
+- Used Supabase MCP first, then executed documented CLI fallback for project/table introspection.
+
+### Validation Evidence
+
+- Runtime build fix validation:
+  - `npm --prefix forge-native run runtime:build` (pass)
+  - `npm --prefix forge-native run custom-ui:build` (pass)
+- Supabase MCP-first verification:
+  - `mcp__supabase__list_projects` returned `[]` in this workspace.
+- CLI fallback project discovery:
+  - `SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json`
+  - confirmed active project ref `ssafugtobsqxmqtphwch`.
+- Live schema readiness query (management SQL):
+  - confirmed recognition-related tables/columns available for: `Artifact`, `ArtifactReuse`, `Problem`, `PathwayProgress`, `Project`, `TeamMember`, `User`.
+  - sample aggregate output:
+    - `project_total=2`, `project_with_owner=2`
+    - `artifact_total=0`
+    - `problem_total=1`, `problem_with_solver=1`
+    - `pathway_progress_total=1`
+- Decision-gate query:
+  - `information_schema.tables` for `%mentor%`, `%badge%`, `%recogn%` returned `[]` (no dedicated mentorship/badge/recognition tables).
+
+### Operational Learnings
+
+- The previously logged `custom-ui:build` blocker is now closed in this worktree; runtime/frontend build chain is green again.
+- `P2.RECOG.01` is ready to implement for builders/sharers/solvers from existing tables, but mentor recognition policy needs an explicit source definition before coding (`mentor_sessions_used` proxy vs new distinct mentorship event tracking).
+
+## Session Update - P2.RECOG.01 Mentor Signal Policy Baseline (Mar 1, 2026 16:30 GMT, append)
+
+### Completed
+
+- Locked mentor signal policy for recognition:
+  - source: `User.mentor_sessions_used`
+  - threshold: `>= 3` for mentor-champion qualification
+  - deterministic ranking: sessions desc -> name asc -> id asc
+- Added contract spec: `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`.
+- Extended bootstrap contracts with `recognition.mentorSignal` in shared/frontend types.
+- Implemented policy computation in `forge-native/src/backend/supabase/repositories.ts`.
+- Wired mentor lane and mentor badge count usage in `forge-native/static/frontend/src/App.tsx`.
+
+### Validation Evidence
+
+- `npm run test:run -- tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+- `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`4/4`)
+- `npm --prefix forge-native run typecheck` (pass)
+- `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- Versioning the mentor signal policy (`r8-mentor-sessions-used-v1`) in the response contract makes subsequent leaderboard/badge expansion safer and testable.
+- Remaining recognition decision gate is pathway contribution signal definition (`PathwayProgress` completion vs pathway authoring fields).
+
+## Session Update - P2.RECOG.01 Pathway Contribution Signal Policy (Mar 1, 2026 16:36 GMT)
+
+### Completed
+
+- Closed the remaining pathway contribution decision gate for `R8.1`.
+- Locked policy to pathway participation events from `PathwayProgress` (not pathway authoring fields).
+- Extended recognition contract baseline in:
+  - `docs/HDC-P2-RECOGNITION-CONTRACT-SPEC.md`
+  - `forge-native/src/shared/types.ts`
+  - `forge-native/static/frontend/src/types.ts`
+- Implemented pathway signal in backend recognition snapshot:
+  - `forge-native/src/backend/supabase/repositories.ts`
+  - payload: `recognition.pathwaySignal`
+  - policy version: `r8-pathway-completion-v1`
+  - threshold: `distinct pathway_id >= 1`
+  - deterministic ranking: `distinctPathwayCount DESC` -> `completedStepCount DESC` -> `userName ASC` -> `userId ASC`
+- Wired UI consumption for pathway contributor badge count:
+  - `forge-native/static/frontend/src/App.tsx`
+
+### Validation Evidence
+
+- Supabase MCP-first + CLI fallback live readiness check:
+  - `mcp__supabase__list_projects` returned `[]`
+  - CLI fallback project discovery succeeded for `ssafugtobsqxmqtphwch`
+  - management SQL result: `pathway_total=1`, `pathway_progress_total=1`, `pathway_contributor_users=1`, `pathways_with_progress=1`
+- Contract tests:
+  - `npm run test:run -- tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`1/1`)
+  - `npm run test:run -- tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts` (`4/4`)
+- Typechecks:
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+
+### Operational Learnings
+
+- `PathwayProgress` provides a stable user-level participation signal for pathway contribution without introducing new schema dependencies.
+- Separating pathway participation from pathway authoring avoids mixing adoption behavior with admin/editor curation behavior in recognition scoring.

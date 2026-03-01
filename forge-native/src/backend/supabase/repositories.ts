@@ -58,6 +58,7 @@ import type {
   ProblemListItem,
   ProblemModerationState,
   ProblemStatus,
+  RecognitionSnapshot,
   PathwayListItem,
   PathwayProgressSnapshot,
   PathwayStep,
@@ -111,6 +112,10 @@ const PIPELINE_TRANSITION_LOG_TABLE = 'PipelineTransitionLog';
 const SHOWCASE_HACK_TABLE = 'ShowcaseHack';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
 const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
+const RECOGNITION_MENTOR_BADGE_THRESHOLD = 3;
+const RECOGNITION_MENTOR_LEADERBOARD_LIMIT = 25;
+const RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS = 1;
+const RECOGNITION_PATHWAY_LEADERBOARD_LIMIT = 25;
 
 const EVENT_SELECT_CORE =
   'id,name,icon,tagline,timezone,lifecycle_status,confluence_page_id,confluence_page_url,confluence_parent_page_id,hacking_starts_at,submission_deadline_at,creation_request_id,created_by_user_id';
@@ -154,6 +159,7 @@ interface DbUser {
   seeking_mentor: boolean | null;
   capability_tags: string[] | null;
   created_at?: string | null;
+  createdAt?: string | null;
 }
 
 interface DbProblemExchangeModeratorLookup {
@@ -827,6 +833,135 @@ function createPathwayListItem(
   };
 }
 
+function buildRecognitionSnapshot(input: {
+  calculatedAt: string;
+  users: DbUser[];
+  pathwayProgressRows: Record<string, unknown>[];
+}): RecognitionSnapshot {
+  const { calculatedAt, users, pathwayProgressRows } = input;
+  const normalizedMentorRows = users.map((user) => {
+    const mentorSessionsUsed = isFiniteNumber(user.mentor_sessions_used)
+      ? Math.max(0, Math.floor(user.mentor_sessions_used))
+      : 0;
+    return {
+      userId: user.id,
+      userName: user.full_name || user.email,
+      mentorSessionsUsed,
+    };
+  });
+
+  const qualifiedMentorChampionCount = normalizedMentorRows.filter(
+    (row) => row.mentorSessionsUsed >= RECOGNITION_MENTOR_BADGE_THRESHOLD
+  ).length;
+
+  const leaderboardRows = normalizedMentorRows
+    .filter((row) => row.mentorSessionsUsed > 0)
+    .sort((a, b) => {
+      if (a.mentorSessionsUsed !== b.mentorSessionsUsed) return b.mentorSessionsUsed - a.mentorSessionsUsed;
+      if (a.userName !== b.userName) return a.userName.localeCompare(b.userName);
+      return a.userId.localeCompare(b.userId);
+    })
+    .slice(0, RECOGNITION_MENTOR_LEADERBOARD_LIMIT)
+    .map((row, index) => ({
+      userId: row.userId,
+      userName: row.userName,
+      mentorSessionsUsed: row.mentorSessionsUsed,
+      rank: index + 1,
+      qualifiesMentorChampion: row.mentorSessionsUsed >= RECOGNITION_MENTOR_BADGE_THRESHOLD,
+    }));
+
+  const pathwayByUserId = new Map<
+    string,
+    {
+      distinctPathwayIds: Set<string>;
+      completedStepCount: number;
+      lastCompletedAt: string | null;
+      lastCompletedAtMs: number;
+    }
+  >();
+  for (const row of pathwayProgressRows) {
+    const userId = getStringField(row, ['user_id', 'userId']);
+    if (!userId) continue;
+    const pathwayId = getStringField(row, ['pathway_id', 'pathwayId']);
+    const completedAt =
+      getStringField(row, ['completed_at', 'completedAt']) ?? getStringField(row, ['created_at', 'createdAt']);
+    const existing = pathwayByUserId.get(userId) ?? {
+      distinctPathwayIds: new Set<string>(),
+      completedStepCount: 0,
+      lastCompletedAt: null,
+      lastCompletedAtMs: Number.NEGATIVE_INFINITY,
+    };
+    if (pathwayId) {
+      existing.distinctPathwayIds.add(pathwayId);
+    }
+    existing.completedStepCount += 1;
+    const completedAtMs = completedAt ? Date.parse(completedAt) : Number.NaN;
+    if (Number.isFinite(completedAtMs) && completedAtMs > existing.lastCompletedAtMs) {
+      existing.lastCompletedAtMs = completedAtMs;
+      existing.lastCompletedAt = completedAt;
+    }
+    pathwayByUserId.set(userId, existing);
+  }
+
+  const normalizedPathwayRows = users.map((user) => {
+    const pathway = pathwayByUserId.get(user.id);
+    const distinctPathwayCount = pathway ? pathway.distinctPathwayIds.size : 0;
+    const completedStepCount = pathway ? pathway.completedStepCount : 0;
+    return {
+      userId: user.id,
+      userName: user.full_name || user.email,
+      distinctPathwayCount,
+      completedStepCount,
+      lastCompletedAt: pathway?.lastCompletedAt ?? null,
+    };
+  });
+
+  const qualifiedPathwayContributorCount = normalizedPathwayRows.filter(
+    (row) => row.distinctPathwayCount >= RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS
+  ).length;
+
+  const pathwayLeaderboardRows = normalizedPathwayRows
+    .filter((row) => row.completedStepCount > 0)
+    .sort((a, b) => {
+      if (a.distinctPathwayCount !== b.distinctPathwayCount) return b.distinctPathwayCount - a.distinctPathwayCount;
+      if (a.completedStepCount !== b.completedStepCount) return b.completedStepCount - a.completedStepCount;
+      if (a.userName !== b.userName) return a.userName.localeCompare(b.userName);
+      return a.userId.localeCompare(b.userId);
+    })
+    .slice(0, RECOGNITION_PATHWAY_LEADERBOARD_LIMIT)
+    .map((row, index) => ({
+      userId: row.userId,
+      userName: row.userName,
+      distinctPathwayCount: row.distinctPathwayCount,
+      completedStepCount: row.completedStepCount,
+      lastCompletedAt: row.lastCompletedAt,
+      rank: index + 1,
+      qualifiesPathwayContributor:
+        row.distinctPathwayCount >= RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS,
+    }));
+
+  return {
+    mentorSignal: {
+      calculatedAt,
+      policyVersion: 'r8-mentor-sessions-used-v1',
+      policySource: 'User.mentor_sessions_used',
+      badgeThreshold: RECOGNITION_MENTOR_BADGE_THRESHOLD,
+      leaderboardLimit: RECOGNITION_MENTOR_LEADERBOARD_LIMIT,
+      leaderboard: leaderboardRows,
+      qualifiedMentorChampionCount,
+    },
+    pathwaySignal: {
+      calculatedAt,
+      policyVersion: 'r8-pathway-completion-v1',
+      policySource: 'PathwayProgress',
+      badgeThresholdDistinctPathways: RECOGNITION_PATHWAY_BADGE_THRESHOLD_DISTINCT_PATHWAYS,
+      leaderboardLimit: RECOGNITION_PATHWAY_LEADERBOARD_LIMIT,
+      leaderboard: pathwayLeaderboardRows,
+      qualifiedPathwayContributorCount,
+    },
+  };
+}
+
 function buildTeamPulseMetrics(input: {
   calculatedAt: string;
   users: DbUser[];
@@ -850,15 +985,55 @@ function buildTeamPulseMetrics(input: {
     teamLabelById.set(teamId, label);
   }
 
-  const userPrimaryTeamId = new Map<string, string>();
-  for (const row of teamMemberRows) {
+  const rolePriority = (role: string | null): number => {
+    if (!role) return 4;
+    const normalized = role.trim().toLowerCase();
+    if (normalized === 'owner') return 0;
+    if (normalized === 'admin') return 1;
+    if (normalized === 'lead') return 2;
+    if (normalized === 'member') return 3;
+    return 4;
+  };
+
+  const membershipSortTime = (value: string | null): number => {
+    if (!value) return Number.POSITIVE_INFINITY;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+  };
+
+  const membershipsByUserId = new Map<
+    string,
+    Array<{ teamId: string; rolePriority: number; createdAtMs: number; sourceIndex: number }>
+  >();
+  for (let index = 0; index < teamMemberRows.length; index += 1) {
+    const row = teamMemberRows[index];
     const userId = getStringField(row, ['user_id', 'userId']);
     const teamId = getStringField(row, ['team_id', 'teamId']);
-    const status = getStringField(row, ['status'])?.toLowerCase() ?? null;
+    const status = getStringField(row, ['status'])?.trim().toLowerCase() ?? null;
     if (!userId || !teamId) continue;
     if (status && status !== 'accepted') continue;
-    if (!userPrimaryTeamId.has(userId)) {
-      userPrimaryTeamId.set(userId, teamId);
+    const createdAt = getStringField(row, ['created_at', 'createdAt']);
+    const existing = membershipsByUserId.get(userId) ?? [];
+    existing.push({
+      teamId,
+      rolePriority: rolePriority(getStringField(row, ['role'])),
+      createdAtMs: membershipSortTime(createdAt),
+      sourceIndex: index,
+    });
+    membershipsByUserId.set(userId, existing);
+  }
+
+  const userPrimaryTeamId = new Map<string, string>();
+  for (const [userId, memberships] of membershipsByUserId) {
+    memberships.sort((a, b) => {
+      if (a.rolePriority !== b.rolePriority) return a.rolePriority - b.rolePriority;
+      if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+      if (a.teamId !== b.teamId) return a.teamId.localeCompare(b.teamId);
+      return a.sourceIndex - b.sourceIndex;
+    });
+    const primary = memberships[0];
+    if (primary) {
+      userPrimaryTeamId.set(userId, primary.teamId);
     }
   }
 
@@ -928,7 +1103,7 @@ function buildTeamPulseMetrics(input: {
   const leadTimeSamples: Array<{ firstHackAt: string; days: number }> = [];
   for (const user of users) {
     const firstHackAt = firstHackAtByUser.get(user.id);
-    const joinedAt = user.created_at ?? null;
+    const joinedAt = user.created_at ?? user.createdAt ?? null;
     if (!firstHackAt || !joinedAt) continue;
     const days = calculateDaysBetween(joinedAt, firstHackAt);
     if (days === null) continue;
@@ -1333,6 +1508,16 @@ function hasMissingUserRoleColumn(error: unknown): boolean {
     (message.includes('does not exist') &&
       (message.includes('user.role') || message.includes('"user"."role"'))) ||
     message.includes("could not find the 'role' column of 'user' in the schema cache")
+  );
+}
+
+function hasMissingUserCreatedAtColumn(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return (
+    (message.includes('does not exist') &&
+      (message.includes('user.created_at') || message.includes('"user"."created_at"'))) ||
+    message.includes("could not find the 'created_at' column of 'user' in the schema cache")
   );
 }
 
@@ -2250,12 +2435,43 @@ export class SupabaseRepository {
   }
 
   async getBootstrapData(viewer: ViewerContext): Promise<BootstrapData> {
-    const [users, projects, registry, showcaseRows, artifacts, artifactReuseRows, problemRows, teamRows, teamMemberRows] =
+    const [
+      users,
+      projects,
+      registry,
+      showcaseRows,
+      artifacts,
+      artifactReuseRows,
+      problemRows,
+      teamRows,
+      teamMemberRows,
+      pathwayProgressRows,
+    ] =
       await Promise.all([
-      this.client.selectMany<DbUser>(
-        USER_TABLE,
-        'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags,created_at'
-      ),
+      (async (): Promise<DbUser[]> => {
+        const baseColumns =
+          'id,email,full_name,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags';
+        try {
+          return await this.client.selectMany<DbUser>(USER_TABLE, `${baseColumns},created_at`);
+        } catch (error) {
+          if (!hasMissingUserCreatedAtColumn(error)) throw error;
+          const legacyRows = await this.client.selectMany<Record<string, unknown>>(USER_TABLE, `${baseColumns},createdAt`);
+          return legacyRows.map((row) => ({
+            id: getStringField(row, ['id']) ?? '',
+            email: getStringField(row, ['email']) ?? '',
+            full_name: getStringField(row, ['full_name']),
+            atlassian_account_id: getStringField(row, ['atlassian_account_id']),
+            experience_level: getStringField(row, ['experience_level']),
+            mentor_capacity: getNumberField(row, ['mentor_capacity']),
+            mentor_sessions_used: getNumberField(row, ['mentor_sessions_used']),
+            happy_to_mentor: getBooleanField(row, ['happy_to_mentor']),
+            seeking_mentor: getBooleanField(row, ['seeking_mentor']),
+            capability_tags: getStringArrayField(row, ['capability_tags']),
+            created_at: getStringField(row, ['created_at', 'createdAt']),
+            createdAt: getStringField(row, ['createdAt', 'created_at']),
+          }));
+        }
+      })(),
       this.listProjects(),
       this.listAllEvents(),
       this.client
@@ -2298,6 +2514,12 @@ export class SupabaseRepository {
         .selectMany<Record<string, unknown>>(TEAM_MEMBER_TABLE, '*')
         .catch((error) => {
           if (hasMissingTable(error, TEAM_MEMBER_TABLE)) return [];
+          throw error;
+        }),
+      this.client
+        .selectMany<Record<string, unknown>>(PATHWAY_PROGRESS_TABLE, '*')
+        .catch((error) => {
+          if (hasMissingTable(error, PATHWAY_PROGRESS_TABLE)) return [];
           throw error;
         }),
     ]);
@@ -2387,8 +2609,9 @@ export class SupabaseRepository {
 
     const inProgressProjects = projectRows.filter((project) => ['idea', 'building', 'incubation'].includes(project.status));
     const completedProjects = projectRows.filter((project) => project.status === 'completed');
+    const calculatedAt = nowIso();
     const teamPulse = buildTeamPulseMetrics({
-      calculatedAt: nowIso(),
+      calculatedAt,
       users,
       projects,
       artifacts,
@@ -2396,6 +2619,11 @@ export class SupabaseRepository {
       problems: problemRows,
       teamRows,
       teamMemberRows,
+    });
+    const recognition = buildRecognitionSnapshot({
+      calculatedAt,
+      users,
+      pathwayProgressRows,
     });
 
     return {
@@ -2410,6 +2638,7 @@ export class SupabaseRepository {
         activeMentors: people.filter((person) => person.mentorSlotsRemaining > 0).length,
       },
       teamPulse,
+      recognition,
       featuredHacks,
       recentProjects,
       people,

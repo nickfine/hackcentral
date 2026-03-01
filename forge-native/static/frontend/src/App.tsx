@@ -324,7 +324,7 @@ const BADGES: Badge[] = [
   { id: 'b-mentor', label: 'Mentor Champion', count: 3, badgeVariant: 'teal' },
   { id: 'b-verify', label: 'Verifier', count: 5, badgeVariant: 'blue' },
   { id: 'b-reused', label: 'Most Reused', count: 12, badgeVariant: 'blue' },
-  { id: 'b-early', label: 'Early Adopter', badgeVariant: 'amber' },
+  { id: 'b-pathway', label: 'Pathway Contributor', badgeVariant: 'amber' },
 ];
 
 const LOCAL_PREVIEW_DATA: BootstrapData = {
@@ -972,6 +972,26 @@ function classifyExperience(level: string | null): 'frontline' | 'leader' | 'oth
 
 function downloadJson(filename: string, payload: unknown): void {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+type CsvValue = string | number | boolean | null | undefined;
+
+function toCsvCell(value: CsvValue): string {
+  if (value === null || typeof value === 'undefined') return '';
+  const serialized = String(value);
+  if (!/[",\n]/.test(serialized)) return serialized;
+  return `"${serialized.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename: string, rows: CsvValue[][]): void {
+  const csv = rows.map((row) => row.map((cell) => toCsvCell(cell)).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -2997,6 +3017,10 @@ export function App(): JSX.Element {
   const problemConversionPct = teamPulse?.problemConversionPct ?? 0;
   const crossTeamAdoptionEdges = teamPulse?.crossTeamAdoptionEdges ?? [];
   const timeToFirstHackTrend = teamPulse?.timeToFirstHackTrend ?? [];
+  const mentorSignal = bootstrap?.recognition?.mentorSignal ?? null;
+  const pathwaySignal = bootstrap?.recognition?.pathwaySignal ?? null;
+  const mentorChampionCount = mentorSignal?.qualifiedMentorChampionCount ?? 0;
+  const pathwayContributorCount = pathwaySignal?.qualifiedPathwayContributorCount ?? 0;
   const trendMaxMedianDays = Math.max(
     1,
     ...timeToFirstHackTrend.map((point) => (typeof point.medianDays === 'number' ? point.medianDays : 0))
@@ -3024,14 +3048,26 @@ export function App(): JSX.Element {
     .slice(0, 2)
     .map((hack) => `${bootstrap?.viewer.accountId} — Library Asset (${hack.title})`);
   const contributorRows = helpers.slice(0, 3).map((person) => `${person.fullName} — ${person.capabilities[0] ?? 'Contributor'}`);
-  const mentorRows = helpers
-    .filter((person) => person.mentorSlotsRemaining > 0)
-    .slice(0, 3)
-    .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
+  const mentorRows =
+    mentorSignal && mentorSignal.leaderboard.length > 0
+      ? mentorSignal.leaderboard
+          .slice(0, 3)
+          .map((entry) => `${entry.userName} — ${entry.mentorSessionsUsed} sessions`)
+      : helpers
+          .filter((person) => person.mentorSlotsRemaining > 0)
+          .slice(0, 3)
+          .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
   const reusedRows = [...featuredHacks]
     .sort((a, b) => b.reuseCount - a.reuseCount)
     .slice(0, 3)
     .map((hack) => `${hack.title} — ${hack.reuseCount} reuses`);
+  const dashboardBadges = BADGES.map((badge) =>
+    badge.id === 'b-mentor'
+      ? { ...badge, count: mentorChampionCount }
+      : badge.id === 'b-pathway'
+        ? { ...badge, count: pathwayContributorCount }
+        : badge
+  );
 
   const recognitionRows: Record<RecognitionTab, string[]> = {
     recent: recentRecognitionRows,
@@ -3622,6 +3658,119 @@ export function App(): JSX.Element {
     });
   };
 
+  const exportTeamPulseCsv = (): void => {
+    const exportedAt = new Date().toISOString();
+    const pulse = teamPulse ?? null;
+    const rows: CsvValue[][] = [
+      [
+        'section',
+        'metric',
+        'value',
+        'numerator',
+        'denominator',
+        'source_team_id',
+        'source_team_label',
+        'target_team_id',
+        'target_team_label',
+        'period',
+        'sample_size',
+        'exported_at',
+      ],
+      [
+        'summary',
+        'reuse_rate_pct',
+        pulse?.reuseRatePct ?? 0,
+        pulse?.reusedArtifactCount ?? 0,
+        pulse?.totalArtifactCount ?? 0,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        exportedAt,
+      ],
+      [
+        'summary',
+        'cross_team_adoption_count',
+        pulse?.crossTeamAdoptionCount ?? 0,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        exportedAt,
+      ],
+      [
+        'summary',
+        'time_to_first_hack_median_days',
+        pulse?.timeToFirstHackMedianDays ?? '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        pulse?.timeToFirstHackSampleSize ?? 0,
+        exportedAt,
+      ],
+      [
+        'summary',
+        'problem_conversion_pct',
+        pulse?.problemConversionPct ?? 0,
+        pulse?.solvedProblemCount ?? 0,
+        pulse?.totalProblemCount ?? 0,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        exportedAt,
+      ],
+    ];
+
+    for (const edge of pulse?.crossTeamAdoptionEdges ?? []) {
+      rows.push([
+        'cross_team_edge',
+        'cross_team_reuse_count',
+        edge.reuseCount,
+        '',
+        '',
+        edge.sourceTeamId,
+        edge.sourceTeamLabel,
+        edge.targetTeamId,
+        edge.targetTeamLabel,
+        '',
+        '',
+        exportedAt,
+      ]);
+    }
+
+    for (const point of pulse?.timeToFirstHackTrend ?? []) {
+      rows.push([
+        'time_to_first_hack_trend',
+        'median_days',
+        point.medianDays ?? '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        point.periodLabel,
+        point.sampleSize,
+        exportedAt,
+      ]);
+    }
+
+    downloadCsv(`team-pulse-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
   const navigateToSwitcherPage = useCallback(async (targetPageId: string) => {
     if (!targetPageId) return;
     let appViewUrl: string | null = null;
@@ -3793,7 +3942,7 @@ export function App(): JSX.Element {
                   <h3>Your recognition</h3>
                   <p>Complete mentor sessions, verify hacks, or get reuses to earn badges.</p>
                   <div className="badge-wrap">
-                    {BADGES.map((badge) => (
+                    {dashboardBadges.map((badge) => (
                       <span key={badge.id} className="badge-pill" data-badge={badge.badgeVariant ?? undefined}>
                         {badge.label}
                         {badge.count ? <span className="badge-count">x{badge.count}</span> : null}
@@ -4153,9 +4302,14 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <h1>Team Pulse</h1>
-                <button type="button" className="btn btn-outline" onClick={exportTeamPulse}>
-                  Export metrics (JSON)
-                </button>
+                <div className="title-row-actions">
+                  <button type="button" className="btn btn-outline" onClick={exportTeamPulseCsv}>
+                    Export metrics (CSV)
+                  </button>
+                  <button type="button" className="btn btn-outline" onClick={exportTeamPulse}>
+                    Export metrics (JSON)
+                  </button>
+                </div>
               </section>
               {TEAM_PULSE_PLACEHOLDER_NOTE ? <section className="message message-preview">{TEAM_PULSE_PLACEHOLDER_NOTE}</section> : null}
 
