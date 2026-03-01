@@ -421,4 +421,75 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
     expect(result.breakdowns.team.some((row) => row.dimensionId === 'team-active')).toBe(true);
     expect(result.breakdowns.businessUnit.some((row) => row.dimensionId === 'Operations')).toBe(true);
   });
+
+  it('logs token-bearing ROI usage audit events for producer flow', async () => {
+    const insert = vi.fn(async () => null);
+    const selectOne = vi.fn(async () => ({
+      id: 'u-admin',
+      email: 'admin@example.com',
+      full_name: 'Admin User',
+      atlassian_account_id: 'acc-admin',
+      role: 'ADMIN',
+      capability_tags: [],
+    }));
+    const selectMany = vi.fn(async (table: string) => {
+      if (table === 'EventAuditLog') return [];
+      return [];
+    });
+    const deleteMany = vi.fn(async () => []);
+
+    const repo = new SupabaseRepository({ selectOne, selectMany, insert, deleteMany } as never);
+    const result = await repo.logRoiTokenUsage(adminViewer, {
+      eventId: 'event-live',
+      promptTokens: 600,
+      completionTokens: 400,
+      model: 'gpt-4o',
+      source: 'unit-test',
+      metadata: { requestId: 'req-1' },
+    });
+
+    expect(result.logged).toBe(true);
+    expect(result.action).toBe('llm_usage_logged');
+    expect(result.eventId).toBe('event-live');
+    expect(result.actorUserId).toBe('u-admin');
+    expect(result.tokenVolume).toBe(1000);
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(insert).toHaveBeenCalledWith(
+      'EventAuditLog',
+      expect.objectContaining({
+        event_id: 'event-live',
+        actor_user_id: 'u-admin',
+        action: 'llm_usage_logged',
+        new_value: expect.objectContaining({
+          tokenVolume: 1000,
+          model: 'gpt-4o',
+          source: 'unit-test',
+          usage: expect.objectContaining({
+            prompt_tokens: 600,
+            completion_tokens: 400,
+          }),
+        }),
+      })
+    );
+  });
+
+  it('rejects non-admin ROI token producer writes', async () => {
+    const repo = new SupabaseRepository({
+      selectOne: vi.fn().mockResolvedValue({
+        id: 'u-member',
+        role: 'MEMBER',
+        capability_tags: [],
+      }),
+      selectMany: vi.fn(),
+      insert: vi.fn(),
+      deleteMany: vi.fn(),
+    } as never);
+
+    await expect(
+      repo.logRoiTokenUsage(adminViewer, {
+        eventId: 'event-live',
+        tokenVolume: 123,
+      })
+    ).rejects.toThrow('[ROI_USAGE_FORBIDDEN]');
+  });
 });

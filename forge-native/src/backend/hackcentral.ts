@@ -43,6 +43,8 @@ import type {
   CreateProjectInput,
   CreateProjectResult,
   GetRoiDashboardInput,
+  LogRoiTokenUsageInput,
+  LogRoiTokenUsageResult,
   RoiDashboardSnapshot,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
@@ -335,6 +337,16 @@ export async function getRoiDashboard(
 ): Promise<RoiDashboardSnapshot> {
   return withConfiguredBackend(
     () => repository.getRoiDashboard(viewer, input),
+    () => Promise.resolve(unsupportedRoiBackendError())
+  );
+}
+
+export async function logRoiTokenUsage(
+  viewer: ViewerContext,
+  input: LogRoiTokenUsageInput
+): Promise<LogRoiTokenUsageResult> {
+  return withConfiguredBackend(
+    () => repository.logRoiTokenUsage(viewer, input),
     () => Promise.resolve(unsupportedRoiBackendError())
   );
 }

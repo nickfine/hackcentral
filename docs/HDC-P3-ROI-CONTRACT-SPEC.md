@@ -1,6 +1,6 @@
 # HDC P3 ROI Contract Spec
 
-Last updated: 2026-03-01 21:24 GMT  
+Last updated: 2026-03-01 21:39 GMT  
 Owner: HackDay Central Engineering  
 Task ID: `P3.ROI.01`  
 Roadmap refs: `R9.1`, `R9.2`, `R9.3`, `R9.4`, `R9.5`
@@ -12,9 +12,10 @@ This spec defines the ROI dashboard contract and fallback policy for Phase 3.
 In scope:
 
 1. Admin-gated resolver contract for ROI payload retrieval.
-2. Explicit source coverage reporting for token volume, cost rate cards, output signals, and business-unit attribution.
-3. Baseline output aggregation (`hacks`, `artifacts`, `problems solved`, `pipeline progressions`) with trend and breakdown coverage.
-4. Export bundle shape for CSV rows and formatted leadership summary text.
+2. Admin-gated producer contract for writing token-bearing ROI usage events into `EventAuditLog`.
+3. Explicit source coverage reporting for token volume, cost rate cards, output signals, and business-unit attribution.
+4. Baseline output aggregation (`hacks`, `artifacts`, `problems solved`, `pipeline progressions`) with trend and breakdown coverage.
+5. Export bundle shape for CSV rows and formatted leadership summary text.
 
 ## Live Source Audit Baseline
 
@@ -79,9 +80,46 @@ Key payload blocks:
    - `rows[]` (CSV-ready flat rows)
    - `formattedSummary` (leadership-readable summary text)
 
+### Producer Resolver
+
+`hdcLogRoiTokenUsage`
+
+### Producer Input
+
+`LogRoiTokenUsageInput`
+
+```ts
+{
+  eventId: string;
+  tokenVolume?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  model?: string;
+  teamId?: string;
+  actorUserId?: string;
+  source?: string;
+  metadata?: Record<string, unknown>;
+}
+```
+
+### Producer Output
+
+`LogRoiTokenUsageResult`
+
+```ts
+{
+  logged: true;
+  action: 'llm_usage_logged';
+  eventId: string;
+  actorUserId: string;
+  tokenVolume: number;
+  loggedAt: string;
+}
+```
+
 ## Access Policy
 
-`hdcGetRoiDashboard` is admin-gated:
+`hdcGetRoiDashboard` and `hdcLogRoiTokenUsage` are admin-gated:
 
 1. `User.role = 'ADMIN'` OR
 2. capability tags include `roi_admin` OR `platform_admin`
@@ -89,6 +127,7 @@ Key payload blocks:
 Non-admin access returns:
 
 - `[ROI_FORBIDDEN] Admin access is required to view ROI dashboard.`
+- `[ROI_USAGE_FORBIDDEN] Admin access is required to log ROI token usage.`
 
 ## Fallback Policy
 
@@ -99,6 +138,7 @@ Non-admin access returns:
 5. Team and business-unit filters are both applied to totals, trend, and breakdown payloads.
 6. Project normalization supports schema variants (`submittedAt`, `ownerId`, `createdAt`, `sourceType`) to avoid dropping hack outputs in mixed snake_case/camelCase deployments.
 7. When token-bearing rows are absent, token-source reason text includes observed `EventAuditLog.action` distribution to aid upstream telemetry triage.
+8. Producer payloads must emit a single canonical total-token key (`tokenVolume`) plus optional prompt/completion detail keys to avoid duplicate total-key aggregation.
 
 ## Validation
 

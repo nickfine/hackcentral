@@ -72,6 +72,8 @@ import type {
   SetPathwayStepCompletionResult,
   TeamPulseMetrics,
   RoiDashboardSnapshot,
+  LogRoiTokenUsageInput,
+  LogRoiTokenUsageResult,
   RoiOutputMetrics,
   RoiTimeWindow,
   GetRoiDashboardInput,
@@ -1213,6 +1215,10 @@ function createShowcaseValidationError(message: string): Error {
 
 function createPathwayValidationError(message: string): Error {
   return new Error(`[PATHWAY_VALIDATION_FAILED] ${message}`);
+}
+
+function createRoiValidationError(message: string): Error {
+  return new Error(`[ROI_VALIDATION_FAILED] ${message}`);
 }
 
 function isUuid(value: string): boolean {
@@ -3365,6 +3371,91 @@ export class SupabaseRepository {
     return {
       logged: true,
       metric: 'team_pulse_export',
+      loggedAt,
+    };
+  }
+
+  async logRoiTokenUsage(
+    viewer: ViewerContext,
+    input: LogRoiTokenUsageInput
+  ): Promise<LogRoiTokenUsageResult> {
+    const canLog = await this.canUserViewRoiDashboard(viewer);
+    if (!canLog) {
+      throw new Error('[ROI_USAGE_FORBIDDEN] Admin access is required to log ROI token usage.');
+    }
+
+    const eventId = typeof input.eventId === 'string' ? input.eventId.trim() : '';
+    if (!eventId) {
+      throw createRoiValidationError('eventId is required.');
+    }
+
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      throw new Error('[ROI_USAGE_FORBIDDEN] A mapped Atlassian account is required to log ROI token usage.');
+    }
+
+    const viewerUser = await this.getUserByAccountId(accountId);
+    if (!viewerUser) {
+      throw new Error('[ROI_USAGE_FORBIDDEN] Viewer account is not mapped to a User record.');
+    }
+
+    const requestedActorUserId =
+      typeof input.actorUserId === 'string' && input.actorUserId.trim() ? input.actorUserId.trim() : null;
+    let actorUserId = viewerUser.id;
+    if (requestedActorUserId && requestedActorUserId !== viewerUser.id) {
+      const actorUser = await this.getUserById(requestedActorUserId);
+      if (!actorUser) {
+        throw createRoiValidationError(`actorUserId "${requestedActorUserId}" was not found.`);
+      }
+      actorUserId = actorUser.id;
+    }
+
+    const explicitTokenVolume = toPositiveFiniteNumber(input.tokenVolume);
+    const promptTokens = toPositiveFiniteNumber(input.promptTokens) ?? 0;
+    const completionTokens = toPositiveFiniteNumber(input.completionTokens) ?? 0;
+    const derivedTokenVolume = promptTokens + completionTokens;
+    const resolvedTokenVolume = explicitTokenVolume ?? (derivedTokenVolume > 0 ? derivedTokenVolume : null);
+    if (!resolvedTokenVolume || resolvedTokenVolume <= 0) {
+      throw createRoiValidationError('tokenVolume or promptTokens/completionTokens must be > 0.');
+    }
+
+    const roundedTokenVolume = roundRoiTokenVolume(resolvedTokenVolume);
+    const roundedPromptTokens = promptTokens > 0 ? roundRoiTokenVolume(promptTokens) : null;
+    const roundedCompletionTokens = completionTokens > 0 ? roundRoiTokenVolume(completionTokens) : null;
+    const model = typeof input.model === 'string' && input.model.trim() ? input.model.trim() : null;
+    const teamId = typeof input.teamId === 'string' && input.teamId.trim() ? input.teamId.trim() : null;
+    const source = typeof input.source === 'string' && input.source.trim() ? input.source.trim() : 'hdc_roi_manual';
+    const metadata =
+      input.metadata && typeof input.metadata === 'object' && !Array.isArray(input.metadata)
+        ? input.metadata
+        : null;
+    const loggedAt = nowIso();
+
+    await this.logAudit({
+      eventId,
+      actorUserId,
+      action: 'llm_usage_logged',
+      newValue: {
+        tokenVolume: roundedTokenVolume,
+        model,
+        teamId,
+        source,
+        usage: {
+          model,
+          prompt_tokens: roundedPromptTokens,
+          completion_tokens: roundedCompletionTokens,
+        },
+        metadata,
+        loggedAt,
+      },
+    });
+
+    return {
+      logged: true,
+      action: 'llm_usage_logged',
+      eventId,
+      actorUserId,
+      tokenVolume: roundedTokenVolume,
       loggedAt,
     };
   }

@@ -2298,3 +2298,42 @@ Use this template at the end of every work session:
 
 - For ROI closure, distinguishing "mapping broken" from "producer missing" is critical; action-emitter inventory should be part of token-source gate checks.
 - Once a token producer dependency is external to this repo, continuity docs should label it explicitly as a blocker to avoid repetitive re-investigation.
+
+## Session Update - P3.ROI.01 Token Producer Blocker Resolution (Mar 1, 2026 21:39 GMT)
+
+### Completed
+
+- Implemented in-repo ROI token producer path:
+  - new admin-gated resolver `hdcLogRoiTokenUsage`
+  - new shared/frontend contracts: `LogRoiTokenUsageInput`, `LogRoiTokenUsageResult`
+  - backend implementation writes `EventAuditLog.action='llm_usage_logged'` with canonical token payload keys consumed by ROI mapping
+- Added targeted producer regression coverage in `tests/forge-native-roi-contract.spec.ts`:
+  - producer write contract
+  - producer non-admin authorization guard
+- Fixed producer payload double-count risk discovered during live smoke:
+  - removed duplicate total-token aliases from producer payload (`tokenCount`, `totalTokens`, `usage.total_tokens`)
+  - retained canonical `tokenVolume` plus optional prompt/completion detail fields
+- Deployed production bundle and refreshed Confluence install state.
+
+### Validation Evidence
+
+- Supabase MCP-first protocol:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior)
+- Targeted regression + typecheck gate:
+  - `npm run test:run -- tests/forge-native-roi-contract.spec.ts tests/forge-native-team-pulse-metrics-contract.spec.ts tests/forge-native-recognition-mentor-policy-contract.spec.ts tests/forge-native-phase2-telemetry-contract.spec.ts` (`12/12`)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- Deploy/install:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (site already latest)
+- Post-deploy live resolver smoke artifact:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
+  - confirms producer write succeeded (`tokenVolume=2400`) and ROI monthly totals delta is non-zero (`tokenVolume +2400`, `cost +0.02`)
+- Blocker checkpoint:
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md` (`GO`)
+
+### Operational Learnings
+
+- ROI producer payloads must emit one canonical total-token key to avoid aggregator overcount when the mapper sums total-key aliases.
+- Shipping a dedicated admin-gated producer resolver unblocks ROI spend evidence without requiring upstream schema changes or new tables.
+- MCP-first + CLI fallback remains the reliable pattern in this workspace for production verification workflows.

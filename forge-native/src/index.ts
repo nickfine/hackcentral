@@ -14,6 +14,7 @@ import {
   listPathways,
   getShowcaseHackDetail,
   getRoiDashboard,
+  logRoiTokenUsage,
   setShowcaseFeatured,
   setPathwayStepCompletion,
   trackTeamPulseExport,
@@ -39,6 +40,7 @@ import type {
   FlagProblemInput,
   GetRoiDashboardInput,
   GetPipelineBoardInput,
+  LogRoiTokenUsageInput,
   ListShowcaseHacksInput,
   ListPathwaysInput,
   SetShowcaseFeaturedInput,
@@ -331,6 +333,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: GetRoiDashboardInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return getRoiDashboard(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcLogRoiTokenUsage',
+  async (request: { context?: RawResolverContext; payload: LogRoiTokenUsageInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return logRoiTokenUsage(viewer, request.payload);
   }
 );
 

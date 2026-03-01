@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-03-01T21:39:01.028Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "viewer": {
+    "accountId": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff"
+  },
+  "eventId": "3b6eef66-b5c9-4b88-8310-a9780c6fb591",
+  "producerWrite": {
+    "logged": true,
+    "action": "llm_usage_logged",
+    "eventId": "3b6eef66-b5c9-4b88-8310-a9780c6fb591",
+    "actorUserId": "553069db-97e1-431f-b693-ccf47babbe6e",
+    "tokenVolume": 2400,
+    "loggedAt": "2026-03-01T21:39:00.838Z"
+  },
+  "before": {
+    "tokenVolume": 12000,
+    "cost": 0.12,
+    "tokenSource": {
+      "status": "available_partial",
+      "source": "EventAuditLog.new_value",
+      "reason": "Token volume is mapped from EventAuditLog.new_value payload keys; 2/2 token-bearing rows had user/team attribution."
+    },
+    "costRateCard": {
+      "status": "available",
+      "source": "EventAuditLog.new_value + in-code-default-rate-card",
+      "reason": "Rate card in-code-default-rate-card; token rows=2, explicit-model-rate=2, default-rate=0, without-rate=0, rows-with-model=2."
+    }
+  },
+  "after": {
+    "tokenVolume": 14400,
+    "cost": 0.14,
+    "costPerOutput": {
+      "perHack": 0.14,
+      "perArtifact": null,
+      "perProblemSolved": null,
+      "perPipelineItemProgressed": 0.14
+    },
+    "tokenSource": {
+      "status": "available_partial",
+      "source": "EventAuditLog.new_value",
+      "reason": "Token volume is mapped from EventAuditLog.new_value payload keys; 3/3 token-bearing rows had user/team attribution."
+    },
+    "costRateCard": {
+      "status": "available",
+      "source": "EventAuditLog.new_value + in-code-default-rate-card",
+      "reason": "Rate card in-code-default-rate-card; token rows=3, explicit-model-rate=3, default-rate=0, without-rate=0, rows-with-model=3."
+    },
+    "teamRows": 1,
+    "businessUnitRows": 0,
+    "notePreview": [
+      "Token volume source policy: Token volume is mapped from EventAuditLog.new_value payload keys; 3/3 token-bearing rows had user/team attribution.",
+      "Cost-rate-card source policy: Rate card in-code-default-rate-card; token rows=3, explicit-model-rate=3, default-rate=0, without-rate=0, rows-with-model=3.",
+      "Business-unit attribution policy: No team records include a business-unit value and no business-unit team map override is configured."
+    ]
+  },
+  "delta": {
+    "tokenVolume": 2400,
+    "cost": 0.020000000000000018
+  }
+}

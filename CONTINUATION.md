@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 21:24 GMT
+Last updated: 2026-03-01 21:39 GMT
 
 ## Current Snapshot
 
@@ -357,6 +357,17 @@ Last updated: 2026-03-01 21:24 GMT
   - post-deploy evidence:
     - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`
     - sample reason now includes: `Observed audit actions: event_created=56.`
+- Phase 3 ROI token-producer blocker is now resolved:
+  - new admin-gated producer resolver: `hdcLogRoiTokenUsage`
+  - payload contract: `LogRoiTokenUsageInput` / `LogRoiTokenUsageResult`
+  - backend producer action:
+    - writes `EventAuditLog.action='llm_usage_logged'` with canonical `tokenVolume` key and optional prompt/completion detail keys
+  - production deploy/install completed for this patch
+  - live post-deploy evidence:
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
+    - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
+  - checkpoint status:
+    - `GO` for producer dependency resolution (remaining ROI close gate: final UI non-zero spend smoke + module close checkpoint)
 
 ## Active Task Pointer
 
@@ -372,15 +383,15 @@ Last updated: 2026-03-01 21:24 GMT
 
 ## Next 3 Atomic Actions
 
-1. Identify and unblock upstream token-bearing audit producer so `EventAuditLog.new_value` includes token payload fields in production.
-2. Capture first non-zero spend resolver/UI evidence checkpoint once token-bearing rows exist.
-3. Finalize ROI close criteria (`R9.1`-`R9.5`) and transition active task to `P3.FORK.01`.
+1. Capture production ROI UI smoke evidence with non-zero spend after token-producer rollout.
+2. Finalize ROI close criteria (`R9.1`-`R9.5`) and publish the final ROI module GO checkpoint.
+3. Transition active task to `P3.FORK.01` once the final ROI GO checkpoint is recorded.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - No in-repo token-bearing audit producer is currently emitting usage payloads into `EventAuditLog.new_value`; ROI non-zero spend evidence depends on upstream telemetry integration.
-  - analysis: `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
+  - None at resolver/producer level for ROI token ingestion.
+  - open execution gate: capture production ROI UI non-zero spend smoke evidence and publish final ROI close checkpoint.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -438,6 +449,8 @@ Last updated: 2026-03-01 21:24 GMT
   - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-WATCH-CHECKPOINT-20260301-2122Z.md`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-SOURCE-REASON-POSTDEPLOY-20260301-2124Z.json`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
+  - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
 
 ## Validation Commands
 

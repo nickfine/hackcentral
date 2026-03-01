@@ -147,6 +147,27 @@ export interface GetRoiDashboardInput {
   businessUnit?: string;
 }
 
+export interface LogRoiTokenUsageInput {
+  eventId: string;
+  tokenVolume?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  model?: string;
+  teamId?: string;
+  actorUserId?: string;
+  source?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface LogRoiTokenUsageResult {
+  logged: true;
+  action: 'llm_usage_logged';
+  eventId: string;
+  actorUserId: string;
+  tokenVolume: number;
+  loggedAt: string;
+}
+
 export interface RecognitionMentorSignalEntry {
   userId: string;
   userName: string;
@@ -1084,6 +1105,7 @@ export type Defs = {
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
   hdcGetRoiDashboard: (payload: GetRoiDashboardInput) => RoiDashboardSnapshot;
+  hdcLogRoiTokenUsage: (payload: LogRoiTokenUsageInput) => LogRoiTokenUsageResult;
   hdcTrackTeamPulseExport: (payload: TrackTeamPulseExportInput) => TrackTeamPulseExportResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
   hdcRetrySync: (payload: { eventId: string }) => SyncResult;
