@@ -1,0 +1,42 @@
+{
+  "channel": "hdc-phase3-telemetry",
+  "sampleWindow": {
+    "lineCount": 78,
+    "eventCount": 78,
+    "firstLoggedAt": "2026-03-02T00:21:11.814Z",
+    "lastLoggedAt": "2026-03-02T11:19:58.566Z"
+  },
+  "metricCounts": {
+    "feed_signal_health": 61,
+    "roi_signal_health": 13,
+    "roi_export": 4
+  },
+  "healthCounts": {
+    "healthy": 13,
+    "unhealthy": 61,
+    "feedUnhealthy": 61
+  },
+  "alertCounts": {
+    "recommendation_coverage_below_threshold": 61
+  },
+  "warningCounts": {
+    "trend_points_below_threshold": 13
+  },
+  "requiredMetrics": [
+    "feed_signal_health",
+    "roi_signal_health",
+    "roi_export"
+  ],
+  "missingRequiredMetrics": [],
+  "decision": "WARN",
+  "decisionReasons": [
+    "Unhealthy events detected: 61",
+    "Alert keys detected: recommendation_coverage_below_threshold",
+    "Warning keys detected: trend_points_below_threshold"
+  ],
+  "notes": [
+    "Decision policy: FAIL if parsed event count is zero or any required metric is missing.",
+    "Decision policy: WARN if required metrics exist but unhealthy events/alerts/warnings are present.",
+    "Decision policy: GO only when required metrics exist and no health/alert/warning issues are present."
+  ]
+}

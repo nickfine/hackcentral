@@ -21,7 +21,7 @@ When users create a HackDay in HackCentral:
 ## Current Project State
 
 **Version:** 0.6.44 (root app)
-**Forge UI Cache-Busters:** 0.6.44 (`HACKCENTRAL_UI_VERSION` / `HACKCENTRAL_MACRO_VERSION`)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.46`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
 **Forge Native Package:** 0.3.12
 
@@ -3209,3 +3209,34 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - For non-live product phases, lifecycle-toggle simulation with immediate cleanup is the most reliable way to validate live extraction writes without waiting for organic event progression and without leaving residual data drift.
+
+## Session Update - Consistency & Integrity Remediation Completion (Mar 2, 2026 13:00 GMT)
+
+### Completed
+
+- Finished full consistency/integrity remediation sweep across backend, scripts, tests, and docs:
+  - fixed malformed test edits and restored stable parser/type/lint baseline
+  - finalized Phase 3 cadence contract semantics (`decision: GO|WARN|FAIL`, required metric/missing metric/reason output)
+  - corrected extraction readiness counting semantics (`resultsEventCount` now full results-lifecycle cardinality; sample remains top-5)
+  - removed absolute local root assumptions from operational scripts via repo-root helper and portable command emission
+  - restored missing P1 regression suites and added hard inventory pre-check (`qa:verify:p1-suite-files`)
+- Restored strict quality gates:
+  - `npm run lint:strict` passed (`0 errors`, `0 warnings`)
+  - `npm run test:run` passed (`39` files, `177` tests)
+  - `npm run qa:p1:regression-pack` passed with inventory verification
+  - `npm --prefix forge-native run test:backend` passed (`17/17`)
+  - `npm --prefix forge-native run typecheck` and `npm --prefix forge-native/static/frontend run typecheck` passed
+- Re-ran weekly Phase 3 cadence with corrected semantics and published fresh artifacts.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-125904Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-125904Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-125904Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-125912Z.md`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-125904Z.md`
+
+### Operational Learnings
+
+- `react-hooks/set-state-in-effect` remediation in legacy UI surfaces can be made compliant without behavior drift by deferring state transitions through asynchronous callbacks, but each change must be regression-validated because these patterns are timing-sensitive.
+- When doing broad no-`any` cleanup in tests, automated search/replace around chained mocks is high-risk; run lint immediately after each batch to catch parser drift before continuing.

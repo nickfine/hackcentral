@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 11:49 GMT
+Last updated: 2026-03-02 13:00 GMT
 
 ## Current Snapshot
 
@@ -12,7 +12,17 @@ Last updated: 2026-03-02 11:49 GMT
   - Root app version: `0.6.44`
   - Forge native package version: `0.3.12`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.46`
+  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
+  - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
+- Integrity remediation status (2026-03-02): `complete`
+  - strict lint gate restored: `npm run lint:strict` passes (`0 errors`, `0 warnings`)
+  - full root suite passes: `npm run test:run` (`39 files`, `177 tests`)
+  - P1 regression gate hardened and passing: `qa:verify:p1-suite-files` + `qa:p1:regression-pack`
+  - weekly Phase 3 cadence rerun with corrected decision/count semantics:
+    - `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-125904Z.json`
+    - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-125904Z.json`
+    - `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-125904Z.md`
 - Registry (`P1.REG.01`) is complete and validated:
   - migration: `forge-native/supabase/migrations/20260301011000_phase1_registry.sql`
   - resolvers: `hdcCreateArtifact`, `hdcListArtifacts`, `hdcGetArtifact`, `hdcMarkArtifactReuse`
@@ -454,8 +464,8 @@ Last updated: 2026-03-02 11:49 GMT
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.EXTRACT.01` (closed)
-- Task title: `Phase 3 extraction rollout closed; cadence operations follow-up in progress`
+- Active Task ID: `P3.OBS.01` (integrity remediation complete; cadence operations follow-up active)
+- Task title: `Phase 3 observability + extraction cadence integrity hardening complete; continue weekly sampling`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`

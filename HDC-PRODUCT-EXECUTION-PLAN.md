@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 11:49 GMT
+Last updated: 2026-03-02 13:00 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 3 (Compounding Value and ROI) |
 | Program status | In execution |
-| Active task ID | `P3.EXTRACT.01` (closed; cadence follow-up active) |
+| Active task ID | `P3.OBS.01` (integrity remediation complete; weekly cadence follow-up active) |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -79,7 +79,7 @@ Program: HackDay Central (HDC)
 | Moderation logic causes false hides | Medium | Enforce distinct-user flag counting and admin override audit trail |
 | Pipeline adoption lags without clear stage criteria | Medium | Stage-gate criteria visible in UI and required transition notes |
 | Phase 3 token data not available at required granularity | High | Perform data-source audit before `P3.ROI.01`; scope fallback metrics if gaps remain |
-| `qa:p1:regression-pack` can report green in this child worktree while only a subset of suites execute | Medium | Treat root gate as partial until missing suite files are restored in this worktree; run targeted pathways and module suites explicitly before rollouts |
+| P1 regression suite inventory drift can silently reduce gate coverage | Medium | Mitigated via hard pre-check `qa:verify:p1-suite-files` in `qa:p1:regression-pack`; keep required suite list current and fail fast on missing files |
 
 ## Release Guardrails and Rollout Gates
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Completed consistency/integrity remediation pass: fixed malformed test edits and restored full green gate baseline (`npm run lint:strict`, `npm run test:run` = `39/39` files + `177/177` tests), hardened P1 regression coverage enforcement (`qa:verify:p1-suite-files` + restored suite files), and reran Phase 3 cadence with corrected observability decision/count semantics and fresh artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-125904Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-125904Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-125904Z.md`). |
 | 2026-03-02 | Executed on-demand synthetic live extraction simulation against draft event `One Day Test` (`draft -> results` temporary toggle), seeded one synthetic submission, ran `qa:p3:extract-first-results-sample -- --live`, validated idempotency (`prompt 1->0`, `import 1->0`), and fully cleaned synthetic rows with lifecycle restore. Evidence: `docs/artifacts/HDC-P3-EXTRACT-SYNTHETIC-LIVE-SIM-20260302-114847Z.md`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-114909Z.json`. |
 | 2026-03-02 | Executed follow-up first-results extraction recheck and published artifacts (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.md`); status unchanged at `PENDING_RESULTS_EVENT` (`resultsEventCount=0`, next horizon `2026-03-09T18:00:00.000Z`). |
 | 2026-03-02 | Executed first-results extraction sample recheck (`qa:p3:extract-first-results-sample`) and published fresh pending-state evidence (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.md`): decision remains `PENDING_RESULTS_EVENT` with `resultsEventCount=0` and next trigger horizon `2026-03-09T18:00:00.000Z`. |
