@@ -927,11 +927,11 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ## Fresh Chat Startup Checklist
 
 1. Read `STARTUP.md`.
-2. Read `CONTINUATION.md`.
-3. Read `HDC-PRODUCT-EXECUTION-PLAN.md`.
-4. Read `ROADMAP.md`.
+2. Read `README.md`.
+3. Read `docs/README.md`.
+4. Read `DEPLOY.md`.
 5. Read the latest entry in `LEARNINGS.md`.
-6. Confirm the `Active Task ID` before implementation.
+6. Confirm target environment and validation/deploy path before implementation.
 
 ## Session Update - Merge Hygiene + Phase 3 Weekly Cadence (Mar 2, 2026 02:00 GMT)
 

@@ -3,36 +3,38 @@
 Last updated: 2026-03-02
 
 Use this as the single startup/shutdown checklist for work in this repo.
+Current mode: operations and maintenance.
 
 ## Startup (required)
 
 Read these files in order:
 
-1. `CONTINUATION.md`
-2. `HDC-PRODUCT-EXECUTION-PLAN.md`
-3. `ROADMAP.md`
-4. Latest entry in `LEARNINGS.md`
+1. `README.md` (stack, architecture, setup)
+2. `docs/README.md` (docs map)
+3. `forge-native/README.md` (Forge app specifics)
+4. `DEPLOY.md` (deploy/install path)
+5. `TESTING_GUIDE.md` (verification commands)
+6. Latest entry in `LEARNINGS.md` (recent operational context)
 
 Then confirm:
 
-- Active Task ID
-- Current phase
-- Next 3 atomic actions from `CONTINUATION.md`
+- Target environment (`localhost`, `staging`, or `production`)
+- Validation command(s) for the change
+- Deployment path if shipping to Confluence
 
 ## Shutdown (required)
 
 Before ending a session:
 
-1. Update `HDC-PRODUCT-EXECUTION-PLAN.md` with status and evidence.
-2. Update `CONTINUATION.md` with a fresh snapshot and next 3 actions.
-3. Append one dated entry to `LEARNINGS.md`.
+1. Record outcome and evidence in `LEARNINGS.md`.
+2. If deploy occurred, confirm version markers and rollout notes in `README.md` and/or `CONTINUATION.md`.
+3. Keep docs aligned with any process change.
 
 ## Deployment quick path
 
 If shipping to Confluence, follow `DEPLOY.md`.
 
-## Rules
+## Optional references (only when needed)
 
-- Anchor implementation to an existing Task ID in `HDC-PRODUCT-EXECUTION-PLAN.md`.
-- If scope changes, update the execution ledger first.
-- Keep continuity docs synchronized in the same session as meaningful changes.
+- `CONTINUATION.md` for recent long-form context
+- `HDC-PRODUCT-EXECUTION-PLAN.md` and `ROADMAP.md` only when formal planning/rescoping is requested

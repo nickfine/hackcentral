@@ -2,13 +2,15 @@
 
 Canonical docs for HDC architecture, plans, and ops.
 
-## Source-of-truth order (for continuation)
+## Source-of-truth order (operations mode)
 
 1. `../STARTUP.md` - Canonical startup/shutdown ritual.
-2. `../CONTINUATION.md` - Compact session handoff and next actions.
-3. `../HDC-PRODUCT-EXECUTION-PLAN.md` - Live execution ledger (task IDs, status, evidence).
-4. `../ROADMAP.md` - Canonical product requirements.
-5. `../LEARNINGS.md` - Append-only session learnings and evidence.
+2. `../README.md` - Stack, architecture, setup.
+3. `../DEPLOY.md` - Deployment/install workflow.
+4. `../TESTING_GUIDE.md` - Validation workflows.
+5. `../LEARNINGS.md` - Append-only operational learnings and evidence.
+
+Planning docs (optional): `../HDC-PRODUCT-EXECUTION-PLAN.md`, `../ROADMAP.md`.
 
 ## Top-level docs
 

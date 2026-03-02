@@ -7,6 +7,7 @@ An AI Maturity Accelerator platform that transforms early adopter experiments in
 ## 🤖 New Claude Code Session?
 
 Start with: `Read .claude/instructions.md` and then follow `STARTUP.md`.
+Default repo mode is operational maintenance (stack/context/test/deploy first), not roadmap execution.
 
 ## Tech Stack
 
@@ -203,7 +204,7 @@ Badges, leaderboards, and impact stories to create FOMO and measurable value vis
 - [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
 - [HackDay Design System](./docs/HackDay_Design_system.md) - Shared UI components and patterns
 - [Convex Docs](https://docs.convex.dev) - Official Convex documentation
-- **Active source-of-truth:** `STARTUP.md` -> `CONTINUATION.md` -> `HDC-PRODUCT-EXECUTION-PLAN.md` -> `ROADMAP.md` -> latest `LEARNINGS.md` entry. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
+- **Active source-of-truth (operations mode):** `STARTUP.md` -> `README.md` -> `docs/README.md` -> `DEPLOY.md` -> `TESTING_GUIDE.md` -> latest `LEARNINGS.md` entry. Use `HDC-PRODUCT-EXECUTION-PLAN.md` / `ROADMAP.md` only when formal planning is explicitly resumed. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
 
 ## Success Metrics
 
