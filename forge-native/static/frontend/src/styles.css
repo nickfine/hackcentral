@@ -555,6 +555,11 @@ button {
   gap: 8px;
 }
 
+.home-feed-view-all {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
 /* Tier 2 - Section context: text-lg font-semibold */
 .section-head-row h2,
 .featured-block h2,
@@ -623,6 +628,7 @@ button {
 
 .home-feed-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .metric-grid {
@@ -648,15 +654,23 @@ button {
 .collective-card,
 .home-feed-card {
   padding: var(--spacing-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 430px;
 }
 
 .home-feed-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .home-feed-row {
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .home-feed-action {
@@ -665,7 +679,7 @@ button {
   border-radius: 10px;
   background: transparent;
   text-align: left;
-  padding: 8px 10px;
+  padding: 9px 10px;
   cursor: pointer;
 }
 
@@ -687,15 +701,23 @@ button {
 
 .home-feed-row-meta {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 86px;
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: 11px;
+  text-align: right;
 }
 
 .home-feed-row .pill {
   font-size: var(--tier4-size);
   padding: 2px 8px;
+}
+
+.section-head-actions .btn {
+  min-height: 34px;
+  padding: 0 12px;
 }
 
 .hack-card-head,

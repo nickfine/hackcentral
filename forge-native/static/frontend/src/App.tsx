@@ -110,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.50';
+const HACKCENTRAL_UI_VERSION = '0.6.51';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -4986,7 +4986,7 @@ export function App(): JSX.Element {
                     </div>
                     <div className="section-head-actions">
                       {HDC_HOME_UX_V1 ? (
-                        <button type="button" className="text-link" onClick={handleHomeViewAllActivity}>
+                        <button type="button" className="text-link home-feed-view-all" onClick={handleHomeViewAllActivity}>
                           View all
                         </button>
                       ) : null}
@@ -5003,7 +5003,7 @@ export function App(): JSX.Element {
                   {homeFeedError ? <p className="message message-error">{homeFeedError}</p> : null}
                   {homeFeedItems.length > 0 ? (
                     <div className="home-feed-list">
-                      {homeFeedItems.slice(0, 10).map((item) => (
+                      {homeFeedItems.slice(0, 8).map((item) => (
                         HDC_HOME_UX_V1 ? (
                           <button
                             key={item.id}
@@ -5053,7 +5053,7 @@ export function App(): JSX.Element {
                       </p>
                     </div>
                     {HDC_HOME_UX_V1 ? (
-                      <button type="button" className="text-link" onClick={handleHomeViewAllRecommendations}>
+                      <button type="button" className="text-link home-feed-view-all" onClick={handleHomeViewAllRecommendations}>
                         View all
                       </button>
                     ) : null}
