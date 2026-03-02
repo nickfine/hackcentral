@@ -13,7 +13,8 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { EmptyState, ModalWrapper, SkeletonGrid, SectionHeader } from '@/components/shared';
-import { RepositoryInput, parseRepoUrl } from '@/components/library/RepositoryInput';
+import { RepositoryInput } from '@/components/library/RepositoryInput';
+import { parseRepoUrl } from '@/components/library/repositoryInputUtils';
 import { HACK_TYPES, HACK_TYPE_BADGE_COLORS, HACK_TYPE_ICON_COMPONENTS } from '@/constants/project';
 import { stripSeedDescriptionSuffix } from '@/lib/utils';
 
@@ -367,7 +368,9 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
   const debouncedSearch = useDebounce(searchQuery);
 
   useEffect(() => {
-    if (!embedded) setInternalSearchQuery(qFromUrl);
+    if (embedded) return;
+    const syncTimer = setTimeout(() => setInternalSearchQuery(qFromUrl), 0);
+    return () => clearTimeout(syncTimer);
   }, [qFromUrl, embedded]);
   const navigate = useNavigate();
   const [internalType, setInternalType] = useState<string>('');
@@ -395,7 +398,7 @@ export default function Library(props: LibraryEmbeddedProps = {}) {
     if (actionFromUrl === 'new') {
       setSubmitModalOpen(true);
     }
-  }, [actionFromUrl]);
+  }, [actionFromUrl, setSubmitModalOpen]);
 
   const createAsset = useMutation(api.libraryAssets.create);
   const arsenalAssets = useQuery(api.libraryAssets.getArsenalWithReuseCounts);

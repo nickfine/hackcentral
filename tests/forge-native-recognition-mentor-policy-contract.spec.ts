@@ -224,7 +224,7 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-a1',
         title: 'Hack A1',
@@ -288,8 +288,8 @@ describe('SupabaseRepository recognition signal policy contracts', () => {
         pipeline_stage_entered_at: '2026-01-07T00:00:00.000Z',
         created_at: '2026-01-07T00:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([]);
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([]));
 
     const result = await repo.getBootstrapData(viewer);
 

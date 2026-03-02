@@ -187,7 +187,7 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectOne, selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-1',
         title: 'Hack One',
@@ -230,7 +230,7 @@ describe('SupabaseRepository ROI scaffold contracts', () => {
         pipeline_stage_entered_at: '2026-02-07T00:00:00.000Z',
         created_at: '2026-02-07T00:00:00.000Z',
       },
-    ]);
+    ]));
 
     const result = await repo.getRoiDashboard(adminViewer, { window: 'monthly' });
 

@@ -61,9 +61,12 @@ export function ScheduleStep({ timezone, schedule, onScheduleChange }: ScheduleS
   const [hasSyncedFromSchedule, setHasSyncedFromSchedule] = useState(false);
   useEffect(() => {
     if (hasSyncedFromSchedule || !schedule.hackingStartsAt) return;
-    setAnchor(getAnchorFromSchedule(schedule));
-    setOverrides(getOverridesFromSchedule(schedule));
-    setHasSyncedFromSchedule(true);
+    const syncTimer = setTimeout(() => {
+      setAnchor(getAnchorFromSchedule(schedule));
+      setOverrides(getOverridesFromSchedule(schedule));
+      setHasSyncedFromSchedule(true);
+    }, 0);
+    return () => clearTimeout(syncTimer);
   }, [schedule, hasSyncedFromSchedule]);
 
   const tz = timezone || 'UTC';

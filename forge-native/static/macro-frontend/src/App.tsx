@@ -13,10 +13,9 @@ import type {
   WizardStep,
 } from './types';
 import { DEFAULT_TIMEZONE } from './types';
-import { ScheduleBuilder, type ScheduleBuilderOutput } from './ScheduleBuilder';
+import type { ScheduleBuilderOutput } from './ScheduleBuilder';
 import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
 import type { ScheduleBuilderState as ScheduleBuilderV2State } from './types/scheduleBuilderV2';
-import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './scheduleEvents';
 import {
   buildConfluencePagePath,
@@ -44,7 +43,6 @@ const CREATE_DRAFT_TIMEOUT_MS = 15_000;
 const APP_VIEW_NAV_TIMEOUT_MS = 2_500;
 const DUPLICATE_EVENT_NAME_ERROR = 'Event name must be unique under this HackDay Central parent page.';
 const WIZARD_STORAGE_KEY_PREFIX = 'hdc-create-wizard:';
-const SUBMISSION_REQUIREMENT_OPTIONS: SubmissionRequirement[] = ['video_demo', 'working_prototype', 'documentation'];
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
@@ -323,12 +321,6 @@ function isDateRangeInvalid(start: string, end: string): boolean {
   return Boolean(start && end && start > end);
 }
 
-function formatSubmissionRequirement(requirement: SubmissionRequirement): string {
-  if (requirement === 'video_demo') return 'Video demo';
-  if (requirement === 'working_prototype') return 'Working prototype';
-  return 'Documentation';
-}
-
 function logSwitcherNavigabilityTelemetry(source: string, registry: HdcContextResponse['registry']): void {
   const { total, nonNavigable, withMissingPageId } = summarizeSwitcherNavigability(registry);
   console.info('[hdc-switcher-telemetry]', JSON.stringify({ source, total, nonNavigable, withMissingPageId }));
@@ -376,7 +368,7 @@ export function App(): JSX.Element {
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
   const [eventDuration, setEventDuration] = useState<EventDuration>(2);
-  const [selectedEvents, setSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
+  const [selectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
   const [hackTitle, setHackTitle] = useState('');
   const [hackDescription, setHackDescription] = useState('');
@@ -1083,6 +1075,7 @@ export function App(): JSX.Element {
     eventTagline,
     allowCrossTeamMentoring,
     requireDemoLink,
+    eventDuration,
     judgingModel,
     bannerMessage,
     accentColor,
@@ -1109,6 +1102,8 @@ export function App(): JSX.Element {
     votingStartsAt,
     wizardStep,
     resultsAnnounceAt,
+    scheduleOutput,
+    selectedEvents,
     getValidationErrorForStep,
     resolveAppViewUrlForPage,
   ]);
@@ -1189,7 +1184,7 @@ export function App(): JSX.Element {
         setSaving(false);
       }
     },
-    [context, loadContext, invalidateSwitcherCaches, resolveAppViewUrlForPage]
+    [context, loadContext, invalidateSwitcherCaches]
   );
 
   const handleLaunch = useCallback(async () => {

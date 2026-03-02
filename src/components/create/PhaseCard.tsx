@@ -62,9 +62,12 @@ export function PhaseCard({
     const prev = prevSuggestedRef.current;
     prevSuggestedRef.current = suggestedValue ?? undefined;
     if (prev !== undefined && suggestedValue !== undefined && prev !== suggestedValue) {
-      setFlash(true);
-      const t = setTimeout(() => setFlash(false), CASCADE_FLASH_MS);
-      return () => clearTimeout(t);
+      const startTimer = setTimeout(() => setFlash(true), 0);
+      const endTimer = setTimeout(() => setFlash(false), CASCADE_FLASH_MS);
+      return () => {
+        clearTimeout(startTimer);
+        clearTimeout(endTimer);
+      };
     }
   }, [suggestedValue, isOverridden]);
 

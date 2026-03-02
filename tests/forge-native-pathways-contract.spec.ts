@@ -74,11 +74,11 @@ describe('SupabaseRepository pathways contracts', () => {
       ]);
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(false);
-    (repo as any).getUserByAccountId = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'canUserManagePathways', vi.fn().mockResolvedValue(false));
+    Reflect.set(repo, 'getUserByAccountId', vi.fn().mockResolvedValue({
       id: 'viewer-user',
       capability_tags: ['domain:finance', 'role:analyst'],
-    });
+    }));
 
     const result = await repo.listPathways(viewer, { limit: 10 });
 
@@ -104,9 +104,9 @@ describe('SupabaseRepository pathways contracts', () => {
     const selectOne = vi.fn().mockResolvedValue(null);
 
     const repo = new SupabaseRepository({ upsert, selectOne } as never);
-    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
-    (repo as any).getPathway = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'canUserManagePathways', vi.fn().mockResolvedValue(true));
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
+    Reflect.set(repo, 'getPathway', vi.fn().mockResolvedValue({
       pathway: {
         pathwayId: 'path-2',
         title: 'Ops Pathway',
@@ -137,7 +137,7 @@ describe('SupabaseRepository pathways contracts', () => {
           isOptional: false,
         },
       ],
-    });
+    }));
 
     const result = await repo.upsertPathway(viewer, {
       pathwayId: 'path-2',
@@ -197,9 +197,9 @@ describe('SupabaseRepository pathways contracts', () => {
     const deleteMany = vi.fn().mockResolvedValue([]);
 
     const repo = new SupabaseRepository({ upsert, selectOne, selectMany, patchMany, deleteMany } as never);
-    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
-    (repo as any).getPathway = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'canUserManagePathways', vi.fn().mockResolvedValue(true));
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
+    Reflect.set(repo, 'getPathway', vi.fn().mockResolvedValue({
       pathway: {
         pathwayId: 'path-2',
         title: 'Ops Pathway',
@@ -230,7 +230,7 @@ describe('SupabaseRepository pathways contracts', () => {
           isOptional: false,
         },
       ],
-    });
+    }));
 
     await repo.upsertPathway(viewer, {
       pathwayId: 'path-2',
@@ -257,8 +257,8 @@ describe('SupabaseRepository pathways contracts', () => {
   it('rejects invalid linkedArtifactId values before writing pathway steps', async () => {
     const upsert = vi.fn();
     const repo = new SupabaseRepository({ upsert } as never);
-    (repo as any).canUserManagePathways = vi.fn().mockResolvedValue(true);
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+    Reflect.set(repo, 'canUserManagePathways', vi.fn().mockResolvedValue(true));
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
 
     await expect(
       repo.upsertPathway(viewer, {

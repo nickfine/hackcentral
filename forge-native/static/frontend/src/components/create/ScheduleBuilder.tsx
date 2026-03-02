@@ -95,9 +95,12 @@ function PhaseRow({
     const prev = prevSuggestedRef.current;
     prevSuggestedRef.current = suggestedIso;
     if (prev !== undefined && suggestedIso !== undefined && prev !== suggestedIso) {
-      setFlashing(true);
-      const t = setTimeout(() => setFlashing(false), 200);
-      return () => clearTimeout(t);
+      const startTimer = setTimeout(() => setFlashing(true), 0);
+      const endTimer = setTimeout(() => setFlashing(false), 200);
+      return () => {
+        clearTimeout(startTimer);
+        clearTimeout(endTimer);
+      };
     }
   }, [suggestedIso, isOverridden, isAnchor]);
 

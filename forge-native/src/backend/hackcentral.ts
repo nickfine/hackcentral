@@ -81,6 +81,15 @@ interface ConvexBootstrapPayload {
   registry?: BootstrapData['registry'];
 }
 
+type ConvexClientInvoker = {
+  query: (queryName: string, args: Record<string, unknown>) => Promise<unknown>;
+  mutation: (mutationName: string, args: Record<string, unknown>) => Promise<unknown>;
+};
+
+function asConvexInvoker(client: ConvexHttpClient): ConvexClientInvoker {
+  return client as unknown as ConvexClientInvoker;
+}
+
 function logRegistryNavigability(source: string, registry: BootstrapData['registry']): void {
   const total = registry.length;
   const nonNavigable = registry.filter((item) => !item.isNavigable).length;
@@ -196,8 +205,8 @@ async function withConfiguredBackend<T>(
 
 async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<BootstrapData> {
   const config = getConvexConfig();
-  const client = getConvexClient();
-  const payload = (await (client as any).query(config.query, {})) as ConvexBootstrapPayload;
+  const client = asConvexInvoker(getConvexClient());
+  const payload = (await client.query(config.query, {})) as ConvexBootstrapPayload;
 
   return {
     viewer,
@@ -295,8 +304,8 @@ async function getHomeFeedFromConvex(viewer: ViewerContext, input: GetHomeFeedIn
 
 async function createHackInConvex(viewer: ViewerContext, input: CreateHackInput): Promise<CreateHackResult> {
   const config = getConvexConfig();
-  const client = getConvexClient();
-  return (await (client as any).mutation(config.createHack, {
+  const client = asConvexInvoker(getConvexClient());
+  return (await client.mutation(config.createHack, {
     forgeAccountId: viewer.accountId,
     forgeSiteUrl: viewer.siteUrl,
     title: input.title,
@@ -317,8 +326,8 @@ async function createProjectInConvex(
   input: CreateProjectInput
 ): Promise<CreateProjectResult> {
   const config = getConvexConfig();
-  const client = getConvexClient();
-  return (await (client as any).mutation(config.createProject, {
+  const client = asConvexInvoker(getConvexClient());
+  return (await client.mutation(config.createProject, {
     forgeAccountId: viewer.accountId,
     forgeSiteUrl: viewer.siteUrl,
     title: input.title,
@@ -333,8 +342,8 @@ async function updateMentorInConvex(
   input: UpdateMentorProfileInput
 ): Promise<UpdateMentorProfileResult> {
   const config = getConvexConfig();
-  const client = getConvexClient();
-  return (await (client as any).mutation(config.updateMentor, {
+  const client = asConvexInvoker(getConvexClient());
+  return (await client.mutation(config.updateMentor, {
     forgeAccountId: viewer.accountId,
     forgeSiteUrl: viewer.siteUrl,
     mentorCapacity: input.mentorCapacity,

@@ -31,7 +31,6 @@ import type {
   PathwayStep,
   PathwayStepType,
   ListProblemImportCandidatesInput,
-  PersonSnapshot,
   PipelineBoardItem,
   PipelineMetrics,
   PipelineStage,
@@ -61,14 +60,12 @@ import {
   buildSwitcherSections,
   isNavigableRegistryItem,
   readSwitcherRegistryCache,
-  runSwitcherNavigation,
   sortByMostRecent,
   summarizeSwitcherNavigability,
-  switcherRowMetaText,
   writeSwitcherRegistryCache,
 } from './appSwitcher';
 import { invokeTyped } from './hooks/useForgeData';
-import { NAV_ITEMS, type View, type HackTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
+import { type View, type HackTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
@@ -102,7 +99,6 @@ import type {
   ScheduleBuilderOutput as ScheduleBuilderV2Output,
   ScheduleBuilderState as ScheduleBuilderV2State,
 } from './types/scheduleBuilderV2';
-import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
@@ -1279,7 +1275,7 @@ export function App(): JSX.Element {
   const [hackSearch, setHackSearch] = useState('');
   const [hackTypeFilter, setHackTypeFilter] = useState<HackTypeFilter>('all');
   const [hackStatusFilter, setHackStatusFilter] = useState<HackStatusFilter>('all');
-  const [showDeprecated, setShowDeprecated] = useState(false);
+  const [showDeprecated] = useState(false);
   const [showcaseTagsInput, setShowcaseTagsInput] = useState('');
   const [showcaseSourceEventInput, setShowcaseSourceEventInput] = useState('');
   const [showcaseFeaturedOnly, setShowcaseFeaturedOnly] = useState(false);
@@ -1438,7 +1434,6 @@ export function App(): JSX.Element {
   const [roiAppliedFilters, setRoiAppliedFilters] = useState<GetRoiDashboardInput>({ window: 'monthly' });
   const [homeFeedSnapshot, setHomeFeedSnapshot] = useState<HomeFeedSnapshot | null>(null);
   const [homeFeedLoading, setHomeFeedLoading] = useState(false);
-  const [homeFeedLoaded, setHomeFeedLoaded] = useState(false);
   const [homeFeedError, setHomeFeedError] = useState('');
   const [extractionEventIdInput, setExtractionEventIdInput] = useState('');
   const [extractionLimitInput, setExtractionLimitInput] = useState(String(HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT));
@@ -1522,7 +1517,7 @@ export function App(): JSX.Element {
   const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderV2Output | null>(null);
   const [wScheduleBuilderState, setWScheduleBuilderState] = useState<ScheduleBuilderV2State | null>(null);
   const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
-  const [wSelectedEvents, setWSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
+  const [wSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
   const isLocalPreview =
     typeof window !== 'undefined' && LOCAL_PREVIEW_HOSTS.has(window.location.hostname);
@@ -1591,10 +1586,10 @@ export function App(): JSX.Element {
     }
   }, [loadBootstrap]);
 
-  const featuredHacks = bootstrap?.featuredHacks ?? [];
-  const allProjects = bootstrap?.recentProjects ?? [];
-  const allPeople = bootstrap?.people ?? [];
-  const registry = bootstrap?.registry ?? [];
+  const featuredHacks = useMemo(() => bootstrap?.featuredHacks ?? [], [bootstrap?.featuredHacks]);
+  const allProjects = useMemo(() => bootstrap?.recentProjects ?? [], [bootstrap?.recentProjects]);
+  const allPeople = useMemo(() => bootstrap?.people ?? [], [bootstrap?.people]);
+  const registry = useMemo(() => bootstrap?.registry ?? [], [bootstrap?.registry]);
   const sortedRegistry = useMemo(() => sortByMostRecent([...registry]), [registry]);
   const hackdayRegistryView = useMemo(() => {
     const query = hackdaySearchInput.trim().toLowerCase();
@@ -1997,10 +1992,12 @@ export function App(): JSX.Element {
       setPathwayDetailError('');
       try {
         if (previewMode) {
-          const existingCompleted = pathwayDetail?.pathway.pathwayId === pathwaySelectedId
-            ? pathwayDetail.pathway.progress.completedStepIds
-            : [];
-          setPathwayDetail(buildPreviewPathwayDetail(existingCompleted));
+          setPathwayDetail((current) => {
+            const existingCompleted = current?.pathway.pathwayId === pathwaySelectedId
+              ? current.pathway.progress.completedStepIds
+              : [];
+            return buildPreviewPathwayDetail(existingCompleted);
+          });
           return;
         }
         const result = await invokeTyped('hdcGetPathway', { pathwayId: pathwaySelectedId });
@@ -2477,7 +2474,6 @@ export function App(): JSX.Element {
             },
           },
         });
-        setHomeFeedLoaded(true);
         return;
       }
 
@@ -2488,7 +2484,6 @@ export function App(): JSX.Element {
       };
       const result = await invokeTyped('hdcGetHomeFeed', payload);
       setHomeFeedSnapshot(result);
-      setHomeFeedLoaded(true);
     } catch (error) {
       setHomeFeedError(error instanceof Error ? error.message : 'Failed to load home feed.');
     } finally {
@@ -3250,7 +3245,7 @@ export function App(): JSX.Element {
         setProblemLoading(false);
       }
     },
-    [applyProblemFilters, bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]
+    [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]
   );
 
   useEffect(() => {
@@ -3275,7 +3270,7 @@ export function App(): JSX.Element {
         return next;
       });
     },
-    [applyProblemFilters, bootstrap?.viewer.accountId, featuredHacks, problemAppliedFilters]
+    [bootstrap?.viewer.accountId, featuredHacks, problemAppliedFilters]
   );
 
   const applyProblemFiltersToList = useCallback(() => {
@@ -3387,7 +3382,6 @@ export function App(): JSX.Element {
     problemTimeWastedHours,
     problemTitle,
     resetProblemForm,
-    validateProblemCreateDraft,
   ]);
 
   const handleVoteProblem = useCallback(
@@ -4382,7 +4376,7 @@ export function App(): JSX.Element {
       });
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wSelectedProblemImportIds, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wTemplateMode, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventDuration, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wScheduleOutput, wSelectedEvents, wSelectedProblemImportIds, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wTemplateMode, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
 
   const exportTeamPulse = (): void => {
     const exportedAt = new Date().toISOString();
@@ -4678,7 +4672,7 @@ export function App(): JSX.Element {
   const onSwitcherMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!switcherMenuRef.current) return;
     const options = Array.from(
-      switcherMenuRef.current.querySelectorAll<HTMLButtonElement>('button[data-switcher-option=\"true\"]')
+      switcherMenuRef.current.querySelectorAll<HTMLButtonElement>('button[data-switcher-option="true"]')
     ).filter((option) => !option.disabled);
     if (options.length === 0) return;
 

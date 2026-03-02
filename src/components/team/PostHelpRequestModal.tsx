@@ -13,7 +13,7 @@ interface PostHelpRequestModalProps {
     title: string;
     description: string;
     category?: 'technical' | 'guidance' | 'collaboration' | 'other';
-  }) => Promise<any>;
+  }) => Promise<unknown>;
 }
 
 const CATEGORIES = [

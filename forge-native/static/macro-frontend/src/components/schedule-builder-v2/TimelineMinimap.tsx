@@ -34,6 +34,12 @@ export function TimelineMinimap({
   prevPhaseLabel,
   nextPhaseLabel,
 }: TimelineMinimapProps) {
+  void onPrevPhase;
+  void onNextPhase;
+  void canGoPrev;
+  void canGoNext;
+  void prevPhaseLabel;
+  void nextPhaseLabel;
   const currentIndex = phases.findIndex((p) => p.key === activePhase);
 
   return (

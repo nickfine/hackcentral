@@ -71,12 +71,11 @@ export default function HackDays() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     listEvents()
       .then((eventList) => {
         if (cancelled) return;
+        setError(null);
         setEvents(eventList);
       })
       .catch((err) => {

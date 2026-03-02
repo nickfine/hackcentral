@@ -8,7 +8,7 @@
  * - Offset input (pre-event) or time picker (hack day)
  */
 
-import type { EventDefinition, EventSignal } from '../../types/scheduleBuilderV2';
+import type { EventDefinition } from '../../types/scheduleBuilderV2';
 import { getSignalStyle, hasAccentBorder } from '../../schedule-builder-v2/signalStyles';
 
 interface EventCardProps {

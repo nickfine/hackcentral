@@ -35,12 +35,13 @@ export function ActivityItem({
   avatarUrl,
   name,
   action,
-  type: _type,
+  type,
   timestamp,
   badge,
   onClick,
   className = '',
 }: ActivityItemProps) {
+  void type;
   const badgeForGroup: BadgeGroupBadge[] = badge
     ? [{ id: 'activity-badge', label: badge.label, variant: BADGE_VARIANT_MAP[badge.variant ?? 'default'] ?? 'default' }]
     : [];

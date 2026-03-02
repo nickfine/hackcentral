@@ -43,7 +43,7 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
       listTeamIds: SupabaseRepository.prototype['listTeamIds'],
     };
 
-    const result = await (SupabaseRepository.prototype as any).insertProject.call(fakeRepo, {
+    const result = await Reflect.get(SupabaseRepository.prototype, 'insertProject').call(fakeRepo, {
       title: 'Smoke project',
       status: 'idea',
     });
@@ -93,7 +93,7 @@ describe('SupabaseRepository.insertProject legacy teamId compatibility', () => {
       listTeamIds: SupabaseRepository.prototype['listTeamIds'],
     };
 
-    const result = await (SupabaseRepository.prototype as any).insertProject.call(fakeRepo, {
+    const result = await Reflect.get(SupabaseRepository.prototype, 'insertProject').call(fakeRepo, {
       title: 'Smoke project',
       name: 'Smoke project',
       status: 'idea',

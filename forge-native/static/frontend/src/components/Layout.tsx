@@ -34,7 +34,6 @@ export interface LayoutProps {
 export function Layout({
   view,
   setView,
-  setHackTab,
   globalSearch,
   setGlobalSearch,
   switcherOpen,

@@ -122,7 +122,7 @@ describe('Phase 3 telemetry contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'hack-1',
         title: 'Ops copilot',
@@ -144,8 +144,8 @@ describe('Phase 3 telemetry contracts', () => {
         pipeline_stage_entered_at: '2026-03-01T09:00:00.000Z',
         created_at: '2026-03-01T09:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([
       {
         id: 'event-upcoming',
         eventName: 'AI Sprint April',
@@ -170,7 +170,7 @@ describe('Phase 3 telemetry contracts', () => {
           accentColor: '#14b8a6',
         },
       },
-    ]);
+    ]));
 
     await repo.getHomeFeed(viewer, {
       limit: 20,
@@ -245,7 +245,7 @@ describe('Phase 3 telemetry contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectOne, selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([]);
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([]));
 
     await repo.getRoiDashboard(viewer, { window: 'monthly' });
 

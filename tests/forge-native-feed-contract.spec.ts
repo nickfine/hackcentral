@@ -118,7 +118,7 @@ describe('SupabaseRepository home feed contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'hack-1',
         title: 'Ops copilot',
@@ -140,8 +140,8 @@ describe('SupabaseRepository home feed contracts', () => {
         pipeline_stage_entered_at: '2026-03-01T09:00:00.000Z',
         created_at: '2026-03-01T09:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([
       {
         id: 'event-upcoming',
         eventName: 'AI Sprint April',
@@ -166,7 +166,7 @@ describe('SupabaseRepository home feed contracts', () => {
           accentColor: '#14b8a6',
         },
       },
-    ]);
+    ]));
 
     const result = await repo.getHomeFeed(viewer, {
       limit: 20,

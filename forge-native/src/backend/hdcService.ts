@@ -1702,7 +1702,7 @@ export class HdcService {
     failedPages: number;
     errors: string[];
   }> {
-    const user = await this.repository.ensureUser(viewer);
+    await this.repository.ensureUser(viewer);
 
     // Only allow admins to perform bulk cleanup
     // Add your own authorization logic here

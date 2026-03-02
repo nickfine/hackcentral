@@ -18,7 +18,7 @@ export interface WelcomeHeroProps {
   nextMilestoneCopy?: string;
 }
 
-export function WelcomeHero(_props: WelcomeHeroProps) {
+export function WelcomeHero() {
   const shouldReduceMotion = useReducedMotion();
 
   return (

@@ -138,7 +138,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-1',
         title: 'Hack One',
@@ -181,8 +181,8 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
         pipeline_stage_entered_at: '2026-01-20T00:00:00.000Z',
         created_at: '2026-01-20T00:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([]);
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([]));
 
     const result = await repo.getBootstrapData(viewer);
 
@@ -293,7 +293,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-1',
         title: 'Hack One',
@@ -315,8 +315,8 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
         pipeline_stage_entered_at: '2026-01-05T00:00:00.000Z',
         created_at: '2026-01-05T00:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([]);
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([]));
 
     const result = await repo.getBootstrapData(viewer);
 
@@ -363,7 +363,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
     });
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-legacy',
         title: 'Legacy Hack',
@@ -385,8 +385,8 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
         pipeline_stage_entered_at: '2026-01-20T00:00:00.000Z',
         created_at: '2026-01-20T00:00:00.000Z',
       },
-    ]);
-    (repo as any).listAllEvents = vi.fn().mockResolvedValue([]);
+    ]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([]));
 
     const result = await repo.getBootstrapData(viewer);
 

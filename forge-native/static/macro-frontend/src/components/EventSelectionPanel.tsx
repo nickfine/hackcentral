@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { ScheduleEventType } from '../types';
-import { SCHEDULE_EVENT_DEFINITIONS, getEventsByCategory } from '../scheduleEvents';
+import { getEventsByCategory } from '../scheduleEvents';
 
 interface EventSelectionPanelProps {
   selectedEvents: ScheduleEventType[];
