@@ -2549,3 +2549,42 @@ Use this template at the end of every work session:
 - Branch hygiene should run as a hard preflight only when branch inventory is unknown; once reconciled and pruned, keeping an explicit “known dirty files” status note is enough to prevent accidental cleanup churn.
 - For observability gates, pairing static contract checks with live telemetry log sampling is faster and more reliable than relying on UI proof alone.
 - In this workspace, Supabase MCP-first plus CLI fallback remains the most resilient rollout pattern because management-scope visibility can differ by endpoint even when MCP is reachable.
+
+## Session Update - P3.EXTRACT.01 Resolver/Type Scaffolding (Mar 2, 2026 01:19 GMT)
+
+### Completed
+
+- Implemented extraction contract scaffolding end-to-end for `R11.1`/`R11.2`:
+  - New typed contracts in backend/frontend mirrors:
+    - `forge-native/src/shared/types.ts`
+    - `forge-native/static/frontend/src/types.ts`
+  - New resolver endpoints in `forge-native/src/index.ts`:
+    - `hdcGetHackdayExtractionCandidates`
+    - `hdcTriggerPostHackdayExtractionPrompt`
+    - `hdcBulkImportHackdaySubmissions`
+  - New backend facade wrappers in `forge-native/src/backend/hackcentral.ts` with Supabase-only fallback guard (`[EXTRACTION_UNSUPPORTED_BACKEND]`).
+  - Repository scaffold in `forge-native/src/backend/supabase/repositories.ts` including:
+    - permission gates (`[EXTRACT_FORBIDDEN]`, `[EXTRACT_IMPORT_FORBIDDEN]`)
+    - migration gates for `HackdayExtractionPrompt` and `HackdayExtractionImport`
+    - dry-run handling and deterministic response shapes
+    - audit actions (`hackday_extraction_prompted`, `hackday_bulk_imported`).
+- Added backend extraction contract regression:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`.
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` -> pass (`14/14`).
+- Branch/worktree hygiene re-check after scaffold:
+  - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` -> `0 1`
+  - `git -C /Users/nickster/Downloads/HackCentral status --short --branch` -> clean
+  - `git -C /Users/nickster/Downloads/HackCentral-p1-child-01 status --short --branch` -> known extraction-scaffold edits + pre-existing untracked artifacts.
+
+### Operational Learnings
+
+- For extraction workflows that depend on idempotency state, explicit migration-gate errors are safer than silent fallback behavior; this keeps dry-run/read behavior deterministic while making missing schema immediately visible.
+- Maintaining `src/shared/types.ts` and `static/frontend/src/types.ts` parity in the same commit prevents typed `invoke` drift and catches resolver contract mismatch early via static tests.
+- A lightweight backend contract test file for each major roadmap slice (`tests/backend/*-contract.test.mjs`) is an efficient guardrail for resolver exposure + typed contract parity without waiting for UI integration.

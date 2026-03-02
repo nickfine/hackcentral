@@ -37,6 +37,8 @@ import type {
   MarkArtifactReuseResult,
   ForkArtifactInput,
   ForkArtifactResult,
+  GetHackdayExtractionCandidatesInput,
+  HackdayExtractionCandidatesResult,
   GetHomeFeedInput,
   HomeFeedSnapshot,
   HomeFeedActivityItem,
@@ -89,6 +91,11 @@ import type {
   TrackTeamPulseExportResult,
   TrackRoiExportInput,
   TrackRoiExportResult,
+  TriggerPostHackdayExtractionPromptInput,
+  TriggerPostHackdayExtractionPromptResult,
+  BulkImportHackdaySubmissionsInput,
+  BulkImportHackdaySubmissionsResult,
+  HackdayExtractionPolicyVersion,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -129,6 +136,8 @@ const PATHWAY_PROGRESS_TABLE = 'PathwayProgress';
 const PIPELINE_STAGE_CRITERIA_TABLE = 'PipelineStageCriteria';
 const PIPELINE_TRANSITION_LOG_TABLE = 'PipelineTransitionLog';
 const SHOWCASE_HACK_TABLE = 'ShowcaseHack';
+const HACKDAY_EXTRACTION_PROMPT_TABLE = 'HackdayExtractionPrompt';
+const HACKDAY_EXTRACTION_IMPORT_TABLE = 'HackdayExtractionImport';
 const EVENT_AUDIT_RETENTION_LIMIT = 100;
 const EVENT_AUTO_ARCHIVE_AFTER_DAYS = 90;
 const RECOGNITION_MENTOR_BADGE_THRESHOLD = 3;
@@ -149,6 +158,10 @@ const PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT = 67;
 const PHASE3_ROI_MIN_TOKEN_ATTRIBUTION_PCT = 60;
 const PHASE3_ROI_HIGH_COST_PER_HACK_THRESHOLD_GBP = 0.25;
 const PHASE3_ROI_MIN_TREND_POINTS = 2;
+const HACKDAY_EXTRACTION_POLICY_VERSION: HackdayExtractionPolicyVersion = 'r11-extraction-v1';
+const HACKDAY_EXTRACTION_DEFAULT_LIMIT = 200;
+const HACKDAY_EXTRACTION_IMPORT_DEFAULT_LIMIT = 500;
+const HACKDAY_EXTRACTION_MAX_LIMIT = 1000;
 const ROI_TOKEN_TOTAL_KEYS = ['tokenvolume', 'tokencount', 'totaltokens', 'tokensused', 'usagetokens'];
 const ROI_TOKEN_PROMPT_KEYS = ['prompttokens', 'inputtokens'];
 const ROI_TOKEN_COMPLETION_KEYS = ['completiontokens', 'outputtokens'];
@@ -261,6 +274,12 @@ interface DbRoiAccessLookup {
   capability_tags?: string[] | null;
 }
 
+interface DbExtractionAccessLookup {
+  id: string;
+  role?: string | null;
+  capability_tags?: string[] | null;
+}
+
 interface DbPathway {
   id: string;
   title: string;
@@ -367,6 +386,31 @@ interface DbEventAuditLog {
   action: string | null;
   new_value: unknown;
   created_at: string | null;
+}
+
+interface DbHackdayExtractionPrompt {
+  id: string;
+  event_id: string;
+  participant_user_id: string;
+  lifecycle_status: LifecycleStatus;
+  policy_version: HackdayExtractionPolicyVersion;
+  prompted_at: string | null;
+  notify_participants: boolean | null;
+  created_by_user_id: string | null;
+  created_at: string | null;
+}
+
+interface DbHackdayExtractionImport {
+  id: string;
+  event_id: string;
+  source_project_id: string;
+  imported_project_id: string;
+  policy_version: HackdayExtractionPolicyVersion;
+  imported_at: string | null;
+  notify_participants: boolean | null;
+  imported_by_user_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface RoiRateCardConfig {
@@ -1267,6 +1311,26 @@ function createRoiValidationError(message: string): Error {
 
 function createForkValidationError(message: string): Error {
   return new Error(`[FORK_VALIDATION_FAILED] ${message}`);
+}
+
+function createExtractionValidationError(message: string): Error {
+  return new Error(`[EXTRACT_VALIDATION_FAILED] ${message}`);
+}
+
+function createExtractionMigrationError(tableName: string): Error {
+  return new Error(
+    `Missing required table ${tableName}. Apply the phase 3 extraction migration before calling extraction resolvers.`
+  );
+}
+
+function normalizeCapabilityTags(tags: string[] | null | undefined): string[] {
+  return (tags ?? [])
+    .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+    .filter(Boolean);
+}
+
+function isAdminRole(role: string | null | undefined): boolean {
+  return typeof role === 'string' && role.trim().toUpperCase() === 'ADMIN';
 }
 
 function isUuid(value: string): boolean {
@@ -2933,6 +2997,106 @@ export class SupabaseRepository {
     }
   }
 
+  private async getExtractionAccessLookup(accountId: string): Promise<{
+    userId: string | null;
+    isAdmin: boolean;
+    tags: string[];
+  }> {
+    try {
+      const row = await this.client.selectOne<DbExtractionAccessLookup>(
+        USER_TABLE,
+        'id,role,capability_tags',
+        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
+      );
+      if (!row) {
+        return {
+          userId: null,
+          isAdmin: false,
+          tags: [],
+        };
+      }
+      return {
+        userId: row.id,
+        isAdmin: isAdminRole(row.role),
+        tags: normalizeCapabilityTags(row.capability_tags),
+      };
+    } catch (error) {
+      if (!hasMissingUserRoleColumn(error)) {
+        throw error;
+      }
+      const fallbackUser = await this.getUserByAccountId(accountId);
+      if (!fallbackUser) {
+        return {
+          userId: null,
+          isAdmin: false,
+          tags: [],
+        };
+      }
+      return {
+        userId: fallbackUser.id,
+        isAdmin: false,
+        tags: normalizeCapabilityTags(fallbackUser.capability_tags),
+      };
+    }
+  }
+
+  private async isEventAdminForEvent(eventId: string, userId: string): Promise<boolean> {
+    try {
+      const rows = await this.client.selectMany<{ id: string }>(EVENT_ADMIN_TABLE, 'id', [
+        { field: 'event_id', op: 'eq', value: eventId },
+        { field: 'user_id', op: 'eq', value: userId },
+      ]);
+      return rows.length > 0;
+    } catch (error) {
+      if (hasMissingTable(error, EVENT_ADMIN_TABLE)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  private async requireExtractionReadOrPromptAccess(viewer: ViewerContext, eventId: string): Promise<string> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      throw new Error('[EXTRACT_FORBIDDEN] Extraction access requires a mapped Atlassian account.');
+    }
+
+    const access = await this.getExtractionAccessLookup(accountId);
+    if (!access.userId) {
+      throw new Error('[EXTRACT_FORBIDDEN] Viewer account is not mapped to a User record.');
+    }
+    if (access.isAdmin || access.tags.includes('hdc_admin') || access.tags.includes('platform_admin')) {
+      return access.userId;
+    }
+    if (access.tags.includes('event_admin')) {
+      return access.userId;
+    }
+    if (await this.isEventAdminForEvent(eventId, access.userId)) {
+      return access.userId;
+    }
+
+    throw new Error(`[EXTRACT_FORBIDDEN] Event admin or HDC admin access required. accountId=${viewer.accountId}`);
+  }
+
+  private async requireExtractionImportAccess(viewer: ViewerContext): Promise<string> {
+    const accountId = viewer.accountId?.trim();
+    if (!accountId || accountId === 'unknown-atlassian-account') {
+      throw new Error('[EXTRACT_IMPORT_FORBIDDEN] Extraction import requires a mapped Atlassian account.');
+    }
+
+    const access = await this.getExtractionAccessLookup(accountId);
+    if (!access.userId) {
+      throw new Error('[EXTRACT_IMPORT_FORBIDDEN] Viewer account is not mapped to a User record.');
+    }
+    if (access.isAdmin || access.tags.includes('hdc_admin') || access.tags.includes('platform_admin')) {
+      return access.userId;
+    }
+
+    throw new Error(
+      `[EXTRACT_IMPORT_FORBIDDEN] HDC admin or platform admin access required. accountId=${viewer.accountId}`
+    );
+  }
+
   async ensureUser(viewer: ViewerContext, explicitEmail?: string): Promise<DbUser> {
     const existing = await this.getUserByAccountId(viewer.accountId);
     if (existing) return existing;
@@ -3968,6 +4132,365 @@ export class SupabaseRepository {
               : `Recommendation categories populated: ${recommendationTypesPresent.size}/${expectedRecommendationTypes.size}.`,
         },
       },
+    };
+  }
+
+  async getHackdayExtractionCandidates(
+    viewer: ViewerContext,
+    input: GetHackdayExtractionCandidatesInput
+  ): Promise<HackdayExtractionCandidatesResult> {
+    const eventId = typeof input.eventId === 'string' ? input.eventId.trim() : '';
+    if (!eventId) {
+      throw createExtractionValidationError('eventId is required.');
+    }
+    const limit = Math.max(1, Math.min(HACKDAY_EXTRACTION_MAX_LIMIT, Math.floor(input.limit ?? HACKDAY_EXTRACTION_DEFAULT_LIMIT)));
+
+    await this.requireExtractionReadOrPromptAccess(viewer, eventId);
+
+    const event = await this.getEventByIdNoArchive(eventId);
+    if (!event) {
+      throw new Error('[EXTRACT_EVENT_NOT_FOUND] Event not found.');
+    }
+
+    const submissions = await this.listEventHackProjects(eventId);
+    const participantIds = new Set(
+      submissions.map((project) => project.owner_id).filter((ownerId): ownerId is string => Boolean(ownerId))
+    );
+
+    let showcaseRows: Array<Pick<DbShowcaseHack, 'project_id'>> = [];
+    try {
+      showcaseRows = await this.client.selectMany<Pick<DbShowcaseHack, 'project_id'>>(
+        SHOWCASE_HACK_TABLE,
+        'project_id',
+        [{ field: 'source_event_id', op: 'eq', value: eventId }]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling extraction resolvers.`
+        );
+      }
+      throw error;
+    }
+
+    const importedProjectIds = new Set(showcaseRows.map((row) => row.project_id).filter(Boolean));
+    const candidates = submissions
+      .slice()
+      .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      .slice(0, limit)
+      .map((project) => ({
+        projectId: project.id,
+        title: project.title,
+        submittedAt: project.created_at ?? null,
+        ownerUserId: project.owner_id ?? null,
+        alreadyImportedToShowcase: importedProjectIds.has(project.id),
+      }));
+
+    return {
+      eventId,
+      lifecycleStatus: event.lifecycle_status,
+      policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+      participantCount: participantIds.size,
+      submissionCount: submissions.length,
+      showcaseDraftCount: importedProjectIds.size,
+      candidates,
+    };
+  }
+
+  async triggerPostHackdayExtractionPrompt(
+    viewer: ViewerContext,
+    input: TriggerPostHackdayExtractionPromptInput
+  ): Promise<TriggerPostHackdayExtractionPromptResult> {
+    const eventId = typeof input.eventId === 'string' ? input.eventId.trim() : '';
+    if (!eventId) {
+      throw createExtractionValidationError('eventId is required.');
+    }
+    const dryRun = input.dryRun === true;
+    const notifyParticipants = input.notifyParticipants !== false;
+    const actorUserId = await this.requireExtractionReadOrPromptAccess(viewer, eventId);
+    const event = await this.getEventByIdNoArchive(eventId);
+    if (!event) {
+      throw new Error('[EXTRACT_EVENT_NOT_FOUND] Event not found.');
+    }
+
+    const submissions = await this.listEventHackProjects(eventId);
+    const eligibleParticipantIds = Array.from(
+      new Set(submissions.map((project) => project.owner_id).filter((ownerId): ownerId is string => Boolean(ownerId)))
+    );
+
+    if (event.lifecycle_status !== 'results') {
+      return {
+        eventId,
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        status: 'skipped_not_results',
+        lifecycleStatus: event.lifecycle_status,
+        eligibleParticipantCount: eligibleParticipantIds.length,
+        promptedParticipantCount: 0,
+        skippedAlreadyPromptedCount: 0,
+        promptedAt: null,
+      };
+    }
+
+    let promptRows: DbHackdayExtractionPrompt[];
+    try {
+      promptRows = await this.client.selectMany<DbHackdayExtractionPrompt>(
+        HACKDAY_EXTRACTION_PROMPT_TABLE,
+        'id,event_id,participant_user_id,lifecycle_status,policy_version,prompted_at,notify_participants,created_by_user_id,created_at',
+        [
+          { field: 'event_id', op: 'eq', value: eventId },
+          { field: 'lifecycle_status', op: 'eq', value: 'results' },
+          { field: 'policy_version', op: 'eq', value: HACKDAY_EXTRACTION_POLICY_VERSION },
+        ]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, HACKDAY_EXTRACTION_PROMPT_TABLE)) {
+        throw createExtractionMigrationError(HACKDAY_EXTRACTION_PROMPT_TABLE);
+      }
+      throw error;
+    }
+
+    const alreadyPrompted = new Set(promptRows.map((row) => row.participant_user_id));
+    const participantsToPrompt = eligibleParticipantIds.filter((participantId) => !alreadyPrompted.has(participantId));
+    const skippedAlreadyPromptedCount = eligibleParticipantIds.length - participantsToPrompt.length;
+
+    if (dryRun) {
+      return {
+        eventId,
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        status: 'dry_run',
+        lifecycleStatus: event.lifecycle_status,
+        eligibleParticipantCount: eligibleParticipantIds.length,
+        promptedParticipantCount: participantsToPrompt.length,
+        skippedAlreadyPromptedCount,
+        promptedAt: null,
+      };
+    }
+
+    const promptedAt = nowIso();
+    let promptedParticipantCount = 0;
+
+    for (const participantUserId of participantsToPrompt) {
+      await this.client.insert<DbHackdayExtractionPrompt>(HACKDAY_EXTRACTION_PROMPT_TABLE, {
+        id: randomUUID(),
+        event_id: eventId,
+        participant_user_id: participantUserId,
+        lifecycle_status: 'results',
+        policy_version: HACKDAY_EXTRACTION_POLICY_VERSION,
+        prompted_at: promptedAt,
+        notify_participants: notifyParticipants,
+        created_by_user_id: actorUserId,
+        created_at: promptedAt,
+      });
+      promptedParticipantCount += 1;
+    }
+
+    await this.logAudit({
+      eventId,
+      actorUserId,
+      action: 'hackday_extraction_prompted',
+      newValue: {
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        dryRun: false,
+        notifyParticipants,
+        eligibleParticipantCount: eligibleParticipantIds.length,
+        promptedParticipantCount,
+        skippedAlreadyPromptedCount,
+      },
+    });
+
+    return {
+      eventId,
+      policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+      status: 'prompted',
+      lifecycleStatus: event.lifecycle_status,
+      eligibleParticipantCount: eligibleParticipantIds.length,
+      promptedParticipantCount,
+      skippedAlreadyPromptedCount,
+      promptedAt,
+    };
+  }
+
+  async bulkImportHackdaySubmissions(
+    viewer: ViewerContext,
+    input: BulkImportHackdaySubmissionsInput
+  ): Promise<BulkImportHackdaySubmissionsResult> {
+    const eventId = typeof input.eventId === 'string' ? input.eventId.trim() : '';
+    if (!eventId) {
+      throw createExtractionValidationError('eventId is required.');
+    }
+    const dryRun = input.dryRun === true;
+    const notifyParticipants = input.notifyParticipants !== false;
+    const overwriteExistingDrafts = input.overwriteExistingDrafts === true;
+    const limit = Math.max(
+      1,
+      Math.min(HACKDAY_EXTRACTION_MAX_LIMIT, Math.floor(input.limit ?? HACKDAY_EXTRACTION_IMPORT_DEFAULT_LIMIT))
+    );
+    const actorUserId = await this.requireExtractionImportAccess(viewer);
+    const event = await this.getEventByIdNoArchive(eventId);
+    if (!event) {
+      throw new Error('[EXTRACT_EVENT_NOT_FOUND] Event not found.');
+    }
+
+    const submissions = (await this.listEventHackProjects(eventId))
+      .slice()
+      .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      .slice(0, limit);
+    const scannedSubmissionCount = submissions.length;
+
+    if (event.lifecycle_status !== 'results') {
+      return {
+        eventId,
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        status: 'skipped_not_results',
+        scannedSubmissionCount,
+        importedDraftCount: 0,
+        skippedAlreadyImportedCount: 0,
+        skippedInvalidSubmissionCount: 0,
+        notifiedParticipantCount: 0,
+        importedProjectIds: [],
+        importedAt: null,
+      };
+    }
+
+    let existingImports: DbHackdayExtractionImport[];
+    try {
+      existingImports = await this.client.selectMany<DbHackdayExtractionImport>(
+        HACKDAY_EXTRACTION_IMPORT_TABLE,
+        'id,event_id,source_project_id,imported_project_id,policy_version,imported_at,notify_participants,imported_by_user_id,created_at,updated_at',
+        [
+          { field: 'event_id', op: 'eq', value: eventId },
+          { field: 'policy_version', op: 'eq', value: HACKDAY_EXTRACTION_POLICY_VERSION },
+        ]
+      );
+    } catch (error) {
+      if (hasMissingTable(error, HACKDAY_EXTRACTION_IMPORT_TABLE)) {
+        throw createExtractionMigrationError(HACKDAY_EXTRACTION_IMPORT_TABLE);
+      }
+      throw error;
+    }
+
+    const existingImportBySourceProjectId = new Map(
+      existingImports.map((row) => [row.source_project_id, row.imported_project_id])
+    );
+
+    const invalidSubmissionIds = new Set<string>();
+    const importCandidates: DbProject[] = [];
+    let skippedAlreadyImportedCount = 0;
+    for (const submission of submissions) {
+      if (!submission.id || !submission.title || !submission.owner_id) {
+        invalidSubmissionIds.add(submission.id);
+        continue;
+      }
+      const alreadyImported = existingImportBySourceProjectId.has(submission.id);
+      if (alreadyImported && !overwriteExistingDrafts) {
+        skippedAlreadyImportedCount += 1;
+        continue;
+      }
+      importCandidates.push(submission);
+    }
+
+    const skippedInvalidSubmissionCount = invalidSubmissionIds.size;
+    const importedProjectIds = importCandidates.map((submission) => submission.id);
+    const notifiedParticipantCount = notifyParticipants
+      ? new Set(importCandidates.map((submission) => submission.owner_id).filter(Boolean)).size
+      : 0;
+
+    if (dryRun) {
+      return {
+        eventId,
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        status: 'dry_run',
+        scannedSubmissionCount,
+        importedDraftCount: importCandidates.length,
+        skippedAlreadyImportedCount,
+        skippedInvalidSubmissionCount,
+        notifiedParticipantCount,
+        importedProjectIds,
+        importedAt: null,
+      };
+    }
+
+    try {
+      await this.client.selectMany<Pick<DbShowcaseHack, 'project_id'>>(SHOWCASE_HACK_TABLE, 'project_id', [
+        { field: 'source_event_id', op: 'eq', value: eventId },
+      ]);
+    } catch (error) {
+      if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
+        throw new Error(
+          `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling extraction resolvers.`
+        );
+      }
+      throw error;
+    }
+
+    const importedAt = nowIso();
+    for (const submission of importCandidates) {
+      await this.client.upsert<DbShowcaseHack>(
+        SHOWCASE_HACK_TABLE,
+        {
+          project_id: submission.id,
+          featured: false,
+          demo_url: null,
+          team_members: [],
+          source_event_id: eventId,
+          tags: [],
+          linked_artifact_ids: [],
+          context: null,
+          limitations: null,
+          risk_notes: null,
+          source_repo_url: null,
+          created_by_user_id: actorUserId,
+          created_at: importedAt,
+          updated_at: importedAt,
+        },
+        'project_id'
+      );
+      await this.client.upsert<DbHackdayExtractionImport>(
+        HACKDAY_EXTRACTION_IMPORT_TABLE,
+        {
+          id: randomUUID(),
+          event_id: eventId,
+          source_project_id: submission.id,
+          imported_project_id: submission.id,
+          policy_version: HACKDAY_EXTRACTION_POLICY_VERSION,
+          imported_at: importedAt,
+          notify_participants: notifyParticipants,
+          imported_by_user_id: actorUserId,
+          created_at: importedAt,
+          updated_at: importedAt,
+        },
+        'event_id,source_project_id,policy_version'
+      );
+    }
+
+    await this.logAudit({
+      eventId,
+      actorUserId,
+      action: 'hackday_bulk_imported',
+      newValue: {
+        policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+        dryRun: false,
+        notifyParticipants,
+        overwriteExistingDrafts,
+        scannedSubmissionCount,
+        importedDraftCount: importCandidates.length,
+        skippedAlreadyImportedCount,
+        skippedInvalidSubmissionCount,
+        notifiedParticipantCount,
+      },
+    });
+
+    return {
+      eventId,
+      policyVersion: HACKDAY_EXTRACTION_POLICY_VERSION,
+      status: 'imported',
+      scannedSubmissionCount,
+      importedDraftCount: importCandidates.length,
+      skippedAlreadyImportedCount,
+      skippedInvalidSubmissionCount,
+      notifiedParticipantCount,
+      importedProjectIds,
+      importedAt,
     };
   }
 

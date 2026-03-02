@@ -11,8 +11,12 @@ import type {
   GetPipelineBoardResult,
   GetHomeFeedInput,
   HomeFeedSnapshot,
+  BulkImportHackdaySubmissionsInput,
+  BulkImportHackdaySubmissionsResult,
   GetPathwayResult,
   GetArtifactResult,
+  GetHackdayExtractionCandidatesInput,
+  HackdayExtractionCandidatesResult,
   ListPathwaysInput,
   ListPathwaysResult,
   ListProblemImportCandidatesInput,
@@ -56,6 +60,8 @@ import type {
   RoiDashboardSnapshot,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
+  TriggerPostHackdayExtractionPromptInput,
+  TriggerPostHackdayExtractionPromptResult,
   UpdateMentorProfileInput,
   UpdateMentorProfileResult,
   VoteProblemResult,
@@ -373,6 +379,12 @@ function unsupportedRoiBackendError(): never {
   );
 }
 
+function unsupportedExtractionBackendError(): never {
+  throw new Error(
+    '[EXTRACTION_UNSUPPORTED_BACKEND] Hackday extraction operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+  );
+}
+
 function getProblemExchangeModerationMode(): ProblemExchangeCapabilitiesResult['moderationMode'] {
   return 'allowlist';
 }
@@ -449,6 +461,36 @@ export async function getHomeFeed(
       );
       return snapshot;
     }
+  );
+}
+
+export async function getHackdayExtractionCandidates(
+  viewer: ViewerContext,
+  input: GetHackdayExtractionCandidatesInput
+): Promise<HackdayExtractionCandidatesResult> {
+  return withConfiguredBackend(
+    () => repository.getHackdayExtractionCandidates(viewer, input),
+    () => Promise.resolve(unsupportedExtractionBackendError())
+  );
+}
+
+export async function triggerPostHackdayExtractionPrompt(
+  viewer: ViewerContext,
+  input: TriggerPostHackdayExtractionPromptInput
+): Promise<TriggerPostHackdayExtractionPromptResult> {
+  return withConfiguredBackend(
+    () => repository.triggerPostHackdayExtractionPrompt(viewer, input),
+    () => Promise.resolve(unsupportedExtractionBackendError())
+  );
+}
+
+export async function bulkImportHackdaySubmissions(
+  viewer: ViewerContext,
+  input: BulkImportHackdaySubmissionsInput
+): Promise<BulkImportHackdaySubmissionsResult> {
+  return withConfiguredBackend(
+    () => repository.bulkImportHackdaySubmissions(viewer, input),
+    () => Promise.resolve(unsupportedExtractionBackendError())
   );
 }
 

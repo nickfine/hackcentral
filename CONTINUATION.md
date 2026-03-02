@@ -1,10 +1,10 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 00:56 GMT
+Last updated: 2026-03-02 01:19 GMT
 
 ## Current Snapshot
 
-- Branch: `codex/p1-child-01`
+- Branch: `codex/p3-extract-01`
 - Product source of truth: `HDC-PRODUCT-ROADMAP.md`
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
@@ -460,9 +460,9 @@ Last updated: 2026-03-02 00:56 GMT
 
 ## Next 3 Atomic Actions
 
-1. Implement extraction prompt path resolver + bulk import scaffold with typed contracts and feature-gated UI wiring.
-2. Run Supabase MCP-first source audit and baseline migration scope confirmation, then publish `P3.EXTRACT.01` baseline checkpoint.
-3. Add extraction contract regression coverage and execute the targeted P3 extraction gate suite.
+1. Run Supabase MCP-first source audit and confirm extraction migration shape for `HackdayExtractionPrompt` and `HackdayExtractionImport`.
+2. Apply extraction migration(s) and validate non-dry-run prompt/import commands end-to-end.
+3. Publish `P3.EXTRACT.01` baseline checkpoint with dry-run/write-path evidence and gate decision.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -477,16 +477,17 @@ Last updated: 2026-03-02 00:56 GMT
     - `codex/sb2-v2-custom-events-phase2`
 - Current snapshot:
   - local branches:
-    - `main` (`0677ce0`)
-    - `codex/p1-child-01` (`9a16c2d`) - active implementation branch
+    - `main` (`5e4095b`)
+    - `codex/p3-extract-01` (`0695763`) - active implementation branch
+    - `codex/main-local-wip-20260302` (`2406a4d`) - archived local main WIP
   - worktrees:
     - `/Users/nickster/Downloads/HackCentral` -> `main`
-    - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p1-child-01`
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p3-extract-01`
   - divergence vs `main`:
-    - `codex/p1-child-01`: `0 22`
+    - `codex/p3-extract-01`: `0 1`
   - known status after cleanup:
-    - `/Users/nickster/Downloads/HackCentral`: dirty (pre-existing tracked/untracked docs and screenshots; left untouched)
-    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected uncommitted `P3.OBS.01` implementation/doc artifacts + continuity updates + pre-existing untracked smoke files
+    - `/Users/nickster/Downloads/HackCentral`: clean (`git status --short` empty)
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected in-progress extraction scaffolding changes + pre-existing untracked smoke artifacts
 
 ## Blockers / Decisions Needed
 
@@ -566,6 +567,37 @@ Last updated: 2026-03-02 00:56 GMT
   - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`
   - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`
   - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md`
+
+## Session Update - `P3.EXTRACT.01` Resolver/Type Scaffold (Mar 2, 2026 01:19 GMT)
+
+### Completed
+
+- Added extraction contracts across backend + frontend type mirrors:
+  - `GetHackdayExtractionCandidatesInput` / `HackdayExtractionCandidatesResult`
+  - `TriggerPostHackdayExtractionPromptInput` / `TriggerPostHackdayExtractionPromptResult`
+  - `BulkImportHackdaySubmissionsInput` / `BulkImportHackdaySubmissionsResult`
+  - `HackdayExtractionPolicyVersion='r11-extraction-v1'`
+- Added resolver definitions:
+  - `hdcGetHackdayExtractionCandidates`
+  - `hdcTriggerPostHackdayExtractionPrompt`
+  - `hdcBulkImportHackdaySubmissions`
+- Added backend scaffold methods with Supabase-only guardrails:
+  - permission gates: `[EXTRACT_FORBIDDEN]`, `[EXTRACT_IMPORT_FORBIDDEN]`
+  - migration gates: `HackdayExtractionPrompt`, `HackdayExtractionImport`
+  - audit actions: `hackday_extraction_prompted`, `hackday_bulk_imported`
+- Added extraction backend contract test:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` (pass)
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` (14/14 pass)
+- Branch/worktree health snapshot:
+  - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` -> `0 1`
+  - `/Users/nickster/Downloads/HackCentral` status clean, `/Users/nickster/Downloads/HackCentral-p1-child-01` status known with extraction-scaffold edits.
 
 ## Validation Commands
 

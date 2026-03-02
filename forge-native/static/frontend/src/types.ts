@@ -1215,9 +1215,81 @@ export interface TrackRoiExportResult {
   loggedAt: string;
 }
 
+export type HackdayExtractionPolicyVersion = 'r11-extraction-v1';
+
+export interface GetHackdayExtractionCandidatesInput {
+  eventId: string;
+  limit?: number;
+}
+
+export interface HackdayExtractionCandidate {
+  projectId: string;
+  title: string;
+  submittedAt: string | null;
+  ownerUserId: string | null;
+  alreadyImportedToShowcase: boolean;
+}
+
+export interface HackdayExtractionCandidatesResult {
+  eventId: string;
+  lifecycleStatus: LifecycleStatus;
+  policyVersion: HackdayExtractionPolicyVersion;
+  participantCount: number;
+  submissionCount: number;
+  showcaseDraftCount: number;
+  candidates: HackdayExtractionCandidate[];
+}
+
+export interface TriggerPostHackdayExtractionPromptInput {
+  eventId: string;
+  dryRun?: boolean;
+  notifyParticipants?: boolean;
+}
+
+export interface TriggerPostHackdayExtractionPromptResult {
+  eventId: string;
+  policyVersion: HackdayExtractionPolicyVersion;
+  status: 'prompted' | 'skipped_not_results' | 'dry_run';
+  lifecycleStatus: LifecycleStatus;
+  eligibleParticipantCount: number;
+  promptedParticipantCount: number;
+  skippedAlreadyPromptedCount: number;
+  promptedAt: string | null;
+}
+
+export interface BulkImportHackdaySubmissionsInput {
+  eventId: string;
+  dryRun?: boolean;
+  notifyParticipants?: boolean;
+  limit?: number;
+  overwriteExistingDrafts?: boolean;
+}
+
+export interface BulkImportHackdaySubmissionsResult {
+  eventId: string;
+  policyVersion: HackdayExtractionPolicyVersion;
+  status: 'imported' | 'skipped_not_results' | 'dry_run';
+  scannedSubmissionCount: number;
+  importedDraftCount: number;
+  skippedAlreadyImportedCount: number;
+  skippedInvalidSubmissionCount: number;
+  notifiedParticipantCount: number;
+  importedProjectIds: string[];
+  importedAt: string | null;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
+  hdcGetHackdayExtractionCandidates: (
+    payload: GetHackdayExtractionCandidatesInput
+  ) => HackdayExtractionCandidatesResult;
+  hdcTriggerPostHackdayExtractionPrompt: (
+    payload: TriggerPostHackdayExtractionPromptInput
+  ) => TriggerPostHackdayExtractionPromptResult;
+  hdcBulkImportHackdaySubmissions: (
+    payload: BulkImportHackdaySubmissionsInput
+  ) => BulkImportHackdaySubmissionsResult;
   createHack: (payload: CreateHackInput) => CreateHackResult;
   hdcCreateArtifact: (payload: CreateArtifactInput) => CreateArtifactResult;
   hdcListArtifacts: (payload: ListArtifactsInput) => ListArtifactsResult;

@@ -9,6 +9,9 @@ import {
   getArtifact,
   getBootstrapData,
   getHomeFeed,
+  getHackdayExtractionCandidates,
+  triggerPostHackdayExtractionPrompt,
+  bulkImportHackdaySubmissions,
   getPipelineBoard,
   getPathway,
   listShowcaseHacks,
@@ -40,8 +43,10 @@ import type {
   CreateProblemInput,
   CreateArtifactInput,
   ActivateAppModeContextResult,
+  BulkImportHackdaySubmissionsInput,
   CreateInstanceDraftInput,
   FlagProblemInput,
+  GetHackdayExtractionCandidatesInput,
   GetRoiDashboardInput,
   GetHomeFeedInput,
   GetPipelineBoardInput,
@@ -64,6 +69,7 @@ import type {
   SubmitHackInput,
   TrackRoiExportInput,
   TrackTeamPulseExportInput,
+  TriggerPostHackdayExtractionPromptInput,
   ViewerContext,
 } from './shared/types';
 
@@ -135,6 +141,30 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: GetHomeFeedInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return getHomeFeed(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcGetHackdayExtractionCandidates',
+  async (request: { context?: RawResolverContext; payload: GetHackdayExtractionCandidatesInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return getHackdayExtractionCandidates(viewer, request.payload || { eventId: '' });
+  }
+);
+
+resolver.define(
+  'hdcTriggerPostHackdayExtractionPrompt',
+  async (request: { context?: RawResolverContext; payload: TriggerPostHackdayExtractionPromptInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return triggerPostHackdayExtractionPrompt(viewer, request.payload || { eventId: '' });
+  }
+);
+
+resolver.define(
+  'hdcBulkImportHackdaySubmissions',
+  async (request: { context?: RawResolverContext; payload: BulkImportHackdaySubmissionsInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return bulkImportHackdaySubmissions(viewer, request.payload || { eventId: '' });
   }
 );
 
