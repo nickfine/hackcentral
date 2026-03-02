@@ -2,10 +2,13 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { repoRootCommand, resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const FORGE_DIR = path.join(ROOT, 'forge-native');
 const ARTIFACTS_DIR = path.join(ROOT, 'docs', 'artifacts');
+export const REQUIRED_METRICS = ['feed_signal_health', 'roi_signal_health', 'roi_export'];
 
 function parseArgs(argv) {
   const args = {
@@ -42,7 +45,7 @@ function toStamp(iso) {
   return iso.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z').replace('T', '-');
 }
 
-function parseTelemetryEvents(lines) {
+export function parseTelemetryEvents(lines) {
   const events = [];
   for (const line of lines) {
     const idx = line.indexOf('{');
@@ -57,7 +60,7 @@ function parseTelemetryEvents(lines) {
   return events;
 }
 
-function summarizeEvents(events, lineCount) {
+export function summarizeEvents(events, lineCount) {
   const metricCounts = {};
   const alertCounts = {};
   const warningCounts = {};
@@ -96,6 +99,37 @@ function summarizeEvents(events, lineCount) {
   }
 
   loggedAts.sort();
+  const missingRequiredMetrics = REQUIRED_METRICS.filter((metric) => !metricCounts[metric]);
+  const hasUnhealthyEvents = unhealthy > 0;
+  const hasAlerts = Object.keys(alertCounts).length > 0;
+  const hasWarnings = Object.keys(warningCounts).length > 0;
+
+  let decision = 'GO';
+  const decisionReasons = [];
+  if (events.length === 0) {
+    decision = 'FAIL';
+    decisionReasons.push('No telemetry events were parsed in the sample window.');
+  }
+  if (missingRequiredMetrics.length > 0) {
+    decision = 'FAIL';
+    decisionReasons.push(`Missing required metrics: ${missingRequiredMetrics.join(', ')}`);
+  }
+  if (decision !== 'FAIL' && (hasUnhealthyEvents || hasAlerts || hasWarnings)) {
+    decision = 'WARN';
+  }
+  if (hasUnhealthyEvents) {
+    decisionReasons.push(`Unhealthy events detected: ${unhealthy}`);
+  }
+  if (hasAlerts) {
+    decisionReasons.push(`Alert keys detected: ${Object.keys(alertCounts).join(', ')}`);
+  }
+  if (hasWarnings) {
+    decisionReasons.push(`Warning keys detected: ${Object.keys(warningCounts).join(', ')}`);
+  }
+  if (decisionReasons.length === 0) {
+    decisionReasons.push('Required metrics present with no unhealthy events, alerts, or warnings.');
+  }
+
   return {
     channel: 'hdc-phase3-telemetry',
     sampleWindow: {
@@ -112,10 +146,14 @@ function summarizeEvents(events, lineCount) {
     },
     alertCounts,
     warningCounts,
-    decision: 'GO',
+    requiredMetrics: REQUIRED_METRICS,
+    missingRequiredMetrics,
+    decision,
+    decisionReasons,
     notes: [
-      'Cadence check verifies channel presence and metric emission, not feature-level correctness.',
-      'If feed_signal_health remains unhealthy, continue weekly tracking and inspect recommendation source coverage.',
+      'Decision policy: FAIL if parsed event count is zero or any required metric is missing.',
+      'Decision policy: WARN if required metrics exist but unhealthy events/alerts/warnings are present.',
+      'Decision policy: GO only when required metrics exist and no health/alert/warning issues are present.',
     ],
   };
 }
@@ -136,6 +174,16 @@ function renderCheckpoint({ generatedAtIso, args, summary, logsRelPath, summaryR
       : Object.entries(summary.warningCounts)
           .map(([warning, count]) => `  - \`${warning}\`: \`${count}\``)
           .join('\n');
+  const requiredMetricLines = (summary.requiredMetrics || [])
+    .map((metric) => `  - \`${metric}\``)
+    .join('\n');
+  const missingRequiredMetricLines =
+    (summary.missingRequiredMetrics || []).length === 0
+      ? '  - none'
+      : (summary.missingRequiredMetrics || []).map((metric) => `  - \`${metric}\``).join('\n');
+  const decisionReasonLines = (summary.decisionReasons || [])
+    .map((reason) => `  - ${reason}`)
+    .join('\n');
 
   return [
     '# HDC P3 Observability Weekly Cadence Checkpoint',
@@ -147,7 +195,8 @@ function renderCheckpoint({ generatedAtIso, args, summary, logsRelPath, summaryR
     '## Commands Executed',
     '',
     '```bash',
-    'cd /Users/nickster/Downloads/HackCentral',
+    repoRootCommand(),
+    'cd "$REPO_ROOT"',
     'npm run qa:p3:telemetry-static-check',
     'npm run qa:p3:obs-weekly-cadence',
     '```',
@@ -168,6 +217,15 @@ function renderCheckpoint({ generatedAtIso, args, summary, logsRelPath, summaryR
     alertLines,
     '- Warning frequency:',
     warningLines,
+    '',
+    '## Decision Inputs',
+    '',
+    '- Required metrics:',
+    requiredMetricLines || '  - none',
+    '- Missing required metrics:',
+    missingRequiredMetricLines,
+    '- Decision reasons:',
+    decisionReasonLines || '  - none',
     '',
     '## Evidence',
     '',
@@ -229,8 +287,16 @@ async function main() {
   console.log(checkpointPath);
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(1);
-});
+function isDirectExecution() {
+  const scriptPath = fileURLToPath(import.meta.url);
+  const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+  return invokedPath === scriptPath;
+}
+
+if (isDirectExecution()) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+  });
+}

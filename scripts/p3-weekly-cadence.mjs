@@ -2,8 +2,9 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { repoRootCommand, resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const ARTIFACTS_DIR = path.join(ROOT, 'docs', 'artifacts');
 const DEFAULT_PROJECT_REF = 'ssafugtobsqxmqtphwch';
 
@@ -58,6 +59,18 @@ function renderCheckpoint({ generatedAtIso, args, obsSummary, extractStatus, obs
       : Object.entries(obsSummary.warningCounts)
           .map(([key, count]) => `  - \`${key}\`: \`${count}\``)
           .join('\n');
+  const requiredMetricLines =
+    Array.isArray(obsSummary.requiredMetrics) && obsSummary.requiredMetrics.length > 0
+      ? obsSummary.requiredMetrics.map((metric) => `  - \`${metric}\``).join('\n')
+      : '  - none';
+  const missingRequiredMetricLines =
+    Array.isArray(obsSummary.missingRequiredMetrics) && obsSummary.missingRequiredMetrics.length > 0
+      ? obsSummary.missingRequiredMetrics.map((metric) => `  - \`${metric}\``).join('\n')
+      : '  - none';
+  const decisionReasonLines =
+    Array.isArray(obsSummary.decisionReasons) && obsSummary.decisionReasons.length > 0
+      ? obsSummary.decisionReasons.map((reason) => `  - ${reason}`).join('\n')
+      : '  - none';
   const lifecycleLines = (extractStatus.lifecycleCounts || [])
     .map((row) => `  - \`${row.lifecycle_status}\`: \`${row.count}\``)
     .join('\n');
@@ -75,12 +88,13 @@ function renderCheckpoint({ generatedAtIso, args, obsSummary, extractStatus, obs
     '# HDC P3 Weekly Cadence Checkpoint',
     '',
     `Timestamp (UTC): ${generatedAtIso}`,
-    `Decision: \`${obsSummary.decision || 'GO'}\``,
+    `Decision: \`${obsSummary.decision || 'UNKNOWN'}\``,
     '',
     '## Commands Executed',
     '',
     '```bash',
-    'cd /Users/nickster/Downloads/HackCentral',
+    repoRootCommand(),
+    'cd "$REPO_ROOT"',
     `npm run qa:p3:weekly-cadence -- --since ${args.since} --limit ${args.limit} --project-ref ${args.projectRef}`,
     '```',
     '',
@@ -94,6 +108,15 @@ function renderCheckpoint({ generatedAtIso, args, obsSummary, extractStatus, obs
     alertLines,
     '- Warning frequency:',
     warningLines,
+    '',
+    '## Observability Decision Inputs',
+    '',
+    '- Required metrics:',
+    requiredMetricLines,
+    '- Missing required metrics:',
+    missingRequiredMetricLines,
+    '- Decision reasons:',
+    decisionReasonLines,
     '',
     '## Extraction Readiness Summary',
     '',

@@ -2,8 +2,10 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const DEFAULT_PROJECT_REF = 'ssafugtobsqxmqtphwch';
 
 function parseArgs(argv) {
@@ -89,9 +91,10 @@ async function fetchRestJson(url, serviceRoleKey) {
   return JSON.parse(body);
 }
 
-function summarizeLifecycleCounts(rows) {
+export function summarizeLifecycleCounts(rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
   const counts = new Map();
-  for (const row of rows) {
+  for (const row of safeRows) {
     const lifecycle = String(row?.lifecycle_status || 'unknown');
     counts.set(lifecycle, (counts.get(lifecycle) || 0) + 1);
   }
@@ -100,8 +103,9 @@ function summarizeLifecycleCounts(rows) {
     .sort((a, b) => a.lifecycle_status.localeCompare(b.lifecycle_status));
 }
 
-function summarizeScheduleOutlook(rows, checkedAt) {
-  const withResultsAnnounceAt = rows
+export function summarizeScheduleOutlook(rows, checkedAt) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const withResultsAnnounceAt = safeRows
     .filter((row) => row?.event_schedule?.resultsAnnounceAt)
     .map((row) => ({
       id: row.id,
@@ -122,11 +126,31 @@ function summarizeScheduleOutlook(rows, checkedAt) {
 
   return {
     resultsAnnounceAtPresentCount: withResultsAnnounceAt.length,
-    resultsAnnounceAtMissingCount: rows.length - withResultsAnnounceAt.length,
+    resultsAnnounceAtMissingCount: safeRows.length - withResultsAnnounceAt.length,
     pastDueResultsAnnounceCount: pastDue.length,
     nextUpcomingResultsAnnounceAt: upcoming[0]?.resultsAnnounceAt ?? null,
     nextUpcomingEvent: upcoming[0] ?? null,
     samplePastDue: pastDue.slice(0, 5),
+  };
+}
+
+export function summarizeResultsEvents(rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const allResultsEvents = safeRows
+    .filter((row) => row?.lifecycle_status === 'results')
+    .sort((a, b) => String(b?.updatedAt || '').localeCompare(String(a?.updatedAt || '')));
+  const latestResultsEvents = allResultsEvents.slice(0, 5).map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    lifecycle_status: row.lifecycle_status,
+    updatedAt: row.updatedAt,
+  }));
+
+  return {
+    allResultsEvents,
+    latestResultsEvents,
+    resultsEventCount: allResultsEvents.length,
   };
 }
 
@@ -148,6 +172,7 @@ function renderCadenceSample(payload, jsonRelPath) {
     '## Lifecycle Snapshot',
     '',
     `- resultsEventCount: \`${payload.resultsEventCount}\``,
+    `- latestResultsEventsSampleCount: \`${Array.isArray(payload.latestResultsEvents) ? payload.latestResultsEvents.length : 0}\``,
     '- Lifecycle counts:',
     lifecycleLines || '  - none',
     '',
@@ -207,24 +232,14 @@ async function main() {
     `${restBase}/Event?select=id,name,slug,lifecycle_status,event_schedule,updatedAt&limit=1000`,
     serviceRoleKey
   );
-  const lifecycleCounts = summarizeLifecycleCounts(events);
-  const latestResultsEvents = events
-    .filter((row) => row?.lifecycle_status === 'results')
-    .sort((a, b) => String(b?.updatedAt || '').localeCompare(String(a?.updatedAt || '')))
-    .slice(0, 5)
-    .map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      lifecycle_status: row.lifecycle_status,
-      updatedAt: row.updatedAt,
-    }));
-  const resultsEventCount = Array.isArray(latestResultsEvents) ? latestResultsEvents.length : 0;
-  const scheduleOutlook = summarizeScheduleOutlook(events, checkedAt);
+  const safeEvents = Array.isArray(events) ? events : [];
+  const lifecycleCounts = summarizeLifecycleCounts(safeEvents);
+  const { allResultsEvents, latestResultsEvents, resultsEventCount } = summarizeResultsEvents(safeEvents);
+  const scheduleOutlook = summarizeScheduleOutlook(safeEvents, checkedAt);
 
   let firstResultsEventSample = null;
   if (resultsEventCount > 0) {
-    const sampleEvent = latestResultsEvents[0];
+    const sampleEvent = allResultsEvents[0];
     try {
       const [submissions, showcaseRows, promptRows, importRows] = await Promise.all([
         fetchRestJson(
@@ -289,8 +304,16 @@ async function main() {
   console.log(samplePath);
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(1);
-});
+function isDirectExecution() {
+  const scriptPath = fileURLToPath(import.meta.url);
+  const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+  return invokedPath === scriptPath;
+}
+
+if (isDirectExecution()) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+  });
+}
