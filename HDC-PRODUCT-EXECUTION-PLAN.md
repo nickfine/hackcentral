@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 01:49 GMT
+Last updated: 2026-03-02 02:00 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 3 (Compounding Value and ROI) |
 | Program status | In execution |
-| Active task ID | `P3.EXTRACT.01` |
+| Active task ID | `P3.EXTRACT.01` (closed; cadence follow-up active) |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -57,15 +57,15 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. Weekly telemetry cadence follow-up for Phase 3 (`feed_signal_health`, `roi_signal_health`, `roi_export`).
-2. Weekly telemetry cadence follow-up for extraction operations after first live results-phase event.
-3. Branch hygiene + merge plan for `codex/p3-extract-01`.
+1. Run extraction cadence sample immediately after first production `results` lifecycle event.
+2. Extend backend contract tests to cover `skipped_not_results` response shape from extraction resolvers.
+3. Build Phase 3 consolidated closeout artifact spanning `ROI`, `FORK`, `EXTRACT`, and `FEED`.
 
 ### Next
 
-1. Extend backend contract tests to cover `skipped_not_results` response shape from extraction resolvers.
-2. Build Phase 3 consolidated closeout artifact spanning `ROI`, `FORK`, `EXTRACT`, and `FEED`.
-3. Prepare post-close handoff branch hygiene + merge plan for `codex/p3-extract-01`.
+1. Keep weekly Phase 3 telemetry cadence checkpoints current (`feed_signal_health`, `roi_signal_health`, `roi_export`).
+2. Capture first non-empty extraction cadence sample once live lifecycle advances to `results`.
+3. Prepare Phase 3 closeout handoff package after extraction cadence sample is captured.
 
 ### Blocked
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Merged `codex/p3-extract-01` into `main` (fast-forward) and completed post-merge hygiene (removed `/Users/nickster/Downloads/HackCentral-p1-child-01` worktree; deleted branch locally/remotely). Resumed weekly Phase 3 telemetry cadence with static gate pass (`npm run qa:p3:telemetry-static-check`) and live 24h sample artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-015605Z.txt`, `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-015605Z.json`, `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-015605Z.md`). Extraction cadence readiness check (MCP-first, CLI fallback) confirmed `resultsEventCount=0` (`draft=56`), so first extraction cadence sample is recorded as pending (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-015605Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-015605Z.md`). |
 | 2026-03-02 | Closed `P3.EXTRACT.01` to `GO`: published extraction operations runbook (`docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`), deployed production bundle with extraction panel (`HACKCENTRAL_UI_VERSION=0.6.45`), captured live HackDays extraction UI smoke evidence (`docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-20260302-0148Z.png`, `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-ACTIONS-20260302-0148Z.png`) including candidate-read action state, and published final checkpoint decision (`docs/artifacts/HDC-P3-EXTRACT-FINAL-CHECKPOINT-20260302-0148Z.md`). Validation rerun: frontend/backend typecheck pass and `forge-native` backend contract suite pass (`16/16`). |
 | 2026-03-02 | Landed `P3.EXTRACT.01` Forge UI extraction operations slice: added HackDays extraction panel in `forge-native/static/frontend/src/App.tsx` for typed candidate load (`hdcGetHackdayExtractionCandidates`), prompt trigger (`hdcTriggerPostHackdayExtractionPrompt`), and bulk import trigger (`hdcBulkImportHackdaySubmissions`) with dry-run toggles, permission-aware error messaging (`[EXTRACT_FORBIDDEN]`, `[EXTRACT_IMPORT_FORBIDDEN]`), and candidate status rendering; added companion styles in `forge-native/static/frontend/src/styles.css`; expanded extraction contract coverage with frontend wiring assertions in `forge-native/tests/backend/extraction-contract.test.mjs`. Validation: `npm --prefix forge-native/static/frontend run typecheck` (pass), `npm --prefix forge-native run typecheck` (pass), `npm --prefix forge-native run test:backend` (16/16 pass). |
 | 2026-03-02 | Applied extraction migration to live project (MCP-first attempt blocked; CLI fallback used), executed non-dry-run extraction resolver smoke on synthetic results-phase event, verified idempotency (`prompted 1->0`, `imported 1->0`), cleaned up synthetic data + temporary capability tag, and published baseline checkpoint artifacts (`docs/artifacts/HDC-P3-EXTRACT-LIVE-RESOLVER-SMOKE-20260302-0129Z.json`, `docs/artifacts/HDC-P3-EXTRACT-R11_1-R11_2-CHECKPOINT-20260302-0129Z.md`). |

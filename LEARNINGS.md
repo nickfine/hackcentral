@@ -2726,3 +2726,44 @@ Use this template at the end of every work session:
 - In Forge Confluence global-page rollouts, a small explicit UI version bump is the fastest way to prove CDN propagation and avoid ambiguous stale-bundle diagnostics.
 - For admin-only operations, one screenshot of panel visibility is insufficient; capture at least one post-action UI state to prove control wiring and backend invocation path.
 - Closing a module gate cleanly requires publishing runbook + final checkpoint in the same session as deploy evidence, otherwise continuity docs drift into ambiguous “almost done” state.
+
+## Session Update - Merge Hygiene + Phase 3 Cadence Resume (Mar 2, 2026 02:00 GMT)
+
+### Completed
+
+- Merged `codex/p3-extract-01` into `main` and pushed to origin (fast-forward to `986fc02`).
+- Completed branch/worktree hygiene after merge:
+  - deleted local+remote `codex/p3-extract-01`
+  - removed `/Users/nickster/Downloads/HackCentral-p1-child-01` worktree
+- Resumed weekly Phase 3 observability cadence:
+  - ran `npm run qa:p3:telemetry-static-check` (pass)
+  - captured production 24h telemetry sample for `feed_signal_health`, `roi_signal_health`, `roi_export`
+- Ran extraction cadence readiness check using Supabase MCP-first and fallback path.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-015605Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-015605Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-015605Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-015605Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-015605Z.md`
+
+### Observations
+
+- Sample window emitted all required Phase 3 telemetry metrics (`36` events total):
+  - `feed_signal_health=26`
+  - `roi_signal_health=6`
+  - `roi_export=4`
+- Alert/warning pattern remained stable:
+  - `recommendation_coverage_below_threshold=26`
+  - `trend_points_below_threshold=6`
+- Production lifecycle status check for extraction cadence:
+  - `draft=56`
+  - `results=0`
+  - first live extraction cadence sample remains blocked on lifecycle progression to `results`.
+
+### Operational Learnings
+
+- Supabase MCP should remain the first path for compliance, but production lifecycle/status checks still require prepared CLI/service-role fallback in this environment due permission-scoped MCP admin endpoints.
+- Capturing a parsed telemetry summary JSON alongside raw log lines reduces ambiguity when making weekly GO/PENDING decisions and preserves comparable week-over-week metrics.
+- Extraction cadence should be modeled as event-gated operations; recording an explicit `pending_results_event` status is better than forcing synthetic reruns once production rollout is already `GO`.

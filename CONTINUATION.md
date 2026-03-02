@@ -1,15 +1,15 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:49 GMT
+Last updated: 2026-03-02 02:00 GMT
 
 ## Current Snapshot
 
-- Branch: `codex/p3-extract-01`
+- Branch: `main`
 - Product source of truth: `HDC-PRODUCT-ROADMAP.md`
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.45`
+  - Root app version: `0.6.44`
   - Forge native package version: `0.3.12`
 - Current phase: `Phase 3 in execution`
 - Registry (`P1.REG.01`) is complete and validated:
@@ -454,7 +454,7 @@ Last updated: 2026-03-02 01:49 GMT
 ## Active Task Pointer
 
 - Active Task ID: `P3.EXTRACT.01` (closed)
-- Task title: `Post-hackday extraction and bulk import rollout (GO checkpoint captured)`
+- Task title: `Phase 3 extraction rollout closed; cadence operations follow-up in progress`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
@@ -465,40 +465,39 @@ Last updated: 2026-03-02 01:49 GMT
 
 ## Next 3 Atomic Actions
 
-1. Weekly telemetry cadence follow-up for Phase 3 (`feed_signal_health`, `roi_signal_health`, `roi_export`).
-2. Weekly telemetry cadence follow-up for extraction operations after first live `results` event.
-3. Prepare branch hygiene + merge plan for `codex/p3-extract-01`.
+1. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'`.
+2. Extend extraction contract tests to enforce `skipped_not_results` response-shape assertions.
+3. Publish consolidated Phase 3 closeout artifact spanning ROI/feed/obs/extract with latest cadence checkpoints.
 
 ## Branch/Worktree Reconciliation Status
 
-- Completed (2026-03-02 00:24 GMT):
+- Completed (2026-03-02 01:55 GMT):
   - executed required commands:
     - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
     - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
     - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
     - divergence checks for `codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2`, and `codex/p1-child-01`
+    - merge/hygiene checks for `codex/p3-extract-01`
   - stale non-active branches deleted (local + remote):
     - `codex/hdc-hackday-template-spinout`
     - `codex/sb2-v2-custom-events-phase2`
 - Current snapshot:
   - local branches:
     - `main` (tracking `origin/main`)
-    - `codex/p3-extract-01` (tracking `origin/codex/p3-extract-01`) - active implementation branch
     - `codex/main-local-wip-20260302` (archived local main WIP)
   - worktrees:
     - `/Users/nickster/Downloads/HackCentral` -> `main`
-    - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p3-extract-01`
-  - divergence vs `main`:
-    - run `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` at session start (avoid stale hardcoded counts)
+  - merged/removed:
+    - `codex/p3-extract-01` merged into `main` and deleted locally/remotely
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01` worktree removed
   - known status after cleanup:
-    - `/Users/nickster/Downloads/HackCentral`: clean (`git status --short` empty)
-    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected in-progress extraction UI/workflow changes + pre-existing untracked smoke artifacts
+    - `/Users/nickster/Downloads/HackCentral`: clean (`main` == `origin/main` at `986fc02`)
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - No active blocker currently logged for `P3.EXTRACT.01`.
-  - Branch/worktree reconciliation blocker is closed.
+  - No active code blocker for Phase 3 cadence execution.
+  - Extraction weekly sample remains blocked on source data condition: no production `results` lifecycle event currently available (`resultsEventCount=0`).
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -847,3 +846,31 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 4. Read `HDC-PRODUCT-EXECUTION-PLAN.md`.
 5. Read the latest entry in `LEARNINGS.md`.
 6. Confirm the `Active Task ID` before implementation.
+
+## Session Update - Merge Hygiene + Phase 3 Weekly Cadence (Mar 2, 2026 02:00 GMT)
+
+### Completed
+
+- Merged `codex/p3-extract-01` into `main` via fast-forward and pushed `main` to origin (`986fc02`).
+- Completed post-merge hygiene:
+  - removed worktree `/Users/nickster/Downloads/HackCentral-p1-child-01`
+  - deleted branch `codex/p3-extract-01` locally/remotely
+- Resumed Phase 3 weekly telemetry cadence:
+  - static gate: `npm run qa:p3:telemetry-static-check` (pass)
+  - live telemetry sample (24h) captured and summarized
+- Ran extraction cadence readiness check with Supabase MCP-first and fallback:
+  - MCP permission-scoped for project-admin SQL in this environment
+  - fallback CLI/service-role REST verified lifecycle status in production
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-015605Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-015605Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-015605Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-015605Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-015605Z.md`
+
+### Decision
+
+- Phase 3 telemetry cadence: `GO` (all required telemetry metrics present in production sample).
+- Extraction first live cadence sample: `PENDING_RESULTS_EVENT` (`resultsEventCount=0`, current lifecycle distribution `draft=56`).
