@@ -3,7 +3,7 @@ import { formatLabel, getInitials } from '../../utils/format';
 
 export function HackCard({ item }: { item: FeaturedHack }): JSX.Element {
   return (
-    <article className="card hack-card">
+    <div className="hack-card">
       <div className="hack-card-head">
         <div className="hack-card-title-wrap">
           <h3>{item.title}</h3>
@@ -17,7 +17,7 @@ export function HackCard({ item }: { item: FeaturedHack }): JSX.Element {
         <span className={`pill pill-${item.assetType} hack-card-type-pill`}>{formatLabel(item.assetType)}s</span>
         <span className="meta hack-card-meta">{item.reuseCount} reuses</span>
       </div>
-    </article>
+    </div>
   );
 }
 

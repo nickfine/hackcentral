@@ -3301,3 +3301,53 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Run one post-deploy weekly cadence observation and compare homepage first-action telemetry events against the prior baseline week.
+
+## Session Update - Showcase UX Hardening (2026-03-02 23:22 GMT)
+
+### Task ID
+- `P3.OBS.01`
+
+### What Changed
+- Implemented a flag-gated Hacks/Showcase UX pass (`VITE_HDC_SHOWCASE_UX_V1`) focused on first action and scanability:
+  - labeled filter shell + advanced filter toggle
+  - debounced search/tag filtering
+  - actionable featured/list cards
+  - right-side detail drawer with contextual fork/demo actions
+  - responsive column collapse behavior
+- Added topbar overlap mitigation for right-hand header actions.
+- Bumped local UI marker to `HACKCENTRAL_UI_VERSION=0.6.54`.
+
+### Validation / Evidence
+- `npm run custom-ui:build` (pass)
+- `npm run frontend:build` (pass)
+- Local visual smoke in localhost with `VITE_HDC_SHOWCASE_UX_V1=true` verified updated Showcase interactions and layout.
+
+### Regressions / Gotchas
+- Applying `overflow: hidden` to the topbar action container clipped switcher dropdown overlays; reverted and kept non-clipping overlap mitigation.
+
+### Next Recommended Step
+- Deploy this frontend payload and capture one live Confluence Hacks-page smoke artifact with `VITE_HDC_SHOWCASE_UX_V1=true` before deciding on default-on rollout.
+
+## Session Update - Showcase Close Drawer Fix + Deploy (2026-03-02 23:30 GMT)
+
+### Task ID
+- `P3.OBS.01`
+
+### What Changed
+- Fixed Showcase detail drawer close behavior under `VITE_HDC_SHOWCASE_UX_V1` by adding explicit dismissed-state handling to prevent immediate auto-selection after close.
+- Version bump for release payload:
+  - root app `0.6.46`
+  - Forge native package `0.3.14`
+  - UI marker `HACKCENTRAL_UI_VERSION=0.6.55`
+- Deployed and upgraded production Confluence app.
+
+### Validation / Evidence
+- `npm run custom-ui:build` (pass)
+- `forge deploy --environment production --no-verify` (pass; `✔ Deployed`)
+- `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (pass; site already at latest)
+
+### Regressions / Gotchas
+- Forge CLI still warns about Node version support and `punycode` deprecation in this environment; non-blocking for deployment.
+
+### Next Recommended Step
+- Capture post-deploy live Hacks-page smoke to confirm drawer close persistence in Confluence-hosted UI and close the UX fix rollout evidence loop.

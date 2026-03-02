@@ -110,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.53';
+const HACKCENTRAL_UI_VERSION = '0.6.55';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -127,6 +127,7 @@ const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 const HDC_HOME_UX_V1 = true;
+const HDC_SHOWCASE_UX_V1 = String(import.meta.env.VITE_HDC_SHOWCASE_UX_V1 || '').trim().toLowerCase() === 'true';
 const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
   { value: 'read', label: 'Read' },
   { value: 'try', label: 'Try' },
@@ -1306,6 +1307,9 @@ export function App(): JSX.Element {
   const [showcaseTagsInput, setShowcaseTagsInput] = useState('');
   const [showcaseSourceEventInput, setShowcaseSourceEventInput] = useState('');
   const [showcaseFeaturedOnly, setShowcaseFeaturedOnly] = useState(false);
+  const [showcaseAdvancedFiltersOpen, setShowcaseAdvancedFiltersOpen] = useState(false);
+  const [debouncedHackSearch, setDebouncedHackSearch] = useState('');
+  const [debouncedShowcaseTagsInput, setDebouncedShowcaseTagsInput] = useState('');
   const [showcaseItems, setShowcaseItems] = useState<ShowcaseHackListItem[]>([]);
   const [showcaseCanManage, setShowcaseCanManage] = useState(false);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
@@ -1314,6 +1318,7 @@ export function App(): JSX.Element {
   const [showcaseFeaturePendingProjectId, setShowcaseFeaturePendingProjectId] = useState<string | null>(null);
   const [showcaseForkPendingProjectId, setShowcaseForkPendingProjectId] = useState<string | null>(null);
   const [showcaseSelectedProjectId, setShowcaseSelectedProjectId] = useState<string | null>(null);
+  const [showcaseDetailDismissed, setShowcaseDetailDismissed] = useState(false);
   const [showcaseDetail, setShowcaseDetail] = useState<GetShowcaseHackDetailResult | null>(null);
   const [showcaseDetailLoading, setShowcaseDetailLoading] = useState(false);
   const [showcaseDetailError, setShowcaseDetailError] = useState('');
@@ -2810,6 +2815,8 @@ export function App(): JSX.Element {
     setShowcaseLoading(true);
     setShowcaseError('');
     try {
+      const effectiveSearch = (HDC_SHOWCASE_UX_V1 ? debouncedHackSearch : hackSearch).trim();
+      const effectiveTagsInput = HDC_SHOWCASE_UX_V1 ? debouncedShowcaseTagsInput : showcaseTagsInput;
       const requestedAssetTypes = hackTypeFilter === 'all' ? undefined : [hackTypeFilter];
       const requestedStatuses: Array<'completed' | 'in_progress'> =
         hackStatusFilter === 'verified'
@@ -2817,12 +2824,12 @@ export function App(): JSX.Element {
           : hackStatusFilter === 'in_progress'
             ? ['in_progress' as const]
             : [hackTab === 'in_progress' ? 'in_progress' : 'completed'];
-      const requestedTags = parseRegistryTags(showcaseTagsInput);
+      const requestedTags = parseRegistryTags(effectiveTagsInput);
       const sourceEventId = showcaseSourceEventInput.trim() || undefined;
 
       if (previewMode) {
         let items = featuredHacks.map(mapFeaturedHackToShowcaseItem);
-        const query = hackSearch.trim().toLowerCase();
+        const query = effectiveSearch.toLowerCase();
         if (query) {
           items = items.filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(query));
         }
@@ -2856,7 +2863,7 @@ export function App(): JSX.Element {
       }
 
       const result = await invokeTyped('hdcListShowcaseHacks', {
-        query: hackSearch.trim() || undefined,
+        query: effectiveSearch || undefined,
         assetTypes: requestedAssetTypes,
         statuses: requestedStatuses,
         tags: requestedTags.length > 0 ? requestedTags : undefined,
@@ -2874,6 +2881,8 @@ export function App(): JSX.Element {
       setShowcaseLoading(false);
     }
   }, [
+    debouncedHackSearch,
+    debouncedShowcaseTagsInput,
     featuredHacks,
     hackSearch,
     hackStatusFilter,
@@ -2896,6 +2905,7 @@ export function App(): JSX.Element {
 
     const loadDetail = async (): Promise<void> => {
       setShowcaseDetailLoading(true);
+      setShowcaseDetail(null);
       setShowcaseDetailError('');
       try {
         if (previewMode) {
@@ -3036,6 +3046,34 @@ export function App(): JSX.Element {
     },
     [previewMode]
   );
+
+  const handleOpenShowcaseDemo = useCallback(
+    async (demoUrl?: string) => {
+      if (!demoUrl || !isValidHttpUrl(demoUrl)) return;
+      if (previewMode) {
+        window.open(demoUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      const opened = await openWithRouterTimeout(demoUrl);
+      if (!opened) {
+        window.open(demoUrl, '_blank', 'noopener,noreferrer');
+      }
+    },
+    [previewMode]
+  );
+
+  const handleSelectShowcaseProject = useCallback((projectId: string) => {
+    setShowcaseDetailDismissed(false);
+    setShowcaseSelectedProjectId(projectId);
+    setShowcaseDetailError('');
+  }, []);
+
+  const handleCloseShowcaseDetail = useCallback(() => {
+    setShowcaseDetailDismissed(true);
+    setShowcaseSelectedProjectId(null);
+    setShowcaseDetail(null);
+    setShowcaseDetailError('');
+  }, []);
 
   const loadRegistryArtifacts = useCallback(
     async (filters: {
@@ -3821,27 +3859,104 @@ export function App(): JSX.Element {
     firstOption?.focus();
   }, [switcherOpen]);
 
+  useEffect(() => {
+    if (!HDC_SHOWCASE_UX_V1) {
+      setDebouncedHackSearch(hackSearch);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setDebouncedHackSearch(hackSearch), 350);
+    return () => window.clearTimeout(timeoutId);
+  }, [hackSearch]);
+
+  useEffect(() => {
+    if (!HDC_SHOWCASE_UX_V1) {
+      setDebouncedShowcaseTagsInput(showcaseTagsInput);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setDebouncedShowcaseTagsInput(showcaseTagsInput), 350);
+    return () => window.clearTimeout(timeoutId);
+  }, [showcaseTagsInput]);
+
   const showcaseAsFeaturedHacks = useMemo(
     () => showcaseItems.map((item) => mapShowcaseItemToFeaturedHack(item)),
     [showcaseItems]
   );
 
+  const showcaseItemsByProjectId = useMemo(() => {
+    const nextMap = new Map<string, ShowcaseHackListItem>();
+    for (const item of showcaseItems) {
+      nextMap.set(item.projectId, item);
+    }
+    return nextMap;
+  }, [showcaseItems]);
+
   const filteredHacks = useMemo(() => {
+    const search = (HDC_SHOWCASE_UX_V1 ? debouncedHackSearch : hackSearch).trim().toLowerCase();
     return showcaseAsFeaturedHacks.filter((hack) => {
-      const search = hackSearch.trim().toLowerCase();
       if (search && !`${hack.title} ${hack.description}`.toLowerCase().includes(search)) return false;
       if (hackTypeFilter !== 'all' && hack.assetType !== hackTypeFilter) return false;
       if (hackStatusFilter !== 'all' && hack.status !== hackStatusFilter) return false;
       if (!showDeprecated && isDeprecated(hack.status)) return false;
       return true;
     });
-  }, [showcaseAsFeaturedHacks, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated]);
+  }, [debouncedHackSearch, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated, showcaseAsFeaturedHacks]);
 
   const featuredTop = useMemo(() => {
     const featured = showcaseItems.filter((item) => item.featured).slice(0, 4).map(mapShowcaseItemToFeaturedHack);
+    if (HDC_SHOWCASE_UX_V1) return featured;
     if (featured.length > 0) return featured;
     return filteredHacks.slice(0, 4);
   }, [filteredHacks, showcaseItems]);
+
+  const selectedShowcaseItem = useMemo(
+    () => (showcaseSelectedProjectId ? showcaseItemsByProjectId.get(showcaseSelectedProjectId) ?? null : null),
+    [showcaseItemsByProjectId, showcaseSelectedProjectId]
+  );
+
+  const filteredShowcaseItems = useMemo(
+    () =>
+      filteredHacks
+        .map((hack) => showcaseItemsByProjectId.get(hack.id))
+        .filter((item): item is ShowcaseHackListItem => Boolean(item)),
+    [filteredHacks, showcaseItemsByProjectId]
+  );
+
+  const featuredShowcaseItems = useMemo(
+    () =>
+      featuredTop
+        .map((hack) => showcaseItemsByProjectId.get(hack.id))
+        .filter((item): item is ShowcaseHackListItem => Boolean(item)),
+    [featuredTop, showcaseItemsByProjectId]
+  );
+
+  useEffect(() => {
+    if (!HDC_SHOWCASE_UX_V1 || view !== 'hacks') return;
+    if (filteredShowcaseItems.length === 0) {
+      if (showcaseSelectedProjectId) {
+        setShowcaseSelectedProjectId(null);
+      }
+      return;
+    }
+    if (!showcaseSelectedProjectId) {
+      if (showcaseDetailDismissed) return;
+      setShowcaseSelectedProjectId(filteredShowcaseItems[0].projectId);
+      return;
+    }
+    const stillVisible = filteredShowcaseItems.some((item) => item.projectId === showcaseSelectedProjectId);
+    if (!stillVisible) {
+      if (showcaseDetailDismissed) {
+        setShowcaseSelectedProjectId(null);
+        return;
+      }
+      setShowcaseSelectedProjectId(filteredShowcaseItems[0].projectId);
+    }
+  }, [filteredShowcaseItems, showcaseDetailDismissed, showcaseSelectedProjectId, view]);
+
+  useEffect(() => {
+    if (view === 'hacks') return;
+    if (!showcaseDetailDismissed) return;
+    setShowcaseDetailDismissed(false);
+  }, [showcaseDetailDismissed, view]);
 
   const globalSearchResults = useMemo(() => {
     const q = globalSearch.trim().toLowerCase();
@@ -4973,7 +5088,9 @@ export function App(): JSX.Element {
 
               <section className="grid hacks-grid">
                 {featuredHacks.slice(0, 8).map((hack) => (
-                  <HackCard key={hack.id} item={hack} />
+                  <article key={hack.id} className="card">
+                    <HackCard item={hack} />
+                  </article>
                 ))}
               </section>
 
@@ -5181,52 +5298,133 @@ export function App(): JSX.Element {
 
               {hackTab === 'completed' && HACKS_SCOPE_NOTE ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
 
-              <section className="filter-row">
-                <input
-                  type="search"
-                  placeholder={hackTab === 'completed' ? 'Search completed hacks...' : 'Search in-progress hacks...'}
-                  value={hackSearch}
-                  onChange={(event) => setHackSearch(event.target.value)}
-                />
-
-                <select
-                  value={hackTypeFilter}
-                  onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
-                >
-                  <option value="all">All Types</option>
-                  <option value="prompt">Prompts</option>
-                  <option value="skill">Skills</option>
-                  <option value="app">Apps</option>
-                </select>
-                <select
-                  value={hackStatusFilter}
-                  onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
-                >
-                  <option value="all">Tab Default Status</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="verified">Completed</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="Tags (comma separated)"
-                  value={showcaseTagsInput}
-                  onChange={(event) => setShowcaseTagsInput(event.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="HackDay event ID"
-                  value={showcaseSourceEventInput}
-                  onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
-                />
-                <label className="check-label">
+              {HDC_SHOWCASE_UX_V1 ? (
+                <section className="showcase-filter-shell">
+                  <fieldset className="showcase-filter-group">
+                    <legend>Filter hacks</legend>
+                    <label className="showcase-filter-field">
+                      <span>Search</span>
+                      <input
+                        type="search"
+                        placeholder="Search title or description"
+                        value={hackSearch}
+                        onChange={(event) => setHackSearch(event.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Type</span>
+                      <select
+                        value={hackTypeFilter}
+                        onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
+                      >
+                        <option value="all">All types</option>
+                        <option value="prompt">Prompts</option>
+                        <option value="skill">Skills</option>
+                        <option value="app">Apps</option>
+                      </select>
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Status</span>
+                      <select
+                        value={hackStatusFilter}
+                        onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
+                      >
+                        <option value="all">All statuses</option>
+                        <option value="verified">Completed</option>
+                        <option value="in_progress">In progress</option>
+                      </select>
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Tags</span>
+                      <input
+                        type="text"
+                        placeholder="ai, automation, atlassian"
+                        value={showcaseTagsInput}
+                        onChange={(event) => setShowcaseTagsInput(event.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={showcaseFeaturedOnly}
+                        onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                      />
+                      Featured only
+                    </label>
+                  </fieldset>
+                  <div className="showcase-filter-advanced">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      aria-expanded={showcaseAdvancedFiltersOpen}
+                      onClick={() => setShowcaseAdvancedFiltersOpen((open) => !open)}
+                    >
+                      {showcaseAdvancedFiltersOpen ? 'Hide advanced filters' : 'Show advanced filters'}
+                    </button>
+                  </div>
+                  {showcaseAdvancedFiltersOpen ? (
+                    <fieldset className="showcase-filter-group showcase-filter-group-advanced">
+                      <legend>Advanced</legend>
+                      <label className="showcase-filter-field">
+                        <span>HackDay event ID</span>
+                        <input
+                          type="text"
+                          placeholder="Optional event scope"
+                          value={showcaseSourceEventInput}
+                          onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
+                        />
+                      </label>
+                    </fieldset>
+                  ) : null}
+                </section>
+              ) : (
+                <section className="filter-row">
                   <input
-                    type="checkbox"
-                    checked={showcaseFeaturedOnly}
-                    onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                    type="search"
+                    placeholder={hackTab === 'completed' ? 'Search completed hacks...' : 'Search in-progress hacks...'}
+                    value={hackSearch}
+                    onChange={(event) => setHackSearch(event.target.value)}
                   />
-                  Featured only
-                </label>
-              </section>
+
+                  <select
+                    value={hackTypeFilter}
+                    onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="prompt">Prompts</option>
+                    <option value="skill">Skills</option>
+                    <option value="app">Apps</option>
+                  </select>
+                  <select
+                    value={hackStatusFilter}
+                    onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="verified">Completed</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Tags (comma separated)"
+                    value={showcaseTagsInput}
+                    onChange={(event) => setShowcaseTagsInput(event.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="HackDay event ID"
+                    value={showcaseSourceEventInput}
+                    onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
+                  />
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={showcaseFeaturedOnly}
+                      onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                    />
+                    Featured only
+                  </label>
+                </section>
+              )}
 
               <section className="tab-row" aria-label="Hacks tabs">
                 <button
@@ -5247,140 +5445,357 @@ export function App(): JSX.Element {
 
               {showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
 
-              {hackTab === 'completed' ? (
-                <article className="card featured-block">
-                  <h2>Featured Hacks</h2>
-                  <p>High-trust, curated collection of proven AI hacks</p>
-                  <div className="grid featured-grid">
-                    {featuredTop.map((hack) => (
-                      <HackCard key={`featured-${hack.id}`} item={hack} />
-                    ))}
-                    {featuredTop.length === 0 ? <p className="empty-copy">No featured hacks in this filter set yet.</p> : null}
-                  </div>
-                </article>
-              ) : null}
+              {HDC_SHOWCASE_UX_V1 ? (
+                <section className="showcase-layout">
+                  <div className="showcase-main-column">
+                    {hackTab === 'completed' ? (
+                      <article className="card featured-block">
+                        <h2>Featured Hacks</h2>
+                        <p>High-trust, curated collection of proven AI hacks.</p>
+                        <div className="grid featured-grid">
+                          {featuredShowcaseItems.map((showcaseItem) => {
+                            const hack = mapShowcaseItemToFeaturedHack(showcaseItem);
+                            const isSelected = showcaseSelectedProjectId === showcaseItem.projectId;
+                            return (
+                              <article
+                                key={`featured-${showcaseItem.projectId}`}
+                                className={`card showcase-hack-shell${isSelected ? ' showcase-hack-shell-active' : ''}`}
+                              >
+                                <button
+                                  type="button"
+                                  className="showcase-hack-hit"
+                                  onClick={() => handleSelectShowcaseProject(showcaseItem.projectId)}
+                                  aria-pressed={isSelected}
+                                >
+                                  <HackCard item={hack} />
+                                </button>
+                                <div className="registry-actions showcase-hack-actions">
+                                  {showcaseItem.demoUrl && isValidHttpUrl(showcaseItem.demoUrl) ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost"
+                                      onClick={() => {
+                                        void handleOpenShowcaseDemo(showcaseItem.demoUrl);
+                                      }}
+                                    >
+                                      Open demo
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                      void handleForkShowcaseHack(showcaseItem);
+                                    }}
+                                    disabled={showcaseForkPendingProjectId === showcaseItem.projectId}
+                                  >
+                                    {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                          {featuredShowcaseItems.length === 0 ? (
+                            <p className="empty-copy">No featured hacks in this filter set yet.</p>
+                          ) : null}
+                        </div>
+                      </article>
+                    ) : null}
 
-              <section className="grid hacks-grid">
-                {filteredHacks.map((hack) => {
-                  const showcaseItem = showcaseItems.find((item) => item.projectId === hack.id);
-                  if (!showcaseItem) return null;
-                  return (
-                    <article key={hack.id} className="card">
-                      <HackCard item={hack} />
-                      <div className="registry-actions">
+                    <section className="grid hacks-grid showcase-results-grid">
+                      {filteredShowcaseItems.map((showcaseItem) => {
+                        const hack = mapShowcaseItemToFeaturedHack(showcaseItem);
+                        const isSelected = showcaseSelectedProjectId === showcaseItem.projectId;
+                        return (
+                          <article
+                            key={showcaseItem.projectId}
+                            className={`card showcase-hack-shell${isSelected ? ' showcase-hack-shell-active' : ''}`}
+                          >
+                            <button
+                              type="button"
+                              className="showcase-hack-hit"
+                              onClick={() => handleSelectShowcaseProject(showcaseItem.projectId)}
+                              aria-pressed={isSelected}
+                            >
+                              <HackCard item={hack} />
+                            </button>
+                            <div className="registry-actions showcase-hack-actions">
+                              {showcaseItem.demoUrl && isValidHttpUrl(showcaseItem.demoUrl) ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost"
+                                  onClick={() => {
+                                    void handleOpenShowcaseDemo(showcaseItem.demoUrl);
+                                  }}
+                                >
+                                  Open demo
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => {
+                                  void handleForkShowcaseHack(showcaseItem);
+                                }}
+                                disabled={showcaseForkPendingProjectId === showcaseItem.projectId}
+                              >
+                                {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
+                              </button>
+                              {showcaseCanManage ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline"
+                                  onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
+                                  disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                                >
+                                  {showcaseFeaturePendingProjectId === showcaseItem.projectId
+                                    ? 'Saving...'
+                                    : showcaseItem.featured
+                                      ? 'Unfeature'
+                                      : 'Mark featured'}
+                                </button>
+                              ) : null}
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </section>
+                    {!showcaseLoading && filteredShowcaseItems.length === 0 && showcaseLoaded ? (
+                      <p className="empty-copy">No showcase hacks match your filters.</p>
+                    ) : null}
+                    {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
+                  </div>
+
+                  <aside className="card showcase-detail-drawer">
+                    <section className="section-head-row showcase-detail-head">
+                      <div>
+                        <h2>Hack Detail</h2>
+                        <p>
+                          {selectedShowcaseItem ? `Project ID: ${selectedShowcaseItem.projectId}` : 'Select a hack to view evidence and links.'}
+                        </p>
+                      </div>
+                      {selectedShowcaseItem ? (
                         <button
                           type="button"
-                          className="btn btn-outline"
-                          onClick={() => setShowcaseSelectedProjectId(showcaseItem.projectId)}
+                          className="btn btn-ghost"
+                          onClick={handleCloseShowcaseDetail}
                         >
-                          View details
+                          Close
                         </button>
+                      ) : null}
+                    </section>
+
+                    {selectedShowcaseItem ? (
+                      <div className="showcase-detail-actions">
+                        {selectedShowcaseItem.demoUrl && isValidHttpUrl(selectedShowcaseItem.demoUrl) ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={() => {
+                              void handleOpenShowcaseDemo(selectedShowcaseItem.demoUrl);
+                            }}
+                          >
+                            Open Demo
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           className="btn btn-primary"
                           onClick={() => {
-                            void handleForkShowcaseHack(showcaseItem);
+                            void handleForkShowcaseHack(selectedShowcaseItem);
                           }}
-                          disabled={showcaseForkPendingProjectId === showcaseItem.projectId}
+                          disabled={showcaseForkPendingProjectId === selectedShowcaseItem.projectId}
                         >
-                          {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
+                          {showcaseForkPendingProjectId === selectedShowcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
                         </button>
-                        {showcaseCanManage ? (
+                      </div>
+                    ) : (
+                      <p className="empty-copy">Select a hack card to inspect team context, outputs, and solved problems.</p>
+                    )}
+
+                    {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
+                    {showcaseDetailError ? <p className="message message-error">{showcaseDetailError}</p> : null}
+                    {showcaseDetail ? (
+                      <div className="grid showcase-detail-grid">
+                        <div>
+                          <h3>{showcaseDetail.hack.title}</h3>
+                          <p>{showcaseDetail.hack.description || 'No description provided.'}</p>
+                          <p className="meta">Pipeline stage: {formatLabel(showcaseDetail.hack.pipelineStage)}</p>
+                          <p className="meta">
+                            Reuses: {showcaseDetail.hack.reuseCount} · Forks: {showcaseDetail.hack.forkCount}
+                          </p>
+                          <p className="meta">
+                            Team: {showcaseDetail.hack.teamMembers.length > 0 ? showcaseDetail.hack.teamMembers.join(', ') : 'Not provided'}
+                          </p>
+                        </div>
+                        <div>
+                          <h3>Artifacts Produced ({showcaseDetail.artifactsProduced.length})</h3>
+                          {showcaseDetail.artifactsProduced.length > 0 ? (
+                            <ul className="showcase-meta-list">
+                              {showcaseDetail.artifactsProduced.map((artifact) => (
+                                <li key={artifact.artifactId}>
+                                  {artifact.title} ({formatLabel(artifact.artifactType)}) · {artifact.reuseCount} reuses
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="empty-copy">No linked artifacts yet.</p>
+                          )}
+                          <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
+                          {showcaseDetail.problemsSolved.length > 0 ? (
+                            <ul className="showcase-meta-list">
+                              {showcaseDetail.problemsSolved.map((problem) => (
+                                <li key={problem.problemId}>
+                                  {problem.title} ({formatLabel(problem.status)})
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="empty-copy">No linked solved problems yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </aside>
+                </section>
+              ) : (
+                <>
+                  {hackTab === 'completed' ? (
+                    <article className="card featured-block">
+                      <h2>Featured Hacks</h2>
+                      <p>High-trust, curated collection of proven AI hacks</p>
+                      <div className="grid featured-grid">
+                        {featuredTop.map((hack) => (
+                          <article key={`featured-${hack.id}`} className="card">
+                            <HackCard item={hack} />
+                          </article>
+                        ))}
+                        {featuredTop.length === 0 ? <p className="empty-copy">No featured hacks in this filter set yet.</p> : null}
+                      </div>
+                    </article>
+                  ) : null}
+
+                  <section className="grid hacks-grid">
+                    {filteredShowcaseItems.map((showcaseItem) => (
+                      <article key={showcaseItem.projectId} className="card">
+                        <HackCard item={mapShowcaseItemToFeaturedHack(showcaseItem)} />
+                        <div className="registry-actions">
                           <button
                             type="button"
                             className="btn btn-outline"
-                            onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
-                            disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                            onClick={() => setShowcaseSelectedProjectId(showcaseItem.projectId)}
                           >
-                            {showcaseFeaturePendingProjectId === showcaseItem.projectId
-                              ? 'Saving...'
-                              : showcaseItem.featured
-                                ? 'Unfeature'
-                                : 'Mark featured'}
+                            View details
                           </button>
-                        ) : null}
-                      </div>
-                    </article>
-                  );
-                })}
-              </section>
-              {!showcaseLoading && filteredHacks.length === 0 && showcaseLoaded ? (
-                <p className="empty-copy">No showcase hacks match your filters.</p>
-              ) : null}
-              {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
-
-              {showcaseSelectedProjectId ? (
-                <article className="card registry-detail-block">
-                  <section className="section-head-row">
-                    <div>
-                      <h2>Hack Detail</h2>
-                      <p>Project ID: {showcaseSelectedProjectId}</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() => {
-                        setShowcaseSelectedProjectId(null);
-                        setShowcaseDetail(null);
-                        setShowcaseDetailError('');
-                      }}
-                    >
-                      Close
-                    </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => {
+                              void handleForkShowcaseHack(showcaseItem);
+                            }}
+                            disabled={showcaseForkPendingProjectId === showcaseItem.projectId}
+                          >
+                            {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
+                          </button>
+                          {showcaseCanManage ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
+                              disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                            >
+                              {showcaseFeaturePendingProjectId === showcaseItem.projectId
+                                ? 'Saving...'
+                                : showcaseItem.featured
+                                  ? 'Unfeature'
+                                  : 'Mark featured'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
                   </section>
-                  {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
-                  {showcaseDetailError ? <p className="message message-error">{showcaseDetailError}</p> : null}
-                  {showcaseDetail ? (
-                    <div className="grid showcase-detail-grid">
-                      <div>
-                        <h3>{showcaseDetail.hack.title}</h3>
-                        <p>{showcaseDetail.hack.description || 'No description provided.'}</p>
-                        <p className="meta">Pipeline stage: {formatLabel(showcaseDetail.hack.pipelineStage)}</p>
-                        <p className="meta">
-                          Reuses: {showcaseDetail.hack.reuseCount} · Forks: {showcaseDetail.hack.forkCount}
-                        </p>
-                        <p className="meta">
-                          Demo:{' '}
-                          {showcaseDetail.hack.demoUrl ? (
-                            <a href={showcaseDetail.hack.demoUrl} target="_blank" rel="noreferrer">
-                              {showcaseDetail.hack.demoUrl}
-                            </a>
-                          ) : (
-                            'Not provided'
-                          )}
-                        </p>
-                        <p className="meta">Team: {showcaseDetail.hack.teamMembers.length > 0 ? showcaseDetail.hack.teamMembers.join(', ') : 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <h3>Artifacts Produced ({showcaseDetail.artifactsProduced.length})</h3>
-                        {showcaseDetail.artifactsProduced.length > 0 ? (
-                          <ul className="showcase-meta-list">
-                            {showcaseDetail.artifactsProduced.map((artifact) => (
-                              <li key={artifact.artifactId}>
-                                {artifact.title} ({formatLabel(artifact.artifactType)}) · {artifact.reuseCount} reuses
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="empty-copy">No linked artifacts yet.</p>
-                        )}
-                        <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
-                        {showcaseDetail.problemsSolved.length > 0 ? (
-                          <ul className="showcase-meta-list">
-                            {showcaseDetail.problemsSolved.map((problem) => (
-                              <li key={problem.problemId}>
-                                {problem.title} ({formatLabel(problem.status)})
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="empty-copy">No linked solved problems yet.</p>
-                        )}
-                      </div>
-                    </div>
+                  {!showcaseLoading && filteredShowcaseItems.length === 0 && showcaseLoaded ? (
+                    <p className="empty-copy">No showcase hacks match your filters.</p>
                   ) : null}
-                </article>
-              ) : null}
+                  {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
+
+                  {showcaseSelectedProjectId ? (
+                    <article className="card registry-detail-block">
+                      <section className="section-head-row">
+                        <div>
+                          <h2>Hack Detail</h2>
+                          <p>Project ID: {showcaseSelectedProjectId}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => {
+                            setShowcaseSelectedProjectId(null);
+                            setShowcaseDetail(null);
+                            setShowcaseDetailError('');
+                          }}
+                        >
+                          Close
+                        </button>
+                      </section>
+                      {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
+                      {showcaseDetailError ? <p className="message message-error">{showcaseDetailError}</p> : null}
+                      {showcaseDetail ? (
+                        <div className="grid showcase-detail-grid">
+                          <div>
+                            <h3>{showcaseDetail.hack.title}</h3>
+                            <p>{showcaseDetail.hack.description || 'No description provided.'}</p>
+                            <p className="meta">Pipeline stage: {formatLabel(showcaseDetail.hack.pipelineStage)}</p>
+                            <p className="meta">
+                              Reuses: {showcaseDetail.hack.reuseCount} · Forks: {showcaseDetail.hack.forkCount}
+                            </p>
+                            <p className="meta">
+                              Demo:{' '}
+                              {showcaseDetail.hack.demoUrl ? (
+                                <a href={showcaseDetail.hack.demoUrl} target="_blank" rel="noreferrer">
+                                  {showcaseDetail.hack.demoUrl}
+                                </a>
+                              ) : (
+                                'Not provided'
+                              )}
+                            </p>
+                            <p className="meta">
+                              Team: {showcaseDetail.hack.teamMembers.length > 0 ? showcaseDetail.hack.teamMembers.join(', ') : 'Not provided'}
+                            </p>
+                          </div>
+                          <div>
+                            <h3>Artifacts Produced ({showcaseDetail.artifactsProduced.length})</h3>
+                            {showcaseDetail.artifactsProduced.length > 0 ? (
+                              <ul className="showcase-meta-list">
+                                {showcaseDetail.artifactsProduced.map((artifact) => (
+                                  <li key={artifact.artifactId}>
+                                    {artifact.title} ({formatLabel(artifact.artifactType)}) · {artifact.reuseCount} reuses
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="empty-copy">No linked artifacts yet.</p>
+                            )}
+                            <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
+                            {showcaseDetail.problemsSolved.length > 0 ? (
+                              <ul className="showcase-meta-list">
+                                {showcaseDetail.problemsSolved.map((problem) => (
+                                  <li key={problem.problemId}>
+                                    {problem.title} ({formatLabel(problem.status)})
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="empty-copy">No linked solved problems yet.</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  ) : null}
+                </>
+              )}
             </section>
           ) : null}
 
@@ -7516,7 +7931,9 @@ export function App(): JSX.Element {
                     {globalSearchResults.hacks.length > 0 ? (
                       <div className="grid hacks-grid">
                         {globalSearchResults.hacks.map((hack) => (
-                          <HackCard key={hack.id} item={hack} />
+                          <article key={hack.id} className="card">
+                            <HackCard item={hack} />
+                          </article>
                         ))}
                       </div>
                     ) : <p className="empty-copy">No hacks match.</p>}

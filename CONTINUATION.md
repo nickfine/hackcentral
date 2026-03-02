@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 15:58 GMT
+Last updated: 2026-03-02 23:30 GMT
 
 ## Current Snapshot
 
@@ -9,9 +9,9 @@ Last updated: 2026-03-02 15:58 GMT
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.45`
-  - Forge native package version: `0.3.13`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.48`
+  - Root app version: `0.6.46`
+  - Forge native package version: `0.3.14`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.55`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
@@ -478,7 +478,7 @@ Last updated: 2026-03-02 15:58 GMT
 
 1. Maintain weekly Phase 3 cadence checkpoints via `qa:p3:weekly-cadence` while waiting for first live `results` event.
 2. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'` (`qa:p3:extract-first-results-sample`).
-3. Run one weekly observation window for homepage first-action telemetry (`home_primary_cta_click`, `home_secondary_cta_click`, `home_feed_item_click`, `home_recommendation_click`) with `VITE_HDC_HOME_UX_V1=true`, then decide keep-default-on vs staged rollout.
+3. Capture post-deploy Confluence live smoke for the close-drawer fix and decide whether `VITE_HDC_SHOWCASE_UX_V1` should move to default-on.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -1414,3 +1414,56 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 
 - Production deploy sequence is complete for this release.
 - Active task remains `P3.OBS.01` (weekly cadence and extraction readiness follow-up remain in force).
+
+## Session Update - Showcase UX Hardening Pass (Mar 2, 2026 23:22 GMT)
+
+### Completed
+
+- Implemented Hacks/Showcase UX refinements behind `VITE_HDC_SHOWCASE_UX_V1` in Forge frontend:
+  - structured filter shell with labeled fields and advanced-toggle section
+  - debounced search/tag filtering for smoother list updates
+  - actionable featured/list cards with direct selection and fork actions
+  - sticky right-side detail drawer (desktop) with contextual actions
+  - responsive fallback to stacked layout on narrower widths
+- Added topbar overlap mitigation by collapsing right-action labels earlier and improving switcher/action shrink behavior.
+- Bumped local UI marker to `HACKCENTRAL_UI_VERSION=0.6.54`.
+
+### Evidence
+
+- Code changes:
+  - `forge-native/static/frontend/src/App.tsx`
+  - `forge-native/static/frontend/src/styles.css`
+  - `forge-native/static/frontend/src/components/shared/Cards.tsx`
+- Validation:
+  - `npm run custom-ui:build` (pass)
+  - `npm run frontend:build` (pass)
+  - localhost visual smoke with flag enabled (`VITE_HDC_SHOWCASE_UX_V1=true`) confirms new Showcase layout and interactions.
+
+### Follow-up
+
+- Deploy `0.6.54` payload to production and capture a live Hacks-page smoke artifact before deciding whether to switch Showcase UX default-on.
+
+## Session Update - Showcase Close-Drawer Fix + Production Deploy (Mar 2, 2026 23:30 GMT)
+
+### Completed
+
+- Fixed Showcase detail drawer close behavior under `VITE_HDC_SHOWCASE_UX_V1`:
+  - introduced explicit dismissed-state handling so `Close` does not auto-reselect the first hack card.
+- Version bump completed:
+  - root app `0.6.46`
+  - Forge native package `0.3.14`
+  - UI marker `HACKCENTRAL_UI_VERSION=0.6.55`
+- Production deployment + Confluence upgrade executed from `forge-native`:
+  - `npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Evidence
+
+- Build succeeded for frontend, macro frontend, and runtime frontend.
+- Forge deployment completed with `✔ Deployed`.
+- Confluence install/upgrade confirmed latest version on `hackdaytemp.atlassian.net`.
+
+### Follow-up
+
+- Capture a fresh live Confluence smoke screenshot validating drawer close persistence and final top-right header overlap behavior.
