@@ -2695,3 +2695,34 @@ Use this template at the end of every work session:
 - For admin-scoped operations where bootstrap payload does not expose role/capability claims, server-enforced permission codes plus explicit UI mapping is the most reliable guardrail.
 - Keeping extraction controls behind typed `invoke` payloads and a small contract test assertion set prevents resolver-name drift while UI work is still in progress.
 - Resetting extraction result state on event switch avoids stale operator interpretation when moving between `results` and non-`results` HackDays.
+
+## Session Update - P3.EXTRACT.01 Runbook + Live UI Gate Closure (Mar 2, 2026 01:49 GMT)
+
+### Completed
+
+- Published extraction operations runbook: `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`.
+- Updated docs index with extraction contract/runbook entries: `docs/README.md`.
+- Deployed production Forge bundle with explicit frontend cache-bust marker (`HACKCENTRAL_UI_VERSION=0.6.45`).
+- Captured live production HackDays extraction UI smoke evidence including:
+  - extraction panel visible,
+  - candidate-load action execution state,
+  - extraction action controls (`R11.1` prompt, `R11.2` import).
+- Published final task checkpoint artifact: `docs/artifacts/HDC-P3-EXTRACT-FINAL-CHECKPOINT-20260302-0148Z.md` (`GO`).
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run custom-ui:build` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` -> pass (`16/16`).
+- `forge deploy --environment production --no-verify` -> pass.
+- `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` -> latest version confirmed.
+- Live runtime console evidence: `[HackCentral Confluence UI] loaded 0.6.45`.
+- UI smoke artifacts:
+  - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-20260302-0148Z.png`
+  - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-ACTIONS-20260302-0148Z.png`
+
+### Operational Learnings
+
+- In Forge Confluence global-page rollouts, a small explicit UI version bump is the fastest way to prove CDN propagation and avoid ambiguous stale-bundle diagnostics.
+- For admin-only operations, one screenshot of panel visibility is insufficient; capture at least one post-action UI state to prove control wiring and backend invocation path.
+- Closing a module gate cleanly requires publishing runbook + final checkpoint in the same session as deploy evidence, otherwise continuity docs drift into ambiguous “almost done” state.

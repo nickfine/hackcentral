@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:41 GMT
+Last updated: 2026-03-02 01:49 GMT
 
 ## Current Snapshot
 
@@ -9,7 +9,7 @@ Last updated: 2026-03-02 01:41 GMT
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.44`
+  - Root app version: `0.6.45`
   - Forge native package version: `0.3.12`
 - Current phase: `Phase 3 in execution`
 - Registry (`P1.REG.01`) is complete and validated:
@@ -437,19 +437,24 @@ Last updated: 2026-03-02 01:41 GMT
     - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md` (`GO`)
   - transition:
     - active task advanced from `P3.OBS.01` to `P3.EXTRACT.01`
-- Phase 3 extraction baseline contract (`P3.EXTRACT.01`) is now locked:
+- Phase 3 extraction rollout (`P3.EXTRACT.01`) is now complete (`GO`):
   - contract spec:
     - `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md`
-  - scope locked for:
-    - `R11.1` post-results extraction prompt contract
-    - `R11.2` admin bulk import-to-draft contract
-  - next implementation slice:
-    - resolver/type scaffolding and Supabase source-audit + migration framing
+  - operations runbook:
+    - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+  - backend evidence:
+    - `docs/artifacts/HDC-P3-EXTRACT-LIVE-RESOLVER-SMOKE-20260302-0129Z.json`
+    - `docs/artifacts/HDC-P3-EXTRACT-R11_1-R11_2-CHECKPOINT-20260302-0129Z.md`
+  - live UI evidence:
+    - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-20260302-0148Z.png`
+    - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-ACTIONS-20260302-0148Z.png`
+  - final checkpoint:
+    - `docs/artifacts/HDC-P3-EXTRACT-FINAL-CHECKPOINT-20260302-0148Z.md` (`GO`)
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.EXTRACT.01`
-- Task title: `Post-hackday extraction and bulk import rollout`
+- Active Task ID: `P3.EXTRACT.01` (closed)
+- Task title: `Post-hackday extraction and bulk import rollout (GO checkpoint captured)`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
@@ -460,9 +465,9 @@ Last updated: 2026-03-02 01:41 GMT
 
 ## Next 3 Atomic Actions
 
-1. Capture live UI smoke evidence for extraction controls (candidate read + prompt/import paths).
-2. Publish extraction operations runbook for replay/idempotency and rollback workflows.
-3. Close `P3.EXTRACT.01` completion gate once UI + runbook evidence is captured.
+1. Weekly telemetry cadence follow-up for Phase 3 (`feed_signal_health`, `roi_signal_health`, `roi_export`).
+2. Weekly telemetry cadence follow-up for extraction operations after first live `results` event.
+3. Prepare branch hygiene + merge plan for `codex/p3-extract-01`.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -680,8 +685,8 @@ Last updated: 2026-03-02 01:41 GMT
 
 ### Decision
 
-- Backend extraction baseline is validated (`GO_BASELINE`).
-- Remaining scope for full task closeout: live UI evidence + extraction operations runbook + final checkpoint.
+- Backend extraction baseline is validated (`GO_BASELINE`; historical pre-closure checkpoint).
+- Remaining scope at that checkpoint (now closed): live UI evidence + extraction operations runbook + final checkpoint.
 
 ## Session Update - `P3.EXTRACT.01` Forge UI Extraction Controls (Mar 2, 2026 01:41 GMT)
 
@@ -708,11 +713,46 @@ Last updated: 2026-03-02 01:41 GMT
 
 ### Decision
 
-- `P3.EXTRACT.01` remains `IN_PROGRESS`.
-- Remaining closeout scope:
+- `P3.EXTRACT.01` remained `IN_PROGRESS` at this checkpoint.
+- Remaining closeout scope at that time:
   1. capture live UI smoke evidence for extraction controls,
   2. publish extraction operations runbook,
   3. publish final task checkpoint decision.
+
+## Session Update - `P3.EXTRACT.01` Runbook + Live UI Gate Closure (Mar 2, 2026 01:49 GMT)
+
+### Completed
+
+- Published extraction operations runbook:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+- Added docs index entry:
+  - `docs/README.md`
+- Deployed production Forge bundle with cache-bust UI marker:
+  - `HACKCENTRAL_UI_VERSION` -> `0.6.45`
+- Captured live HackDays extraction UI evidence after deploy:
+  - panel visible with extraction controls
+  - candidate-load action executed (`Load candidates`)
+- Published final extraction checkpoint artifact:
+  - `docs/artifacts/HDC-P3-EXTRACT-FINAL-CHECKPOINT-20260302-0148Z.md`
+
+### Validation Evidence
+
+- Deploy/install:
+  - `forge deploy --environment production --no-verify` (pass)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (latest)
+- Console evidence from live page:
+  - `[HackCentral Confluence UI] loaded 0.6.45`
+- Live UI screenshots:
+  - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-20260302-0148Z.png`
+  - `docs/artifacts/HDC-P3-EXTRACT-LIVE-UI-SMOKE-ACTIONS-20260302-0148Z.png`
+- Regression/static checks:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` (16/16 pass)
+
+### Decision
+
+- `P3.EXTRACT.01` is now closed as `GO`.
+- Next focus returns to cadence operations and branch merge hygiene.
 
 ## Validation Commands
 
