@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 02:00 GMT
+Last updated: 2026-03-02 02:29 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -57,7 +57,7 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. Run extraction cadence sample immediately after first production `results` lifecycle event.
+1. Run `qa:p3:extract-first-results-sample` immediately after first production `results` lifecycle event.
 2. Keep weekly Phase 3 cadence checkpoints current via `qa:p3:weekly-cadence` (observability + extraction readiness).
 3. Re-evaluate extraction ops guardrails after first non-empty production `results` sample.
 
@@ -93,6 +93,8 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Added explicit first-results extraction sample command (`qa:p3:extract-first-results-sample`, `scripts/p3-extract-first-results-sample.mjs`) with MCP-first/CLI-fallback credential resolution and artifact output. Fresh run produced pending-gate evidence (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.md`) showing `resultsEventCount=0` and next trigger window `2026-03-09T18:00:00.000Z`. |
+| 2026-03-02 | Refreshed unified weekly cadence run (`qa:p3:weekly-cadence`) and captured aligned artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022823Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022823Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022823Z.md`): observability remains `GO` (`feed_signal_health=37`, `roi_signal_health=8`, `roi_export=4`), extraction remains `pending_results_event`. |
 | 2026-03-02 | Extended extraction cadence command to emit both JSON status and companion markdown sample artifact per run (`scripts/p3-extract-cadence-check.mjs`). Fresh outputs (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022424Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-022424Z.md`) show `PENDING_RESULTS_EVENT`, `resultsEventCount=0`, and next forecast `2026-03-09T18:00:00.000Z`. |
 | 2026-03-02 | Enhanced unified weekly cadence checkpoint output (`scripts/p3-weekly-cadence.mjs`) with extraction trigger guidance (`nextUpcomingResultsAnnounceAt`, `nextUpcomingEvent`, and recommended next action). Fresh cadence bundle (`docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022156Z.md`) now includes explicit run timing guidance; extraction remains `pending_results_event` with suggested rerun at/after `2026-03-09T18:00:00.000Z`. |
 | 2026-03-02 | Enhanced extraction readiness script output (`scripts/p3-extract-cadence-check.mjs`) to include schedule forecast (`scheduleOutlook`) with `nextUpcomingResultsAnnounceAt` and next candidate event metadata. Fresh readiness artifact (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021924Z.json`) shows `resultsEventCount=0`, status `pending_results_event`, and next expected results window `2026-03-09T18:00:00.000Z` (`One Day Test`). |

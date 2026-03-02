@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:25 GMT
+Last updated: 2026-03-02 02:29 GMT
 
 ## Current Snapshot
 
@@ -1073,3 +1073,45 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Emitting both structured JSON and human-readable markdown from the same cadence command removes manual checkpoint authoring and ensures consistent extraction evidence format when the first live `results` event appears.
+
+## Session Update - First Results Sample Command + Cadence Refresh (Mar 2, 2026 02:29 GMT)
+
+### Completed
+
+- Added first-results extraction sample command in root package scripts:
+  - `qa:p3:extract-first-results-sample`
+  - implementation: `scripts/p3-extract-first-results-sample.mjs`
+- Script behavior:
+  - resolves Supabase credentials using MCP-first operating model and documented CLI fallback path (`SUPABASE_ACCESS_TOKEN` + `supabase projects api-keys`)
+  - checks live lifecycle status for `results` events
+  - writes JSON + markdown sample artifacts for both `ready` and `pending_results_event` states
+  - supports optional `--live` mode for double-run idempotency sampling once results lifecycle is active
+- Executed fresh first-results sample:
+  - `npm run qa:p3:extract-first-results-sample`
+- Executed fresh unified cadence cycle:
+  - `npm run qa:p3:weekly-cadence`
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.md`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-022823Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022823Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-022823Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022823Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-022829Z.md`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022823Z.md`
+
+### Current State
+
+- First-results sample decision: `PENDING_RESULTS_EVENT` (`resultsEventCount=0`).
+- Weekly observability cadence: `GO` with latest metric counts:
+  - `feed_signal_health=37`
+  - `roi_signal_health=8`
+  - `roi_export=4`
+- Recommended extraction trigger window remains:
+  - `2026-03-09T18:00:00.000Z` (`One Day Test`)
+
+### Operational Learnings
+
+- Maintaining a dedicated first-results command separate from recurring weekly readiness checks reduces operator ambiguity and makes the first non-empty extraction run a single explicit action at lifecycle transition time.

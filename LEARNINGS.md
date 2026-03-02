@@ -2996,3 +2996,36 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Coupling machine-readable and human-readable extraction artifacts in the same command run removes manual report lag and makes the first live `results` cadence sample effectively zero-touch.
+
+## Session Update - First Results Sample Command + Cadence Refresh (Mar 2, 2026 02:29 GMT)
+
+### Completed
+
+- Added first-results extraction sample command:
+  - `qa:p3:extract-first-results-sample`
+  - implementation: `scripts/p3-extract-first-results-sample.mjs`
+- Executed command and generated first-results sample artifacts (pending-safe behavior if no live `results` event).
+- Executed fresh unified cadence run (`qa:p3:weekly-cadence`) to keep observability and extraction readiness outputs aligned with the same cycle.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.md`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022823Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022823Z.json`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022823Z.md`
+
+### Observations
+
+- First-results sample remains gated:
+  - `status=pending_results_event`
+  - `resultsEventCount=0`
+- Latest cadence sample remains operationally healthy for telemetry channel presence:
+  - `feed_signal_health=37`
+  - `roi_signal_health=8`
+  - `roi_export=4`
+- Next extraction trigger horizon remains `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- Separating `first-results` execution from `weekly readiness` execution improves operational control: weekly checks continue on schedule, while the first non-empty extraction sample has a dedicated one-command trigger when lifecycle flips to `results`.
