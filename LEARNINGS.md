@@ -2667,3 +2667,31 @@ Use this template at the end of every work session:
 - For Supabase production checks in this workspace, MCP-first should remain mandatory, but migration execution needs an immediate CLI fallback path because management endpoints are permission-scoped.
 - Running non-dry-run idempotency checks with temporary synthetic data plus explicit cleanup is an effective way to validate write paths without leaving production drift.
 - Capturing both pre-cleanup table counts and post-cleanup verification in artifacts improves confidence for replay-safe extraction workflows.
+
+## Session Update - P3.EXTRACT.01 Forge UI Extraction Controls (Mar 2, 2026 01:41 GMT)
+
+### Completed
+
+- Added HackDays extraction operations panel in `forge-native/static/frontend/src/App.tsx` with typed invoke payloads for:
+  - `hdcGetHackdayExtractionCandidates`
+  - `hdcTriggerPostHackdayExtractionPrompt`
+  - `hdcBulkImportHackdaySubmissions`
+- Added permission-aware extraction error handling (`[EXTRACT_FORBIDDEN]`, `[EXTRACT_IMPORT_FORBIDDEN]`) and session-level action blocking after explicit permission denials.
+- Added extraction panel styles in `forge-native/static/frontend/src/styles.css`.
+- Extended extraction backend contract coverage with frontend-wiring assertions in `forge-native/tests/backend/extraction-contract.test.mjs`.
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` -> pass (`16/16`).
+- Git diff scope for this slice:
+  - `forge-native/static/frontend/src/App.tsx`
+  - `forge-native/static/frontend/src/styles.css`
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+
+### Operational Learnings
+
+- For admin-scoped operations where bootstrap payload does not expose role/capability claims, server-enforced permission codes plus explicit UI mapping is the most reliable guardrail.
+- Keeping extraction controls behind typed `invoke` payloads and a small contract test assertion set prevents resolver-name drift while UI work is still in progress.
+- Resetting extraction result state on event switch avoids stale operator interpretation when moving between `results` and non-`results` HackDays.

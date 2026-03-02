@@ -18,11 +18,13 @@ import type {
   HomeFeedSnapshot,
   HomeFeedActivityType,
   HomeFeedRecommendationType,
+  HackdayExtractionCandidatesResult,
   GetRoiDashboardInput,
   GetPathwayResult,
   GetShowcaseHackDetailResult,
   GetArtifactResult,
   LifecycleStatus,
+  BulkImportHackdaySubmissionsResult,
   ListPathwaysInput,
   MovePipelineItemInput,
   PathwayListItem,
@@ -46,6 +48,7 @@ import type {
   ThemePreference,
   TrackRoiExportInput,
   TrackTeamPulseExportInput,
+  TriggerPostHackdayExtractionPromptResult,
   UpsertPathwayInput,
   UpsertPathwayStepInput,
   UpdatePipelineStageCriteriaInput,
@@ -136,6 +139,8 @@ const HOME_FEED_RECOMMENDATION_LABELS: Record<HomeFeedRecommendationType, string
   team_artifact: 'Artifacts used by your team',
   pathway_role: 'Pathways for your role',
 };
+const HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT = 50;
+const HACKDAY_EXTRACTION_UI_MAX_LIMIT = 200;
 
 type PathwayEditorMode = 'create' | 'edit';
 
@@ -1210,6 +1215,29 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function parseHackdayExtractionLimit(value: string): number {
+  const parsed = Number.parseInt(value.trim(), 10);
+  if (!Number.isFinite(parsed)) return HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(HACKDAY_EXTRACTION_UI_MAX_LIMIT, parsed));
+}
+
+function getHackdayExtractionErrorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+  if (message.includes('[EXTRACT_FORBIDDEN]')) {
+    return 'Extraction read/prompt requires Event Admin, HDC Admin, or Platform Admin access.';
+  }
+  if (message.includes('[EXTRACT_IMPORT_FORBIDDEN]')) {
+    return 'Bulk import requires HDC Admin or Platform Admin access.';
+  }
+  if (message.includes('[EXTRACT_EVENT_NOT_FOUND]')) {
+    return 'The selected event was not found. Refresh the HackDay list and try again.';
+  }
+  if (message.includes('[EXTRACT_VALIDATION_FAILED]')) {
+    return message.replace('[EXTRACT_VALIDATION_FAILED]', '').trim() || 'Extraction request validation failed.';
+  }
+  return message;
+}
+
 function formatFeedOccurredAt(value: string): string {
   const parsed = Date.parse(value);
   if (Number.isNaN(parsed)) return 'Unknown time';
@@ -1409,6 +1437,22 @@ export function App(): JSX.Element {
   const [homeFeedLoading, setHomeFeedLoading] = useState(false);
   const [homeFeedLoaded, setHomeFeedLoaded] = useState(false);
   const [homeFeedError, setHomeFeedError] = useState('');
+  const [extractionEventIdInput, setExtractionEventIdInput] = useState('');
+  const [extractionLimitInput, setExtractionLimitInput] = useState(String(HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT));
+  const [extractionPromptDryRun, setExtractionPromptDryRun] = useState(true);
+  const [extractionPromptNotifyParticipants, setExtractionPromptNotifyParticipants] = useState(true);
+  const [extractionImportDryRun, setExtractionImportDryRun] = useState(true);
+  const [extractionImportNotifyParticipants, setExtractionImportNotifyParticipants] = useState(true);
+  const [extractionOverwriteExistingDrafts, setExtractionOverwriteExistingDrafts] = useState(false);
+  const [extractionCandidates, setExtractionCandidates] = useState<HackdayExtractionCandidatesResult | null>(null);
+  const [extractionPromptResult, setExtractionPromptResult] = useState<TriggerPostHackdayExtractionPromptResult | null>(null);
+  const [extractionImportResult, setExtractionImportResult] = useState<BulkImportHackdaySubmissionsResult | null>(null);
+  const [extractionError, setExtractionError] = useState('');
+  const [extractionLoadingCandidates, setExtractionLoadingCandidates] = useState(false);
+  const [extractionPromptPending, setExtractionPromptPending] = useState(false);
+  const [extractionImportPending, setExtractionImportPending] = useState(false);
+  const [extractionPromptForbidden, setExtractionPromptForbidden] = useState(false);
+  const [extractionImportForbidden, setExtractionImportForbidden] = useState(false);
 
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
@@ -1559,6 +1603,10 @@ export function App(): JSX.Element {
     { title: 'Upcoming', items: switcherSections.upcoming },
     { title: 'Recent', items: switcherSections.recent },
   ];
+  const extractionSelectedEvent = useMemo(
+    () => sortedRegistry.find((event) => event.id === extractionEventIdInput) ?? null,
+    [extractionEventIdInput, sortedRegistry]
+  );
   const fallbackPipelineItems = useMemo<PipelineBoardItem[]>(
     () =>
       allProjects.map((project) => ({
@@ -1646,6 +1694,27 @@ export function App(): JSX.Element {
     if (view !== 'projects') return;
     setView('pipeline');
   }, [view]);
+
+  useEffect(() => {
+    if (sortedRegistry.length === 0) {
+      if (extractionEventIdInput) setExtractionEventIdInput('');
+      return;
+    }
+    if (extractionEventIdInput && sortedRegistry.some((event) => event.id === extractionEventIdInput)) {
+      return;
+    }
+    const preferredEvent = sortedRegistry.find((event) => event.lifecycleStatus === 'results') ?? sortedRegistry[0];
+    setExtractionEventIdInput(preferredEvent?.id ?? '');
+  }, [extractionEventIdInput, sortedRegistry]);
+
+  useEffect(() => {
+    setExtractionCandidates(null);
+    setExtractionPromptResult(null);
+    setExtractionImportResult(null);
+    setExtractionError('');
+    setExtractionPromptForbidden(false);
+    setExtractionImportForbidden(false);
+  }, [extractionEventIdInput]);
 
   const loadPipelineBoard = useCallback(async () => {
     setPipelineLoading(true);
@@ -2384,6 +2453,133 @@ export function App(): JSX.Element {
     if (view !== 'dashboard') return;
     void loadHomeFeed();
   }, [loadHomeFeed, view]);
+
+  const loadHackdayExtractionCandidates = useCallback(async () => {
+    const eventId = extractionEventIdInput.trim();
+    if (!eventId) {
+      setExtractionError('Select a HackDay event first.');
+      return;
+    }
+    if (previewMode) {
+      setExtractionError('Extraction operations are not available in preview mode.');
+      return;
+    }
+
+    const limit = parseHackdayExtractionLimit(extractionLimitInput);
+    setExtractionLoadingCandidates(true);
+    setExtractionError('');
+    try {
+      const result = await invokeTyped('hdcGetHackdayExtractionCandidates', { eventId, limit });
+      setExtractionCandidates(result);
+      setExtractionPromptForbidden(false);
+      setActionError('');
+      setActionMessage(
+        `Loaded extraction candidates for ${eventId}: ${result.candidates.length} candidate(s), ${result.submissionCount} submission(s).`
+      );
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (message.includes('[EXTRACT_FORBIDDEN]')) {
+        setExtractionPromptForbidden(true);
+      }
+      setExtractionError(getHackdayExtractionErrorMessage(error));
+    } finally {
+      setExtractionLoadingCandidates(false);
+    }
+  }, [extractionEventIdInput, extractionLimitInput, previewMode]);
+
+  const handleTriggerHackdayExtractionPrompt = useCallback(async () => {
+    const eventId = extractionEventIdInput.trim();
+    if (!eventId) {
+      setExtractionError('Select a HackDay event first.');
+      return;
+    }
+    if (previewMode) {
+      setExtractionError('Extraction operations are not available in preview mode.');
+      return;
+    }
+
+    setExtractionPromptPending(true);
+    setExtractionError('');
+    try {
+      const result = await invokeTyped('hdcTriggerPostHackdayExtractionPrompt', {
+        eventId,
+        dryRun: extractionPromptDryRun,
+        notifyParticipants: extractionPromptNotifyParticipants,
+      });
+      setExtractionPromptResult(result);
+      setExtractionPromptForbidden(false);
+      setActionError('');
+      setActionMessage(
+        result.status === 'dry_run'
+          ? `Dry-run prompt check complete for ${eventId}: ${result.promptedParticipantCount} participant(s) would be prompted.`
+          : `Prompt extraction completed for ${eventId}: ${result.promptedParticipantCount} prompted, ${result.skippedAlreadyPromptedCount} already prompted.`
+      );
+      await loadHackdayExtractionCandidates();
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (message.includes('[EXTRACT_FORBIDDEN]')) {
+        setExtractionPromptForbidden(true);
+      }
+      setExtractionError(getHackdayExtractionErrorMessage(error));
+    } finally {
+      setExtractionPromptPending(false);
+    }
+  }, [
+    extractionEventIdInput,
+    extractionPromptDryRun,
+    extractionPromptNotifyParticipants,
+    loadHackdayExtractionCandidates,
+    previewMode,
+  ]);
+
+  const handleBulkImportHackdaySubmissions = useCallback(async () => {
+    const eventId = extractionEventIdInput.trim();
+    if (!eventId) {
+      setExtractionError('Select a HackDay event first.');
+      return;
+    }
+    if (previewMode) {
+      setExtractionError('Extraction operations are not available in preview mode.');
+      return;
+    }
+
+    setExtractionImportPending(true);
+    setExtractionError('');
+    try {
+      const result = await invokeTyped('hdcBulkImportHackdaySubmissions', {
+        eventId,
+        dryRun: extractionImportDryRun,
+        notifyParticipants: extractionImportNotifyParticipants,
+        limit: parseHackdayExtractionLimit(extractionLimitInput),
+        overwriteExistingDrafts: extractionOverwriteExistingDrafts,
+      });
+      setExtractionImportResult(result);
+      setExtractionImportForbidden(false);
+      setActionError('');
+      setActionMessage(
+        result.status === 'dry_run'
+          ? `Dry-run import check complete for ${eventId}: ${result.importedDraftCount} draft(s) would be imported.`
+          : `Bulk import completed for ${eventId}: ${result.importedDraftCount} draft(s) imported, ${result.skippedAlreadyImportedCount} skipped.`
+      );
+      await loadHackdayExtractionCandidates();
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (message.includes('[EXTRACT_IMPORT_FORBIDDEN]')) {
+        setExtractionImportForbidden(true);
+      }
+      setExtractionError(getHackdayExtractionErrorMessage(error));
+    } finally {
+      setExtractionImportPending(false);
+    }
+  }, [
+    extractionEventIdInput,
+    extractionImportDryRun,
+    extractionImportNotifyParticipants,
+    extractionLimitInput,
+    extractionOverwriteExistingDrafts,
+    loadHackdayExtractionCandidates,
+    previewMode,
+  ]);
 
   const loadShowcaseHacks = useCallback(async () => {
     setShowcaseLoading(true);
@@ -6161,6 +6357,211 @@ export function App(): JSX.Element {
                     </button>
                   ) : null}
                 </div>
+              </section>
+
+              <section className="card hackday-extraction-card">
+                <div className="hackday-extraction-head">
+                  <div>
+                    <h2>Post-HackDay Extraction (R11)</h2>
+                    <p>
+                      Event Admin/HDC Admin can read candidates and trigger prompts. HDC Admin/Platform Admin can run bulk import.
+                    </p>
+                  </div>
+                </div>
+                {sortedRegistry.length > 0 ? (
+                  <>
+                    <div className="hackday-extraction-controls">
+                      <label htmlFor="hackday-extraction-event-id">
+                        Event
+                        <select
+                          id="hackday-extraction-event-id"
+                          value={extractionEventIdInput}
+                          onChange={(event) => setExtractionEventIdInput(event.target.value)}
+                        >
+                          {sortedRegistry.map((event) => (
+                            <option key={event.id} value={event.id}>
+                              {event.eventName} ({formatHackdayLifecycleStatus(event.lifecycleStatus)})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label htmlFor="hackday-extraction-limit">
+                        Candidate limit
+                        <input
+                          id="hackday-extraction-limit"
+                          type="number"
+                          min={1}
+                          max={HACKDAY_EXTRACTION_UI_MAX_LIMIT}
+                          value={extractionLimitInput}
+                          onChange={(event) => setExtractionLimitInput(event.target.value)}
+                        />
+                      </label>
+                      <div className="hackday-extraction-control-actions">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => {
+                            void loadHackdayExtractionCandidates();
+                          }}
+                          disabled={extractionLoadingCandidates || !extractionEventIdInput}
+                        >
+                          {extractionLoadingCandidates ? 'Loading...' : 'Load candidates'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {extractionSelectedEvent ? (
+                      <p className="meta">
+                        Selected event lifecycle: <strong>{formatHackdayLifecycleStatus(extractionSelectedEvent.lifecycleStatus)}</strong>
+                      </p>
+                    ) : null}
+                    {extractionError ? <p className="error-text">{extractionError}</p> : null}
+
+                    {extractionCandidates ? (
+                      <>
+                        <div className="hackday-extraction-summary-grid">
+                          <article className="hackday-extraction-summary-card">
+                            <span className="meta">Participants</span>
+                            <strong>{extractionCandidates.participantCount}</strong>
+                          </article>
+                          <article className="hackday-extraction-summary-card">
+                            <span className="meta">Submissions</span>
+                            <strong>{extractionCandidates.submissionCount}</strong>
+                          </article>
+                          <article className="hackday-extraction-summary-card">
+                            <span className="meta">Showcase drafts</span>
+                            <strong>{extractionCandidates.showcaseDraftCount}</strong>
+                          </article>
+                          <article className="hackday-extraction-summary-card">
+                            <span className="meta">Candidates loaded</span>
+                            <strong>{extractionCandidates.candidates.length}</strong>
+                          </article>
+                        </div>
+
+                        <div className="hackday-extraction-action-grid">
+                          <article className="hackday-extraction-action-card">
+                            <h3>R11.1 Prompt participants</h3>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={extractionPromptDryRun}
+                                onChange={(event) => setExtractionPromptDryRun(event.target.checked)}
+                              />
+                              Dry run
+                            </label>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={extractionPromptNotifyParticipants}
+                                onChange={(event) => setExtractionPromptNotifyParticipants(event.target.checked)}
+                              />
+                              Notify participants
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                void handleTriggerHackdayExtractionPrompt();
+                              }}
+                              disabled={extractionPromptPending || extractionPromptForbidden || !extractionEventIdInput}
+                            >
+                              {extractionPromptPending
+                                ? 'Running...'
+                                : extractionPromptDryRun
+                                  ? 'Run prompt dry-run'
+                                  : 'Trigger prompts'}
+                            </button>
+                            {extractionPromptForbidden ? (
+                              <p className="meta">Prompt action blocked by permissions for this account/event.</p>
+                            ) : null}
+                            {extractionPromptResult ? (
+                              <p className="meta">
+                                Status: <strong>{extractionPromptResult.status}</strong> · Prompted:{' '}
+                                {extractionPromptResult.promptedParticipantCount} · Already prompted:{' '}
+                                {extractionPromptResult.skippedAlreadyPromptedCount}
+                              </p>
+                            ) : null}
+                          </article>
+
+                          <article className="hackday-extraction-action-card">
+                            <h3>R11.2 Bulk import submissions</h3>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={extractionImportDryRun}
+                                onChange={(event) => setExtractionImportDryRun(event.target.checked)}
+                              />
+                              Dry run
+                            </label>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={extractionImportNotifyParticipants}
+                                onChange={(event) => setExtractionImportNotifyParticipants(event.target.checked)}
+                              />
+                              Notify participants
+                            </label>
+                            <label className="checkbox-row">
+                              <input
+                                type="checkbox"
+                                checked={extractionOverwriteExistingDrafts}
+                                onChange={(event) => setExtractionOverwriteExistingDrafts(event.target.checked)}
+                              />
+                              Overwrite existing drafts
+                            </label>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                void handleBulkImportHackdaySubmissions();
+                              }}
+                              disabled={extractionImportPending || extractionImportForbidden || !extractionEventIdInput}
+                            >
+                              {extractionImportPending
+                                ? 'Running...'
+                                : extractionImportDryRun
+                                  ? 'Run import dry-run'
+                                  : 'Run bulk import'}
+                            </button>
+                            {extractionImportForbidden ? (
+                              <p className="meta">Bulk import blocked by permissions for this account.</p>
+                            ) : null}
+                            {extractionImportResult ? (
+                              <p className="meta">
+                                Status: <strong>{extractionImportResult.status}</strong> · Imported:{' '}
+                                {extractionImportResult.importedDraftCount} · Skipped:{' '}
+                                {extractionImportResult.skippedAlreadyImportedCount}
+                              </p>
+                            ) : null}
+                          </article>
+                        </div>
+
+                        {extractionCandidates.candidates.length > 0 ? (
+                          <div className="hackday-extraction-candidate-list">
+                            {extractionCandidates.candidates.map((candidate) => (
+                              <article key={candidate.projectId} className="hackday-extraction-candidate-row">
+                                <div>
+                                  <strong>{candidate.title}</strong>
+                                  <p className="meta">
+                                    {candidate.projectId}
+                                    {candidate.submittedAt ? ` · ${new Date(candidate.submittedAt).toLocaleString()}` : ''}
+                                  </p>
+                                </div>
+                                <span className={`hackday-status-pill${candidate.alreadyImportedToShowcase ? ' hackday-status-pill-active' : ''}`}>
+                                  {candidate.alreadyImportedToShowcase ? 'Already in showcase' : 'Not imported'}
+                                </span>
+                              </article>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="meta">No extraction candidates for the selected event and limit.</p>
+                        )}
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="meta">Create a HackDay first, then use extraction controls for results-phase events.</p>
+                )}
               </section>
 
               {sortedRegistry.length > 0 ? (

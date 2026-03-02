@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:32 GMT
+Last updated: 2026-03-02 01:41 GMT
 
 ## Current Snapshot
 
@@ -460,7 +460,7 @@ Last updated: 2026-03-02 01:32 GMT
 
 ## Next 3 Atomic Actions
 
-1. Wire Forge UI extraction controls (candidate read + prompt/import trigger) with admin-only guardrails.
+1. Capture live UI smoke evidence for extraction controls (candidate read + prompt/import paths).
 2. Publish extraction operations runbook for replay/idempotency and rollback workflows.
 3. Close `P3.EXTRACT.01` completion gate once UI + runbook evidence is captured.
 
@@ -487,7 +487,7 @@ Last updated: 2026-03-02 01:32 GMT
     - run `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` at session start (avoid stale hardcoded counts)
   - known status after cleanup:
     - `/Users/nickster/Downloads/HackCentral`: clean (`git status --short` empty)
-    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected in-progress extraction scaffolding changes + pre-existing untracked smoke artifacts
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected in-progress extraction UI/workflow changes + pre-existing untracked smoke artifacts
 
 ## Blockers / Decisions Needed
 
@@ -681,7 +681,38 @@ Last updated: 2026-03-02 01:32 GMT
 ### Decision
 
 - Backend extraction baseline is validated (`GO_BASELINE`).
-- Remaining scope for full task closeout: Forge UI controls + extraction operations runbook.
+- Remaining scope for full task closeout: live UI evidence + extraction operations runbook + final checkpoint.
+
+## Session Update - `P3.EXTRACT.01` Forge UI Extraction Controls (Mar 2, 2026 01:41 GMT)
+
+### Completed
+
+- Added HackDays extraction operations panel in:
+  - `forge-native/static/frontend/src/App.tsx`
+  - `forge-native/static/frontend/src/styles.css`
+- Wired typed invocation flows for:
+  - `hdcGetHackdayExtractionCandidates` (candidate fetch with limit)
+  - `hdcTriggerPostHackdayExtractionPrompt` (dry-run/live prompt execution)
+  - `hdcBulkImportHackdaySubmissions` (dry-run/live import execution)
+- Added permission-aware UI behavior:
+  - maps `[EXTRACT_FORBIDDEN]` and `[EXTRACT_IMPORT_FORBIDDEN]` to operator-readable messages
+  - blocks repeated prompt/import actions after explicit permission denial during session
+- Added extraction frontend-wiring regression assertions:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck` (pass)
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` (pass)
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` (16/16 pass)
+
+### Decision
+
+- `P3.EXTRACT.01` remains `IN_PROGRESS`.
+- Remaining closeout scope:
+  1. capture live UI smoke evidence for extraction controls,
+  2. publish extraction operations runbook,
+  3. publish final task checkpoint decision.
 
 ## Validation Commands
 

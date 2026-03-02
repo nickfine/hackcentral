@@ -73,3 +73,14 @@ test('supabase repository enforces extraction permission and migration gates', a
   assert.match(source, /action:\s*'hackday_extraction_prompted'/);
   assert.match(source, /action:\s*'hackday_bulk_imported'/);
 });
+
+test('frontend app wires extraction controls and invokes extraction resolvers', async () => {
+  const source = await readSource('../../static/frontend/src/App.tsx');
+
+  assert.match(source, /Post-HackDay Extraction \(R11\)/);
+  assert.match(source, /invokeTyped\('hdcGetHackdayExtractionCandidates',\s*\{\s*eventId,\s*limit\s*\}\)/);
+  assert.match(source, /invokeTyped\('hdcTriggerPostHackdayExtractionPrompt'/);
+  assert.match(source, /invokeTyped\('hdcBulkImportHackdaySubmissions'/);
+  assert.match(source, /setExtractionPromptForbidden\(true\)/);
+  assert.match(source, /setExtractionImportForbidden\(true\)/);
+});
