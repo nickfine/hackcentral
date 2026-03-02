@@ -2,11 +2,11 @@
 
 An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-**Current version:** `0.6.44` / forge-native `0.3.12` / Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
+**Current version:** `0.6.47` / forge-native `0.3.15` / Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
 
 ## 🤖 New Claude Code Session?
 
-Start with: `Read .claude/instructions.md` to get full project context, tech stack, and development patterns.
+Start with: `Read .claude/instructions.md` and then follow `STARTUP.md`.
 
 ## Tech Stack
 
@@ -119,7 +119,7 @@ HackCentral/
 ├── docs/                  # Runbooks, architecture docs, artifacts
 ├── LEARNINGS.md           # Append-only session continuity log (hardlinked with learnings.md)
 ├── CONTINUATION.md        # Compact handoff + next actions
-├── hdc-product-roadmap.hd # Startup planning protocol and read order
+├── STARTUP.md             # Canonical startup/shutdown checklist
 └── HDC-PRODUCT-EXECUTION-PLAN.md # Live product execution ledger
 ```
 
@@ -196,14 +196,14 @@ Badges, leaderboards, and impact stories to create FOMO and measurable value vis
 
 ## Documentation
 
-- [HDC Product Roadmap](./HDC-PRODUCT-ROADMAP.md) - Canonical product requirements and phases
+- [Roadmap](./ROADMAP.md) - Canonical product requirements and phases
 - [HDC Product Execution Plan](./HDC-PRODUCT-EXECUTION-PLAN.md) - Live task ledger with status/evidence
 - [Phase 1 Problem Exchange Contract](./docs/HDC-P1-PROBLEM-EXCHANGE-CONTRACT-SPEC.md) - `P1.PX.01` backend/domain contract
 - [Phase 1 Guardrails Pack](./docs/HDC-P1-OBS-GUARDRAILS-PACK.md) - Standardized regression + telemetry GO/NO-GO gate (`P1.OBS.01`)
 - [Convex Setup Guide](./CONVEX_SETUP.md) - Detailed Convex documentation
 - [HackDay Design System](./docs/HackDay_Design_system.md) - Shared UI components and patterns
 - [Convex Docs](https://docs.convex.dev) - Official Convex documentation
-- **Active source-of-truth:** `CONTINUATION.md` -> `hdc-product-roadmap.hd` -> `HDC-PRODUCT-ROADMAP.md` -> `HDC-PRODUCT-EXECUTION-PLAN.md` -> latest `LEARNINGS.md` entry -> `forge-native/CONTINUATION_HANDOFF.md`. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
+- **Active source-of-truth:** `STARTUP.md` -> `CONTINUATION.md` -> `HDC-PRODUCT-EXECUTION-PLAN.md` -> `ROADMAP.md` -> latest `LEARNINGS.md` entry. Historical code reviews, plans, and checkpoint logs are in [docs/archive/](./docs/archive/README.md). Canonical runbooks and phase docs are in [docs/](./docs/README.md).
 
 ## Success Metrics
 

@@ -4,12 +4,11 @@ Canonical docs for HDC architecture, plans, and ops.
 
 ## Source-of-truth order (for continuation)
 
-1. `../CONTINUATION.md` - Compact session handoff and next actions.
-2. `../hdc-product-roadmap.hd` - Startup read-order and planning protocol.
-3. `../HDC-PRODUCT-ROADMAP.md` - Canonical product requirements.
-4. `../HDC-PRODUCT-EXECUTION-PLAN.md` - Live execution ledger (task IDs, status, evidence).
+1. `../STARTUP.md` - Canonical startup/shutdown ritual.
+2. `../CONTINUATION.md` - Compact session handoff and next actions.
+3. `../HDC-PRODUCT-EXECUTION-PLAN.md` - Live execution ledger (task IDs, status, evidence).
+4. `../ROADMAP.md` - Canonical product requirements.
 5. `../LEARNINGS.md` - Append-only session learnings and evidence.
-6. `../forge-native/CONTINUATION_HANDOFF.md` - Forge-specific handoff details.
 
 ## Top-level docs
 

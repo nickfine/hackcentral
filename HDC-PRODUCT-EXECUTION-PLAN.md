@@ -8,7 +8,7 @@ Program: HackDay Central (HDC)
 
 | Field | Value |
 |---|---|
-| Canonical product requirements | `HDC-PRODUCT-ROADMAP.md` |
+| Canonical product requirements | `ROADMAP.md` |
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 3 (Compounding Value and ROI) |
 | Program status | In execution |
@@ -29,12 +29,12 @@ Program: HackDay Central (HDC)
 | Task ID | Roadmap Ref | Owner | Status | Dependencies | Acceptance | Evidence |
 |---|---|---|---|---|---|---|
 | `P0.CONT.01` | Continuity backbone | Nick Fine | Completed (2026-03-01) | None | `HDC-PRODUCT-EXECUTION-PLAN.md` created with required schema | This file |
-| `P0.CONT.02` | Continuity startup order | Nick Fine | Completed (2026-03-01) | `P0.CONT.01` | `hdc-product-roadmap.hd` updated with fixed read order | `hdc-product-roadmap.hd` |
+| `P0.CONT.02` | Continuity startup order | Nick Fine | Completed (2026-03-01) | `P0.CONT.01` | `STARTUP.md` defines fixed read order | `STARTUP.md` |
 | `P0.CONT.03` | Handoff schema | Nick Fine | Completed (2026-03-01) | `P0.CONT.01` | `CONTINUATION.md` rewritten with active task pointer + next actions | `CONTINUATION.md` |
-| `P0.CONT.04` | Bootstrap prompt schema | Nick Fine | Deprecated (2026-03-01) | `P0.CONT.03` | Legacy bootstrap prompt retired; startup protocol now anchored to `CONTINUATION.md` + roadmap startup order | `hdc-product-roadmap.hd`, `CONTINUATION.md` |
+| `P0.CONT.04` | Bootstrap prompt schema | Nick Fine | Deprecated (2026-03-01) | `P0.CONT.03` | Legacy bootstrap prompt retired; startup protocol now anchored to `STARTUP.md` + `CONTINUATION.md` | `STARTUP.md`, `CONTINUATION.md` |
 | `P0.CONT.05` | Session rituals | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `.claude/instructions.md` enforces startup/shutdown rituals and current source-of-truth files | `.claude/instructions.md` |
 | `P0.CONT.06` | Source-of-truth cleanup | Nick Fine | Completed (2026-03-01) | `P0.CONT.05` | `README.md` and `docs/README.md` references corrected | `README.md`, `docs/README.md` |
-| `P0.CONT.07` | Forge handoff file | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `forge-native/CONTINUATION_HANDOFF.md` exists and is linked | `forge-native/CONTINUATION_HANDOFF.md` |
+| `P0.CONT.07` | Forge handoff file | Nick Fine | Retired (2026-03-02) | `P0.CONT.03` | Startup protocol no longer depends on Forge-specific handoff file | `STARTUP.md`, `README.md` |
 | `P0.CONT.08` | Learnings protocol | Nick Fine | Completed (2026-03-01) | `P0.CONT.03` | `LEARNINGS.md` includes per-session entry and reusable entry template | `LEARNINGS.md` |
 | `P1.IA.01` | IA and routing migration | Product + Eng | Completed (2026-03-01) | `P0.CONT.*` | Implementation-level IA/routing spec approved for canonical nav, sub-tabs, redirects, and Forge view adapters | `docs/HDC-P1-IA-ROUTING-SPEC.md` |
 | `P1.REG.01` | `R1.1` to `R1.5` | Eng | Completed (2026-03-01) | `P1.IA.01` | Registry P0 implemented and validated | `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`, `forge-native/src/index.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/utils/registry.ts`, `tests/forge-native-registry-contract.spec.ts`, `tests/forge-native-registry-utils.spec.ts`, `tests/forge-native-registry-runtime-modes.spec.ts` |
@@ -127,7 +127,7 @@ Program: HackDay Central (HDC)
 | 2026-03-02 | Started `P3.EXTRACT.01`: locked `R11.1`/`R11.2` baseline contract in `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md`, set task status to in-progress, and advanced the active queue to resolver/type scaffolding plus Supabase source-audit/migration framing. |
 | 2026-03-02 | Completed branch/worktree reconciliation and stale branch pruning (`codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2` deleted locally/remotely); completed `P3.OBS.01` to GO with Phase 3 telemetry contract, feed/ROI/export telemetry hooks, static gate, and live production telemetry evidence. Active task advanced to `P3.EXTRACT.01`. |
 | 2026-03-02 | Continuity handoff refresh: set next-session action #1 to branch/worktree hygiene reconciliation before `P3.OBS.01` implementation; active task remains `P3.OBS.01`. |
-| 2026-03-01 | Created initial execution ledger from `HDC-PRODUCT-ROADMAP.md`; seeded tasks for Phase 0-3 and activated continuity protocol. |
+| 2026-03-01 | Created initial execution ledger from `ROADMAP.md`; seeded tasks for Phase 0-3 and activated continuity protocol. |
 | 2026-03-01 | Completed `P1.IA.01` with implementation-ready IA/routing spec in `docs/HDC-P1-IA-ROUTING-SPEC.md`; active task advanced to `P1.REG.01`. |
 | 2026-03-01 | Locked `P1.REG.01` contract specification (`docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`) and moved `P1.REG.01` to in-progress implementation status. |
 | 2026-03-01 | Implemented `P1.REG.01` backend baseline: Supabase migration, resolver/service/repository contracts, and targeted registry backend tests (5 passing). |

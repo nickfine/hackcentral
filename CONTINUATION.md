@@ -5,13 +5,13 @@ Last updated: 2026-03-02 23:30 GMT
 ## Current Snapshot
 
 - Branch: `main`
-- Product source of truth: `HDC-PRODUCT-ROADMAP.md`
+- Product source of truth: `ROADMAP.md`
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.46`
-  - Forge native package version: `0.3.14`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.55`
+  - Root app version: `0.6.47`
+  - Forge native package version: `0.3.15`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.56`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
@@ -469,10 +469,10 @@ Last updated: 2026-03-02 23:30 GMT
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
-- Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
-- Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
-- Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
-- Phase 3 extraction requirements source: `HDC-PRODUCT-ROADMAP.md` (`R11.1`-`R11.2`)
+- Pathways requirements source: `ROADMAP.md` (`R6.1`-`R6.4`)
+- Team Pulse requirements source: `ROADMAP.md` (`R7.1`-`R7.4`)
+- Recognition requirements source: `ROADMAP.md` (`R8.1`-`R8.2`)
+- Phase 3 extraction requirements source: `ROADMAP.md` (`R11.1`-`R11.2`)
 
 ## Next 3 Atomic Actions
 
@@ -878,8 +878,9 @@ cd /Users/nickster/Downloads/HackCentral && SUPABASE_URL="https://ssafugtobsqxmq
 # Full targeted Registry + Problem Exchange cross-suite
 cd /Users/nickster/Downloads/HackCentral && npm run test:run -- tests/forge-native-registry-contract.spec.ts tests/forge-native-registry-utils.spec.ts tests/forge-native-registry-runtime-modes.spec.ts tests/forge-native-problem-exchange-contract.spec.ts tests/forge-native-problem-exchange-runtime-modes.spec.ts tests/forge-native-problem-exchange-utils.spec.ts
 
-# Forge handoff file presence
-test -f /Users/nickster/Downloads/HackCentral/forge-native/CONTINUATION_HANDOFF.md
+# Startup protocol file presence
+test -f /Users/nickster/Downloads/HackCentral/STARTUP.md
+test -f /Users/nickster/Downloads/HackCentral/ROADMAP.md
 
 # Optional: check current git changes
 cd /Users/nickster/Downloads/HackCentral && git status --short --branch
@@ -925,10 +926,10 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 
 ## Fresh Chat Startup Checklist
 
-1. Read `CONTINUATION.md`.
-2. Read `hdc-product-roadmap.hd`.
-3. Read `HDC-PRODUCT-ROADMAP.md`.
-4. Read `HDC-PRODUCT-EXECUTION-PLAN.md`.
+1. Read `STARTUP.md`.
+2. Read `CONTINUATION.md`.
+3. Read `HDC-PRODUCT-EXECUTION-PLAN.md`.
+4. Read `ROADMAP.md`.
 5. Read the latest entry in `LEARNINGS.md`.
 6. Confirm the `Active Task ID` before implementation.
 
