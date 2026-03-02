@@ -11,6 +11,15 @@ async function readSource(filePath) {
   return fs.readFile(path.resolve(__dirname, filePath), 'utf8');
 }
 
+test('extraction migration defines prompt/import state tables and idempotency constraints', async () => {
+  const migration = await readSource('../../supabase/migrations/20260302013000_phase3_extraction.sql');
+
+  assert.match(migration, /create table if not exists "HackdayExtractionPrompt"/i);
+  assert.match(migration, /create table if not exists "HackdayExtractionImport"/i);
+  assert.match(migration, /unique\s*\(\s*event_id,\s*participant_user_id,\s*lifecycle_status,\s*policy_version\s*\)/i);
+  assert.match(migration, /unique\s*\(\s*event_id,\s*source_project_id,\s*policy_version\s*\)/i);
+});
+
 test('global resolver exposes extraction endpoints', async () => {
   const source = await readSource('../../src/index.ts');
 

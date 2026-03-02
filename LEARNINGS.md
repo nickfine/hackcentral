@@ -2614,3 +2614,25 @@ Use this template at the end of every work session:
 - In this workspace, Supabase MCP access is reliable for connectivity checks but not sufficient for project-admin schema introspection; the management API fallback path should be considered part of the normal extraction gate.
 - Capturing a machine-readable source-audit artifact before writing migration SQL makes checkpoint decisions clearer and reduces rework when migration scope changes.
 - Extraction write-path validation needs both schema readiness and data readiness; missing `results` events or missing event-linked submissions should be treated as a hard gate, not a soft warning.
+
+## Session Update - P3.EXTRACT.01 Migration Scaffold (Mar 2, 2026 01:25 GMT)
+
+### Completed
+
+- Added extraction migration scaffold:
+  - `forge-native/supabase/migrations/20260302013000_phase3_extraction.sql`
+  - creates `HackdayExtractionPrompt` and `HackdayExtractionImport`
+  - adds idempotency uniqueness constraints, FK references, and indexes.
+- Extended extraction contract tests to include migration-shape assertions:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`.
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` -> pass.
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` -> pass (`15/15`).
+
+### Operational Learnings
+
+- Locking migration-shape assertions in backend contract tests catches schema drift early and keeps repository logic + migration expectations synchronized.
+- For idempotent command paths, defining composite uniqueness constraints in the first migration avoids ambiguous replay semantics later.
+- It is useful to separate "migration file landed" from "migration applied" in continuity docs so checkpoint status cannot be misread.

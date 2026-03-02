@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:22 GMT
+Last updated: 2026-03-02 01:25 GMT
 
 ## Current Snapshot
 
@@ -460,9 +460,9 @@ Last updated: 2026-03-02 01:22 GMT
 
 ## Next 3 Atomic Actions
 
-1. Implement extraction migration(s) for `HackdayExtractionPrompt` and `HackdayExtractionImport`.
-2. Validate non-dry-run prompt/import commands end-to-end against live schema.
-3. Publish `P3.EXTRACT.01` baseline checkpoint with source-audit + write-path evidence and gate decision.
+1. Apply `forge-native/supabase/migrations/20260302013000_phase3_extraction.sql` to `ssafugtobsqxmqtphwch` and verify table/constraint creation.
+2. Validate non-dry-run prompt/import commands end-to-end against live schema with event-scoped `results` data.
+3. Publish `P3.EXTRACT.01` baseline checkpoint with source-audit + migration + write-path evidence and gate decision.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -627,6 +627,30 @@ Last updated: 2026-03-02 01:22 GMT
   1. extraction tables are migrated,
   2. event-scoped submissions are available,
   3. non-dry-run flows are validated and checkpointed.
+
+## Session Update - `P3.EXTRACT.01` Migration Scaffold Added (Mar 2, 2026 01:25 GMT)
+
+### Completed
+
+- Added extraction migration:
+  - `forge-native/supabase/migrations/20260302013000_phase3_extraction.sql`
+  - creates `HackdayExtractionPrompt` and `HackdayExtractionImport`
+  - enforces idempotency constraints:
+    - `(event_id, participant_user_id, lifecycle_status, policy_version)`
+    - `(event_id, source_project_id, policy_version)`
+  - adds FK guardrails to `Event` / `Project` and supporting indexes.
+- Extended extraction backend contract tests:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+  - now asserts extraction migration file + uniqueness constraints.
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` (pass)
+- `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` (15/15 pass)
+
+### Remaining Gate
+
+- Migration file exists in repo but has not yet been applied to live project `ssafugtobsqxmqtphwch`; live write-path validation remains pending.
 
 ## Validation Commands
 
