@@ -1007,6 +1007,30 @@ button {
   border-left: 2px solid #14b8a6;
 }
 
+.hackdays-list-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: end;
+}
+
+.hackdays-list-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: var(--tier3-size);
+}
+
+.hackdays-list-controls input,
+.hackdays-list-controls select {
+  width: 100%;
+}
+
+.hackdays-list-controls .meta {
+  margin: 0;
+}
+
 .hackdays-hero-row {
   display: flex;
   align-items: center;

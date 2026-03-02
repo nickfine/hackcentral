@@ -106,7 +106,7 @@ import { EventSelectionPanel } from './components/EventSelectionPanel';
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.45';
+const HACKCENTRAL_UI_VERSION = '0.6.46';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -143,6 +143,7 @@ const HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT = 50;
 const HACKDAY_EXTRACTION_UI_MAX_LIMIT = 200;
 
 type PathwayEditorMode = 'create' | 'edit';
+type HackdaySortBy = 'recent' | 'oldest' | 'name_asc' | 'name_desc' | 'status';
 
 type PathwayStepDraft = {
   localId: string;
@@ -1422,6 +1423,8 @@ export function App(): JSX.Element {
   const [teamSearch, setTeamSearch] = useState('');
   const [teamExperienceFilter, setTeamExperienceFilter] = useState('all');
   const [teamMentorFilter, setTeamMentorFilter] = useState<MentorFilter>('hackers');
+  const [hackdaySearchInput, setHackdaySearchInput] = useState('');
+  const [hackdaySortBy, setHackdaySortBy] = useState<HackdaySortBy>('recent');
 
   const [roiSnapshot, setRoiSnapshot] = useState<RoiDashboardSnapshot | null>(null);
   const [roiLoading, setRoiLoading] = useState(false);
@@ -1593,6 +1596,50 @@ export function App(): JSX.Element {
   const allPeople = bootstrap?.people ?? [];
   const registry = bootstrap?.registry ?? [];
   const sortedRegistry = useMemo(() => sortByMostRecent([...registry]), [registry]);
+  const hackdayRegistryView = useMemo(() => {
+    const query = hackdaySearchInput.trim().toLowerCase();
+    const filtered = sortedRegistry.filter((event) => {
+      if (!query) return true;
+      const haystack = [
+        event.eventName,
+        event.tagline ?? '',
+        formatHackdayLifecycleStatus(event.lifecycleStatus),
+        event.icon ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+
+    if (hackdaySortBy === 'recent') {
+      return sortByMostRecent([...filtered]);
+    }
+    if (hackdaySortBy === 'oldest') {
+      return sortByMostRecent([...filtered]).reverse();
+    }
+    if (hackdaySortBy === 'name_asc') {
+      return [...filtered].sort((a, b) => a.eventName.localeCompare(b.eventName));
+    }
+    if (hackdaySortBy === 'name_desc') {
+      return [...filtered].sort((a, b) => b.eventName.localeCompare(a.eventName));
+    }
+
+    const lifecycleRank: Record<LifecycleStatus, number> = {
+      registration: 2,
+      team_formation: 3,
+      hacking: 0,
+      voting: 1,
+      results: 4,
+      draft: 5,
+      completed: 6,
+      archived: 7,
+    };
+    return [...filtered].sort((a, b) => {
+      const rankDiff = (lifecycleRank[a.lifecycleStatus] ?? 99) - (lifecycleRank[b.lifecycleStatus] ?? 99);
+      if (rankDiff !== 0) return rankDiff;
+      return a.eventName.localeCompare(b.eventName);
+    });
+  }, [hackdaySearchInput, hackdaySortBy, sortedRegistry]);
   const switcherSections = useMemo(() => buildSwitcherSections(registry), [registry]);
   const hasNonNavigableSwitcherItems = useMemo(
     () => registry.some((item) => !isNavigableRegistryItem(item)),
@@ -6359,10 +6406,41 @@ export function App(): JSX.Element {
                 </div>
               </section>
 
+              <section className="card hackdays-list-controls">
+                <label htmlFor="hackdays-search-input">
+                  Search
+                  <input
+                    id="hackdays-search-input"
+                    type="search"
+                    value={hackdaySearchInput}
+                    onChange={(event) => setHackdaySearchInput(event.target.value)}
+                    placeholder="Search by name, tagline, or lifecycle"
+                  />
+                </label>
+                <label htmlFor="hackdays-sort-select">
+                  Sort
+                  <select
+                    id="hackdays-sort-select"
+                    value={hackdaySortBy}
+                    onChange={(event) => setHackdaySortBy(event.target.value as HackdaySortBy)}
+                  >
+                    <option value="recent">Most recent</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="status">Lifecycle status</option>
+                  </select>
+                </label>
+                <p className="meta">
+                  Showing {hackdayRegistryView.length} of {sortedRegistry.length} HackDay
+                  {sortedRegistry.length === 1 ? '' : 's'}
+                </p>
+              </section>
+
               <section className="card hackday-extraction-card">
                 <div className="hackday-extraction-head">
                   <div>
-                    <h2>Post-HackDay Extraction (R11)</h2>
+                    <h2>[ADMIN] Post-HackDay Extraction (R11)</h2>
                     <p>
                       Event Admin/HDC Admin can read candidates and trigger prompts. HDC Admin/Platform Admin can run bulk import.
                     </p>
@@ -6565,50 +6643,58 @@ export function App(): JSX.Element {
               </section>
 
               {sortedRegistry.length > 0 ? (
-                <div className="grid hacks-grid">
-                  {sortedRegistry.map((event) => (
-                    <article key={event.id} className="card hackday-card">
-                      <div className="hackday-card-top">
-                        <div className="hackday-card-header">
-                          <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
-                          <div className="hackday-title-wrap">
-                            <h3>{event.eventName}</h3>
-                            {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+                hackdayRegistryView.length > 0 ? (
+                  <div className="grid hacks-grid">
+                    {hackdayRegistryView.map((event) => (
+                      <article key={event.id} className="card hackday-card">
+                        <div className="hackday-card-top">
+                          <div className="hackday-card-header">
+                            <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
+                            <div className="hackday-title-wrap">
+                              <h3>{event.eventName}</h3>
+                              {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+                            </div>
                           </div>
-                        </div>
-                        <span
-                          className={`hackday-status-pill${ACTIVE_HACKDAY_LIFECYCLE_STATUSES.has(event.lifecycleStatus) ? ' hackday-status-pill-active' : ''}`}
-                        >
-                          {formatHackdayLifecycleStatus(event.lifecycleStatus)}
-                        </span>
-                      </div>
-
-                      <div className="hackday-meta">
-                        {event.hackingStartsAt ? (
-                          <div className="hackday-meta-row">
-                            <span className="hackday-meta-label">Hacking starts</span>
-                            <span className="hackday-date">
-                              {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="hackday-card-footer">
-                        {event.isNavigable && event.confluencePageId ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-sm"
-                            onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
+                          <span
+                            className={`hackday-status-pill${ACTIVE_HACKDAY_LIFECYCLE_STATUSES.has(event.lifecycleStatus) ? ' hackday-status-pill-active' : ''}`}
                           >
-                            Open
-                          </button>
-                        ) : (
-                          <span className="text-muted">Page not yet available</span>
-                        )}
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                            {formatHackdayLifecycleStatus(event.lifecycleStatus)}
+                          </span>
+                        </div>
+
+                        <div className="hackday-meta">
+                          {event.hackingStartsAt ? (
+                            <div className="hackday-meta-row">
+                              <span className="hackday-meta-label">Hacking starts</span>
+                              <span className="hackday-date">
+                                {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="hackday-card-footer">
+                          {event.isNavigable && event.confluencePageId ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
+                            >
+                              Open
+                            </button>
+                          ) : (
+                            <span className="text-muted">Page not yet available</span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <section className="card hackdays-empty-card">
+                    <div className="hackdays-empty-icon" aria-hidden>🔎</div>
+                    <p className="hackdays-empty-title">No HackDays match this search</p>
+                    <p className="empty-copy">Try a different search term or sort mode.</p>
+                  </section>
+                )
               ) : (
                 <section className="card hackdays-empty-card">
                   <div className="hackdays-empty-icon" aria-hidden>🚀</div>
