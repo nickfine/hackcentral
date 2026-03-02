@@ -2905,3 +2905,36 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Weekly operations are more robust when observability and extraction readiness are coupled under a shared timestamped run; this keeps artifacts aligned for audit and reduces ambiguity about whether checks were run in the same cycle.
+
+## Session Update - Extraction Trigger Forecast Added (Mar 2, 2026 02:20 GMT)
+
+### Completed
+
+- Extended extraction readiness command output in:
+  - `scripts/p3-extract-cadence-check.mjs`
+- Added schedule forecast payload fields:
+  - `scheduleOutlook.resultsAnnounceAtPresentCount`
+  - `scheduleOutlook.resultsAnnounceAtMissingCount`
+  - `scheduleOutlook.pastDueResultsAnnounceCount`
+  - `scheduleOutlook.nextUpcomingResultsAnnounceAt`
+  - `scheduleOutlook.nextUpcomingEvent`
+- Updated extraction runbook to describe expected readiness fields:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+- Executed readiness check and captured fresh artifact.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021924Z.json`
+
+### Observations
+
+- Current extraction readiness remains blocked:
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+- Forecast indicates nearest expected trigger window:
+  - `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
+  - `nextUpcomingEvent=One Day Test`
+
+### Operational Learnings
+
+- Event-gated operations benefit from built-in schedule outlook because it gives an explicit next trigger timestamp and avoids blind cadence reruns without actionability.

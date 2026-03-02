@@ -37,6 +37,12 @@ cd /Users/nickster/Downloads/HackCentral
 npm run qa:p3:extract-cadence-check
 ```
 
+Expected readiness artifact fields include:
+- `extractionCadenceStatus` (`ready` or `pending_results_event`)
+- `resultsEventCount`
+- `scheduleOutlook.nextUpcomingResultsAnnounceAt`
+- `scheduleOutlook.nextUpcomingEvent`
+
 ## Command Catalog
 
 ### 1. Candidate read (`R11.1` read path)

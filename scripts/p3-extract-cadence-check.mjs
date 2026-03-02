@@ -100,6 +100,36 @@ function summarizeLifecycleCounts(rows) {
     .sort((a, b) => a.lifecycle_status.localeCompare(b.lifecycle_status));
 }
 
+function summarizeScheduleOutlook(rows, checkedAt) {
+  const withResultsAnnounceAt = rows
+    .filter((row) => row?.event_schedule?.resultsAnnounceAt)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      lifecycle_status: row.lifecycle_status,
+      resultsAnnounceAt: row.event_schedule.resultsAnnounceAt,
+      updatedAt: row.updatedAt,
+    }));
+
+  const upcoming = withResultsAnnounceAt
+    .filter((row) => row.resultsAnnounceAt >= checkedAt)
+    .sort((a, b) => a.resultsAnnounceAt.localeCompare(b.resultsAnnounceAt));
+
+  const pastDue = withResultsAnnounceAt
+    .filter((row) => row.resultsAnnounceAt < checkedAt)
+    .sort((a, b) => b.resultsAnnounceAt.localeCompare(a.resultsAnnounceAt));
+
+  return {
+    resultsAnnounceAtPresentCount: withResultsAnnounceAt.length,
+    resultsAnnounceAtMissingCount: rows.length - withResultsAnnounceAt.length,
+    pastDueResultsAnnounceCount: pastDue.length,
+    nextUpcomingResultsAnnounceAt: upcoming[0]?.resultsAnnounceAt ?? null,
+    nextUpcomingEvent: upcoming[0] ?? null,
+    samplePastDue: pastDue.slice(0, 5),
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const checkedAt = new Date().toISOString();
@@ -116,16 +146,24 @@ async function main() {
   }
 
   const restBase = `${supabaseUrl}/rest/v1`;
-  const [lifecycleRows, latestResultsEvents] = await Promise.all([
-    fetchRestJson(`${restBase}/Event?select=lifecycle_status&limit=1000`, serviceRoleKey),
-    fetchRestJson(
-      `${restBase}/Event?select=id,slug,name,lifecycle_status,updatedAt&lifecycle_status=eq.results&order=updatedAt.desc&limit=5`,
-      serviceRoleKey
-    ),
-  ]);
-
-  const lifecycleCounts = summarizeLifecycleCounts(lifecycleRows);
+  const events = await fetchRestJson(
+    `${restBase}/Event?select=id,name,slug,lifecycle_status,event_schedule,updatedAt&limit=1000`,
+    serviceRoleKey
+  );
+  const lifecycleCounts = summarizeLifecycleCounts(events);
+  const latestResultsEvents = events
+    .filter((row) => row?.lifecycle_status === 'results')
+    .sort((a, b) => String(b?.updatedAt || '').localeCompare(String(a?.updatedAt || '')))
+    .slice(0, 5)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      lifecycle_status: row.lifecycle_status,
+      updatedAt: row.updatedAt,
+    }));
   const resultsEventCount = Array.isArray(latestResultsEvents) ? latestResultsEvents.length : 0;
+  const scheduleOutlook = summarizeScheduleOutlook(events, checkedAt);
   const payload = {
     checkedAt,
     projectRef: args.projectRef,
@@ -134,6 +172,7 @@ async function main() {
     resultsEventCount,
     latestResultsEvents,
     extractionCadenceStatus: resultsEventCount > 0 ? 'ready' : 'pending_results_event',
+    scheduleOutlook,
   };
 
   const outputPath =

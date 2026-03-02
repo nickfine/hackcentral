@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:14 GMT
+Last updated: 2026-03-02 02:20 GMT
 
 ## Current Snapshot
 
@@ -995,3 +995,28 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - A single orchestrator command minimizes operator sequencing errors and makes weekly cadence execution a one-step, evidence-complete operation.
+
+## Session Update - Extraction Trigger Forecast Added (Mar 2, 2026 02:20 GMT)
+
+### Completed
+
+- Enhanced extraction readiness script output:
+  - `scripts/p3-extract-cadence-check.mjs`
+- Added forecast fields to readiness artifact:
+  - `scheduleOutlook.nextUpcomingResultsAnnounceAt`
+  - `scheduleOutlook.nextUpcomingEvent`
+  - `scheduleOutlook.pastDueResultsAnnounceCount`
+- Updated extraction ops runbook to document readiness output fields:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021924Z.json`
+  - `resultsEventCount: 0`
+  - `extractionCadenceStatus: pending_results_event`
+  - `nextUpcomingResultsAnnounceAt: 2026-03-09T18:00:00.000Z`
+  - `nextUpcomingEvent.name: One Day Test`
+
+### Operational Learnings
+
+- Including schedule forecast in readiness artifacts turns extraction cadence from passive polling into a time-bounded trigger workflow with an explicit next-action horizon.
