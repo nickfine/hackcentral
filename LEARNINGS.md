@@ -2938,3 +2938,31 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Event-gated operations benefit from built-in schedule outlook because it gives an explicit next trigger timestamp and avoids blind cadence reruns without actionability.
+
+## Session Update - Weekly Cadence Action Guidance Upgrade (Mar 2, 2026 02:22 GMT)
+
+### Completed
+
+- Enhanced unified cadence checkpoint generation in:
+  - `scripts/p3-weekly-cadence.mjs`
+- Added explicit `Action Guidance` section in combined checkpoint output based on extraction readiness + schedule outlook.
+- Executed a fresh unified weekly cadence run.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022156Z.md`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022156Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022156Z.json`
+
+### Observations
+
+- Latest 24h cadence sample now includes newer telemetry window up to `2026-03-02T02:14:01.214Z` with:
+  - `feed_signal_health=33`
+  - `roi_signal_health=7`
+  - `roi_export=4`
+- Extraction readiness remains `pending_results_event`, but checkpoint now provides direct timing guidance:
+  - rerun at/after `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- Combining forecast data and prescriptive next-action text in the same checkpoint materially improves operational clarity and reduces decision latency in event-gated workflows.

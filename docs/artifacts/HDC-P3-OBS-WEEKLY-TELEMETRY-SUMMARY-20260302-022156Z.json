@@ -1,0 +1,30 @@
+{
+  "channel": "hdc-phase3-telemetry",
+  "sampleWindow": {
+    "lineCount": 44,
+    "eventCount": 44,
+    "firstLoggedAt": "2026-03-02T00:21:11.814Z",
+    "lastLoggedAt": "2026-03-02T02:14:01.214Z"
+  },
+  "metricCounts": {
+    "feed_signal_health": 33,
+    "roi_signal_health": 7,
+    "roi_export": 4
+  },
+  "healthCounts": {
+    "healthy": 7,
+    "unhealthy": 33,
+    "feedUnhealthy": 33
+  },
+  "alertCounts": {
+    "recommendation_coverage_below_threshold": 33
+  },
+  "warningCounts": {
+    "trend_points_below_threshold": 7
+  },
+  "decision": "GO",
+  "notes": [
+    "Cadence check verifies channel presence and metric emission, not feature-level correctness.",
+    "If feed_signal_health remains unhealthy, continue weekly tracking and inspect recommendation source coverage."
+  ]
+}

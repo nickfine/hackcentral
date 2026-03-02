@@ -61,6 +61,15 @@ function renderCheckpoint({ generatedAtIso, args, obsSummary, extractStatus, obs
   const lifecycleLines = (extractStatus.lifecycleCounts || [])
     .map((row) => `  - \`${row.lifecycle_status}\`: \`${row.count}\``)
     .join('\n');
+  const scheduleOutlook = extractStatus.scheduleOutlook || {};
+  const nextUpcomingResultsAnnounceAt = scheduleOutlook.nextUpcomingResultsAnnounceAt || null;
+  const nextUpcomingEventName = scheduleOutlook.nextUpcomingEvent?.name || null;
+  const recommendedAction =
+    extractStatus.extractionCadenceStatus === 'ready'
+      ? 'Run extraction cadence sample immediately (candidate read + prompt/import dry-run + replay checks).'
+      : nextUpcomingResultsAnnounceAt
+        ? `Re-run \`qa:p3:weekly-cadence\` at or after \`${nextUpcomingResultsAnnounceAt}\` to trigger first non-empty extraction sample.`
+        : 'No upcoming results forecast detected; continue weekly cadence and investigate lifecycle progression path.';
 
   return [
     '# HDC P3 Weekly Cadence Checkpoint',
@@ -92,6 +101,12 @@ function renderCheckpoint({ generatedAtIso, args, obsSummary, extractStatus, obs
     `- resultsEventCount: \`${extractStatus.resultsEventCount}\``,
     '- Lifecycle counts:',
     lifecycleLines || '  - none',
+    `- Next upcoming results announce at: \`${nextUpcomingResultsAnnounceAt ?? 'n/a'}\``,
+    `- Next upcoming event: \`${nextUpcomingEventName ?? 'n/a'}\``,
+    '',
+    '## Action Guidance',
+    '',
+    `- Recommended next action: ${recommendedAction}`,
     '',
     '## Evidence',
     '',

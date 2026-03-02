@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:20 GMT
+Last updated: 2026-03-02 02:22 GMT
 
 ## Current Snapshot
 
@@ -1020,3 +1020,31 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Including schedule forecast in readiness artifacts turns extraction cadence from passive polling into a time-bounded trigger workflow with an explicit next-action horizon.
+
+## Session Update - Weekly Cadence Action Guidance Upgrade (Mar 2, 2026 02:22 GMT)
+
+### Completed
+
+- Enhanced unified weekly cadence script output:
+  - `scripts/p3-weekly-cadence.mjs`
+- Combined checkpoint now includes:
+  - extraction trigger forecast fields (`nextUpcomingResultsAnnounceAt`, `nextUpcomingEvent`)
+  - explicit action guidance sentence for operators
+- Executed fresh unified cadence run:
+  - `npm run qa:p3:weekly-cadence`
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022156Z.md`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022156Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022156Z.json`
+
+### Current State
+
+- Observability cadence decision: `GO` (44 events in latest 24h sample).
+- Extraction readiness: `pending_results_event` (`resultsEventCount=0`).
+- Recommended trigger window in checkpoint: rerun at/after `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- Action-oriented checkpoint text reduces ambiguity during handoff by converting raw readiness state into a concrete next execution time.
