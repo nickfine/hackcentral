@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 15:54 GMT
+Last updated: 2026-03-02 15:58 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Release bump + production deployment complete for homepage first-action UX payload: bumped root app to `0.6.45`, Forge native package to `0.3.13`, UI cache-buster marker to `0.6.48`, pushed commit `897fcf0` to `main`, executed production build/deploy/install from `forge-native` (`npm run custom-ui:build`, `forge deploy --environment production --no-verify`, `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`). Forge deploy returned `✔ Deployed`; install confirmed site already at latest version. |
 | 2026-03-02 | Delivered homepage first-action UX hardening behind frontend flag `VITE_HDC_HOME_UX_V1` (default enabled): action-oriented hero secondary CTAs, actionable Home feed/recommendation rows with deterministic navigation fallback, hidden default source-debug metadata (preview-only), copy de-technicalization (no `R12.x` labels in default mode), responsive typography correction at tablet breakpoint, and compact feed-chip hierarchy. Added typed navigation intent fields (`targetView`, `targetContext`) to shared/frontend home-feed contracts, introduced frontend telemetry events (`home_primary_cta_click`, `home_secondary_cta_click`, `home_feed_item_click`, `home_recommendation_click`), and validated via lint, Forge/frontend typechecks, and targeted feed/home utility test suites. |
 | 2026-03-02 | Completed consistency/integrity remediation pass: fixed malformed test edits and restored full green gate baseline (`npm run lint:strict`, `npm run test:run` = `39/39` files + `177/177` tests), hardened P1 regression coverage enforcement (`qa:verify:p1-suite-files` + restored suite files), and reran Phase 3 cadence with corrected observability decision/count semantics and fresh artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-125904Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-125904Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-125904Z.md`). |
 | 2026-03-02 | Executed on-demand synthetic live extraction simulation against draft event `One Day Test` (`draft -> results` temporary toggle), seeded one synthetic submission, ran `qa:p3:extract-first-results-sample -- --live`, validated idempotency (`prompt 1->0`, `import 1->0`), and fully cleaned synthetic rows with lifecycle restore. Evidence: `docs/artifacts/HDC-P3-EXTRACT-SYNTHETIC-LIVE-SIM-20260302-114847Z.md`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-114909Z.json`. |

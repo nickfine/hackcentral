@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 15:54 GMT
+Last updated: 2026-03-02 15:58 GMT
 
 ## Current Snapshot
 
@@ -1386,3 +1386,31 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Keeping feed navigation mapping in a dedicated utility (`utils/homeFeed.ts`) reduces dashboard render complexity and enables focused contract-level tests without React runtime coupling.
+
+## Session Update - Release Bump + Production Forge Deploy (Mar 2, 2026 15:58 GMT)
+
+### Completed
+
+- Bumped versions and release markers:
+  - root app version `0.6.44 -> 0.6.45`
+  - Forge native package version `0.3.12 -> 0.3.13`
+  - UI cache-buster marker `HACKCENTRAL_UI_VERSION=0.6.48`
+- Committed and pushed release + homepage UX payload to `main`:
+  - commit: `897fcf0`
+- Executed production deploy workflow from `forge-native/`:
+  - `npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Validation Evidence
+
+- Build completed for all custom UIs (`frontend`, `macro`, `runtime`) with production bundles emitted.
+- Forge production deploy returned `✔ Deployed`.
+- Forge install/upgrade returned:
+  - `✔ Site is already at the latest version`
+  - environment confirmed latest in Confluence on `hackdaytemp.atlassian.net`.
+
+### Current State
+
+- Production deploy sequence is complete for this release.
+- Active task remains `P3.OBS.01` (weekly cadence and extraction readiness follow-up remain in force).

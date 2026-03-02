@@ -3273,3 +3273,31 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Run one production weekly cadence observation window with `VITE_HDC_HOME_UX_V1=true`, compare first-action telemetry baseline vs prior week, and decide whether to keep default-on or stage percentage rollout.
+
+## Session Update - Release Bump + Production Forge Deploy (2026-03-02 15:58 GMT)
+
+### Task ID
+- `P3.OBS.01`
+
+### What Changed
+- Version and marker bump completed:
+  - root app `0.6.45`
+  - Forge native package `0.3.13`
+  - `HACKCENTRAL_UI_VERSION=0.6.48`
+- Committed and pushed homepage UX + release changes to `main`:
+  - commit `897fcf0`
+- Ran production deploy/install commands from `forge-native`:
+  - `npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Validation / Evidence
+- Custom UI build pipeline succeeded for frontend, macro frontend, and runtime frontend.
+- Forge deploy completed with `✔ Deployed`.
+- Production install step reported `✔ Site is already at the latest version`.
+
+### Regressions / Gotchas
+- Forge CLI emitted Node compatibility warning in this environment (non-blocking for this deploy run).
+
+### Next Recommended Step
+- Run one post-deploy weekly cadence observation and compare homepage first-action telemetry events against the prior baseline week.
