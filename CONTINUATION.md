@@ -478,13 +478,13 @@ Last updated: 2026-03-02 01:22 GMT
 - Current snapshot:
   - local branches:
     - `main` (`5e4095b`)
-    - `codex/p3-extract-01` (`0695763`) - active implementation branch
+    - `codex/p3-extract-01` (`51f37c5`) - active implementation branch
     - `codex/main-local-wip-20260302` (`2406a4d`) - archived local main WIP
   - worktrees:
     - `/Users/nickster/Downloads/HackCentral` -> `main`
     - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p3-extract-01`
   - divergence vs `main`:
-    - `codex/p3-extract-01`: `0 1`
+    - `codex/p3-extract-01`: `0 3`
   - known status after cleanup:
     - `/Users/nickster/Downloads/HackCentral`: clean (`git status --short` empty)
     - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected in-progress extraction scaffolding changes + pre-existing untracked smoke artifacts
@@ -596,7 +596,7 @@ Last updated: 2026-03-02 01:22 GMT
   - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
   - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
   - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
-  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` -> `0 1`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` -> `0 3`
   - `/Users/nickster/Downloads/HackCentral` status clean, `/Users/nickster/Downloads/HackCentral-p1-child-01` status known with extraction-scaffold edits.
 
 ## Session Update - `P3.EXTRACT.01` Supabase Source Audit (Mar 2, 2026 01:22 GMT)
