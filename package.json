@@ -22,6 +22,7 @@
     "qa:p3:telemetry-static-check": "rg -n \"hdc-phase3-telemetry|feed_signal_health|roi_signal_health|roi_export|hdcTrackRoiExport\" forge-native/src/backend/supabase/repositories.ts forge-native/src/backend/hackcentral.ts forge-native/src/index.ts forge-native/src/shared/types.ts forge-native/static/frontend/src/types.ts forge-native/static/frontend/src/App.tsx",
     "qa:p3:obs-weekly-cadence": "node scripts/p3-obs-weekly-cadence.mjs --since 24h --limit 4000",
     "qa:p3:extract-cadence-check": "node scripts/p3-extract-cadence-check.mjs --project-ref ssafugtobsqxmqtphwch",
+    "qa:p3:weekly-cadence": "node scripts/p3-weekly-cadence.mjs --since 24h --limit 4000 --project-ref ssafugtobsqxmqtphwch",
     "qa:phase3:macro-scaffold": "node scripts/phase3-macro-qa-scaffold.mjs",
     "qa:phase5:migration-dry-run": "node scripts/phase5-migration-dry-run.mjs",
     "qa:phase6:weekly-core": "npm run qa:phase5:migration-dry-run -- --environment production && npm run test:perf:phase5",

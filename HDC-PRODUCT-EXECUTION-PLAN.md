@@ -58,7 +58,7 @@ Program: HackDay Central (HDC)
 ### Now
 
 1. Run extraction cadence sample immediately after first production `results` lifecycle event.
-2. Keep weekly Phase 3 telemetry cadence checkpoints current (`feed_signal_health`, `roi_signal_health`, `roi_export`).
+2. Keep weekly Phase 3 cadence checkpoints current via `qa:p3:weekly-cadence` (observability + extraction readiness).
 3. Re-evaluate extraction ops guardrails after first non-empty production `results` sample.
 
 ### Next
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Added unified Phase 3 cadence command `qa:p3:weekly-cadence` (`scripts/p3-weekly-cadence.mjs`) that orchestrates observability sample + extraction readiness check with a shared timestamp and combined checkpoint artifact. Executed command and captured fresh cadence bundle (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-021310Z.txt`, `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-021310Z.json`, `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021310Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`), extraction remains `pending_results_event` (`resultsEventCount=0`). |
 | 2026-03-02 | Added reusable Phase 3 observability cadence command `qa:p3:obs-weekly-cadence` (`scripts/p3-obs-weekly-cadence.mjs`) to run static telemetry gate, capture production telemetry logs, and generate summary + checkpoint artifacts in one command. Executed cadence commands and captured fresh artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-021059Z.txt`, `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-021059Z.json`, `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-021059Z.md`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021108Z.json`), with extraction status still `pending_results_event` (`resultsEventCount=0`). |
 | 2026-03-02 | Added extraction cadence readiness command `qa:p3:extract-cadence-check` (`scripts/p3-extract-cadence-check.mjs`), refreshed extraction ops runbook paths to active repo root (`docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`), and captured fresh readiness artifact (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-020814Z.json`, `resultsEventCount=0`, `extractionCadenceStatus=pending_results_event`). |
 | 2026-03-02 | Published consolidated Phase 3 closeout artifact (`docs/artifacts/HDC-P3-CONSOLIDATED-CLOSEOUT-20260302-020320Z.md`) linking final GO checkpoints across ROI/FORK/FEED/OBS/EXTRACT and current operational cadence status (`pending_results_event` for extraction sample until first live `results` event). |

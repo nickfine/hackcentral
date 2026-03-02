@@ -2875,3 +2875,33 @@ Use this template at the end of every work session:
 
 - Scripted cadence checks are preferable to ad hoc shell pipelines because they enforce a consistent artifact contract and reduce the chance of missing one of the required evidence files.
 - Maintaining separate scripts for observability cadence and extraction readiness keeps event-gated logic isolated and easier to debug when one cadence succeeds and the other is intentionally pending.
+
+## Session Update - Unified Weekly Cadence Orchestrator (Mar 2, 2026 02:14 GMT)
+
+### Completed
+
+- Added unified weekly cadence command:
+  - `qa:p3:weekly-cadence`
+  - implementation: `scripts/p3-weekly-cadence.mjs`
+- Command now orchestrates:
+  1. observability weekly cadence sample,
+  2. extraction readiness lifecycle check,
+  3. unified weekly checkpoint artifact.
+- Executed command successfully.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-021310Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-021310Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021310Z.json`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`
+
+### Observations
+
+- Observability cadence output remained stable (same event/alert distribution as earlier 24h samples).
+- Extraction readiness remained `pending_results_event` with `resultsEventCount=0`.
+
+### Operational Learnings
+
+- Weekly operations are more robust when observability and extraction readiness are coupled under a shared timestamped run; this keeps artifacts aligned for audit and reduces ambiguity about whether checks were run in the same cycle.

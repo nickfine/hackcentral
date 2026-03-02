@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:12 GMT
+Last updated: 2026-03-02 02:14 GMT
 
 ## Current Snapshot
 
@@ -466,7 +466,7 @@ Last updated: 2026-03-02 02:12 GMT
 ## Next 3 Atomic Actions
 
 1. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'`.
-2. Maintain weekly Phase 3 telemetry cadence checkpoints while waiting for first live `results` event.
+2. Maintain weekly Phase 3 cadence checkpoints via `qa:p3:weekly-cadence` while waiting for first live `results` event.
 3. Re-evaluate extraction runbook guardrails after the first non-empty `results` cadence sample.
 
 ## Branch/Worktree Reconciliation Status
@@ -966,3 +966,32 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Converting manual cadence steps into single-purpose scripts reduces operator drift and keeps checkpoint artifacts structurally consistent across runs.
+
+## Session Update - Unified Weekly Cadence Orchestrator (Mar 2, 2026 02:14 GMT)
+
+### Completed
+
+- Added unified cadence command:
+  - `qa:p3:weekly-cadence`
+  - implementation: `scripts/p3-weekly-cadence.mjs`
+- Orchestrator now runs in one command:
+  1. observability cadence sample (`qa:p3:obs-weekly-cadence`)
+  2. extraction readiness check (`qa:p3:extract-cadence-check`)
+  3. combined weekly checkpoint artifact
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-021310Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-021310Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021310Z.json`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-021310Z.md`
+
+### Current State
+
+- Weekly cadence command decision: `GO`.
+- Extraction readiness: `pending_results_event` (`resultsEventCount=0`, `draft=56`).
+
+### Operational Learnings
+
+- A single orchestrator command minimizes operator sequencing errors and makes weekly cadence execution a one-step, evidence-complete operation.
