@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 11:42 GMT
+Last updated: 2026-03-02 11:49 GMT
 
 ## Current Snapshot
 
@@ -1287,3 +1287,43 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 - `resultsEventCount=0`
 - `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
 - Live extraction actions remain correctly skipped until a `results` lifecycle event exists.
+
+## Session Update - Synthetic Live Extraction Simulation + Cleanup Verification (Mar 2, 2026 11:49 GMT)
+
+### Completed
+
+- Executed controlled synthetic simulation to force immediate non-empty extraction sample:
+  - selected draft event `One Day Test` (`a121b7a6-f0c3-4027-8251-109b1e31f2fb`)
+  - temporarily set lifecycle `draft -> results`
+  - seeded one synthetic hack submission via repository helper
+  - ran `npm run qa:p3:extract-first-results-sample -- --live`
+- Completed full cleanup and lifecycle restore:
+  - removed synthetic project/showcase/import/prompt rows
+  - restored event lifecycle to `draft`
+- Re-ran extraction cadence readiness check post-cleanup.
+
+### Validation Evidence
+
+- simulation checkpoint artifact:
+  - `docs/artifacts/HDC-P3-EXTRACT-SYNTHETIC-LIVE-SIM-20260302-114847Z.md`
+- live extraction sample artifacts:
+  - `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.json`
+  - `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.md`
+- post-cleanup readiness artifacts:
+  - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-114909Z.json`
+  - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-114909Z.md`
+
+### Current State
+
+- Simulation execution decision: `GO` (non-empty live path validated).
+- Live extraction path demonstrated expected idempotency:
+  - prompt replay `1 -> 0`
+  - import replay `1 -> 0`
+- Production baseline restored after cleanup:
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+  - next horizon remains `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- The safest operational pattern for non-live environments is lifecycle-toggle simulation with explicit cleanup verification in the same run; it validates the true write path while keeping standing cadence state unchanged.

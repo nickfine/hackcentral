@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-03-02T11:49:09.515Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "supabaseUrl": "https://ssafugtobsqxmqtphwch.supabase.co",
+  "lifecycleCounts": [
+    {
+      "lifecycle_status": "draft",
+      "count": 56
+    }
+  ],
+  "resultsEventCount": 0,
+  "latestResultsEvents": [],
+  "extractionCadenceStatus": "pending_results_event",
+  "scheduleOutlook": {
+    "resultsAnnounceAtPresentCount": 55,
+    "resultsAnnounceAtMissingCount": 1,
+    "pastDueResultsAnnounceCount": 0,
+    "nextUpcomingResultsAnnounceAt": "2026-03-09T18:00:00.000Z",
+    "nextUpcomingEvent": {
+      "id": "fb7c3254-415b-4727-98e8-544b102ca185",
+      "name": "Nick Weds Test 2",
+      "slug": "nick-weds-test-2-318b5c37",
+      "lifecycle_status": "draft",
+      "resultsAnnounceAt": "2026-03-09T18:00:00.000Z",
+      "updatedAt": "2026-02-25T00:52:29.125"
+    },
+    "samplePastDue": []
+  },
+  "firstResultsEventSample": null
+}

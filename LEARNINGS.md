@@ -3176,3 +3176,36 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Frequent extraction probes are operationally safe because they remain dry-run gated until lifecycle transitions, but they should be kept lightweight and timestamped to avoid ambiguity in handoff.
+
+## Session Update - Synthetic Live Extraction Simulation + Cleanup Verification (Mar 2, 2026 11:49 GMT)
+
+### Completed
+
+- Ran controlled simulation to force the first non-empty extraction sample immediately:
+  - temporarily toggled `One Day Test` lifecycle from `draft` to `results`
+  - seeded one synthetic hack submission
+  - executed `npm run qa:p3:extract-first-results-sample -- --live`
+- Removed all synthetic writes and restored lifecycle to `draft` in the same operation window.
+- Re-ran extraction readiness check to confirm return to pending baseline.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-SYNTHETIC-LIVE-SIM-20260302-114847Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114852Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-114909Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-114909Z.md`
+
+### Observations
+
+- Live extraction path validated as expected under simulated `results` lifecycle:
+  - `candidateCount=1`
+  - dry-run path available before write path
+  - replay idempotency held (`prompted 1->0`, `imported 1->0`)
+- Post-cleanup state returned to baseline:
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+
+### Operational Learnings
+
+- For non-live product phases, lifecycle-toggle simulation with immediate cleanup is the most reliable way to validate live extraction writes without waiting for organic event progression and without leaving residual data drift.
