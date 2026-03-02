@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:29 GMT
+Last updated: 2026-03-02 02:40 GMT
 
 ## Current Snapshot
 
@@ -1115,3 +1115,55 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Maintaining a dedicated first-results command separate from recurring weekly readiness checks reduces operator ambiguity and makes the first non-empty extraction run a single explicit action at lifecycle transition time.
+
+## Session Update - Forced Live Extraction Simulation + Cleanup (Mar 2, 2026 02:40 GMT)
+
+### Completed
+
+- Ran a controlled synthetic `results`-lifecycle simulation (MCP-first, CLI fallback for project-admin SQL):
+  - seeded temporary Event + Team + hack submission rows
+  - executed first-results command in live mode:
+    - `npm run qa:p3:extract-first-results-sample -- --live`
+  - verified non-empty extraction behavior and replay idempotency in generated artifact
+  - fully deleted synthetic rows from:
+    - `Event`
+    - `Team`
+    - `Project`
+    - `ShowcaseHack`
+    - `HackdayExtractionPrompt`
+    - `HackdayExtractionImport`
+    - `EventAuditLog`
+- Fixed script defects discovered by simulation:
+  - `scripts/p3-extract-first-results-sample.mjs`
+    - switched user lookup to `atlassian_account_id` compatibility path (with fallback)
+    - wrapped `tsx -e` snippet in async `main()` to avoid top-level-await CJS transform failure
+- Re-ran readiness and weekly cadence checks post-cleanup:
+  - `npm run qa:p3:extract-cadence-check`
+  - `npm run qa:p3:weekly-cadence`
+
+### Validation Evidence
+
+- Live simulated first-results sample:
+  - `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.json`
+  - `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.md`
+- Post-cleanup readiness/cadence:
+  - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-024000Z.json`
+  - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-024000Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-024011Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-024017Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-024122Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-024122Z.md`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-024011Z.json`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-024011Z.md`
+
+### Current State
+
+- Simulated live sample path: validated (`READY` under synthetic event, with non-empty candidate/extraction behavior).
+- Production baseline after cleanup:
+  - `resultsEventCount=0`
+  - extraction cadence status returned to `pending_results_event`
+  - next scheduled live horizon remains `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- Running a temporary synthetic `results` event with immediate cleanup is a safe way to validate extraction replay/idempotency on demand without waiting for a real lifecycle transition, while preserving production baseline state.

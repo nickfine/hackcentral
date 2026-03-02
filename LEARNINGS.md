@@ -3029,3 +3029,39 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Separating `first-results` execution from `weekly readiness` execution improves operational control: weekly checks continue on schedule, while the first non-empty extraction sample has a dedicated one-command trigger when lifecycle flips to `results`.
+
+## Session Update - Forced Live Extraction Simulation + Cleanup (Mar 2, 2026 02:40 GMT)
+
+### Completed
+
+- Performed controlled synthetic `results` event simulation to force immediate first non-empty extraction sample.
+- Executed:
+  - `npm run qa:p3:extract-first-results-sample -- --live`
+- Captured live-ready extraction evidence and replay/idempotency behavior.
+- Cleaned all synthetic rows and reran readiness + weekly cadence checks.
+- Fixed two script issues surfaced by live simulation:
+  - user-account lookup compatibility (`atlassian_account_id`)
+  - `tsx -e` top-level-await transform failure (async wrapper)
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-024122Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-024122Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-024011Z.json`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-024011Z.md`
+
+### Observations
+
+- Synthetic run produced expected non-empty extraction path:
+  - `candidateCount=1`
+  - prompt replay behavior: `1 -> 0`
+  - import replay behavior: `1 -> 0`
+- Post-cleanup production baseline returned to:
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+
+### Operational Learnings
+
+- A cleanup-backed synthetic lifecycle simulation is an effective operational drill: it validates full live extraction behavior and catches latent script/runtime defects before real `results` windows open.

@@ -1,0 +1,113 @@
+{
+  "checkedAt": "2026-03-02T02:39:14.625Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "mode": "live",
+  "resultsEventCount": 1,
+  "nextUpcomingResultsAnnounceAt": "2026-03-09T18:00:00.000Z",
+  "status": "ready",
+  "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+  "eventName": "P3-Extraction-Sim-20260302-023815Z",
+  "operatorAccountId": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff",
+  "message": "Results event available. Dry-run and live extraction sample executed.",
+  "sampleSummary": {
+    "candidateCount": 1,
+    "promptDryRunStatus": "dry_run",
+    "importDryRunStatus": "dry_run",
+    "promptLive1Status": "prompted",
+    "promptLive2Status": "prompted",
+    "importLive1Status": "imported",
+    "importLive2Status": "imported"
+  },
+  "sampleData": {
+    "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+    "operatorAccountId": "712020:20b364eb-6ca7-4540-b00d-ac530302d9ff",
+    "mode": "live",
+    "candidates": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "lifecycleStatus": "results",
+      "policyVersion": "r11-extraction-v1",
+      "participantCount": 1,
+      "submissionCount": 1,
+      "showcaseDraftCount": 0,
+      "candidates": [
+        {
+          "projectId": "1865640d-3097-4f75-a3a7-ee230bb68256",
+          "title": "P3 extraction simulated submission",
+          "submittedAt": "2026-03-02T02:38:27.216088+00:00",
+          "ownerUserId": "654f0986-a70a-4c82-bf33-163e7d30d43f",
+          "alreadyImportedToShowcase": false
+        }
+      ]
+    },
+    "promptDryRun": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "dry_run",
+      "lifecycleStatus": "results",
+      "eligibleParticipantCount": 1,
+      "promptedParticipantCount": 1,
+      "skippedAlreadyPromptedCount": 0,
+      "promptedAt": null
+    },
+    "importDryRun": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "dry_run",
+      "scannedSubmissionCount": 1,
+      "importedDraftCount": 1,
+      "skippedAlreadyImportedCount": 0,
+      "skippedInvalidSubmissionCount": 0,
+      "notifiedParticipantCount": 1,
+      "importedProjectIds": [
+        "1865640d-3097-4f75-a3a7-ee230bb68256"
+      ],
+      "importedAt": null
+    },
+    "promptLive1": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "prompted",
+      "lifecycleStatus": "results",
+      "eligibleParticipantCount": 1,
+      "promptedParticipantCount": 1,
+      "skippedAlreadyPromptedCount": 0,
+      "promptedAt": "2026-03-02T02:39:18.038Z"
+    },
+    "promptLive2": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "prompted",
+      "lifecycleStatus": "results",
+      "eligibleParticipantCount": 1,
+      "promptedParticipantCount": 0,
+      "skippedAlreadyPromptedCount": 1,
+      "promptedAt": "2026-03-02T02:39:18.332Z"
+    },
+    "importLive1": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "imported",
+      "scannedSubmissionCount": 1,
+      "importedDraftCount": 1,
+      "skippedAlreadyImportedCount": 0,
+      "skippedInvalidSubmissionCount": 0,
+      "notifiedParticipantCount": 1,
+      "importedProjectIds": [
+        "1865640d-3097-4f75-a3a7-ee230bb68256"
+      ],
+      "importedAt": "2026-03-02T02:39:18.566Z"
+    },
+    "importLive2": {
+      "eventId": "2ffabbba-753c-49e5-a640-6da2787ab1a3",
+      "policyVersion": "r11-extraction-v1",
+      "status": "imported",
+      "scannedSubmissionCount": 1,
+      "importedDraftCount": 0,
+      "skippedAlreadyImportedCount": 1,
+      "skippedInvalidSubmissionCount": 0,
+      "notifiedParticipantCount": 0,
+      "importedProjectIds": [],
+      "importedAt": "2026-03-02T02:39:18.888Z"
+    }
+  }
+}

@@ -100,7 +100,7 @@ async function fetchRestJson(url, serviceRoleKey) {
 function chooseOperatorAccountId(users) {
   const rows = Array.isArray(users) ? users : [];
   const scored = rows
-    .filter((row) => row?.account_id)
+    .filter((row) => row?.atlassian_account_id || row?.account_id)
     .map((row) => {
       const role = String(row?.role || '').toUpperCase();
       const tags = Array.isArray(row?.capability_tags) ? row.capability_tags.map((tag) => String(tag || '').toLowerCase()) : [];
@@ -109,7 +109,8 @@ function chooseOperatorAccountId(users) {
       if (tags.includes('platform_admin')) score += 80;
       if (tags.includes('hackday_admin')) score += 40;
       if (tags.includes('problem_exchange_moderator')) score += 10;
-      return { accountId: row.account_id, score };
+      const accountId = String(row?.atlassian_account_id || row?.account_id || '').trim();
+      return { accountId, score };
     })
     .sort((a, b) => b.score - a.score);
   return scored[0]?.accountId || null;
@@ -119,64 +120,71 @@ function runExtractionSampleViaTsx({ eventId, operatorAccountId, limit, live, su
   const snippet = `
 import { getHackdayExtractionCandidates, triggerPostHackdayExtractionPrompt, bulkImportHackdaySubmissions } from './forge-native/src/backend/hackcentral.ts';
 
-const viewer = {
-  accountId: ${JSON.stringify(operatorAccountId)},
-  siteUrl: ${JSON.stringify(DEFAULT_SITE_URL)},
-  timezone: ${JSON.stringify(DEFAULT_TIMEZONE)},
-};
+const main = async () => {
+  const viewer = {
+    accountId: ${JSON.stringify(operatorAccountId)},
+    siteUrl: ${JSON.stringify(DEFAULT_SITE_URL)},
+    timezone: ${JSON.stringify(DEFAULT_TIMEZONE)},
+  };
 
-const eventId = ${JSON.stringify(eventId)};
-const limit = ${JSON.stringify(limit)};
+  const eventId = ${JSON.stringify(eventId)};
+  const limit = ${JSON.stringify(limit)};
 
-const result = {
-  eventId,
-  operatorAccountId: viewer.accountId,
-  mode: ${JSON.stringify(live ? 'live' : 'dry_run_only')},
-};
-
-result.candidates = await getHackdayExtractionCandidates(viewer, { eventId, limit });
-result.promptDryRun = await triggerPostHackdayExtractionPrompt(viewer, {
-  eventId,
-  dryRun: true,
-  notifyParticipants: true,
-});
-result.importDryRun = await bulkImportHackdaySubmissions(viewer, {
-  eventId,
-  dryRun: true,
-  notifyParticipants: true,
-  limit,
-  overwriteExistingDrafts: false,
-});
-
-if (${live ? 'true' : 'false'}) {
-  result.promptLive1 = await triggerPostHackdayExtractionPrompt(viewer, {
+  const result = {
     eventId,
-    dryRun: false,
+    operatorAccountId: viewer.accountId,
+    mode: ${JSON.stringify(live ? 'live' : 'dry_run_only')},
+  };
+
+  result.candidates = await getHackdayExtractionCandidates(viewer, { eventId, limit });
+  result.promptDryRun = await triggerPostHackdayExtractionPrompt(viewer, {
+    eventId,
+    dryRun: true,
     notifyParticipants: true,
   });
-  result.promptLive2 = await triggerPostHackdayExtractionPrompt(viewer, {
+  result.importDryRun = await bulkImportHackdaySubmissions(viewer, {
     eventId,
-    dryRun: false,
-    notifyParticipants: true,
-  });
-
-  result.importLive1 = await bulkImportHackdaySubmissions(viewer, {
-    eventId,
-    dryRun: false,
+    dryRun: true,
     notifyParticipants: true,
     limit,
     overwriteExistingDrafts: false,
   });
-  result.importLive2 = await bulkImportHackdaySubmissions(viewer, {
-    eventId,
-    dryRun: false,
-    notifyParticipants: true,
-    limit,
-    overwriteExistingDrafts: false,
-  });
-}
 
-console.log(JSON.stringify(result, null, 2));
+  if (${live ? 'true' : 'false'}) {
+    result.promptLive1 = await triggerPostHackdayExtractionPrompt(viewer, {
+      eventId,
+      dryRun: false,
+      notifyParticipants: true,
+    });
+    result.promptLive2 = await triggerPostHackdayExtractionPrompt(viewer, {
+      eventId,
+      dryRun: false,
+      notifyParticipants: true,
+    });
+
+    result.importLive1 = await bulkImportHackdaySubmissions(viewer, {
+      eventId,
+      dryRun: false,
+      notifyParticipants: true,
+      limit,
+      overwriteExistingDrafts: false,
+    });
+    result.importLive2 = await bulkImportHackdaySubmissions(viewer, {
+      eventId,
+      dryRun: false,
+      notifyParticipants: true,
+      limit,
+      overwriteExistingDrafts: false,
+    });
+  }
+
+  console.log(JSON.stringify(result, null, 2));
+};
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});
 `.trim();
 
   const output = execFileSync('npx', ['-y', 'tsx', '-e', snippet], {
@@ -287,7 +295,7 @@ async function main() {
   } else {
     const event = resultsEvents[0];
     const users = await fetchRestJson(
-      `${restBase}/User?select=account_id,role,capability_tags&account_id=not.is.null&limit=500`,
+      `${restBase}/User?select=atlassian_account_id,role,capability_tags&atlassian_account_id=not.is.null&limit=500`,
       serviceRoleKey
     );
     const operatorAccountId = chooseOperatorAccountId(users);

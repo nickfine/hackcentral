@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 02:29 GMT
+Last updated: 2026-03-02 02:40 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -93,6 +93,9 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Executed synthetic live-event extraction simulation (temporary `results` event + submission) to force first non-empty cadence sample immediately. Captured live-ready evidence (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.md`) with `resultsEventCount=1`, `candidateCount=1`, and idempotent replay behavior (`prompted 1 -> 0`, `imported 1 -> 0`). |
+| 2026-03-02 | Fixed two production script defects in `scripts/p3-extract-first-results-sample.mjs`: (1) user account column compatibility (`atlassian_account_id` fallback) and (2) `tsx -e` top-level-await runtime failure (wrapped snippet in async main). |
+| 2026-03-02 | Performed full synthetic-data cleanup after simulation (event/project/team/showcase/extraction/audit rows) and revalidated pending-state baseline with fresh cadence artifacts (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-024011Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-024011Z.md`), confirming `resultsEventCount=0` post-cleanup. |
 | 2026-03-02 | Added explicit first-results extraction sample command (`qa:p3:extract-first-results-sample`, `scripts/p3-extract-first-results-sample.mjs`) with MCP-first/CLI-fallback credential resolution and artifact output. Fresh run produced pending-gate evidence (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-022814Z.md`) showing `resultsEventCount=0` and next trigger window `2026-03-09T18:00:00.000Z`. |
 | 2026-03-02 | Refreshed unified weekly cadence run (`qa:p3:weekly-cadence`) and captured aligned artifacts (`docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-022823Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022823Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-022823Z.md`): observability remains `GO` (`feed_signal_health=37`, `roi_signal_health=8`, `roi_export=4`), extraction remains `pending_results_event`. |
 | 2026-03-02 | Extended extraction cadence command to emit both JSON status and companion markdown sample artifact per run (`scripts/p3-extract-cadence-check.mjs`). Fresh outputs (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022424Z.json`, `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-022424Z.md`) show `PENDING_RESULTS_EVENT`, `resultsEventCount=0`, and next forecast `2026-03-09T18:00:00.000Z`. |
