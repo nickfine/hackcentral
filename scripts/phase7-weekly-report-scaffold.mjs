@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { repoRootCommand, resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const ARTIFACTS_DIR = path.join(ROOT, 'docs', 'artifacts');
 const DRY_RUN_PREFIX = 'HDC-V2-PHASE5-MIGRATION-DRY-RUN-hdc-auto-';
 const OUTPUT_PREFIX = 'HDC-V2-PHASE6-WEEKLY-VERIFICATION-';
@@ -83,7 +84,8 @@ function buildArtifact(input) {
 1. Migration dry-run
 - Command:
 \`\`\`bash
-npm -C /Users/nickster/Downloads/HackCentral run qa:phase5:migration-dry-run -- --environment production
+${repoRootCommand()}
+npm -C "$REPO_ROOT" run qa:phase5:migration-dry-run -- --environment production
 \`\`\`
 - Artifact path:
   - \`${dryRunPath}\`
@@ -92,7 +94,8 @@ npm -C /Users/nickster/Downloads/HackCentral run qa:phase5:migration-dry-run -- 
 2. Performance harness
 - Command:
 \`\`\`bash
-npm -C /Users/nickster/Downloads/HackCentral run test:perf:phase5
+${repoRootCommand()}
+npm -C "$REPO_ROOT" run test:perf:phase5
 \`\`\`
 - Result summary:
   - \`registry_lookup\` p95:
@@ -102,7 +105,8 @@ npm -C /Users/nickster/Downloads/HackCentral run test:perf:phase5
 3. Production telemetry capture
 - Command:
 \`\`\`bash
-npm -C /Users/nickster/Downloads/HackCentral run qa:phase6:telemetry-check
+${repoRootCommand()}
+npm -C "$REPO_ROOT" run qa:phase6:telemetry-check
 \`\`\`
 - \`registry_lookup\` seen: yes/no
 - \`sync_execution\` seen: yes/no

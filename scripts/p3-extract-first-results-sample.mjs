@@ -2,8 +2,9 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const ARTIFACTS_DIR = path.join(ROOT, 'docs', 'artifacts');
 const DEFAULT_PROJECT_REF = 'ssafugtobsqxmqtphwch';
 const DEFAULT_SITE_URL = 'https://hackdaytemp.atlassian.net';

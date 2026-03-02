@@ -2,8 +2,9 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { resolveRepoRoot } from './lib/repo-root.mjs';
 
-const ROOT = '/Users/nickster/Downloads/HackCentral';
+const ROOT = resolveRepoRoot(import.meta.url);
 const FORGE_DIR = path.join(ROOT, 'forge-native');
 
 function parseArgs(argv) {
