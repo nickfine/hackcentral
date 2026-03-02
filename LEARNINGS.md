@@ -3097,3 +3097,35 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - In Forge Confluence app-shell deployments, functional confirmation should always include both a runtime marker check (`HACKCENTRAL_UI_VERSION`) and live user-path behavior checks; deploy/install success alone is not sufficient to assert rollout completion.
+
+## Session Update - Weekly Phase 3 Cadence Refresh (Mar 2, 2026 11:38 GMT)
+
+### Completed
+
+- Executed unified cadence command:
+  - `npm run qa:p3:weekly-cadence -- --since 24h --limit 4000 --project-ref ssafugtobsqxmqtphwch`
+- Produced fresh weekly observability + extraction readiness artifacts with synchronized timestamping.
+- Reconfirmed extraction readiness is still event-gated until a production HackDay reaches `results`.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-113824Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-113824Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-113824Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-113824Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-113832Z.md`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-113824Z.md`
+
+### Observations
+
+- Observability cadence remains `GO` with sample counts:
+  - `feed_signal_health=61`
+  - `roi_signal_health=13`
+  - `roi_export=4`
+- Extraction readiness remains `pending_results_event` with:
+  - `resultsEventCount=0`
+  - `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z` (`One Day Test`)
+
+### Operational Learnings
+
+- Weekly cadence stays reliable when treated as a fixed operational ritual: one command gives a complete health snapshot, but extraction action remains strictly lifecycle-triggered and should not be forced outside `results` transitions.

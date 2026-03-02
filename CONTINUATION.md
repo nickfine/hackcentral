@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 11:22 GMT
+Last updated: 2026-03-02 11:38 GMT
 
 ## Current Snapshot
 
@@ -600,6 +600,39 @@ Last updated: 2026-03-02 11:22 GMT
 ### Operational Learnings
 
 - For Forge custom UI in Confluence iframe contexts, successful deploy/install alone is not a sufficient validation signal; explicit UI marker confirmation plus live behavior checks prevents false-positive rollout closure.
+
+## Session Update - Weekly Phase 3 Cadence Refresh (Mar 2, 2026 11:38 GMT)
+
+### Completed
+
+- Executed weekly Phase 3 cadence command with static telemetry gate and extraction readiness check:
+  - `npm run qa:p3:weekly-cadence -- --since 24h --limit 4000 --project-ref ssafugtobsqxmqtphwch`
+- Generated fresh observability and extraction cadence artifacts.
+- Reconfirmed extraction cadence remains event-gated (no production `results` lifecycle events yet).
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-113824Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-113824Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-113824Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-113824Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-113832Z.md`
+- `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-113824Z.md`
+
+### Current State
+
+- Observability cadence decision: `GO`.
+- Latest metric counts in sample window:
+  - `feed_signal_health=61`
+  - `roi_signal_health=13`
+  - `roi_export=4`
+- Extraction readiness remains `pending_results_event`:
+  - `resultsEventCount=0`
+  - next upcoming results window: `2026-03-09T18:00:00.000Z` (`One Day Test`)
+
+### Operational Learnings
+
+- The combined cadence command remains the fastest trustworthy weekly operator path because it produces both telemetry health and extraction readiness outcomes with a single synchronized timestamped evidence bundle.
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
   - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
   - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`
