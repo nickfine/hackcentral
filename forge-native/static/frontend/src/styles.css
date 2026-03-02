@@ -654,10 +654,12 @@ button {
 .collective-card,
 .home-feed-card {
   padding: var(--spacing-card);
+}
+
+.home-feed-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 430px;
 }
 
 .home-feed-list {
