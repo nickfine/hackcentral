@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-03-02T01:29:31Z",
+  "taskId": "P3.EXTRACT.01",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "migrationApplied": "20260302013000_phase3_extraction.sql",
+  "seed": {
+    "eventId": "e14d1e06-bff7-4f25-933f-8c86b24a8f5a",
+    "seededProjectId": "b4f07406-ca45-42bd-b655-75967ac63c2c",
+    "viewerAccountId": "cmiukfwe1000807bj5ir1vpy4",
+    "viewerUserId": "df8b5f57-3ea2-4539-bd74-573a699a8abe"
+  },
+  "resolverResults": {
+    "candidates": {
+      "eventId": "e14d1e06-bff7-4f25-933f-8c86b24a8f5a",
+      "lifecycleStatus": "results",
+      "policyVersion": "r11-extraction-v1",
+      "participantCount": 1,
+      "submissionCount": 1,
+      "showcaseDraftCount": 0,
+      "candidates": [
+        {
+          "projectId": "b4f07406-ca45-42bd-b655-75967ac63c2c",
+          "title": "P3 extraction smoke submission",
+          "submittedAt": "2026-03-02T01:29:29.718579+00:00",
+          "ownerUserId": "df8b5f57-3ea2-4539-bd74-573a699a8abe",
+          "alreadyImportedToShowcase": false
+        }
+      ]
+    },
+    "promptFirst": {
+      "status": "prompted",
+      "eligibleParticipantCount": 1,
+      "promptedParticipantCount": 1,
+      "skippedAlreadyPromptedCount": 0
+    },
+    "promptSecond": {
+      "status": "prompted",
+      "eligibleParticipantCount": 1,
+      "promptedParticipantCount": 0,
+      "skippedAlreadyPromptedCount": 1
+    },
+    "importFirst": {
+      "status": "imported",
+      "scannedSubmissionCount": 1,
+      "importedDraftCount": 1,
+      "skippedAlreadyImportedCount": 0,
+      "skippedInvalidSubmissionCount": 0,
+      "notifiedParticipantCount": 1,
+      "importedProjectIds": [
+        "b4f07406-ca45-42bd-b655-75967ac63c2c"
+      ]
+    },
+    "importSecond": {
+      "status": "imported",
+      "scannedSubmissionCount": 1,
+      "importedDraftCount": 0,
+      "skippedAlreadyImportedCount": 1,
+      "skippedInvalidSubmissionCount": 0,
+      "notifiedParticipantCount": 0,
+      "importedProjectIds": []
+    }
+  },
+  "tableVerificationBeforeCleanup": {
+    "HackdayExtractionPrompt": {
+      "rowCount": 1
+    },
+    "HackdayExtractionImport": {
+      "rowCount": 1
+    },
+    "ShowcaseHack": {
+      "rowCount": 1,
+      "scope": "source_event_id"
+    },
+    "EventAuditLogActions": [
+      {
+        "action": "hackday_extraction_prompted",
+        "count": 2
+      },
+      {
+        "action": "hackday_bulk_imported",
+        "count": 2
+      }
+    ]
+  },
+  "decision": {
+    "status": "GO_BASELINE",
+    "notes": [
+      "Migration-backed write paths executed successfully.",
+      "Idempotency behavior verified by repeated non-dry-run calls.",
+      "Synthetic seed data was cleaned up post-validation."
+    ]
+  }
+}

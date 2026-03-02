@@ -2636,3 +2636,34 @@ Use this template at the end of every work session:
 - Locking migration-shape assertions in backend contract tests catches schema drift early and keeps repository logic + migration expectations synchronized.
 - For idempotent command paths, defining composite uniqueness constraints in the first migration avoids ambiguous replay semantics later.
 - It is useful to separate "migration file landed" from "migration applied" in continuity docs so checkpoint status cannot be misread.
+
+## Session Update - P3.EXTRACT.01 Live Migration + Non-Dry-Run Validation (Mar 2, 2026 01:30 GMT)
+
+### Completed
+
+- Applied `20260302013000_phase3_extraction.sql` to live Supabase project `ssafugtobsqxmqtphwch` (MCP-first attempted; CLI fallback executed due permission scope).
+- Verified extraction schema creation in production:
+  - tables: `HackdayExtractionPrompt`, `HackdayExtractionImport`
+  - uniqueness/FK constraints and supporting indexes.
+- Ran controlled non-dry-run extraction smoke using synthetic results-phase data and verified idempotency on repeated calls.
+- Removed synthetic seed rows after validation and restored modified user capability tags.
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-SOURCE-AUDIT-20260302-0119Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-LIVE-RESOLVER-SMOKE-20260302-0129Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-R11_1-R11_2-CHECKPOINT-20260302-0129Z.md`
+- Live smoke key outcomes:
+  - prompt call #1: `promptedParticipantCount=1`
+  - prompt call #2: `promptedParticipantCount=0`, `skippedAlreadyPromptedCount=1`
+  - import call #1: `importedDraftCount=1`
+  - import call #2: `importedDraftCount=0`, `skippedAlreadyImportedCount=1`
+- Local validation:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` -> pass
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend` -> pass (`15/15`)
+
+### Operational Learnings
+
+- For Supabase production checks in this workspace, MCP-first should remain mandatory, but migration execution needs an immediate CLI fallback path because management endpoints are permission-scoped.
+- Running non-dry-run idempotency checks with temporary synthetic data plus explicit cleanup is an effective way to validate write paths without leaving production drift.
+- Capturing both pre-cleanup table counts and post-cleanup verification in artifacts improves confidence for replay-safe extraction workflows.

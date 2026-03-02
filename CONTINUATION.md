@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:26 GMT
+Last updated: 2026-03-02 01:30 GMT
 
 ## Current Snapshot
 
@@ -460,9 +460,9 @@ Last updated: 2026-03-02 01:26 GMT
 
 ## Next 3 Atomic Actions
 
-1. Apply `forge-native/supabase/migrations/20260302013000_phase3_extraction.sql` to `ssafugtobsqxmqtphwch` and verify table/constraint creation.
-2. Validate non-dry-run prompt/import commands end-to-end against live schema with event-scoped `results` data.
-3. Publish `P3.EXTRACT.01` baseline checkpoint with source-audit + migration + write-path evidence and gate decision.
+1. Wire Forge UI extraction controls (candidate read + prompt/import trigger) with admin-only guardrails.
+2. Publish extraction operations runbook for replay/idempotency and rollback workflows.
+3. Close `P3.EXTRACT.01` completion gate once UI + runbook evidence is captured.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -651,6 +651,37 @@ Last updated: 2026-03-02 01:26 GMT
 ### Remaining Gate
 
 - Migration file exists in repo but has not yet been applied to live project `ssafugtobsqxmqtphwch`; live write-path validation remains pending.
+
+## Session Update - `P3.EXTRACT.01` Live Migration + Non-Dry-Run Validation (Mar 2, 2026 01:30 GMT)
+
+### Completed
+
+- Applied `forge-native/supabase/migrations/20260302013000_phase3_extraction.sql` to live project `ssafugtobsqxmqtphwch` using CLI fallback (MCP apply blocked by permissions).
+- Verified live table/constraint/index creation for:
+  - `HackdayExtractionPrompt`
+  - `HackdayExtractionImport`
+- Executed non-dry-run smoke for:
+  - `hdcGetHackdayExtractionCandidates`
+  - `hdcTriggerPostHackdayExtractionPrompt`
+  - `hdcBulkImportHackdaySubmissions`
+- Verified idempotency behavior with repeated non-dry-run calls:
+  - prompt run1 `promptedParticipantCount=1`, run2 `promptedParticipantCount=0`, `skippedAlreadyPromptedCount=1`
+  - import run1 `importedDraftCount=1`, run2 `importedDraftCount=0`, `skippedAlreadyImportedCount=1`
+- Cleaned up synthetic event/project/showcase/extraction/audit rows and reverted temporary user capability tag used for access simulation.
+
+### Evidence
+
+- Source audit:
+  - `docs/artifacts/HDC-P3-EXTRACT-SOURCE-AUDIT-20260302-0119Z.json`
+- Live resolver smoke:
+  - `docs/artifacts/HDC-P3-EXTRACT-LIVE-RESOLVER-SMOKE-20260302-0129Z.json`
+- Checkpoint decision:
+  - `docs/artifacts/HDC-P3-EXTRACT-R11_1-R11_2-CHECKPOINT-20260302-0129Z.md` (`GO_BASELINE`)
+
+### Decision
+
+- Backend extraction baseline is validated (`GO_BASELINE`).
+- Remaining scope for full task closeout: Forge UI controls + extraction operations runbook.
 
 ## Validation Commands
 
