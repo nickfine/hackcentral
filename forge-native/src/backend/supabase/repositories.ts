@@ -3195,11 +3195,12 @@ export class SupabaseRepository {
 
   private async listForkRelations(entityType: 'project' | 'artifact'): Promise<DbForkRelation[]> {
     try {
-      return await this.client.selectMany<DbForkRelation>(
+      const rows = await this.client.selectMany<DbForkRelation>(
         FORK_RELATION_TABLE,
         'id,entity_type,source_id,fork_id,source_owner_user_id,forked_by_user_id,metadata,created_at',
         [{ field: 'entity_type', op: 'eq', value: entityType }]
       );
+      return Array.isArray(rows) ? rows : [];
     } catch (error) {
       if (hasMissingTable(error, FORK_RELATION_TABLE)) {
         return [];

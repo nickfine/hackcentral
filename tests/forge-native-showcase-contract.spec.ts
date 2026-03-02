@@ -53,10 +53,11 @@ describe('SupabaseRepository showcase contracts', () => {
       .mockResolvedValueOnce([
         { id: 'artifact-1', source_hack_project_id: 'project-1', reuse_count: 7, archived_at: null },
         { id: 'artifact-2', source_hack_project_id: 'project-2', reuse_count: 3, archived_at: null },
-      ]);
+      ])
+      .mockResolvedValueOnce([]);
 
     const repo = new SupabaseRepository({ selectMany } as never);
-    (repo as any).listProjects = vi.fn().mockResolvedValue([
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'project-1',
         title: 'Ops Assistant',
@@ -97,8 +98,8 @@ describe('SupabaseRepository showcase contracts', () => {
         pipeline_stage_entered_at: '2026-03-01T01:00:00.000Z',
         created_at: '2026-03-01T01:00:00.000Z',
       },
-    ]);
-    (repo as any).canUserManagePipeline = vi.fn().mockResolvedValue(true);
+    ]));
+    Reflect.set(repo, 'canUserManagePipeline', vi.fn().mockResolvedValue(true));
 
     const result = await repo.listShowcaseHacks(viewer, {
       statuses: ['completed'],
@@ -115,6 +116,7 @@ describe('SupabaseRepository showcase contracts', () => {
       featured: true,
       tags: ['ops-automation'],
       reuseCount: 7,
+      forkCount: 0,
       teamMembersCount: 2,
     });
   });
@@ -164,10 +166,11 @@ describe('SupabaseRepository showcase contracts', () => {
           updated_at: '2026-03-01T01:00:00.000Z',
           linked_hack_project_id: 'project-1',
         },
-      ]);
+      ])
+      .mockResolvedValueOnce([]);
 
     const repo = new SupabaseRepository({ selectOne, selectMany } as never);
-    (repo as any).getProjectById = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'getProjectById', vi.fn().mockResolvedValue({
       id: 'project-1',
       title: 'Ops Assistant',
       description: 'Improves Ops throughput.',
@@ -186,12 +189,12 @@ describe('SupabaseRepository showcase contracts', () => {
       pipeline_stage: 'product_candidate',
       pipeline_stage_entered_at: '2026-03-01T00:00:00.000Z',
       created_at: '2026-03-01T00:00:00.000Z',
-    });
-    (repo as any).getUserById = vi.fn().mockResolvedValue({
+    }));
+    Reflect.set(repo, 'getUserById', vi.fn().mockResolvedValue({
       id: 'user-1',
       full_name: 'Alice',
       email: 'alice@adaptavist.com',
-    });
+    }));
 
     const result = await repo.getShowcaseHackDetail(viewer, 'project-1');
 
@@ -202,6 +205,7 @@ describe('SupabaseRepository showcase contracts', () => {
       teamMembers: ['Alice', 'Ben'],
       linkedArtifactIds: ['artifact-1'],
       context: 'Ops workflow acceleration',
+      forkCount: 0,
     });
     expect(result.artifactsProduced).toEqual([
       {
@@ -230,11 +234,11 @@ describe('SupabaseRepository showcase contracts', () => {
     });
 
     const repo = new SupabaseRepository({ upsert } as never);
-    (repo as any).getProjectById = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'getProjectById', vi.fn().mockResolvedValue({
       id: 'project-1',
       event_id: 'event-1',
-    });
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+    }));
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
 
     const result = await repo.setShowcaseFeatured(viewer, {
       projectId: 'project-1',
@@ -265,15 +269,15 @@ describe('SupabaseRepository showcase contracts', () => {
     const deleteMany = vi.fn().mockResolvedValue([]);
 
     const repo = new SupabaseRepository({ upsert, deleteMany } as never);
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
-    (repo as any).insertProject = vi.fn().mockResolvedValue({
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
+    Reflect.set(repo, 'insertProject', vi.fn().mockResolvedValue({
       id: 'project-1',
       title: 'Ops Assistant',
-    });
-    (repo as any).getArtifactRowById = vi.fn().mockResolvedValue({
+    }));
+    Reflect.set(repo, 'getArtifactRowById', vi.fn().mockResolvedValue({
       id: 'artifact-1',
       archived_at: null,
-    });
+    }));
 
     const result = await repo.createHack(viewer, {
       title: 'Ops Assistant',
@@ -306,7 +310,7 @@ describe('SupabaseRepository showcase contracts', () => {
 
   it('rejects hack creation when demoUrl is missing', async () => {
     const repo = new SupabaseRepository({} as never);
-    (repo as any).ensureUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+    Reflect.set(repo, 'ensureUser', vi.fn().mockResolvedValue({ id: 'user-1' }));
 
     await expect(
       repo.createHack(viewer, {
