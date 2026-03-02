@@ -1,0 +1,43 @@
+[hdc-performance-telemetry] {"metric":"registry_lookup","source":"listAllEvents","durationMs":2364,"rowCount":56,"usedLegacyConfigFallback":false,"outcome":"success"}
+[hdc-phase3-telemetry] {"metric":"feed_signal_health","source":"supabase_repository","provider":"supabase","policyVersion":"r12-home-feed-v1","activityStatus":"available","recommendationStatus":"available_partial","includeRecommendations":true,"itemCount":11,"recommendationCount":2,"activityCategoryCount":5,"expectedActivityCategoryCount":5,"recommendationCategoryCount":2,"expectedRecommendationCategoryCount":3,"activityCoveragePct":100,"recommendationCoveragePct":66.7,"activityCoverageThresholdPct":80,"recommendationCoverageThresholdPct":67,"missingActivityTypes":[],"missingRecommendationTypes":["team_artifact"],"healthy":false,"alerts":["recommendation_coverage_below_threshold"],"reportingCadence":"daily_sample_weekly_checkpoint","viewerTimezone":"UTC","viewerSiteUrl":"https://hackdaytemp.atlassian.net","loggedAt":"2026-03-02T00:23:53.879Z"}
+[hdc-phase3-telemetry] {"metric":"roi_signal_health","source":"supabase_repository","provider":"supabase","policyVersion":"r9-roi-scaffold-v1","window":"monthly","teamFilterApplied":false,"businessUnitFilterApplied":false,"tokenSourceStatus":"available_partial","costRateCardStatus":"available","outputSourceStatus":"available_partial","businessUnitSourceStatus":"unavailable","totalTokenVolume":14400,"totalCost":0.14,"totalOutputs":6,"costPerHack":0.05,"tokenSignalRowCount":3,"tokenAttributedRowCount":3,"tokenAttributionPct":100,"trendPointCount":1,"tokenAttributionThresholdPct":60,"highCostPerHackThresholdGbp":0.25,"minimumTrendPoints":2,"healthy":true,"alerts":[],"warnings":["trend_points_below_threshold","business_unit_coverage_partial"],"reportingCadence":"daily_sample_weekly_checkpoint","viewerTimezone":"UTC","viewerSiteUrl":"https://hackdaytemp.atlassian.net","loggedAt":"2026-03-02T00:23:57.307Z"}
+[hdc-phase3-telemetry] {"metric":"roi_export","source":"supabase_repository","provider":"supabase","format":"summary","exportedAt":"2026-03-02T00:23:57.399Z","window":"monthly","tokenSourceStatus":"available_partial","costRateCardStatus":"available","outputSourceStatus":"available_partial","businessUnitSourceStatus":"unavailable","totalTokenVolume":14400,"totalCost":0.14,"totalOutputs":6,"rowCount":null,"summaryLineCount":1,"reportingCadence":"daily_sample_weekly_checkpoint","viewerTimezone":"UTC","viewerSiteUrl":"https://hackdaytemp.atlassian.net","loggedAt":"2026-03-02T00:23:57.399Z"}
+{
+  "capturedAt": "2026-03-02T00:23:57.399Z",
+  "feed": {
+    "policyVersion": "r12-home-feed-v1",
+    "activityStatus": "available",
+    "recommendationStatus": "available_partial",
+    "itemCount": 11,
+    "recommendationCount": 2,
+    "activityTypes": [
+      "upcoming_hackday",
+      "new_artifact",
+      "new_hack",
+      "trending_problem",
+      "pipeline_movement"
+    ],
+    "recommendationTypes": [
+      "problem_domain",
+      "pathway_role"
+    ]
+  },
+  "roi": {
+    "policyVersion": "r9-roi-scaffold-v1",
+    "window": "monthly",
+    "tokenSourceStatus": "available_partial",
+    "costRateCardStatus": "available",
+    "outputSourceStatus": "available_partial",
+    "businessUnitSourceStatus": "unavailable",
+    "tokenVolume": 14400,
+    "cost": 0.14,
+    "totalOutputs": 6,
+    "costPerHack": 0.05,
+    "trendPointCount": 1
+  },
+  "roiExport": {
+    "logged": true,
+    "metric": "roi_export",
+    "loggedAt": "2026-03-02T00:23:57.399Z"
+  }
+}

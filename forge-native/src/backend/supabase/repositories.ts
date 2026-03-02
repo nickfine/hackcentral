@@ -87,6 +87,8 @@ import type {
   GetRoiDashboardInput,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
+  TrackRoiExportInput,
+  TrackRoiExportResult,
   SubmissionRequirement,
   SubmitHackInput,
   SubmitHackResult,
@@ -142,6 +144,11 @@ const HOME_FEED_DEFAULT_LIMIT = 20;
 const HOME_FEED_MAX_LIMIT = 50;
 const HOME_FEED_DEFAULT_RECOMMENDATION_LIMIT = 6;
 const HOME_FEED_MAX_RECOMMENDATION_LIMIT = 12;
+const PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT = 80;
+const PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT = 67;
+const PHASE3_ROI_MIN_TOKEN_ATTRIBUTION_PCT = 60;
+const PHASE3_ROI_HIGH_COST_PER_HACK_THRESHOLD_GBP = 0.25;
+const PHASE3_ROI_MIN_TREND_POINTS = 2;
 const ROI_TOKEN_TOTAL_KEYS = ['tokenvolume', 'tokencount', 'totaltokens', 'tokensused', 'usagetokens'];
 const ROI_TOKEN_PROMPT_KEYS = ['prompttokens', 'inputtokens'];
 const ROI_TOKEN_COMPLETION_KEYS = ['completiontokens', 'outputtokens'];
@@ -1300,6 +1307,22 @@ function logPhase2Telemetry(metric: string, payload: Record<string, unknown>): v
       ...payload,
     })
   );
+}
+
+function logPhase3Telemetry(metric: string, payload: Record<string, unknown>): void {
+  console.info(
+    '[hdc-phase3-telemetry]',
+    JSON.stringify({
+      metric,
+      source: 'supabase_repository',
+      ...payload,
+    })
+  );
+}
+
+function calculateCoveragePct(actual: number, expected: number): number {
+  if (expected <= 0) return 100;
+  return Math.round((actual / expected) * 1000) / 10;
 }
 
 function createArtifactListItem(row: DbArtifact, authorName: string, forkCount = 0): ArtifactListItem {
@@ -3873,6 +3896,50 @@ export class SupabaseRepository {
         ? 'available'
         : 'available_partial'
       : 'available_partial';
+    const missingActivityTypes = Array.from(expectedActivityTypes).filter((type) => !activityTypesPresent.has(type));
+    const missingRecommendationTypes = Array.from(expectedRecommendationTypes).filter(
+      (type) => !recommendationTypesPresent.has(type)
+    );
+    const activityCoveragePct = calculateCoveragePct(activityTypesPresent.size, expectedActivityTypes.size);
+    const recommendationCoveragePct = includeRecommendations
+      ? calculateCoveragePct(recommendationTypesPresent.size, expectedRecommendationTypes.size)
+      : 100;
+    const feedAlerts: string[] = [];
+    if (activityCoveragePct < PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT) {
+      feedAlerts.push('activity_coverage_below_threshold');
+    }
+    if (includeRecommendations && recommendationCoveragePct < PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT) {
+      feedAlerts.push('recommendation_coverage_below_threshold');
+    }
+    if (items.length === 0) {
+      feedAlerts.push('empty_activity_feed');
+    }
+
+    logPhase3Telemetry('feed_signal_health', {
+      provider: 'supabase',
+      policyVersion: HOME_FEED_POLICY_VERSION,
+      activityStatus,
+      recommendationStatus,
+      includeRecommendations,
+      itemCount: items.length,
+      recommendationCount: dedupedRecommendations.length,
+      activityCategoryCount: activityTypesPresent.size,
+      expectedActivityCategoryCount: expectedActivityTypes.size,
+      recommendationCategoryCount: recommendationTypesPresent.size,
+      expectedRecommendationCategoryCount: expectedRecommendationTypes.size,
+      activityCoveragePct,
+      recommendationCoveragePct,
+      activityCoverageThresholdPct: PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT,
+      recommendationCoverageThresholdPct: PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT,
+      missingActivityTypes,
+      missingRecommendationTypes: includeRecommendations ? missingRecommendationTypes : [],
+      healthy: feedAlerts.length === 0,
+      alerts: feedAlerts,
+      reportingCadence: 'daily_sample_weekly_checkpoint',
+      viewerTimezone: viewer.timezone,
+      viewerSiteUrl: viewer.siteUrl,
+      loggedAt: calculatedAt,
+    });
 
     return {
       calculatedAt,
@@ -3932,6 +3999,43 @@ export class SupabaseRepository {
     return {
       logged: true,
       metric: 'team_pulse_export',
+      loggedAt,
+    };
+  }
+
+  async trackRoiExport(
+    viewer: ViewerContext,
+    input: TrackRoiExportInput
+  ): Promise<TrackRoiExportResult> {
+    const loggedAt = nowIso();
+    const format = input.format === 'summary' ? 'summary' : 'csv';
+    const totalTokenVolume = roundRoiTokenVolume(Math.max(0, Number(input.totalTokenVolume) || 0));
+    const totalCost = roundRoiCost(Math.max(0, Number(input.totalCost) || 0));
+    const totalOutputs = Math.max(0, Math.floor(Number(input.totalOutputs) || 0));
+
+    logPhase3Telemetry('roi_export', {
+      provider: 'supabase',
+      format,
+      exportedAt: input.exportedAt,
+      window: normalizeRoiWindow(input.window),
+      tokenSourceStatus: input.tokenSourceStatus,
+      costRateCardStatus: input.costRateCardStatus,
+      outputSourceStatus: input.outputSourceStatus,
+      businessUnitSourceStatus: input.businessUnitSourceStatus,
+      totalTokenVolume,
+      totalCost,
+      totalOutputs,
+      rowCount: format === 'csv' ? Math.max(0, input.rowCount ?? 0) : null,
+      summaryLineCount: format === 'summary' ? Math.max(0, input.summaryLineCount ?? 0) : null,
+      reportingCadence: 'daily_sample_weekly_checkpoint',
+      viewerTimezone: viewer.timezone,
+      viewerSiteUrl: viewer.siteUrl,
+      loggedAt,
+    });
+
+    return {
+      logged: true,
+      metric: 'roi_export',
       loggedAt,
     };
   }
@@ -4708,6 +4812,67 @@ export class SupabaseRepository {
         notes.push(`Business-unit filter applied: ${businessUnitFilter}`);
       }
     }
+
+    const totalOutputs = sumRoiOutputs(totals);
+    const tokenAttributionPct =
+      tokenSignalRowCount > 0
+        ? Math.round((tokenAttributedRowCount / tokenSignalRowCount) * 1000) / 10
+        : null;
+    const roiAlerts: string[] = [];
+    const roiWarnings: string[] = [];
+    if (roundedTotalCost > 0 && totalOutputs === 0) {
+      roiAlerts.push('spend_without_outputs');
+    }
+    if (
+      totalCostPerOutput.perHack !== null &&
+      totalCostPerOutput.perHack > PHASE3_ROI_HIGH_COST_PER_HACK_THRESHOLD_GBP
+    ) {
+      roiAlerts.push('cost_per_hack_above_threshold');
+    }
+    if (
+      tokenAttributionPct !== null &&
+      tokenAttributionPct < PHASE3_ROI_MIN_TOKEN_ATTRIBUTION_PCT
+    ) {
+      roiAlerts.push('token_attribution_below_threshold');
+    }
+    if (trend.length < PHASE3_ROI_MIN_TREND_POINTS) {
+      roiWarnings.push('trend_points_below_threshold');
+    }
+    if (businessUnitSourceStatus !== 'available') {
+      roiWarnings.push('business_unit_coverage_partial');
+    }
+    if (costRateSourceStatus !== 'available') {
+      roiWarnings.push('cost_rate_card_partial');
+    }
+    logPhase3Telemetry('roi_signal_health', {
+      provider: 'supabase',
+      policyVersion: ROI_POLICY_VERSION,
+      window,
+      teamFilterApplied: Boolean(teamFilter),
+      businessUnitFilterApplied: Boolean(businessUnitFilter),
+      tokenSourceStatus: 'available_partial',
+      costRateCardStatus: costRateSourceStatus,
+      outputSourceStatus: businessUnitSourceStatus === 'available' ? 'available' : 'available_partial',
+      businessUnitSourceStatus,
+      totalTokenVolume: roundedTotalTokenVolume,
+      totalCost: roundedTotalCost,
+      totalOutputs,
+      costPerHack: totalCostPerOutput.perHack,
+      tokenSignalRowCount,
+      tokenAttributedRowCount,
+      tokenAttributionPct,
+      trendPointCount: trend.length,
+      tokenAttributionThresholdPct: PHASE3_ROI_MIN_TOKEN_ATTRIBUTION_PCT,
+      highCostPerHackThresholdGbp: PHASE3_ROI_HIGH_COST_PER_HACK_THRESHOLD_GBP,
+      minimumTrendPoints: PHASE3_ROI_MIN_TREND_POINTS,
+      healthy: roiAlerts.length === 0,
+      alerts: roiAlerts,
+      warnings: roiWarnings,
+      reportingCadence: 'daily_sample_weekly_checkpoint',
+      viewerTimezone: viewer.timezone,
+      viewerSiteUrl: viewer.siteUrl,
+      loggedAt: calculatedAt,
+    });
 
     return {
       calculatedAt,

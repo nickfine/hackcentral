@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 00:07 GMT
+Last updated: 2026-03-02 00:24 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -12,7 +12,7 @@ Program: HackDay Central (HDC)
 | Execution ledger file | `HDC-PRODUCT-EXECUTION-PLAN.md` |
 | Current phase | Phase 3 (Compounding Value and ROI) |
 | Program status | In execution |
-| Active task ID | `P3.OBS.01` |
+| Active task ID | `P3.EXTRACT.01` |
 | Continuity protocol | `CONTINUATION.md` + latest `LEARNINGS.md` entry |
 
 ## Master Milestone Timeline
@@ -51,21 +51,21 @@ Program: HackDay Central (HDC)
 | `P3.FORK.01` | `R10.1` to `R10.2` | Eng | Completed (2026-03-01; GO) | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`, `docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md`, `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/tests/backend/fork-contract.test.mjs` |
 | `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | Planned | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | Pending |
 | `P3.FEED.01` | `R12.1` to `R12.2` | Eng | Completed (2026-03-01; GO) | Phase 2 metrics available | Home feed + personalized recommendations delivered | `docs/HDC-P3-FEED-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md`, `docs/artifacts/HDC-P3-FEED-LIVE-RESOLVER-SMOKE-20260301-2352Z.json`, `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`, `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`, `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-feed-contract.spec.ts` |
-| `P3.OBS.01` | Phase 3 telemetry | Eng + Data | In progress (2026-03-01) | `P3.ROI.01`, `P3.FEED.01` | Cost/output trend alerting with reporting cadence | Pending |
+| `P3.OBS.01` | Phase 3 telemetry | Eng + Data | Completed (2026-03-02; GO) | `P3.ROI.01`, `P3.FEED.01` | Cost/output trend alerting with reporting cadence | `docs/HDC-P3-OBS-TELEMETRY-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md`, `docs/artifacts/HDC-P3-OBS-LIVE-TELEMETRY-LOGS-20260302-002226Z.txt`, `docs/artifacts/HDC-P3-OBS-LIVE-RESOLVER-SMOKE-20260302-002226Z.json`, `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`, `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`, `tests/forge-native-phase3-telemetry-contract.spec.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `package.json` |
 
 ## Active Sprint Queue
 
 ### Now
 
-1. Operational preflight - reconcile remaining local branches/worktrees and document merge/delete decisions before resuming implementation.
-2. `P3.OBS.01` - define Phase 3 telemetry contract for feed/ROI signal health, thresholds, and reporting cadence.
-3. `P3.OBS.01` - implement telemetry hooks + static telemetry gate, run live telemetry sampling, and publish rollout checkpoint decision.
+1. `P3.EXTRACT.01` - prep extraction/import trigger contract boundaries after feed + observability close.
+2. `P3.EXTRACT.01` - draft extraction/import resolver contract scaffolding.
+3. `P3.EXTRACT.01` - run baseline extraction data-source audit and migration scope framing.
 
 ### Next
 
-1. `P3.EXTRACT.01` - prep extraction/import trigger contract boundaries after feed baseline lands.
-2. `P3.EXTRACT.01` - draft extraction/import resolver contract scaffolding after feed close.
-3. `P3.EXTRACT.01` - run baseline extraction data-source audit and migration scope framing.
+1. Weekly telemetry cadence follow-up for Phase 3 (`feed_signal_health`, `roi_signal_health`, `roi_export`) using the new checkpoint contract.
+2. `P3.EXTRACT.01` - implement post-hackday extraction prompt path (`R11.1`) once baseline contract is locked.
+3. `P3.EXTRACT.01` - scope bulk import draft-publish flow (`R11.2`) with rollback plan.
 
 ### Blocked
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Completed branch/worktree reconciliation and stale branch pruning (`codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2` deleted locally/remotely); completed `P3.OBS.01` to GO with Phase 3 telemetry contract, feed/ROI/export telemetry hooks, static gate, and live production telemetry evidence. Active task advanced to `P3.EXTRACT.01`. |
 | 2026-03-02 | Continuity handoff refresh: set next-session action #1 to branch/worktree hygiene reconciliation before `P3.OBS.01` implementation; active task remains `P3.OBS.01`. |
 | 2026-03-01 | Created initial execution ledger from `HDC-PRODUCT-ROADMAP.md`; seeded tasks for Phase 0-3 and activated continuity protocol. |
 | 2026-03-01 | Completed `P1.IA.01` with implementation-ready IA/routing spec in `docs/HDC-P1-IA-ROUTING-SPEC.md`; active task advanced to `P1.REG.01`. |

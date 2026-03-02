@@ -51,6 +51,8 @@ import type {
   GetRoiDashboardInput,
   LogRoiTokenUsageInput,
   LogRoiTokenUsageResult,
+  TrackRoiExportInput,
+  TrackRoiExportResult,
   RoiDashboardSnapshot,
   TrackTeamPulseExportInput,
   TrackTeamPulseExportResult,
@@ -62,6 +64,8 @@ import type {
 import { SupabaseRepository } from './supabase/repositories';
 
 const repository = new SupabaseRepository();
+const PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT = 80;
+const PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT = 67;
 
 interface ConvexBootstrapPayload {
   summary: BootstrapData['summary'];
@@ -98,6 +102,11 @@ type ForgeDataBackendMode = 'supabase' | 'convex' | 'auto';
 function clampPositiveInt(value: unknown, fallback: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
   return Math.min(max, Math.max(1, Math.floor(value)));
+}
+
+function calculateCoveragePct(actual: number, expected: number): number {
+  if (expected <= 0) return 100;
+  return Math.round((actual / expected) * 1000) / 10;
 }
 
 function isSupabasePermissionError(error: unknown): boolean {
@@ -386,7 +395,60 @@ export async function getHomeFeed(
 ): Promise<HomeFeedSnapshot> {
   return withConfiguredBackend(
     () => repository.getHomeFeed(viewer, input),
-    () => getHomeFeedFromConvex(viewer, input)
+    async () => {
+      const snapshot = await getHomeFeedFromConvex(viewer, input);
+      const expectedActivityTypes = 5;
+      const expectedRecommendationTypes = 3;
+      const activityTypesPresent = new Set(snapshot.items.map((item) => item.type));
+      const recommendationTypesPresent = new Set(snapshot.recommendations.map((item) => item.type));
+      const includeRecommendations = snapshot.appliedFilters.includeRecommendations;
+      const activityCoveragePct = calculateCoveragePct(activityTypesPresent.size, expectedActivityTypes);
+      const recommendationCoveragePct = includeRecommendations
+        ? calculateCoveragePct(recommendationTypesPresent.size, expectedRecommendationTypes)
+        : 100;
+      const alerts: string[] = [];
+      if (activityCoveragePct < PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT) {
+        alerts.push('activity_coverage_below_threshold');
+      }
+      if (
+        includeRecommendations &&
+        recommendationCoveragePct < PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT
+      ) {
+        alerts.push('recommendation_coverage_below_threshold');
+      }
+      if (snapshot.items.length === 0) {
+        alerts.push('empty_activity_feed');
+      }
+      console.info(
+        '[hdc-phase3-telemetry]',
+        JSON.stringify({
+          metric: 'feed_signal_health',
+          source: 'convex_fallback',
+          provider: 'convex',
+          policyVersion: snapshot.policyVersion,
+          activityStatus: snapshot.sources.activities.status,
+          recommendationStatus: snapshot.sources.recommendations.status,
+          includeRecommendations,
+          itemCount: snapshot.items.length,
+          recommendationCount: snapshot.recommendations.length,
+          activityCategoryCount: activityTypesPresent.size,
+          expectedActivityCategoryCount: expectedActivityTypes,
+          recommendationCategoryCount: recommendationTypesPresent.size,
+          expectedRecommendationCategoryCount: expectedRecommendationTypes,
+          activityCoveragePct,
+          recommendationCoveragePct,
+          activityCoverageThresholdPct: PHASE3_FEED_ACTIVITY_COVERAGE_MIN_PCT,
+          recommendationCoverageThresholdPct: PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT,
+          healthy: alerts.length === 0,
+          alerts,
+          reportingCadence: 'daily_sample_weekly_checkpoint',
+          viewerTimezone: viewer.timezone,
+          viewerSiteUrl: viewer.siteUrl,
+          loggedAt: snapshot.calculatedAt,
+        })
+      );
+      return snapshot;
+    }
   );
 }
 
@@ -425,6 +487,48 @@ export async function trackTeamPulseExport(
       return {
         logged: true,
         metric: 'team_pulse_export',
+        loggedAt,
+      };
+    }
+  );
+}
+
+export async function trackRoiExport(
+  viewer: ViewerContext,
+  input: TrackRoiExportInput
+): Promise<TrackRoiExportResult> {
+  return withConfiguredBackend(
+    () => repository.trackRoiExport(viewer, input),
+    async () => {
+      const loggedAt = new Date().toISOString();
+      const format = input.format === 'summary' ? 'summary' : 'csv';
+      console.info(
+        '[hdc-phase3-telemetry]',
+        JSON.stringify({
+          metric: 'roi_export',
+          source: 'convex_fallback',
+          provider: 'convex',
+          format,
+          exportedAt: input.exportedAt,
+          window: input.window,
+          tokenSourceStatus: input.tokenSourceStatus,
+          costRateCardStatus: input.costRateCardStatus,
+          outputSourceStatus: input.outputSourceStatus,
+          businessUnitSourceStatus: input.businessUnitSourceStatus,
+          totalTokenVolume: Math.max(0, Number(input.totalTokenVolume) || 0),
+          totalCost: Math.max(0, Number(input.totalCost) || 0),
+          totalOutputs: Math.max(0, Math.floor(Number(input.totalOutputs) || 0)),
+          rowCount: format === 'csv' ? Math.max(0, input.rowCount ?? 0) : null,
+          summaryLineCount: format === 'summary' ? Math.max(0, input.summaryLineCount ?? 0) : null,
+          reportingCadence: 'daily_sample_weekly_checkpoint',
+          viewerTimezone: viewer.timezone,
+          viewerSiteUrl: viewer.siteUrl,
+          loggedAt,
+        })
+      );
+      return {
+        logged: true,
+        metric: 'roi_export',
         loggedAt,
       };
     }

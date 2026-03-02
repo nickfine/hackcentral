@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 00:07 GMT
+Last updated: 2026-03-02 00:24 GMT
 
 ## Current Snapshot
 
@@ -418,54 +418,73 @@ Last updated: 2026-03-02 00:07 GMT
     - `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md` (`GO`)
   - transition:
     - active task advanced from `P3.FEED.01` to `P3.OBS.01`
+- Phase 3 observability rollout (`P3.OBS.01`) is now complete (`GO`):
+  - telemetry contract:
+    - `docs/HDC-P3-OBS-TELEMETRY-CONTRACT-SPEC.md`
+  - backend/resolver telemetry wiring:
+    - `feed_signal_health` and `roi_signal_health` emitted from `forge-native/src/backend/supabase/repositories.ts`
+    - Convex fallback emission in `forge-native/src/backend/hackcentral.ts`
+    - export telemetry resolver: `hdcTrackRoiExport`
+  - static gate + contract coverage:
+    - `tests/forge-native-phase3-telemetry-contract.spec.ts`
+    - `npm run qa:p3:telemetry-static-check`
+  - live production evidence:
+    - `docs/artifacts/HDC-P3-OBS-LIVE-TELEMETRY-LOGS-20260302-002226Z.txt`
+    - `docs/artifacts/HDC-P3-OBS-LIVE-RESOLVER-SMOKE-20260302-002226Z.json`
+    - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`
+    - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`
+  - final checkpoint:
+    - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md` (`GO`)
+  - transition:
+    - active task advanced from `P3.OBS.01` to `P3.EXTRACT.01`
 
 ## Active Task Pointer
 
-- Active Task ID: `P3.OBS.01`
-- Task title: `Phase 3 telemetry and alerting rollout`
+- Active Task ID: `P3.EXTRACT.01`
+- Task title: `Post-hackday extraction and bulk import rollout`
 - Plan source: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - IA baseline spec: `docs/HDC-P1-IA-ROUTING-SPEC.md`
 - Registry contract spec: `docs/HDC-P1-REGISTRY-CONTRACT-SPEC.md`
 - Pathways requirements source: `HDC-PRODUCT-ROADMAP.md` (`R6.1`-`R6.4`)
 - Team Pulse requirements source: `HDC-PRODUCT-ROADMAP.md` (`R7.1`-`R7.4`)
 - Recognition requirements source: `HDC-PRODUCT-ROADMAP.md` (`R8.1`-`R8.2`)
-- Phase 3 telemetry requirements source: `HDC-PRODUCT-ROADMAP.md` (`Phase 3 observability`)
+- Phase 3 extraction requirements source: `HDC-PRODUCT-ROADMAP.md` (`R11.1`-`R11.2`)
 
 ## Next 3 Atomic Actions
 
-1. Run branch/worktree hygiene preflight and reconcile remaining local branches before any implementation work.
-2. Define `P3.OBS.01` telemetry contract for feed/ROI signal health, thresholds, and reporting cadence.
-3. Implement Phase 3 telemetry hooks + static telemetry gate coverage, then run live telemetry sampling and publish `P3.OBS.01` checkpoint decision.
+1. Define `P3.EXTRACT.01` extraction/import contract boundaries and publish a phase contract spec for `R11.1` and `R11.2`.
+2. Implement extraction prompt path resolver + bulk import scaffold with typed contracts and feature-gated UI wiring.
+3. Run Supabase MCP-first source audit and baseline migration scope, then publish `P3.EXTRACT.01` baseline checkpoint.
 
-## Mandatory First Action In Next Chat (Branch Hygiene)
+## Branch/Worktree Reconciliation Status
 
-- Objective:
-  - get local and remote branch state to a documented, clean baseline before continuing `P3.OBS.01`.
-- Verified snapshot (2026-03-02 00:07 GMT):
+- Completed (2026-03-02 00:24 GMT):
+  - executed required commands:
+    - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+    - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+    - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+    - divergence checks for `codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2`, and `codex/p1-child-01`
+  - stale non-active branches deleted (local + remote):
+    - `codex/hdc-hackday-template-spinout`
+    - `codex/sb2-v2-custom-events-phase2`
+- Current snapshot:
   - local branches:
     - `main` (`0677ce0`)
-    - `codex/p1-child-01` (`0fd1486`) - active implementation branch
-    - `codex/hdc-hackday-template-spinout` (`d5ffa72`)
-    - `codex/sb2-v2-custom-events-phase2` (`37c2fac`)
+    - `codex/p1-child-01` (`9a16c2d`) - active implementation branch
   - worktrees:
     - `/Users/nickster/Downloads/HackCentral` -> `main`
     - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p1-child-01`
-  - divergence vs `main` (`git rev-list --left-right --count main...<branch>`):
-    - `codex/hdc-hackday-template-spinout`: `97 2`
-    - `codex/sb2-v2-custom-events-phase2`: `42 3`
-    - `codex/p1-child-01`: `0 21`
-- First-command checklist for the new chat:
-  1. `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
-  2. `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
-  3. `git -C /Users/nickster/Downloads/HackCentral branch -vv`
-  4. For each non-active branch, decide and execute one path: merge/cherry-pick required commits into `main`, or delete local+remote branch if no longer needed.
-  5. Reconfirm clean baseline (`git status --short --branch` in both worktrees), then resume `P3.OBS.01`.
+  - divergence vs `main`:
+    - `codex/p1-child-01`: `0 22`
+  - known status after cleanup:
+    - `/Users/nickster/Downloads/HackCentral`: dirty (pre-existing tracked/untracked docs and screenshots; left untouched)
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01`: expected uncommitted `P3.OBS.01` implementation/doc artifacts + continuity updates + pre-existing untracked smoke files
 
 ## Blockers / Decisions Needed
 
 - Blocker:
-  - Operational preflight required: branch/worktree reconciliation must run first in the next chat.
-  - No code blocker currently logged for `P3.OBS.01`.
+  - No active blocker currently logged for `P3.EXTRACT.01`.
+  - Branch/worktree reconciliation blocker is closed.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
@@ -534,6 +553,11 @@ Last updated: 2026-03-02 00:07 GMT
   - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`
   - `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`
   - `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-TELEMETRY-LOGS-20260302-002226Z.txt`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-RESOLVER-SMOKE-20260302-002226Z.json`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`
+  - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md`
 
 ## Validation Commands
 

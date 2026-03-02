@@ -1192,6 +1192,29 @@ export interface TrackTeamPulseExportResult {
   loggedAt: string;
 }
 
+export type RoiExportFormat = 'csv' | 'summary';
+
+export interface TrackRoiExportInput {
+  format: RoiExportFormat;
+  exportedAt: string;
+  window: RoiTimeWindow;
+  tokenSourceStatus: RoiSourceStatus;
+  costRateCardStatus: RoiSourceStatus;
+  outputSourceStatus: RoiSourceStatus;
+  businessUnitSourceStatus: RoiSourceStatus;
+  totalTokenVolume: number;
+  totalCost: number;
+  totalOutputs: number;
+  rowCount?: number;
+  summaryLineCount?: number;
+}
+
+export interface TrackRoiExportResult {
+  logged: true;
+  metric: 'roi_export';
+  loggedAt: string;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
@@ -1232,6 +1255,7 @@ export type Defs = {
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
   hdcGetRoiDashboard: (payload: GetRoiDashboardInput) => RoiDashboardSnapshot;
   hdcLogRoiTokenUsage: (payload: LogRoiTokenUsageInput) => LogRoiTokenUsageResult;
+  hdcTrackRoiExport: (payload: TrackRoiExportInput) => TrackRoiExportResult;
   hdcTrackTeamPulseExport: (payload: TrackTeamPulseExportInput) => TrackTeamPulseExportResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
   hdcRetrySync: (payload: { eventId: string }) => SyncResult;

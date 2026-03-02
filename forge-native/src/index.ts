@@ -16,6 +16,7 @@ import {
   getShowcaseHackDetail,
   getRoiDashboard,
   logRoiTokenUsage,
+  trackRoiExport,
   setShowcaseFeatured,
   setPathwayStepCompletion,
   trackTeamPulseExport,
@@ -61,6 +62,7 @@ import type {
   ListProblemImportCandidatesInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
+  TrackRoiExportInput,
   TrackTeamPulseExportInput,
   ViewerContext,
 } from './shared/types';
@@ -355,6 +357,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: TrackTeamPulseExportInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return trackTeamPulseExport(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcTrackRoiExport',
+  async (request: { context?: RawResolverContext; payload: TrackRoiExportInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return trackRoiExport(viewer, request.payload);
   }
 );
 

@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 1, 2026
+**Last Updated:** March 2, 2026
 
 ## Project Overview
 
@@ -2507,3 +2507,45 @@ Use this template at the end of every work session:
 
 - Before resuming feature work after multiple worktree sessions, a branch divergence audit should be the first action to avoid stale branch drift and accidental duplicate effort.
 - Continuation docs are more robust when they include exact branch divergence counts and executable first-command checklists instead of generic cleanup guidance.
+
+## Session Update - Branch Reconciliation + `P3.OBS.01` GO Closure (Mar 2, 2026 00:24 GMT)
+
+### Completed
+
+- Executed mandatory branch/worktree reconciliation in `/Users/nickster/Downloads/HackCentral` before implementation.
+- Verified divergence, inspected unique commits, and removed stale non-active branches locally/remotely:
+  - `codex/hdc-hackday-template-spinout`
+  - `codex/sb2-v2-custom-events-phase2`
+- Completed `P3.OBS.01` with:
+  - Phase 3 telemetry contract spec (`docs/HDC-P3-OBS-TELEMETRY-CONTRACT-SPEC.md`)
+  - backend telemetry hooks for `feed_signal_health`, `roi_signal_health`, and `roi_export`
+  - static telemetry gate (`qa:p3:telemetry-static-check`)
+  - live production telemetry sampling and rollout checkpoint publication.
+- Advanced active task to `P3.EXTRACT.01` in execution ledger/continuity.
+
+### Validation Evidence
+
+- Required branch/worktree commands:
+  - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/hdc-hackday-template-spinout` -> `97 2`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/sb2-v2-custom-events-phase2` -> `42 3`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p1-child-01` -> `0 22`
+- `P3.OBS.01` verification:
+  - `npm -C /Users/nickster/Downloads/HackCentral-p1-child-01 run test:run -- tests/forge-native-feed-contract.spec.ts tests/forge-native-roi-contract.spec.ts tests/forge-native-phase3-telemetry-contract.spec.ts` (pass)
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck` (pass)
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck` (pass)
+  - `npm -C /Users/nickster/Downloads/HackCentral-p1-child-01 run qa:p3:telemetry-static-check` (pass)
+- Live rollout artifacts:
+  - `docs/artifacts/HDC-P3-OBS-LIVE-TELEMETRY-LOGS-20260302-002226Z.txt`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-RESOLVER-SMOKE-20260302-002226Z.json`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`
+  - `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`
+  - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md` (`GO`)
+
+### Operational Learnings
+
+- Branch hygiene should run as a hard preflight only when branch inventory is unknown; once reconciled and pruned, keeping an explicit “known dirty files” status note is enough to prevent accidental cleanup churn.
+- For observability gates, pairing static contract checks with live telemetry log sampling is faster and more reliable than relying on UI proof alone.
+- In this workspace, Supabase MCP-first plus CLI fallback remains the most resilient rollout pattern because management-scope visibility can differ by endpoint even when MCP is reachable.

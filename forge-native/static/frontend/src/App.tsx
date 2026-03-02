@@ -44,6 +44,7 @@ import type {
   ScheduleEventType,
   ShowcaseHackListItem,
   ThemePreference,
+  TrackRoiExportInput,
   TrackTeamPulseExportInput,
   UpsertPathwayInput,
   UpsertPathwayStepInput,
@@ -4306,6 +4307,7 @@ export function App(): JSX.Element {
 
   const exportRoiCsv = (): void => {
     if (!roiSnapshot) return;
+    const exportedAt = new Date().toISOString();
     const rows: CsvValue[][] = [
       ['section', 'dimension', 'id', 'label', 'metric', 'value', 'generated_at'],
     ];
@@ -4320,6 +4322,25 @@ export function App(): JSX.Element {
         roiSnapshot.export.generatedAt,
       ]);
     }
+    const totalOutputs =
+      roiSnapshot.totals.outputs.hacksCompleted +
+      roiSnapshot.totals.outputs.artifactsPublished +
+      roiSnapshot.totals.outputs.problemsSolved +
+      roiSnapshot.totals.outputs.pipelineItemsProgressed;
+    const telemetryPayload: TrackRoiExportInput = {
+      format: 'csv',
+      exportedAt,
+      window: roiSnapshot.window,
+      tokenSourceStatus: roiSnapshot.sources.tokenVolume.status,
+      costRateCardStatus: roiSnapshot.sources.costRateCard.status,
+      outputSourceStatus: roiSnapshot.sources.outputs.status,
+      businessUnitSourceStatus: roiSnapshot.sources.businessUnit.status,
+      totalTokenVolume: roiSnapshot.totals.tokenVolume ?? 0,
+      totalCost: roiSnapshot.totals.cost ?? 0,
+      totalOutputs,
+      rowCount: rows.length,
+    };
+    void invokeTyped('hdcTrackRoiExport', telemetryPayload).catch(() => undefined);
     downloadCsv(
       `roi-dashboard-${roiSnapshot.window}-${roiSnapshot.calculatedAt.slice(0, 10)}.csv`,
       rows
@@ -4328,6 +4349,7 @@ export function App(): JSX.Element {
 
   const exportRoiSummary = (): void => {
     if (!roiSnapshot) return;
+    const exportedAt = new Date().toISOString();
     const lines = [
       roiSnapshot.export.formattedSummary,
       '',
@@ -4340,6 +4362,25 @@ export function App(): JSX.Element {
       'Notes',
       ...roiSnapshot.notes.map((note) => `- ${note}`),
     ];
+    const totalOutputs =
+      roiSnapshot.totals.outputs.hacksCompleted +
+      roiSnapshot.totals.outputs.artifactsPublished +
+      roiSnapshot.totals.outputs.problemsSolved +
+      roiSnapshot.totals.outputs.pipelineItemsProgressed;
+    const telemetryPayload: TrackRoiExportInput = {
+      format: 'summary',
+      exportedAt,
+      window: roiSnapshot.window,
+      tokenSourceStatus: roiSnapshot.sources.tokenVolume.status,
+      costRateCardStatus: roiSnapshot.sources.costRateCard.status,
+      outputSourceStatus: roiSnapshot.sources.outputs.status,
+      businessUnitSourceStatus: roiSnapshot.sources.businessUnit.status,
+      totalTokenVolume: roiSnapshot.totals.tokenVolume ?? 0,
+      totalCost: roiSnapshot.totals.cost ?? 0,
+      totalOutputs,
+      summaryLineCount: lines.length,
+    };
+    void invokeTyped('hdcTrackRoiExport', telemetryPayload).catch(() => undefined);
     downloadText(
       `roi-summary-${roiSnapshot.window}-${roiSnapshot.calculatedAt.slice(0, 10)}.txt`,
       lines.join('\n')
