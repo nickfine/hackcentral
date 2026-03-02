@@ -20,10 +20,10 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.44 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.46`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.45 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.48`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.12
+**Forge Native Package:** 0.3.13
 
 ## Session Update - Performance Rollout Completion + Live Telemetry Validation (Mar 1, 2026)
 
@@ -3240,3 +3240,36 @@ Use this template at the end of every work session:
 
 - `react-hooks/set-state-in-effect` remediation in legacy UI surfaces can be made compliant without behavior drift by deferring state transitions through asynchronous callbacks, but each change must be regression-validated because these patterns are timing-sensitive.
 - When doing broad no-`any` cleanup in tests, automated search/replace around chained mocks is high-risk; run lint immediately after each batch to catch parser drift before continuing.
+
+## Session Update - Homepage UX First-Action Hardening (2026-03-02 15:42 GMT)
+
+### Task ID
+- `P3.OBS.01` (homepage UX hardening executed as frontend quality follow-up)
+
+### What Changed
+- Implemented first-action-focused homepage UX updates in Forge frontend dashboard:
+  - replaced technical feed copy with user-facing language
+  - added explicit hero secondary CTAs while preserving primary action
+  - converted home activity/recommendation rows into clickable controls with deterministic destination mapping
+  - hid source-status debug metadata from default mode (preview-only visibility)
+  - corrected responsive typography scaling and reduced feed-chip visual weight
+  - improved topbar search/action clarity
+- Added frontend home telemetry events:
+  - `home_primary_cta_click`
+  - `home_secondary_cta_click`
+  - `home_feed_item_click`
+  - `home_recommendation_click`
+- Added optional `targetView` + `targetContext` navigation intent metadata to home-feed shared/frontend contracts.
+
+### Validation / Evidence
+- `npm run test:run -- tests/forge-native-home-feed-utils.spec.ts` (pass)
+- `npm run test:run -- tests/forge-native-feed-contract.spec.ts tests/forge-native-home-feed-utils.spec.ts` (pass)
+- `npm --prefix forge-native/static/frontend run typecheck` (pass)
+- `npm --prefix forge-native run typecheck` (pass)
+- `npm run lint -- forge-native/static/frontend/src/App.tsx forge-native/static/frontend/src/components/Layout.tsx forge-native/static/frontend/src/components/Dashboard/WelcomeHero.tsx forge-native/static/frontend/src/utils/homeFeed.ts tests/forge-native-home-feed-utils.spec.ts` (pass)
+
+### Regressions / Gotchas
+- None observed in targeted test/type/lint gates.
+
+### Next Recommended Step
+- Run one production weekly cadence observation window with `VITE_HDC_HOME_UX_V1=true`, compare first-action telemetry baseline vs prior week, and decide whether to keep default-on or stage percentage rollout.

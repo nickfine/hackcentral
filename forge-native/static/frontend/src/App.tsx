@@ -16,7 +16,9 @@ import type {
   FeaturedHack,
   GetHomeFeedInput,
   HomeFeedSnapshot,
+  HomeFeedActivityItem,
   HomeFeedActivityType,
+  HomeFeedRecommendation,
   HomeFeedRecommendationType,
   HackdayExtractionCandidatesResult,
   GetRoiDashboardInput,
@@ -94,6 +96,12 @@ import {
   validateProblemCreateDraft,
   validateProblemStatusDraft,
 } from './utils/problemExchange';
+import {
+  HOME_FEED_ACTIVITY_SUBCOPY,
+  HOME_FEED_RECOMMENDATION_SUBCOPY,
+  resolveHomeFeedActivityTarget,
+  resolveHomeFeedRecommendationTarget,
+} from './utils/homeFeed';
 import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
 import type {
   ScheduleBuilderOutput as ScheduleBuilderV2Output,
@@ -102,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.46';
+const HACKCENTRAL_UI_VERSION = '0.6.48';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -118,6 +126,7 @@ const CHILD_IMPORT_MIN_VOTES_DEFAULT = 3;
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
+const HDC_HOME_UX_V1 = String(import.meta.env.VITE_HDC_HOME_UX_V1 || 'true').trim().toLowerCase() !== 'false';
 const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
   { value: 'read', label: 'Read' },
   { value: 'try', label: 'Try' },
@@ -278,6 +287,24 @@ function logCreateHandoffTelemetry(input: {
       metric: 'create_handoff',
       source: 'global_frontend',
       mode: HDC_PERF_CREATE_HANDOFF_V1 ? 'v1' : 'legacy',
+      ...input,
+    })
+  );
+}
+
+function logHomeTelemetry(input: {
+  metric: 'home_primary_cta_click' | 'home_secondary_cta_click' | 'home_feed_item_click' | 'home_recommendation_click';
+  targetView?: View;
+  source?: string;
+  itemType?: string;
+  itemId?: string;
+  relatedId?: string | null;
+}): void {
+  console.info(
+    '[hdc-home-telemetry]',
+    JSON.stringify({
+      source: 'dashboard_home',
+      mode: HDC_HOME_UX_V1 ? 'v1' : 'legacy',
       ...input,
     })
   );
@@ -2496,6 +2523,162 @@ export function App(): JSX.Element {
     void loadHomeFeed();
   }, [loadHomeFeed, view]);
 
+  const applyHomeNavigationTarget = useCallback(
+    (target: ReturnType<typeof resolveHomeFeedActivityTarget>) => {
+      const filter = target.context.filter?.trim();
+      const domain = target.context.domain?.trim();
+      const role = target.context.role?.trim();
+      const tab = target.context.tab?.trim();
+
+      setQuickActionsOpen(false);
+
+      switch (target.view) {
+        case 'hacks': {
+          setHackTab(tab === 'in_progress' ? 'in_progress' : 'completed');
+          if (filter) {
+            setHackSearch(filter);
+          }
+          setView('hacks');
+          return;
+        }
+        case 'problem_exchange': {
+          if (filter) {
+            setProblemSearchInput(filter);
+          }
+          if (domain) {
+            setProblemDomainsInput(domain);
+          }
+          setProblemAppliedFilters((current) => ({
+            ...current,
+            query: filter || current.query,
+            domains: domain ? [domain.toLowerCase()] : current.domains,
+          }));
+          setView('problem_exchange');
+          return;
+        }
+        case 'pipeline':
+          setView('pipeline');
+          return;
+        case 'hackdays':
+          if (filter) {
+            setHackdaySearchInput(filter);
+          }
+          setView('hackdays');
+          return;
+        case 'library':
+          if (filter) {
+            setRegistrySearchInput(filter);
+          }
+          setRegistryAppliedFilters((current) => ({
+            ...current,
+            query: filter || current.query,
+          }));
+          setView('library');
+          return;
+        case 'guide':
+          if (filter) {
+            setPathwayQueryInput(filter);
+          }
+          if (role) {
+            setPathwayRoleInput(role);
+          }
+          setPathwayAppliedFilters((current) => ({
+            ...current,
+            query: filter || current.query,
+            role: role || current.role,
+          }));
+          setView('guide');
+          return;
+        case 'team_pulse':
+          setView('team_pulse');
+      }
+    },
+    []
+  );
+
+  const handleHomePrimaryCta = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_primary_cta_click',
+      targetView: 'hacks',
+      source: 'hero_submit_hack',
+    });
+    setModalView('submit_hack');
+  }, []);
+
+  const handleHomeBrowseFeatured = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_secondary_cta_click',
+      targetView: 'hacks',
+      source: 'hero_browse_featured',
+    });
+    setHackTab('completed');
+    setQuickActionsOpen(false);
+    setView('hacks');
+  }, []);
+
+  const handleHomeRequestMentor = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_secondary_cta_click',
+      targetView: 'team_up',
+      source: 'hero_request_mentor',
+    });
+    setQuickActionsOpen(false);
+    setModalView('mentor_profile');
+  }, []);
+
+  const handleHomeViewAllActivity = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_secondary_cta_click',
+      targetView: 'hacks',
+      source: 'feed_view_all_activity',
+    });
+    setHackTab('completed');
+    setQuickActionsOpen(false);
+    setView('hacks');
+  }, []);
+
+  const handleHomeViewAllRecommendations = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_secondary_cta_click',
+      targetView: 'guide',
+      source: 'feed_view_all_recommendations',
+    });
+    setQuickActionsOpen(false);
+    setView('guide');
+  }, []);
+
+  const handleHomeFeedItemClick = useCallback(
+    (item: HomeFeedActivityItem) => {
+      const target = resolveHomeFeedActivityTarget(item);
+      logHomeTelemetry({
+        metric: 'home_feed_item_click',
+        targetView: target.view,
+        source: 'activity_card',
+        itemType: item.type,
+        itemId: item.id,
+        relatedId: item.relatedId || null,
+      });
+      applyHomeNavigationTarget(target);
+    },
+    [applyHomeNavigationTarget]
+  );
+
+  const handleHomeRecommendationClick = useCallback(
+    (item: HomeFeedRecommendation) => {
+      const target = resolveHomeFeedRecommendationTarget(item);
+      logHomeTelemetry({
+        metric: 'home_recommendation_click',
+        targetView: target.view,
+        source: 'recommendation_card',
+        itemType: item.type,
+        itemId: item.id,
+        relatedId: item.relatedId || null,
+      });
+      applyHomeNavigationTarget(target);
+    },
+    [applyHomeNavigationTarget]
+  );
+
   const loadHackdayExtractionCandidates = useCallback(async () => {
     const eventId = extractionEventIdInput.trim();
     if (!eventId) {
@@ -3697,6 +3880,7 @@ export function App(): JSX.Element {
   const hackers = filteredPeople;
   const homeFeedItems = homeFeedSnapshot?.items ?? [];
   const homeFeedRecommendations = homeFeedSnapshot?.recommendations ?? [];
+  const showHomeFeedDebugMeta = HDC_HOME_UX_V1 && previewMode;
 
   const teamPulse = bootstrap?.teamPulse ?? null;
   const reuseRatePct = teamPulse?.reuseRatePct ?? 0;
@@ -4758,7 +4942,11 @@ export function App(): JSX.Element {
 
       {view === 'dashboard' ? (
             <section className="page-stack">
-              <WelcomeHero onSubmitHack={() => setModalView('submit_hack')} />
+              <WelcomeHero
+                onSubmitHack={handleHomePrimaryCta}
+                onBrowseFeaturedHacks={HDC_HOME_UX_V1 ? handleHomeBrowseFeatured : undefined}
+                onRequestMentor={HDC_HOME_UX_V1 ? handleHomeRequestMentor : undefined}
+              />
               <StatCards summary={bootstrap.summary} />
 
               <section className="card section-head-row dashboard-section-head">
@@ -4770,6 +4958,11 @@ export function App(): JSX.Element {
                   type="button"
                   className="text-link"
                   onClick={() => {
+                    logHomeTelemetry({
+                      metric: 'home_secondary_cta_click',
+                      targetView: 'hacks',
+                      source: 'latest_hacks_header',
+                    });
                     setView('hacks');
                     setHackTab('completed');
                   }}
@@ -4789,31 +4982,56 @@ export function App(): JSX.Element {
                   <div className="section-head-row">
                     <div>
                       <h2>What&apos;s happening</h2>
-                      <p>R12.1 activity feed across hacks, problems, artifacts, pipeline, and upcoming events.</p>
+                      <p>{HDC_HOME_UX_V1 ? HOME_FEED_ACTIVITY_SUBCOPY : 'R12.1 activity feed across hacks, problems, artifacts, pipeline, and upcoming events.'}</p>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => void loadHomeFeed()}
-                      disabled={homeFeedLoading}
-                    >
-                      {homeFeedLoading ? 'Refreshing...' : 'Refresh'}
-                    </button>
+                    <div className="section-head-actions">
+                      {HDC_HOME_UX_V1 ? (
+                        <button type="button" className="text-link" onClick={handleHomeViewAllActivity}>
+                          View all
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => void loadHomeFeed()}
+                        disabled={homeFeedLoading}
+                      >
+                        {homeFeedLoading ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    </div>
                   </div>
                   {homeFeedError ? <p className="message message-error">{homeFeedError}</p> : null}
                   {homeFeedItems.length > 0 ? (
                     <div className="home-feed-list">
                       {homeFeedItems.slice(0, 10).map((item) => (
-                        <div key={item.id} className="list-row home-feed-row">
-                          <div>
-                            <div className="home-feed-row-title">{item.title}</div>
-                            <div className="caption">{item.description}</div>
+                        HDC_HOME_UX_V1 ? (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="list-row home-feed-row home-feed-action"
+                            onClick={() => handleHomeFeedItemClick(item)}
+                          >
+                            <div>
+                              <div className="home-feed-row-title">{item.title}</div>
+                              <div className="caption">{item.description}</div>
+                            </div>
+                            <div className="home-feed-row-meta">
+                              <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
+                              <span>{formatFeedOccurredAt(item.occurredAt)}</span>
+                            </div>
+                          </button>
+                        ) : (
+                          <div key={item.id} className="list-row home-feed-row">
+                            <div>
+                              <div className="home-feed-row-title">{item.title}</div>
+                              <div className="caption">{item.description}</div>
+                            </div>
+                            <div className="home-feed-row-meta">
+                              <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
+                              <span>{formatFeedOccurredAt(item.occurredAt)}</span>
+                            </div>
                           </div>
-                          <div className="home-feed-row-meta">
-                            <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
-                            <span>{formatFeedOccurredAt(item.occurredAt)}</span>
-                          </div>
-                        </div>
+                        )
                       ))}
                     </div>
                   ) : homeFeedLoading ? (
@@ -4821,29 +5039,56 @@ export function App(): JSX.Element {
                   ) : (
                     <p className="empty-copy">No activity yet. New hacks and project movement will appear here.</p>
                   )}
-                  {homeFeedSnapshot ? (
+                  {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.activities.status}</p>
                   ) : null}
                 </article>
 
                 <article className="card home-feed-card">
-                  <h2>Recommended for you</h2>
-                  <p className="caption">
-                    R12.2 includes domain problems, team artifact usage, and role pathways.
-                  </p>
+                  <div className="section-head-row">
+                    <div>
+                      <h2>Recommended for you</h2>
+                      <p className="caption">
+                        {HDC_HOME_UX_V1 ? HOME_FEED_RECOMMENDATION_SUBCOPY : 'R12.2 includes domain problems, team artifact usage, and role pathways.'}
+                      </p>
+                    </div>
+                    {HDC_HOME_UX_V1 ? (
+                      <button type="button" className="text-link" onClick={handleHomeViewAllRecommendations}>
+                        View all
+                      </button>
+                    ) : null}
+                  </div>
                   {homeFeedRecommendations.length > 0 ? (
                     <div className="home-feed-list">
                       {homeFeedRecommendations.slice(0, 8).map((item) => (
-                        <div key={item.id} className="list-row home-feed-row">
-                          <div>
-                            <div className="home-feed-row-title">{item.title}</div>
-                            <div className="caption">{item.reason}</div>
+                        HDC_HOME_UX_V1 ? (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="list-row home-feed-row home-feed-action"
+                            onClick={() => handleHomeRecommendationClick(item)}
+                          >
+                            <div>
+                              <div className="home-feed-row-title">{item.title}</div>
+                              <div className="caption">{item.reason}</div>
+                            </div>
+                            <div className="home-feed-row-meta">
+                              <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
+                              <span>score {item.score}</span>
+                            </div>
+                          </button>
+                        ) : (
+                          <div key={item.id} className="list-row home-feed-row">
+                            <div>
+                              <div className="home-feed-row-title">{item.title}</div>
+                              <div className="caption">{item.reason}</div>
+                            </div>
+                            <div className="home-feed-row-meta">
+                              <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
+                              <span>score {item.score}</span>
+                            </div>
                           </div>
-                          <div className="home-feed-row-meta">
-                            <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
-                            <span>score {item.score}</span>
-                          </div>
-                        </div>
+                        )
                       ))}
                     </div>
                   ) : homeFeedLoading ? (
@@ -4851,7 +5096,7 @@ export function App(): JSX.Element {
                   ) : (
                     <p className="empty-copy">Recommendations will appear once activity signals are available.</p>
                   )}
-                  {homeFeedSnapshot ? (
+                  {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.recommendations.status}</p>
                   ) : null}
                 </article>

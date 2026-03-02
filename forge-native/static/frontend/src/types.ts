@@ -245,6 +245,24 @@ export type HomeFeedActivityType =
   | 'pipeline_movement'
   | 'upcoming_hackday';
 
+export type HomeFeedTargetView =
+  | 'hacks'
+  | 'problem_exchange'
+  | 'pipeline'
+  | 'hackdays'
+  | 'library'
+  | 'guide'
+  | 'team_pulse';
+
+export interface HomeFeedTargetContext {
+  relatedId?: string;
+  filter?: string;
+  tab?: string;
+  domain?: string;
+  team?: string;
+  role?: string;
+}
+
 export interface HomeFeedActivityItem {
   id: string;
   type: HomeFeedActivityType;
@@ -257,6 +275,8 @@ export interface HomeFeedActivityItem {
   teamLabel?: string | null;
   domain?: string | null;
   metadata?: Record<string, unknown> | null;
+  targetView?: HomeFeedTargetView;
+  targetContext?: HomeFeedTargetContext;
 }
 
 export type HomeFeedRecommendationType = 'problem_domain' | 'team_artifact' | 'pathway_role';
@@ -269,6 +289,8 @@ export interface HomeFeedRecommendation {
   score: number;
   relatedId?: string | null;
   context?: string[];
+  targetView?: HomeFeedTargetView;
+  targetContext?: HomeFeedTargetContext;
 }
 
 export interface GetHomeFeedInput {

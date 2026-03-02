@@ -61,8 +61,8 @@ export function Layout({
           <span className="search-icon" aria-hidden>🔍</span>
           <input
             type="search"
-            placeholder="Search Completed Hacks and people..."
-            aria-label="Search Completed Hacks and people"
+            placeholder="Search hacks, people, and problems..."
+            aria-label="Search hacks, people, and problems"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') setView('search'); }}
@@ -147,8 +147,14 @@ export function Layout({
               </>
             ) : null}
           </div>
-          <button type="button" className="icon-btn" aria-label="Notifications">⌁</button>
-          <button type="button" className="icon-btn" aria-label="Messages">◻</button>
+          <button type="button" className="icon-btn top-action-btn" aria-label="Notifications">
+            <span aria-hidden>🔔</span>
+            <span className="icon-btn-label">Alerts</span>
+          </button>
+          <button type="button" className="icon-btn top-action-btn" aria-label="Messages">
+            <span aria-hidden>💬</span>
+            <span className="icon-btn-label">Messages</span>
+          </button>
           <button type="button" className="profile-chip" title={accountId} onClick={() => setView('profile')} aria-label="Open profile">{profileInitial}</button>
         </div>
       </header>

@@ -299,6 +299,25 @@ button {
   border-color: var(--line);
 }
 
+.top-action-btn {
+  width: auto;
+  min-width: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.top-action-btn:hover .icon-btn-label {
+  color: var(--text);
+}
+
 .profile-chip {
   width: 38px;
   height: 38px;
@@ -518,6 +537,9 @@ button {
 .dashboard-hero-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .section-head-row {
@@ -525,6 +547,12 @@ button {
   justify-content: space-between;
   align-items: flex-end;
   gap: 12px;
+}
+
+.section-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Tier 2 - Section context: text-lg font-semibold */
@@ -631,6 +659,26 @@ button {
   align-items: center;
 }
 
+.home-feed-action {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.home-feed-action:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
+}
+
+.home-feed-action:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .home-feed-row-title {
   font-size: 14px;
   font-weight: 600;
@@ -643,6 +691,11 @@ button {
   gap: 8px;
   color: var(--text-soft);
   font-size: 12px;
+}
+
+.home-feed-row .pill {
+  font-size: var(--tier4-size);
+  padding: 2px 8px;
 }
 
 .hack-card-head,
@@ -3178,6 +3231,15 @@ button {
     justify-content: flex-start;
   }
 
+  .icon-btn-label {
+    display: none;
+  }
+
+  .top-action-btn {
+    width: 34px;
+    padding: 0;
+  }
+
   .switcher-menu {
     width: min(360px, calc(100vw - 24px));
   }
@@ -3232,7 +3294,7 @@ button {
   .project-card-copy,
   .bulletin-card p,
   .metric-tile small {
-    font-size: 18px;
+    font-size: 15px;
   }
 
   .section-head-row h2,
@@ -3241,7 +3303,7 @@ button {
   .pulse-card h2,
   .collective-card h2,
   .recognition-tabs h2 {
-    font-size: 31px;
+    font-size: 24px;
   }
 
   .quote-body {

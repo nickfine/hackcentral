@@ -4,9 +4,15 @@
  */
 export interface WelcomeHeroProps {
   onSubmitHack: () => void;
+  onBrowseFeaturedHacks?: () => void;
+  onRequestMentor?: () => void;
 }
 
-export function WelcomeHero({ onSubmitHack }: WelcomeHeroProps): JSX.Element {
+export function WelcomeHero({
+  onSubmitHack,
+  onBrowseFeaturedHacks,
+  onRequestMentor,
+}: WelcomeHeroProps): JSX.Element {
   return (
     <section className="card dashboard-hero-card" aria-label="HackDay Central">
       <div className="dashboard-hero-row">
@@ -18,6 +24,16 @@ export function WelcomeHero({ onSubmitHack }: WelcomeHeroProps): JSX.Element {
           <button type="button" className="btn btn-primary" onClick={onSubmitHack}>
             Submit a Hack
           </button>
+          {onBrowseFeaturedHacks ? (
+            <button type="button" className="btn btn-outline" onClick={onBrowseFeaturedHacks}>
+              Browse Featured Hacks
+            </button>
+          ) : null}
+          {onRequestMentor ? (
+            <button type="button" className="btn btn-outline" onClick={onRequestMentor}>
+              Request 15-min Mentor
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

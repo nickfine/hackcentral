@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 13:00 GMT
+Last updated: 2026-03-02 15:54 GMT
 
 ## Current Snapshot
 
@@ -9,9 +9,9 @@ Last updated: 2026-03-02 13:00 GMT
 - Live execution ledger: `HDC-PRODUCT-EXECUTION-PLAN.md`
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.44`
-  - Forge native package version: `0.3.12`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.46`
+  - Root app version: `0.6.45`
+  - Forge native package version: `0.3.13`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.48`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
@@ -478,7 +478,7 @@ Last updated: 2026-03-02 13:00 GMT
 
 1. Maintain weekly Phase 3 cadence checkpoints via `qa:p3:weekly-cadence` while waiting for first live `results` event.
 2. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'` (`qa:p3:extract-first-results-sample`).
-3. Keep HackDays search/sort smoke checks in weekly cadence notes until one additional post-deploy sample confirms stable behavior.
+3. Run one weekly observation window for homepage first-action telemetry (`home_primary_cta_click`, `home_secondary_cta_click`, `home_feed_item_click`, `home_recommendation_click`) with `VITE_HDC_HOME_UX_V1=true`, then decide keep-default-on vs staged rollout.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -1337,3 +1337,52 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - The safest operational pattern for non-live environments is lifecycle-toggle simulation with explicit cleanup verification in the same run; it validates the true write path while keeping standing cadence state unchanged.
+
+## Session Update - Homepage UX First-Action Hardening (Mar 2, 2026 15:42 GMT)
+
+### Completed
+
+- Implemented homepage UX hardening in Forge frontend scope (`dashboard` view) with `VITE_HDC_HOME_UX_V1` rollout flag (default enabled):
+  - hero now includes explicit secondary CTAs (`Browse Featured Hacks`, `Request 15-min Mentor`) while retaining primary `Submit a Hack`
+  - Home activity/recommendation rows are now actionable controls with deterministic view-routing fallback by type
+  - technical requirement labels (`R12.1`, `R12.2`) replaced with user-facing copy
+  - source status metadata hidden in default mode and shown only in preview-mode debug
+  - tablet typography corrected to scale down (not up) at responsive breakpoint
+  - feed pill sizing made compact so row title remains primary visual anchor
+  - topbar search and utility actions clarified (`Search hacks, people, and problems...`, explicit Alerts/Messages labels)
+- Added frontend-only telemetry events:
+  - `home_primary_cta_click`
+  - `home_secondary_cta_click`
+  - `home_feed_item_click`
+  - `home_recommendation_click`
+- Extended home-feed shared/frontend contracts with optional navigation intent metadata:
+  - `targetView`
+  - `targetContext`
+
+### Validation Evidence
+
+- Changed files:
+  - `forge-native/static/frontend/src/App.tsx`
+  - `forge-native/static/frontend/src/components/Dashboard/WelcomeHero.tsx`
+  - `forge-native/static/frontend/src/components/Layout.tsx`
+  - `forge-native/static/frontend/src/styles.css`
+  - `forge-native/static/frontend/src/utils/homeFeed.ts`
+  - `forge-native/static/frontend/src/types.ts`
+  - `forge-native/src/shared/types.ts`
+  - `tests/forge-native-home-feed-utils.spec.ts`
+- Commands:
+  - `npm run test:run -- tests/forge-native-home-feed-utils.spec.ts` (pass)
+  - `npm run test:run -- tests/forge-native-feed-contract.spec.ts tests/forge-native-home-feed-utils.spec.ts` (pass)
+  - `npm --prefix forge-native/static/frontend run typecheck` (pass)
+  - `npm --prefix forge-native run typecheck` (pass)
+  - `npm run lint -- forge-native/static/frontend/src/App.tsx forge-native/static/frontend/src/components/Layout.tsx forge-native/static/frontend/src/components/Dashboard/WelcomeHero.tsx forge-native/static/frontend/src/utils/homeFeed.ts tests/forge-native-home-feed-utils.spec.ts` (pass)
+
+### Current State
+
+- Active task remains: `P3.OBS.01` (weekly cadence follow-up still active).
+- Homepage UX improvements are implemented and can be reverted quickly by setting:
+  - `VITE_HDC_HOME_UX_V1=false`
+
+### Operational Learnings
+
+- Keeping feed navigation mapping in a dedicated utility (`utils/homeFeed.ts`) reduces dashboard render complexity and enables focused contract-level tests without React runtime coupling.
