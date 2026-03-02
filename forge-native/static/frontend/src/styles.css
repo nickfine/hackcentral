@@ -70,7 +70,7 @@ button {
   right: 0;
   height: 72px;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 240px;
+  grid-template-columns: 64px minmax(260px, 1fr) max-content;
   align-items: center;
   gap: 16px;
   padding: 0 18px;
@@ -95,7 +95,7 @@ button {
 
 .top-search {
   position: relative;
-  max-width: 600px;
+  max-width: min(680px, 100%);
   width: 100%;
   margin: 0 auto;
 }
@@ -125,6 +125,8 @@ button {
   justify-content: flex-end;
   gap: 8px;
   position: relative;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .app-switcher {
@@ -152,7 +154,7 @@ button {
 .switcher-trigger-label {
   font-size: 13px;
   font-weight: 600;
-  max-width: 140px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -327,6 +329,33 @@ button {
   color: white;
   background: var(--brand);
   font-weight: 700;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1360px) {
+  .icon-btn-label {
+    display: none;
+  }
+
+  .top-action-btn {
+    width: 34px;
+    padding: 0;
+  }
+
+  .switcher-trigger-label {
+    max-width: 94px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    grid-template-columns: 56px minmax(210px, 1fr) max-content;
+    gap: 12px;
+  }
+
+  .switcher-trigger-label {
+    max-width: 72px;
+  }
 }
 
 .frame {
