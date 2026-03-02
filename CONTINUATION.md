@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 11:38 GMT
+Last updated: 2026-03-02 11:40 GMT
 
 ## Current Snapshot
 
@@ -1242,3 +1242,28 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Running a temporary synthetic `results` event with immediate cleanup is a safe way to validate extraction replay/idempotency on demand without waiting for a real lifecycle transition, while preserving production baseline state.
+
+## Session Update - First Results Sample Recheck (Mar 2, 2026 11:40 GMT)
+
+### Completed
+
+- Executed first-results extraction sample command:
+  - `npm run qa:p3:extract-first-results-sample`
+- Supabase access followed MCP-first policy (`mcp__supabase__list_projects`), then fallback path already embedded in command flow.
+- Generated fresh extraction sample artifacts.
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.md`
+
+### Current State
+
+- Decision: `PENDING_RESULTS_EVENT`
+- `resultsEventCount=0`
+- `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
+- No live extraction run was executed (`mode=dry_run_only`) because no production event is in `results`.
+
+### Operational Learnings
+
+- Running a lightweight first-results recheck between weekly cadence windows is safe and useful for immediate operator certainty, while preserving strict lifecycle gating before live extraction actions.

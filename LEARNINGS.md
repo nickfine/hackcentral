@@ -3129,3 +3129,28 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Weekly cadence stays reliable when treated as a fixed operational ritual: one command gives a complete health snapshot, but extraction action remains strictly lifecycle-triggered and should not be forced outside `results` transitions.
+
+## Session Update - First Results Sample Recheck (Mar 2, 2026 11:40 GMT)
+
+### Completed
+
+- Ran a fresh extraction first-results recheck:
+  - `npm run qa:p3:extract-first-results-sample`
+- Captured new sample artifacts reflecting current production lifecycle state.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114042Z.md`
+
+### Observations
+
+- Outcome remains lifecycle-gated:
+  - `status=pending_results_event`
+  - `resultsEventCount=0`
+  - `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
+- No live extraction operations were performed (`mode=dry_run_only`) due absence of production `results` events.
+
+### Operational Learnings
+
+- The first-results sample command is a low-cost readiness probe that can be run on-demand between weekly cadence windows without risking unintended writes; it cleanly reinforces when extraction should remain paused.
