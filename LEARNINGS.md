@@ -3065,3 +3065,35 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - A cleanup-backed synthetic lifecycle simulation is an effective operational drill: it validates full live extraction behavior and catches latent script/runtime defects before real `results` windows open.
+
+## Session Update - HackDays Search/Sort Live Rollout + Branch Hygiene Closure (Mar 2, 2026 11:22 GMT)
+
+### Completed
+
+- Shipped HackDays UX updates to production Confluence app shell:
+  - added HackDays list `Search` control
+  - added HackDays list `Sort` control (`Most recent`, `Oldest`, `Name (A-Z)`, `Name (Z-A)`, `Lifecycle status`)
+  - updated extraction panel heading to `[ADMIN] Post-HackDay Extraction (R11)`
+  - bumped UI marker to `HACKCENTRAL_UI_VERSION=0.6.46`
+- Addressed stale iframe bundle behavior by rebuilding frontend custom UI and redeploying/upgrade-installing production.
+- Executed live Confluence smoke validation for search, no-match state, sort behavior, and extraction title render.
+- Completed branch hygiene closure by deleting local parked branch `codex/main-local-wip-20260302` after reconciliation checks.
+
+### Evidence
+
+- Commit: `7a4c162` (`feat(hackdays): add event search and sort controls`)
+- Live smoke artifact: `docs/artifacts/HDC-HACKDAYS-SEARCH-SORT-LIVE-SMOKE-20260302-112224Z.md`
+- Branch hygiene verification commands:
+  - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral status --short --branch`
+
+### Observations
+
+- Repo/worktree health is now straightforward: single active branch (`main`) tracking `origin/main`, no parked side branch.
+- The HackDays surface is now easier to operate at scale (`56` events) due to in-view filtering and deterministic sorting.
+
+### Operational Learnings
+
+- In Forge Confluence app-shell deployments, functional confirmation should always include both a runtime marker check (`HACKCENTRAL_UI_VERSION`) and live user-path behavior checks; deploy/install success alone is not sufficient to assert rollout completion.

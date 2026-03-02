@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 02:40 GMT
+Last updated: 2026-03-02 11:22 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -93,6 +93,8 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Completed HackDays UX operational update in production: added HackDays list search/sort controls plus extraction panel title prefix (`[ADMIN]`), bumped UI marker to `0.6.46`, and captured live Confluence smoke evidence in `docs/artifacts/HDC-HACKDAYS-SEARCH-SORT-LIVE-SMOKE-20260302-112224Z.md`. |
+| 2026-03-02 | Completed post-merge branch hygiene closure: deleted local parked branch `codex/main-local-wip-20260302`; current repo/worktree status is clean on `main` tracking `origin/main` at `7a4c162`. |
 | 2026-03-02 | Executed synthetic live-event extraction simulation (temporary `results` event + submission) to force first non-empty cadence sample immediately. Captured live-ready evidence (`docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.json`, `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-023914Z.md`) with `resultsEventCount=1`, `candidateCount=1`, and idempotent replay behavior (`prompted 1 -> 0`, `imported 1 -> 0`). |
 | 2026-03-02 | Fixed two production script defects in `scripts/p3-extract-first-results-sample.mjs`: (1) user account column compatibility (`atlassian_account_id` fallback) and (2) `tsx -e` top-level-await runtime failure (wrapped snippet in async main). |
 | 2026-03-02 | Performed full synthetic-data cleanup after simulation (event/project/team/showcase/extraction/audit rows) and revalidated pending-state baseline with fresh cadence artifacts (`docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-024011Z.json`, `docs/artifacts/HDC-P3-WEEKLY-CADENCE-CHECKPOINT-20260302-024011Z.md`), confirming `resultsEventCount=0` post-cleanup. |

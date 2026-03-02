@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:40 GMT
+Last updated: 2026-03-02 11:22 GMT
 
 ## Current Snapshot
 
@@ -11,6 +11,7 @@ Last updated: 2026-03-02 02:40 GMT
 - Latest known release markers:
   - Root app version: `0.6.44`
   - Forge native package version: `0.3.12`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.46`
 - Current phase: `Phase 3 in execution`
 - Registry (`P1.REG.01`) is complete and validated:
   - migration: `forge-native/supabase/migrations/20260301011000_phase1_registry.sql`
@@ -465,33 +466,34 @@ Last updated: 2026-03-02 02:40 GMT
 
 ## Next 3 Atomic Actions
 
-1. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'`.
-2. Maintain weekly Phase 3 cadence checkpoints via `qa:p3:weekly-cadence` while waiting for first live `results` event.
-3. Re-evaluate extraction runbook guardrails after the first non-empty `results` cadence sample.
+1. Maintain weekly Phase 3 cadence checkpoints via `qa:p3:weekly-cadence` while waiting for first live `results` event.
+2. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'` (`qa:p3:extract-first-results-sample`).
+3. Keep HackDays search/sort smoke checks in weekly cadence notes until one additional post-deploy sample confirms stable behavior.
 
 ## Branch/Worktree Reconciliation Status
 
-- Completed (2026-03-02 01:55 GMT):
+- Completed (2026-03-02 11:22 GMT):
   - executed required commands:
     - `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
     - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
     - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
-    - divergence checks for `codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2`, and `codex/p1-child-01`
+    - divergence checks for `codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2`, `codex/p1-child-01`, and `codex/main-local-wip-20260302`
     - merge/hygiene checks for `codex/p3-extract-01`
   - stale non-active branches deleted (local + remote):
     - `codex/hdc-hackday-template-spinout`
     - `codex/sb2-v2-custom-events-phase2`
+  - local parked branch deleted:
+    - `codex/main-local-wip-20260302` (local-only archive branch, removed after verification)
 - Current snapshot:
   - local branches:
     - `main` (tracking `origin/main`)
-    - `codex/main-local-wip-20260302` (archived local main WIP)
   - worktrees:
     - `/Users/nickster/Downloads/HackCentral` -> `main`
   - merged/removed:
     - `codex/p3-extract-01` merged into `main` and deleted locally/remotely
     - `/Users/nickster/Downloads/HackCentral-p1-child-01` worktree removed
   - known status after cleanup:
-    - `/Users/nickster/Downloads/HackCentral`: clean (`main` == `origin/main` at `986fc02`)
+    - `/Users/nickster/Downloads/HackCentral`: clean (`main` == `origin/main` at `7a4c162`)
 
 ## Blockers / Decisions Needed
 
@@ -501,7 +503,7 @@ Last updated: 2026-03-02 02:40 GMT
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
 - Known gate-scope constraint in this child worktree:
-  - `npm run qa:p1:go-gate` currently reports pass while `qa:p1:regression-pack` only executes existing Showcase suites (2 files) because several listed suite files are absent in this child checkout.
+  - `npm run qa:p1:go-gate` currently reports pass while `qa:p1:regression-pack` only executes existing Showcase suites (2 files) because several listed suite files are absent in this checkout.
 
 ## Supabase MCP Access Note
 
@@ -558,6 +560,46 @@ Last updated: 2026-03-02 02:40 GMT
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-GAP-ANALYSIS-20260301-2126Z.md`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`
+  - `docs/artifacts/HDC-HACKDAYS-SEARCH-SORT-LIVE-SMOKE-20260302-112224Z.md`
+
+## Session Update - HackDays Search/Sort Live Rollout + Branch Hygiene (Mar 2, 2026 11:22 GMT)
+
+### Completed
+
+- Deployed and install-upgraded latest Confluence app bundle carrying HackDays UX updates:
+  - search input + sort selector on HackDays list
+  - extraction panel heading updated to `[ADMIN] Post-HackDay Extraction (R11)`
+  - UI marker update: `HACKCENTRAL_UI_VERSION=0.6.46`
+- Resolved stale iframe bundle behavior by rebuilding frontend custom UI and redeploying.
+- Executed live Confluence smoke and verified:
+  - search positive and no-match behavior
+  - sort mode behavior (`Most recent`, `Oldest`, `Name A-Z`, `Name Z-A`, `Lifecycle status`)
+  - extraction panel heading render
+- Completed post-merge branch hygiene:
+  - deleted local parked branch `codex/main-local-wip-20260302`
+  - reconfirmed worktree/branch cleanliness on `main`.
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-HACKDAYS-SEARCH-SORT-LIVE-SMOKE-20260302-112224Z.md`
+- `forge-native/static/frontend/src/App.tsx` (`HACKCENTRAL_UI_VERSION=0.6.46`; HackDays search/sort UI wiring)
+- commit: `7a4c162` (`feat(hackdays): add event search and sort controls`)
+- branch/worktree checks:
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral status --short --branch`
+
+### Current State
+
+- Repo health: clean.
+- Branch health: `main` only, tracking `origin/main`, no stale local parked branches.
+- Phase 3 cadence state unchanged:
+  - observability cadence `GO`
+  - extraction cadence waiting on first production `results` lifecycle event.
+
+### Operational Learnings
+
+- For Forge custom UI in Confluence iframe contexts, successful deploy/install alone is not a sufficient validation signal; explicit UI marker confirmation plus live behavior checks prevents false-positive rollout closure.
   - `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`
   - `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`
   - `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`
