@@ -110,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.49';
+const HACKCENTRAL_UI_VERSION = '0.6.50';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -126,7 +126,7 @@ const CHILD_IMPORT_MIN_VOTES_DEFAULT = 3;
 const RUNTIME_CONFIG_ERROR_CODE = 'HDC_RUNTIME_CONFIG_INVALID';
 const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_HANDOFF_V1 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
-const HDC_HOME_UX_V1 = String(import.meta.env.VITE_HDC_HOME_UX_V1 || 'true').trim().toLowerCase() !== 'false';
+const HDC_HOME_UX_V1 = true;
 const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
   { value: 'read', label: 'Read' },
   { value: 'try', label: 'Try' },
