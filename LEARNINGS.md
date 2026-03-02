@@ -2809,3 +2809,30 @@ Use this template at the end of every work session:
 
 - Consolidated closeout artifacts are high-leverage for continuity because they preserve decision lineage (module checkpoints) and current run-state (cadence + pending gates) in one place.
 - Keeping cadence-state fields in the consolidated artifact reduces risk of reopening already-closed module scope while waiting on external data conditions (for extraction, first `results` event).
+
+## Session Update - Extraction Cadence Command + Runbook Refresh (Mar 2, 2026 02:09 GMT)
+
+### Completed
+
+- Added extraction readiness command in root scripts:
+  - `qa:p3:extract-cadence-check`
+  - implementation: `scripts/p3-extract-cadence-check.mjs`
+- Updated extraction ops runbook to active repo paths and added readiness command step:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+- Executed command and produced fresh readiness artifact.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-020814Z.json`
+
+### Observations
+
+- Latest readiness sample:
+  - `lifecycle_status=draft` count `56`
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+
+### Operational Learnings
+
+- A dedicated cadence-check script materially improves repeatability of event-gated operations, especially when MCP admin endpoints are permission-scoped and CLI fallback is needed.
+- Keeping runbook paths synchronized with active worktree/root avoids stale command drift after branch/worktree hygiene operations.

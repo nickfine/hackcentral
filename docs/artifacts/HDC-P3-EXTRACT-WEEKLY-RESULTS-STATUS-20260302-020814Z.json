@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-03-02T02:08:14.079Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "supabaseUrl": "https://ssafugtobsqxmqtphwch.supabase.co",
+  "lifecycleCounts": [
+    {
+      "lifecycle_status": "draft",
+      "count": 56
+    }
+  ],
+  "resultsEventCount": 0,
+  "latestResultsEvents": [],
+  "extractionCadenceStatus": "pending_results_event"
+}

@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:00 GMT
+Last updated: 2026-03-02 02:09 GMT
 
 ## Current Snapshot
 
@@ -912,3 +912,26 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - A single consolidated closeout artifact reduces context-switching cost during handoff and makes Phase 3 readiness posture easier to evaluate against weekly cadence updates.
+
+## Session Update - Extraction Cadence Command + Runbook Refresh (Mar 2, 2026 02:09 GMT)
+
+### Completed
+
+- Added extraction cadence readiness command:
+  - `qa:p3:extract-cadence-check`
+  - implementation: `scripts/p3-extract-cadence-check.mjs`
+- Updated extraction runbook commands to active workspace root and added readiness command step:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+- Executed fresh readiness sample:
+  - `npm run qa:p3:extract-cadence-check`
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-020814Z.json`
+  - `lifecycleCounts: draft=56`
+  - `resultsEventCount: 0`
+  - `extractionCadenceStatus: pending_results_event`
+
+### Operational Learnings
+
+- Encapsulating lifecycle readiness checks in a dedicated script reduces manual fallback steps and gives a repeatable extraction gate probe for weekly ops cadence.

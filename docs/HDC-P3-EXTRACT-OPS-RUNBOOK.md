@@ -25,9 +25,16 @@ Runbook goals:
 5. Run local static gate before live ops:
 
 ```bash
-npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/frontend run typecheck
-npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run typecheck
-npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run test:backend
+npm --prefix /Users/nickster/Downloads/HackCentral/forge-native/static/frontend run typecheck
+npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run typecheck
+npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run test:backend
+```
+
+6. Weekly readiness sample (before attempting extraction cadence actions):
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+npm run qa:p3:extract-cadence-check
 ```
 
 ## Command Catalog
@@ -35,7 +42,7 @@ npm --prefix /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native run 
 ### 1. Candidate read (`R11.1` read path)
 
 ```bash
-cd /Users/nickster/Downloads/HackCentral-p1-child-01
+cd /Users/nickster/Downloads/HackCentral
 SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" \
 SUPABASE_SCHEMA="public" \
@@ -46,7 +53,7 @@ npx -y tsx -e "import { getHackdayExtractionCandidates } from './forge-native/sr
 ### 2. Prompt extraction dry-run/live (`R11.1`)
 
 ```bash
-cd /Users/nickster/Downloads/HackCentral-p1-child-01
+cd /Users/nickster/Downloads/HackCentral
 SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" \
 SUPABASE_SCHEMA="public" \
@@ -57,7 +64,7 @@ npx -y tsx -e "import { triggerPostHackdayExtractionPrompt } from './forge-nativ
 ### 3. Bulk import dry-run/live (`R11.2`)
 
 ```bash
-cd /Users/nickster/Downloads/HackCentral-p1-child-01
+cd /Users/nickster/Downloads/HackCentral
 SUPABASE_URL="https://ssafugtobsqxmqtphwch.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" \
 SUPABASE_SCHEMA="public" \
@@ -103,7 +110,7 @@ Use only when incorrect drafts were imported for an event.
 ## Evidence Requirements
 
 Publish an artifact under:
-- `/Users/nickster/Downloads/HackCentral-p1-child-01/docs/artifacts/`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/`
 
 Minimum evidence set:
 1. Candidate read payload snapshot.
