@@ -2836,3 +2836,42 @@ Use this template at the end of every work session:
 
 - A dedicated cadence-check script materially improves repeatability of event-gated operations, especially when MCP admin endpoints are permission-scoped and CLI fallback is needed.
 - Keeping runbook paths synchronized with active worktree/root avoids stale command drift after branch/worktree hygiene operations.
+
+## Session Update - Observability Cadence Command + Fresh Weekly Sample (Mar 2, 2026 02:12 GMT)
+
+### Completed
+
+- Added observability cadence command in root scripts:
+  - `qa:p3:obs-weekly-cadence`
+  - implementation: `scripts/p3-obs-weekly-cadence.mjs`
+- Command behavior:
+  - executes `qa:p3:telemetry-static-check`
+  - collects production `hdc-phase3-telemetry` log lines
+  - emits weekly logs/summary/checkpoint artifacts with deterministic naming
+- Executed cadence commands:
+  - `npm run qa:p3:obs-weekly-cadence`
+  - `npm run qa:p3:extract-cadence-check`
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-LOGS-20260302-021059Z.txt`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-TELEMETRY-SUMMARY-20260302-021059Z.json`
+- `docs/artifacts/HDC-P3-OBS-WEEKLY-CADENCE-CHECKPOINT-20260302-021059Z.md`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-021108Z.json`
+
+### Observations
+
+- Observability weekly sample remains stable:
+  - `feed_signal_health=26`
+  - `roi_signal_health=6`
+  - `roi_export=4`
+  - alerts: `recommendation_coverage_below_threshold=26`
+  - warnings: `trend_points_below_threshold=6`
+- Extraction readiness remains blocked by lifecycle condition:
+  - `resultsEventCount=0`
+  - `extractionCadenceStatus=pending_results_event`
+
+### Operational Learnings
+
+- Scripted cadence checks are preferable to ad hoc shell pipelines because they enforce a consistent artifact contract and reduce the chance of missing one of the required evidence files.
+- Maintaining separate scripts for observability cadence and extraction readiness keeps event-gated logic isolated and easier to debug when one cadence succeeds and the other is intentionally pending.
