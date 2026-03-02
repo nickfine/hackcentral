@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 00:24 GMT
+Last updated: 2026-03-02 00:56 GMT
 
 ## Current Snapshot
 
@@ -437,6 +437,14 @@ Last updated: 2026-03-02 00:24 GMT
     - `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md` (`GO`)
   - transition:
     - active task advanced from `P3.OBS.01` to `P3.EXTRACT.01`
+- Phase 3 extraction baseline contract (`P3.EXTRACT.01`) is now locked:
+  - contract spec:
+    - `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md`
+  - scope locked for:
+    - `R11.1` post-results extraction prompt contract
+    - `R11.2` admin bulk import-to-draft contract
+  - next implementation slice:
+    - resolver/type scaffolding and Supabase source-audit + migration framing
 
 ## Active Task Pointer
 
@@ -452,9 +460,9 @@ Last updated: 2026-03-02 00:24 GMT
 
 ## Next 3 Atomic Actions
 
-1. Define `P3.EXTRACT.01` extraction/import contract boundaries and publish a phase contract spec for `R11.1` and `R11.2`.
-2. Implement extraction prompt path resolver + bulk import scaffold with typed contracts and feature-gated UI wiring.
-3. Run Supabase MCP-first source audit and baseline migration scope, then publish `P3.EXTRACT.01` baseline checkpoint.
+1. Implement extraction prompt path resolver + bulk import scaffold with typed contracts and feature-gated UI wiring.
+2. Run Supabase MCP-first source audit and baseline migration scope confirmation, then publish `P3.EXTRACT.01` baseline checkpoint.
+3. Add extraction contract regression coverage and execute the targeted P3 extraction gate suite.
 
 ## Branch/Worktree Reconciliation Status
 

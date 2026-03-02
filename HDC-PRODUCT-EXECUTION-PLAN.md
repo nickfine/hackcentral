@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 00:24 GMT
+Last updated: 2026-03-02 00:56 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -49,7 +49,7 @@ Program: HackDay Central (HDC)
 | `P2.OBS.01` | Phase 2 telemetry | Eng | Completed (2026-03-01; GO) | `P2.PATH.01`, `P2.METRICS.01`, `P2.RECOG.01` | Adoption KPI trend instrumentation active with live telemetry sampling | `docs/HDC-P2-OBS-TELEMETRY-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P2-OBS-ROLLOUT-CHECKPOINT-20260301-1705Z.md`, `docs/artifacts/HDC-P2-OBS-LIVE-TELEMETRY-LOGS-20260301-1705Z.txt`, `docs/artifacts/HDC-P2-OBS-LIVE-UI-EXPORT-SMOKE-20260301-1705Z.png`, `tests/forge-native-phase2-telemetry-contract.spec.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `package.json` |
 | `P3.ROI.01` | `R9.1` to `R9.5` | Eng + Data | Completed (2026-03-01; GO) | Phase 2 complete, token data source audit | ROI dashboard + export + token-volume mapping delivered with producer-backed non-zero spend evidence and final rollout checkpoint | `docs/artifacts/HDC-P3-ROI-DATASOURCE-AUDIT-20260301-1714Z.json`, `docs/HDC-P3-ROI-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-ROI-LIVE-RESOLVER-SMOKE-20260301-1730Z.json`, `docs/artifacts/HDC-P3-ROI-LIVE-UI-SMOKE-20260301-1731Z.png`, `docs/artifacts/HDC-P3-ROI-LIVE-CSV-EXPORT-20260301-1731Z.csv`, `docs/artifacts/HDC-P3-ROI-LIVE-SUMMARY-EXPORT-20260301-1731Z.txt`, `docs/artifacts/HDC-P3-ROI-ROLLOUT-CHECKPOINT-20260301-1732Z.md`, `docs/artifacts/HDC-P3-ROI-R9_1-LIVE-RESOLVER-SMOKE-20260301-1744Z.json`, `docs/artifacts/HDC-P3-ROI-R9_1-CHECKPOINT-20260301-1745Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-20260301-2040Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-20260301-2042Z.md`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-RESOLVER-SMOKE-COMPAT-20260301-2102Z.json`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2103Z.png`, `docs/artifacts/HDC-P3-ROI-R9_2-R9_4-CHECKPOINT-POSTDEPLOY-20260301-2105Z.md`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-RESOLVER-SMOKE-POSTDEPLOY-20260301-2138Z.json`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-LIVE-UI-SMOKE-POSTDEPLOY-20260301-2140Z.png`, `docs/artifacts/HDC-P3-ROI-TOKEN-PRODUCER-BLOCKER-CHECKPOINT-20260301-2139Z.md`, `docs/artifacts/HDC-P3-ROI-FINAL-ROLLOUT-CHECKPOINT-20260301-2312Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `tests/forge-native-roi-contract.spec.ts` |
 | `P3.FORK.01` | `R10.1` to `R10.2` | Eng | Completed (2026-03-01; GO) | `P1.REG.01`, `P1.SHOW.01` | Fork/remix for hacks + artifacts delivered | `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-20260301-2328Z.md`, `docs/artifacts/HDC-P3-FORK-LIVE-MIGRATION-VERIFY-20260301-2338Z.json`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-LIVE-RESOLVER-SMOKE-20260301-2336Z.json`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-HACKS-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-LIVE-UI-SMOKE-REGISTRY-20260301-2337Z.png`, `docs/artifacts/HDC-P3-FORK-R10_1-R10_2-CHECKPOINT-POSTDEPLOY-20260301-2338Z.md`, `forge-native/supabase/migrations/20260301233000_phase3_fork_relations.sql`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/tests/backend/fork-contract.test.mjs` |
-| `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | Planned | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | Pending |
+| `P3.EXTRACT.01` | `R11.1` to `R11.2` | Eng | In progress (2026-03-02; contract locked) | `P1.CHILD.01`, `P1.SHOW.01` | Post-hackday extraction and bulk import workflows delivered | `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md` |
 | `P3.FEED.01` | `R12.1` to `R12.2` | Eng | Completed (2026-03-01; GO) | Phase 2 metrics available | Home feed + personalized recommendations delivered | `docs/HDC-P3-FEED-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-FEED-BASELINE-CHECKPOINT-20260301-2350Z.md`, `docs/artifacts/HDC-P3-FEED-LIVE-RESOLVER-SMOKE-20260301-2352Z.json`, `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-HOME-FEED-CARD-20260301-2354Z.png`, `docs/artifacts/HDC-P3-FEED-LIVE-UI-SMOKE-RECOMMENDATIONS-CARD-20260301-2354Z.png`, `docs/artifacts/HDC-P3-FEED-CHECKPOINT-POSTDEPLOY-20260301-2355Z.md`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `forge-native/static/frontend/src/styles.css`, `tests/forge-native-feed-contract.spec.ts` |
 | `P3.OBS.01` | Phase 3 telemetry | Eng + Data | Completed (2026-03-02; GO) | `P3.ROI.01`, `P3.FEED.01` | Cost/output trend alerting with reporting cadence | `docs/HDC-P3-OBS-TELEMETRY-CONTRACT-SPEC.md`, `docs/artifacts/HDC-P3-OBS-ROLLOUT-CHECKPOINT-20260302-002226Z.md`, `docs/artifacts/HDC-P3-OBS-LIVE-TELEMETRY-LOGS-20260302-002226Z.txt`, `docs/artifacts/HDC-P3-OBS-LIVE-RESOLVER-SMOKE-20260302-002226Z.json`, `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-FEED-20260302-002226Z.png`, `docs/artifacts/HDC-P3-OBS-LIVE-UI-SMOKE-ROI-20260302-002226Z.png`, `tests/forge-native-phase3-telemetry-contract.spec.ts`, `forge-native/src/backend/supabase/repositories.ts`, `forge-native/src/backend/hackcentral.ts`, `forge-native/src/index.ts`, `forge-native/src/shared/types.ts`, `forge-native/static/frontend/src/types.ts`, `forge-native/static/frontend/src/App.tsx`, `package.json` |
 
@@ -57,15 +57,15 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P3.EXTRACT.01` - prep extraction/import trigger contract boundaries after feed + observability close.
-2. `P3.EXTRACT.01` - draft extraction/import resolver contract scaffolding.
-3. `P3.EXTRACT.01` - run baseline extraction data-source audit and migration scope framing.
+1. `P3.EXTRACT.01` - contract baseline locked; begin resolver/type scaffolding for extraction prompt and bulk import paths.
+2. `P3.EXTRACT.01` - implement extraction prompt/import resolver and type scaffolding from the locked contract baseline.
+3. `P3.EXTRACT.01` - run Supabase MCP-first source audit + migration scope confirmation, then publish baseline checkpoint.
 
 ### Next
 
 1. Weekly telemetry cadence follow-up for Phase 3 (`feed_signal_health`, `roi_signal_health`, `roi_export`) using the new checkpoint contract.
-2. `P3.EXTRACT.01` - implement post-hackday extraction prompt path (`R11.1`) once baseline contract is locked.
-3. `P3.EXTRACT.01` - scope bulk import draft-publish flow (`R11.2`) with rollback plan.
+2. `P3.EXTRACT.01` - implement post-hackday extraction prompt path (`R11.1`) with idempotent prompt state tracking.
+3. `P3.EXTRACT.01` - implement bulk import draft flow (`R11.2`) with participant notification payloads and rollback plan.
 
 ### Blocked
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Started `P3.EXTRACT.01`: locked `R11.1`/`R11.2` baseline contract in `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md`, set task status to in-progress, and advanced the active queue to resolver/type scaffolding plus Supabase source-audit/migration framing. |
 | 2026-03-02 | Completed branch/worktree reconciliation and stale branch pruning (`codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2` deleted locally/remotely); completed `P3.OBS.01` to GO with Phase 3 telemetry contract, feed/ROI/export telemetry hooks, static gate, and live production telemetry evidence. Active task advanced to `P3.EXTRACT.01`. |
 | 2026-03-02 | Continuity handoff refresh: set next-session action #1 to branch/worktree hygiene reconciliation before `P3.OBS.01` implementation; active task remains `P3.OBS.01`. |
 | 2026-03-01 | Created initial execution ledger from `HDC-PRODUCT-ROADMAP.md`; seeded tasks for Phase 0-3 and activated continuity protocol. |
