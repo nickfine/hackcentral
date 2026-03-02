@@ -42,6 +42,8 @@ Expected readiness artifact fields include:
 - `resultsEventCount`
 - `scheduleOutlook.nextUpcomingResultsAnnounceAt`
 - `scheduleOutlook.nextUpcomingEvent`
+- companion cadence sample markdown:
+  - `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-<timestamp>.md`
 
 ## Command Catalog
 

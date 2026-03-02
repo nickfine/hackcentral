@@ -2966,3 +2966,33 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - Combining forecast data and prescriptive next-action text in the same checkpoint materially improves operational clarity and reduces decision latency in event-gated workflows.
+
+## Session Update - Extraction Sample Artifact Automation (Mar 2, 2026 02:25 GMT)
+
+### Completed
+
+- Enhanced extraction readiness command:
+  - `scripts/p3-extract-cadence-check.mjs`
+- Command now outputs two artifacts per execution:
+  - `HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-<timestamp>.json`
+  - `HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-<timestamp>.md`
+- Updated extraction runbook accordingly:
+  - `docs/HDC-P3-EXTRACT-OPS-RUNBOOK.md`
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022424Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-022424Z.md`
+
+### Observations
+
+- Current state remains event-gated:
+  - `resultsEventCount=0`
+  - `Decision=PENDING_RESULTS_EVENT`
+- Forecast still points to:
+  - `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
+  - event `One Day Test`
+
+### Operational Learnings
+
+- Coupling machine-readable and human-readable extraction artifacts in the same command run removes manual report lag and makes the first live `results` cadence sample effectively zero-touch.

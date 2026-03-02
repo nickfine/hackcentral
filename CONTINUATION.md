@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 02:22 GMT
+Last updated: 2026-03-02 02:25 GMT
 
 ## Current Snapshot
 
@@ -1048,3 +1048,28 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Action-oriented checkpoint text reduces ambiguity during handoff by converting raw readiness state into a concrete next execution time.
+
+## Session Update - Extraction Sample Artifact Automation (Mar 2, 2026 02:25 GMT)
+
+### Completed
+
+- Updated extraction readiness command (`qa:p3:extract-cadence-check`) to emit:
+  - JSON readiness/status artifact
+  - companion markdown cadence sample artifact
+- Updated extraction ops runbook to document the companion markdown output path.
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-RESULTS-STATUS-20260302-022424Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-WEEKLY-CADENCE-SAMPLE-20260302-022424Z.md`
+
+### Current State
+
+- Extraction cadence sample decision: `PENDING_RESULTS_EVENT`.
+- Forecast remains:
+  - next upcoming results window: `2026-03-09T18:00:00.000Z`
+  - next upcoming event: `One Day Test`.
+
+### Operational Learnings
+
+- Emitting both structured JSON and human-readable markdown from the same cadence command removes manual checkpoint authoring and ensures consistent extraction evidence format when the first live `results` event appears.
