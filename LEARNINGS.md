@@ -2482,3 +2482,28 @@ Use this template at the end of every work session:
 - `R12.2` recommendation availability is naturally data-dependent; explicit `available_partial` source signaling keeps rollout decisions stable even when one recommendation family has sparse live inputs.
 - Element-level Playwright captures for each feed lane provide clearer post-deploy evidence than a single full-page screenshot when scroll containers are involved.
 - Continuing to use Supabase MCP-first with CLI fallback remains necessary in this workspace due project-admin scope differences despite MCP connectivity.
+
+## Session Update - Continuity Refresh + Branch Hygiene Preflight (Mar 2, 2026 00:07 GMT)
+
+### Completed
+
+- Refreshed continuity docs for a clean handoff into a new chat while keeping active task `P3.OBS.01`.
+- Reordered next-session execution so action #1 is branch/worktree reconciliation before any telemetry implementation.
+- Updated:
+  - `HDC-PRODUCT-EXECUTION-PLAN.md` (`Last updated`, Active Sprint Queue `Now`, change-log entry)
+  - `CONTINUATION.md` (`Last updated`, Next 3 Atomic Actions, mandatory branch hygiene section)
+
+### Validation Evidence
+
+- Branch/worktree inventory:
+  - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  - `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+- Divergence checks:
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/hdc-hackday-template-spinout` -> `97 2`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/sb2-v2-custom-events-phase2` -> `42 3`
+  - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p1-child-01` -> `0 21`
+
+### Operational Learnings
+
+- Before resuming feature work after multiple worktree sessions, a branch divergence audit should be the first action to avoid stale branch drift and accidental duplicate effort.
+- Continuation docs are more robust when they include exact branch divergence counts and executable first-command checklists instead of generic cleanup guidance.

@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-01 23:55 GMT
+Last updated: 2026-03-02 00:07 GMT
 
 ## Current Snapshot
 
@@ -433,13 +433,38 @@ Last updated: 2026-03-01 23:55 GMT
 
 ## Next 3 Atomic Actions
 
-1. Define `P3.OBS.01` telemetry contract for feed/ROI signal health, thresholds, and reporting cadence.
-2. Implement telemetry hooks + static telemetry gate command coverage for Phase 3.
-3. Run live telemetry sampling in production and publish `P3.OBS.01` checkpoint decision.
+1. Run branch/worktree hygiene preflight and reconcile remaining local branches before any implementation work.
+2. Define `P3.OBS.01` telemetry contract for feed/ROI signal health, thresholds, and reporting cadence.
+3. Implement Phase 3 telemetry hooks + static telemetry gate coverage, then run live telemetry sampling and publish `P3.OBS.01` checkpoint decision.
+
+## Mandatory First Action In Next Chat (Branch Hygiene)
+
+- Objective:
+  - get local and remote branch state to a documented, clean baseline before continuing `P3.OBS.01`.
+- Verified snapshot (2026-03-02 00:07 GMT):
+  - local branches:
+    - `main` (`0677ce0`)
+    - `codex/p1-child-01` (`0fd1486`) - active implementation branch
+    - `codex/hdc-hackday-template-spinout` (`d5ffa72`)
+    - `codex/sb2-v2-custom-events-phase2` (`37c2fac`)
+  - worktrees:
+    - `/Users/nickster/Downloads/HackCentral` -> `main`
+    - `/Users/nickster/Downloads/HackCentral-p1-child-01` -> `codex/p1-child-01`
+  - divergence vs `main` (`git rev-list --left-right --count main...<branch>`):
+    - `codex/hdc-hackday-template-spinout`: `97 2`
+    - `codex/sb2-v2-custom-events-phase2`: `42 3`
+    - `codex/p1-child-01`: `0 21`
+- First-command checklist for the new chat:
+  1. `git -C /Users/nickster/Downloads/HackCentral fetch --all --prune`
+  2. `git -C /Users/nickster/Downloads/HackCentral worktree list --porcelain`
+  3. `git -C /Users/nickster/Downloads/HackCentral branch -vv`
+  4. For each non-active branch, decide and execute one path: merge/cherry-pick required commits into `main`, or delete local+remote branch if no longer needed.
+  5. Reconfirm clean baseline (`git status --short --branch` in both worktrees), then resume `P3.OBS.01`.
 
 ## Blockers / Decisions Needed
 
 - Blocker:
+  - Operational preflight required: branch/worktree reconciliation must run first in the next chat.
   - No code blocker currently logged for `P3.OBS.01`.
 - Known test harness constraint:
   - Root Vitest workspace cannot directly mount Forge frontend `App.tsx` due React 19 (root) vs React 18 (Forge custom UI package) hook/runtime mismatch.
