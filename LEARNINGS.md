@@ -2767,3 +2767,22 @@ Use this template at the end of every work session:
 - Supabase MCP should remain the first path for compliance, but production lifecycle/status checks still require prepared CLI/service-role fallback in this environment due permission-scoped MCP admin endpoints.
 - Capturing a parsed telemetry summary JSON alongside raw log lines reduces ambiguity when making weekly GO/PENDING decisions and preserves comparable week-over-week metrics.
 - Extraction cadence should be modeled as event-gated operations; recording an explicit `pending_results_event` status is better than forcing synthetic reruns once production rollout is already `GO`.
+
+## Session Update - Extraction Contract Guardrail Coverage (Mar 2, 2026 02:03 GMT)
+
+### Completed
+
+- Updated backend extraction contract suite:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+- Added explicit contract assertions for non-`results` resolver output shape (`status='skipped_not_results'`) on:
+  - `triggerPostHackdayExtractionPrompt`
+  - `bulkImportHackdaySubmissions`
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run test:backend` -> pass (`17/17`)
+
+### Operational Learnings
+
+- Happy-path-only contract tests are insufficient for admin operations with lifecycle gates; non-happy-path response-shape coverage prevents frontend/operator regressions when guardrail fields are modified.
+- Regex-based source contract checks are low-overhead and effective for enforcing critical response contracts in this repo’s backend test harness.

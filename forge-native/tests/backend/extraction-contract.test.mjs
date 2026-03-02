@@ -74,6 +74,19 @@ test('supabase repository enforces extraction permission and migration gates', a
   assert.match(source, /action:\s*'hackday_bulk_imported'/);
 });
 
+test('extraction resolvers return explicit skipped_not_results response shape', async () => {
+  const source = await readSource('../../src/backend/supabase/repositories.ts');
+
+  assert.match(
+    source,
+    /status:\s*'skipped_not_results'[\s\S]*lifecycleStatus:\s*event\.lifecycle_status[\s\S]*eligibleParticipantCount:\s*eligibleParticipantIds\.length[\s\S]*promptedParticipantCount:\s*0[\s\S]*skippedAlreadyPromptedCount:\s*0[\s\S]*promptedAt:\s*null/
+  );
+  assert.match(
+    source,
+    /status:\s*'skipped_not_results'[\s\S]*scannedSubmissionCount[\s\S]*importedDraftCount:\s*0[\s\S]*skippedAlreadyImportedCount:\s*0[\s\S]*skippedInvalidSubmissionCount:\s*0[\s\S]*notifiedParticipantCount:\s*0[\s\S]*importedProjectIds:\s*\[\][\s\S]*importedAt:\s*null/
+  );
+});
+
 test('frontend app wires extraction controls and invokes extraction resolvers', async () => {
   const source = await readSource('../../static/frontend/src/App.tsx');
 

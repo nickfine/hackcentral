@@ -466,8 +466,8 @@ Last updated: 2026-03-02 02:00 GMT
 ## Next 3 Atomic Actions
 
 1. Run extraction cadence sample immediately after the first production event reaches `lifecycle_status='results'`.
-2. Extend extraction contract tests to enforce `skipped_not_results` response-shape assertions.
-3. Publish consolidated Phase 3 closeout artifact spanning ROI/feed/obs/extract with latest cadence checkpoints.
+2. Publish consolidated Phase 3 closeout artifact spanning ROI/feed/obs/extract with latest cadence checkpoints.
+3. Maintain weekly Phase 3 telemetry cadence checkpoints while waiting for first live `results` event.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -874,3 +874,21 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 
 - Phase 3 telemetry cadence: `GO` (all required telemetry metrics present in production sample).
 - Extraction first live cadence sample: `PENDING_RESULTS_EVENT` (`resultsEventCount=0`, current lifecycle distribution `draft=56`).
+
+## Session Update - Extraction Contract Guardrail Coverage (Mar 2, 2026 02:03 GMT)
+
+### Completed
+
+- Extended backend extraction contract tests in:
+  - `forge-native/tests/backend/extraction-contract.test.mjs`
+- Added explicit assertions that non-`results` paths return full `skipped_not_results` response shape for:
+  - `triggerPostHackdayExtractionPrompt`
+  - `bulkImportHackdaySubmissions`
+
+### Validation Evidence
+
+- `npm --prefix /Users/nickster/Downloads/HackCentral/forge-native run test:backend` -> pass (`17/17`)
+
+### Operational Learnings
+
+- Contract-level response-shape assertions for non-happy-path states (`skipped_not_results`) reduce risk of silent UI drift when resolver payload fields change in future extraction refactors.
