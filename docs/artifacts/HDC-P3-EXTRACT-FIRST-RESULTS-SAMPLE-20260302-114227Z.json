@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-03-02T11:42:27.537Z",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "mode": "dry_run_only",
+  "resultsEventCount": 0,
+  "nextUpcomingResultsAnnounceAt": "2026-03-09T18:00:00.000Z",
+  "status": "pending_results_event",
+  "eventId": null,
+  "eventName": null,
+  "operatorAccountId": null,
+  "message": "No live results event currently available. Extraction sample execution skipped.",
+  "sampleSummary": null,
+  "sampleData": null
+}

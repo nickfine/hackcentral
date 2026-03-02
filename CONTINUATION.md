@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 11:40 GMT
+Last updated: 2026-03-02 11:42 GMT
 
 ## Current Snapshot
 
@@ -1267,3 +1267,23 @@ cd /Users/nickster/Downloads/HackCentral-p1-child-01/forge-native/static/fronten
 ### Operational Learnings
 
 - Running a lightweight first-results recheck between weekly cadence windows is safe and useful for immediate operator certainty, while preserving strict lifecycle gating before live extraction actions.
+
+## Session Update - First Results Sample Recheck (Mar 2, 2026 11:42 GMT)
+
+### Completed
+
+- Executed another first-results readiness probe:
+  - `npm run qa:p3:extract-first-results-sample`
+- Confirmed production lifecycle state is unchanged.
+
+### Validation Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.md`
+
+### Current State
+
+- `status=pending_results_event`
+- `resultsEventCount=0`
+- `nextUpcomingResultsAnnounceAt=2026-03-09T18:00:00.000Z`
+- Live extraction actions remain correctly skipped until a `results` lifecycle event exists.

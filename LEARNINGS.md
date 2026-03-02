@@ -3154,3 +3154,25 @@ Use this template at the end of every work session:
 ### Operational Learnings
 
 - The first-results sample command is a low-cost readiness probe that can be run on-demand between weekly cadence windows without risking unintended writes; it cleanly reinforces when extraction should remain paused.
+
+## Session Update - Extraction Recheck (Mar 2, 2026 11:42 GMT)
+
+### Completed
+
+- Ran another on-demand extraction readiness probe:
+  - `npm run qa:p3:extract-first-results-sample`
+- Captured new pending-state sample artifacts.
+
+### Evidence
+
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.json`
+- `docs/artifacts/HDC-P3-EXTRACT-FIRST-RESULTS-SAMPLE-20260302-114227Z.md`
+
+### Observations
+
+- Status remains `pending_results_event` with `resultsEventCount=0`.
+- Earliest expected trigger window remains `2026-03-09T18:00:00.000Z`.
+
+### Operational Learnings
+
+- Frequent extraction probes are operationally safe because they remain dry-run gated until lifecycle transitions, but they should be kept lightweight and timestamped to avoid ambiguity in handoff.
