@@ -2588,3 +2588,29 @@ Use this template at the end of every work session:
 - For extraction workflows that depend on idempotency state, explicit migration-gate errors are safer than silent fallback behavior; this keeps dry-run/read behavior deterministic while making missing schema immediately visible.
 - Maintaining `src/shared/types.ts` and `static/frontend/src/types.ts` parity in the same commit prevents typed `invoke` drift and catches resolver contract mismatch early via static tests.
 - A lightweight backend contract test file for each major roadmap slice (`tests/backend/*-contract.test.mjs`) is an efficient guardrail for resolver exposure + typed contract parity without waiting for UI integration.
+
+## Session Update - P3.EXTRACT.01 Supabase Source Audit (Mar 2, 2026 01:22 GMT)
+
+### Completed
+
+- Executed extraction source audit with required Supabase MCP-first strategy, then CLI fallback due MCP scope limitations.
+- Captured source-audit artifact:
+  - `docs/artifacts/HDC-P3-EXTRACT-SOURCE-AUDIT-20260302-0119Z.json`
+
+### Validation Evidence
+
+- MCP-first checks:
+  - `mcp__supabase__list_projects` -> `[]`
+  - `mcp__supabase__list_tables` (`ssafugtobsqxmqtphwch`) -> permission error
+  - `mcp__supabase__list_migrations` (`ssafugtobsqxmqtphwch`) -> permission error
+- CLI fallback checks:
+  - `SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" npx -y supabase@latest projects list --output json` -> project visible (`ssafugtobsqxmqtphwch`)
+  - management SQL confirmed present tables: `Event`, `EventAdmin`, `EventAuditLog`, `Project`, `ShowcaseHack`
+  - management SQL confirmed missing extraction tables: `HackdayExtractionPrompt`, `HackdayExtractionImport`
+  - data readiness query: `Event.lifecycle_status` currently all `draft` and `Project.source_type='hack_submission'` rows currently `event_id=null`.
+
+### Operational Learnings
+
+- In this workspace, Supabase MCP access is reliable for connectivity checks but not sufficient for project-admin schema introspection; the management API fallback path should be considered part of the normal extraction gate.
+- Capturing a machine-readable source-audit artifact before writing migration SQL makes checkpoint decisions clearer and reduces rework when migration scope changes.
+- Extraction write-path validation needs both schema readiness and data readiness; missing `results` events or missing event-linked submissions should be treated as a hard gate, not a soft warning.

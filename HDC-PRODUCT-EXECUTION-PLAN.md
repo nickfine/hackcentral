@@ -1,6 +1,6 @@
 # HDC Product Execution Plan
 
-Last updated: 2026-03-02 01:19 GMT
+Last updated: 2026-03-02 01:22 GMT
 Owner: Nick Fine  
 Program: HackDay Central (HDC)
 
@@ -57,9 +57,9 @@ Program: HackDay Central (HDC)
 
 ### Now
 
-1. `P3.EXTRACT.01` - run Supabase MCP-first extraction source audit and confirm migration scope for `HackdayExtractionPrompt`/`HackdayExtractionImport`.
-2. `P3.EXTRACT.01` - apply extraction migration(s) and validate non-dry-run prompt/import flows against live schema.
-3. `P3.EXTRACT.01` - publish extraction baseline checkpoint with dry-run + write-path evidence and decision.
+1. `P3.EXTRACT.01` - implement extraction migration(s) for `HackdayExtractionPrompt` and `HackdayExtractionImport`.
+2. `P3.EXTRACT.01` - run non-dry-run prompt/import validation against live schema after migration.
+3. `P3.EXTRACT.01` - publish extraction baseline checkpoint with source-audit + write-path evidence and decision.
 
 ### Next
 
@@ -93,6 +93,7 @@ Program: HackDay Central (HDC)
 
 | Date | Change |
 |---|---|
+| 2026-03-02 | Completed `P3.EXTRACT.01` Supabase source audit (MCP-first, CLI fallback): confirmed `HackdayExtractionPrompt`/`HackdayExtractionImport` tables are absent in `ssafugtobsqxmqtphwch`; captured schema/data readiness artifact `docs/artifacts/HDC-P3-EXTRACT-SOURCE-AUDIT-20260302-0119Z.json`; checkpoint remains `CONDITIONAL` pending migration + event-scoped results data. |
 | 2026-03-02 | Advanced `P3.EXTRACT.01` scaffold: implemented extraction resolver/backend/repository contracts (`hdcGetHackdayExtractionCandidates`, `hdcTriggerPostHackdayExtractionPrompt`, `hdcBulkImportHackdaySubmissions`), added permission + migration gates (`[EXTRACT_FORBIDDEN]`, `[EXTRACT_IMPORT_FORBIDDEN]`, extraction table guardrails), updated shared/frontend type contracts, and added backend extraction contract tests (`forge-native/tests/backend/extraction-contract.test.mjs`). Validation: `npm --prefix forge-native run typecheck` (pass), `npm --prefix forge-native run test:backend` (14/14 pass). |
 | 2026-03-02 | Started `P3.EXTRACT.01`: locked `R11.1`/`R11.2` baseline contract in `docs/HDC-P3-EXTRACT-CONTRACT-SPEC.md`, set task status to in-progress, and advanced the active queue to resolver/type scaffolding plus Supabase source-audit/migration framing. |
 | 2026-03-02 | Completed branch/worktree reconciliation and stale branch pruning (`codex/hdc-hackday-template-spinout`, `codex/sb2-v2-custom-events-phase2` deleted locally/remotely); completed `P3.OBS.01` to GO with Phase 3 telemetry contract, feed/ROI/export telemetry hooks, static gate, and live production telemetry evidence. Active task advanced to `P3.EXTRACT.01`. |

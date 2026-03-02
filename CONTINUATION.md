@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-02 01:19 GMT
+Last updated: 2026-03-02 01:22 GMT
 
 ## Current Snapshot
 
@@ -460,9 +460,9 @@ Last updated: 2026-03-02 01:19 GMT
 
 ## Next 3 Atomic Actions
 
-1. Run Supabase MCP-first source audit and confirm extraction migration shape for `HackdayExtractionPrompt` and `HackdayExtractionImport`.
-2. Apply extraction migration(s) and validate non-dry-run prompt/import commands end-to-end.
-3. Publish `P3.EXTRACT.01` baseline checkpoint with dry-run/write-path evidence and gate decision.
+1. Implement extraction migration(s) for `HackdayExtractionPrompt` and `HackdayExtractionImport`.
+2. Validate non-dry-run prompt/import commands end-to-end against live schema.
+3. Publish `P3.EXTRACT.01` baseline checkpoint with source-audit + write-path evidence and gate decision.
 
 ## Branch/Worktree Reconciliation Status
 
@@ -598,6 +598,35 @@ Last updated: 2026-03-02 01:19 GMT
   - `git -C /Users/nickster/Downloads/HackCentral branch -vv`
   - `git -C /Users/nickster/Downloads/HackCentral rev-list --left-right --count main...codex/p3-extract-01` -> `0 1`
   - `/Users/nickster/Downloads/HackCentral` status clean, `/Users/nickster/Downloads/HackCentral-p1-child-01` status known with extraction-scaffold edits.
+
+## Session Update - `P3.EXTRACT.01` Supabase Source Audit (Mar 2, 2026 01:22 GMT)
+
+### Completed
+
+- Ran Supabase MCP-first extraction source audit:
+  - `mcp__supabase__list_projects` returned `[]`.
+  - `mcp__supabase__list_tables` / `mcp__supabase__list_migrations` on `ssafugtobsqxmqtphwch` returned permission errors.
+- Executed documented CLI fallback using `SUPABASE_ACCESS_TOKEN`.
+- Captured audit artifact:
+  - `docs/artifacts/HDC-P3-EXTRACT-SOURCE-AUDIT-20260302-0119Z.json`
+
+### Findings
+
+- Required extraction idempotency tables are missing in `public`:
+  - `HackdayExtractionPrompt`
+  - `HackdayExtractionImport`
+- Existing supporting tables are present:
+  - `Event`, `EventAdmin`, `EventAuditLog`, `Project`, `ShowcaseHack`
+- Live data readiness is currently limited:
+  - `Event.lifecycle_status` distribution shows only `draft` events.
+  - Existing `Project` rows with `source_type='hack_submission'` currently have `event_id=null`.
+
+### Decision
+
+- `P3.EXTRACT.01` remains `CONDITIONAL` until:
+  1. extraction tables are migrated,
+  2. event-scoped submissions are available,
+  3. non-dry-run flows are validated and checkpointed.
 
 ## Validation Commands
 

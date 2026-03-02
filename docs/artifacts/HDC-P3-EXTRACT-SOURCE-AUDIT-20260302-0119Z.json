@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-03-02T01:19:00Z",
+  "taskId": "P3.EXTRACT.01",
+  "projectRef": "ssafugtobsqxmqtphwch",
+  "source": {
+    "mcp": {
+      "listProjects": "[]",
+      "listTables": "MCP error -32600: You do not have permission to perform this action",
+      "listMigrations": "MCP error -32600: You do not have permission to perform this action"
+    },
+    "fallback": {
+      "method": "Supabase CLI + Management API with SUPABASE_ACCESS_TOKEN",
+      "projectVisible": true
+    }
+  },
+  "schemaAudit": {
+    "tablesPresent": [
+      "Event",
+      "EventAdmin",
+      "EventAuditLog",
+      "Project",
+      "ShowcaseHack"
+    ],
+    "tablesMissing": [
+      "HackdayExtractionPrompt",
+      "HackdayExtractionImport"
+    ],
+    "showcaseHackColumnsObserved": [
+      "project_id",
+      "featured",
+      "demo_url",
+      "team_members",
+      "source_event_id",
+      "tags",
+      "linked_artifact_ids",
+      "context",
+      "limitations",
+      "risk_notes",
+      "source_repo_url",
+      "created_by_user_id",
+      "created_at",
+      "updated_at"
+    ],
+    "projectColumnsObservedSubset": [
+      "id",
+      "event_id",
+      "source_type",
+      "owner_id",
+      "status",
+      "created_at",
+      "createdAt",
+      "submittedAt"
+    ]
+  },
+  "dataReadiness": {
+    "eventLifecycleBreakdown": [
+      {
+        "lifecycle_status": "draft",
+        "event_count": 56
+      }
+    ],
+    "hackSubmissionByEvent": [
+      {
+        "event_id": null,
+        "submission_count": 3
+      }
+    ],
+    "resultsLifecycleEventsPresent": false,
+    "eventScopedHackSubmissionsPresent": false
+  },
+  "decision": {
+    "status": "CONDITIONAL",
+    "reason": [
+      "Required extraction idempotency tables are missing.",
+      "No events currently in lifecycle_status='results'.",
+      "Current hack submissions are not event-scoped (event_id is null)."
+    ],
+    "nextActions": [
+      "Create extraction migration for HackdayExtractionPrompt and HackdayExtractionImport.",
+      "Backfill or enforce event_id linkage for hack submissions used by extraction.",
+      "Seed at least one results-phase event for non-dry-run validation."
+    ]
+  }
+}
