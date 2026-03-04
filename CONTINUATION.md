@@ -1965,3 +1965,37 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 - Keep frame-aware selectors mandatory for Confluence-hosted runtime UI checks.
 - Keep Supabase verification path as MCP-first, then service-role SQL fallback only if MCP project listing is empty in this workspace.
 - Do not open planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) unless explicitly requested.
+
+## Session Update - Supabase Production Security Hardening Applied (Mar 4, 2026 02:26 GMT)
+
+### Completed
+
+- Ran required Supabase MCP-first checks:
+  - `mcp__supabase__list_projects` returned `[]` (known workspace behavior)
+  - `mcp__supabase__get_advisors` was permission-scoped (`MCP error -32600`).
+- Executed documented fallback path using Supabase Management API for production project `ssafugtobsqxmqtphwch`.
+- Added and applied migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304014500_phase9_security_rls_hardening.sql`
+- Hardened 21 backend-managed `public` tables by:
+  - enabling RLS
+  - revoking `anon` + `authenticated` table privileges
+  - preserving `service_role` table privileges.
+
+### Evidence
+
+- Migration apply response: `[]` (success) from Management API `database/query`.
+- Post-fix verification queries:
+  - `RLS disabled + anon/auth exposed` result: `[]`
+  - all 21 targeted tables show `rls_enabled=true`
+  - grants on targeted tables now show only `service_role` (no `anon` / `authenticated`)
+  - global `public` RLS-disabled table query result: `[]`.
+
+### Guardrail Note
+
+- Forge/runtime paths must keep `SUPABASE_SERVICE_ROLE_KEY` configured; anon-key fallback does not have access to hardened tables after this change.
+
+### Next Work Priority
+
+1) Re-run Supabase advisors in dashboard and capture a new post-fix security screenshot/artifact for closure evidence.
+2) Plan a second hardening pass to remove broad `anon/authenticated` Forge-backend RLS policies on RLS-enabled tables where backend-only operations should be `service_role` only.
+3) Keep MCP-first protocol for Supabase checks, then fallback to Management API SQL when project-admin MCP endpoints are permission-scoped.

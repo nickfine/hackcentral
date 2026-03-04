@@ -3865,3 +3865,36 @@ Use this template at the end of every work session:
 ### Operational Guardrails Carried Forward
 - Use frame-aware selectors for Confluence-hosted runtime checks; avoid top-level selector-only checks.
 - Supabase verification remains `MCP-first`; use service-role SQL fallback only if MCP project listing is empty in this workspace.
+
+## Session Update - Supabase RLS Hardening Applied (2026-03-04 02:26 GMT)
+
+### Task IDs
+- `P9.SEC.01`
+
+### What Changed
+- Executed Supabase verification with required MCP-first path:
+  - `mcp__supabase__list_projects -> []` (known workspace behavior)
+  - `mcp__supabase__get_advisors` denied with permission-scope error (`MCP error -32600`), so fallback path was used.
+- Added migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304014500_phase9_security_rls_hardening.sql`
+- Applied migration directly to production Supabase project `ssafugtobsqxmqtphwch` via Management API `database/query`.
+- Migration action scope (21 backend-managed public tables):
+  1. enabled RLS
+  2. revoked table privileges from `anon` and `authenticated`
+  3. preserved `service_role` privileges for Forge backend service-key access.
+
+### Validation / Evidence
+- Pre-fix high-risk exposure query (RLS disabled + anon/auth grants) returned 21 tables (`Artifact`, `Problem`, `ShowcaseHack`, `Pathway*`, etc.).
+- Migration apply response from Management API: `[]` (success).
+- Post-fix verification:
+  - `RLS disabled + anon/auth exposed` query returned `[]`.
+  - targeted 21-table query now reports `rls_enabled=true` for all rows.
+  - grants query for the targeted set now returns only `service_role` privileges (no `anon` or `authenticated` grants).
+  - global `public` RLS-disabled table query returned `[]`.
+
+### Regressions / Gotchas
+- Supabase MCP advisor endpoints remain permission-scoped in this workspace, so authoritative advisor re-check required Management API fallback SQL instead of MCP tool output.
+- The runtime should continue to use `SUPABASE_SERVICE_ROLE_KEY`; environments relying on `SUPABASE_ANON_KEY` fallback will lose access to the hardened tables.
+
+### Next Recommended Step
+- Rotate out remaining permissive `anon/authenticated` Forge-backend RLS policies on already-RLS tables (`Project`, `Team`, `TeamInvite`, `Vote`, `JudgeScore`, etc.) by moving backend-only access assumptions fully to `service_role` and preserving only explicit user-scope policies.
