@@ -1,0 +1,35 @@
+{
+  "generatedAtUtc": "2026-03-03T13:56:45.193Z",
+  "dryRun": false,
+  "eventId": null,
+  "eventNameQuery": "PW MCP Pass Loop 1636890",
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "5721e5c0-9006-4f34-8838-c519db7dadce",
+  "processedCount": 1,
+  "changedCount": 0,
+  "failedCount": 0,
+  "rollbackManifest": [
+    {
+      "eventId": "5721e5c0-9006-4f34-8838-c519db7dadce",
+      "pageId": "16973858",
+      "changed": false,
+      "macroRewritten": false,
+      "introParagraphRemoved": false,
+      "fullWidthUpdated": false
+    }
+  ],
+  "results": [
+    {
+      "eventId": "5721e5c0-9006-4f34-8838-c519db7dadce",
+      "eventName": "PW MCP Pass Loop 1636890",
+      "pageId": "16973858",
+      "status": "noop",
+      "reason": "no_repairs_needed",
+      "changed": false,
+      "macroRewritten": false,
+      "introParagraphRemoved": false,
+      "fullWidthUpdated": false
+    }
+  ]
+}

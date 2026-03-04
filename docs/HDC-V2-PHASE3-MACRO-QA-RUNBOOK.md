@@ -19,7 +19,7 @@ Both pages must render the HackDay Central macro app.
 
 - Logged in to `hackdaytemp.atlassian.net`.
 - Latest `main` is deployed/installed for environment under test.
-- Switcher registry contains entries with `isNavigable=true` and non-null `confluencePageId`.
+- Switcher list contains entries with `isNavigable=true` and non-null `confluencePageId`.
 
 ## Scaffold Generation (Playwright MCP Prep)
 
@@ -76,7 +76,7 @@ Note: evaluate breakpoints using macro iframe width, not browser outer width.
    - row disabled,
    - row meta text: `Page not provisioned yet`,
    - warning note shown,
-   - `Refresh switcher registry` control visible and functional.
+   - `Refresh switcher list` control visible and functional.
 
 ## Evidence Capture Template
 

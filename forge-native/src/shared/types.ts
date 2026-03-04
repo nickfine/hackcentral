@@ -400,6 +400,9 @@ export interface CreateHackInput {
 export interface CreateHackResult {
   assetId: string;
   title: string;
+  confluencePageId: string;
+  confluencePageUrl: string | null;
+  outputPageIds: string[];
 }
 
 export type ArtifactType = "skill" | "prompt" | "template" | "learning" | "code_snippet" | "other";
@@ -808,6 +811,9 @@ export interface ShowcaseHackListItem {
   tags: string[];
   sourceEventId?: string;
   demoUrl?: string;
+  confluencePageId?: string;
+  confluencePageUrl?: string;
+  isPageBacked: boolean;
   pipelineStage: PipelineStage;
   reuseCount: number;
   forkCount: number;
@@ -831,6 +837,9 @@ export interface ListShowcaseHacksInput {
 export interface ListShowcaseHacksResult {
   items: ShowcaseHackListItem[];
   canManage: boolean;
+  totalCount: number;
+  pageBackedCount: number;
+  legacyCount: number;
 }
 
 export interface GetShowcaseHackDetailResult {

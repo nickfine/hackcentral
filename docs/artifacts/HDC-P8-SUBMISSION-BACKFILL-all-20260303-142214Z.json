@@ -1,0 +1,145 @@
+{
+  "generatedAtUtc": "2026-03-03T14:22:14.929Z",
+  "dryRun": true,
+  "eventId": null,
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-008",
+  "processedCount": 8,
+  "createdCount": 8,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-001",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-002",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-003",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-004",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-005",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-006",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-007",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-008",
+      "createdPageIds": []
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-001",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-001",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-001-1",
+        "dry-run-submission-output-demo-proj-001-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-002",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-002",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-002",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-002-1",
+        "dry-run-submission-output-demo-proj-002-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-003",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-005",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-003",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-003-1",
+        "dry-run-submission-output-demo-proj-003-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-004",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-003",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-004",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-004-1",
+        "dry-run-submission-output-demo-proj-004-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-005",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-004",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-005",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-005-1",
+        "dry-run-submission-output-demo-proj-005-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-006",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-006",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-006",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-006-1",
+        "dry-run-submission-output-demo-proj-006-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-007",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-007",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-007",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-007-1",
+        "dry-run-submission-output-demo-proj-007-2"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-008",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-008",
+      "status": "created",
+      "submissionPageId": "dry-run-submission-demo-proj-008",
+      "outputPageIds": [
+        "dry-run-submission-output-demo-proj-008-1",
+        "dry-run-submission-output-demo-proj-008-2"
+      ],
+      "createdPageIds": []
+    }
+  ]
+}

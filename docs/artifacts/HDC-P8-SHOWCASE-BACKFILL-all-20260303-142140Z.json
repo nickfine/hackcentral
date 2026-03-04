@@ -1,0 +1,120 @@
+{
+  "generatedAtUtc": "2026-03-03T14:21:40.048Z",
+  "dryRun": false,
+  "sourceEventId": null,
+  "batchSize": 20,
+  "cursorIn": "demo-proj-002",
+  "cursorOut": "demo-proj-008",
+  "processedCount": 6,
+  "createdCount": 6,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "coverage": {
+    "total": 9,
+    "pageBacked": 9,
+    "legacyCount": 0
+  },
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-003",
+      "createdPageIds": [
+        "21069825"
+      ]
+    },
+    {
+      "projectId": "demo-proj-004",
+      "createdPageIds": [
+        "21200897",
+        "21266433"
+      ]
+    },
+    {
+      "projectId": "demo-proj-005",
+      "createdPageIds": [
+        "21331969",
+        "21200918"
+      ]
+    },
+    {
+      "projectId": "demo-proj-006",
+      "createdPageIds": [
+        "20152351"
+      ]
+    },
+    {
+      "projectId": "demo-proj-007",
+      "createdPageIds": [
+        "20643850"
+      ]
+    },
+    {
+      "projectId": "demo-proj-008",
+      "createdPageIds": [
+        "20119565"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-003",
+      "status": "created",
+      "confluencePageId": "21069825",
+      "outputPageIds": [],
+      "createdPageIds": [
+        "21069825"
+      ]
+    },
+    {
+      "projectId": "demo-proj-004",
+      "status": "created",
+      "confluencePageId": "21200897",
+      "outputPageIds": [
+        "21266433"
+      ],
+      "createdPageIds": [
+        "21200897",
+        "21266433"
+      ]
+    },
+    {
+      "projectId": "demo-proj-005",
+      "status": "created",
+      "confluencePageId": "21331969",
+      "outputPageIds": [
+        "21200918"
+      ],
+      "createdPageIds": [
+        "21331969",
+        "21200918"
+      ]
+    },
+    {
+      "projectId": "demo-proj-006",
+      "status": "created",
+      "confluencePageId": "20152351",
+      "outputPageIds": [],
+      "createdPageIds": [
+        "20152351"
+      ]
+    },
+    {
+      "projectId": "demo-proj-007",
+      "status": "created",
+      "confluencePageId": "20643850",
+      "outputPageIds": [],
+      "createdPageIds": [
+        "20643850"
+      ]
+    },
+    {
+      "projectId": "demo-proj-008",
+      "status": "created",
+      "confluencePageId": "20119565",
+      "outputPageIds": [],
+      "createdPageIds": [
+        "20119565"
+      ]
+    }
+  ]
+}

@@ -1107,7 +1107,7 @@ function App() {
     }
 
     const { invoke } = await import('@forge/bridge');
-    await invoke('submitProject', { teamId, submissionData });
+    const submitResult = await invoke('submitProject', { teamId, submissionData });
 
     // Refresh teams to get updated submission data
     const teamsResult = await invoke('getTeams');
@@ -1122,7 +1122,12 @@ function App() {
       }
     }
 
-    return { success: true };
+    return {
+      success: true,
+      submissionPageId: submitResult?.submissionPageId || null,
+      submissionPageUrl: submitResult?.submissionPageUrl || null,
+      outputPageIds: Array.isArray(submitResult?.outputPageIds) ? submitResult.outputPageIds : [],
+    };
   }, [devMode, selectedTeam, setTeams, setSelectedTeam]);
 
   const handleDeleteTeam = useCallback(async (teamId) => {

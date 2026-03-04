@@ -1,0 +1,118 @@
+{
+  "generatedAtUtc": "2026-03-03T14:20:47.967Z",
+  "dryRun": true,
+  "sourceEventId": null,
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-008",
+  "processedCount": 8,
+  "createdCount": 8,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "coverage": {
+    "total": 9,
+    "pageBacked": 1,
+    "legacyCount": 8
+  },
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-001",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-002",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-003",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-004",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-005",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-006",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-007",
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-008",
+      "createdPageIds": []
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-001",
+      "outputPageIds": [
+        "dry-run-output-demo-proj-001-1"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-002",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-002",
+      "outputPageIds": [
+        "dry-run-output-demo-proj-002-1"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-003",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-003",
+      "outputPageIds": [],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-004",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-004",
+      "outputPageIds": [
+        "dry-run-output-demo-proj-004-1"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-005",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-005",
+      "outputPageIds": [
+        "dry-run-output-demo-proj-005-1"
+      ],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-006",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-006",
+      "outputPageIds": [],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-007",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-007",
+      "outputPageIds": [],
+      "createdPageIds": []
+    },
+    {
+      "projectId": "demo-proj-008",
+      "status": "created",
+      "confluencePageId": "dry-run-demo-proj-008",
+      "outputPageIds": [],
+      "createdPageIds": []
+    }
+  ]
+}

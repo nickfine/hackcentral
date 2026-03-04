@@ -1,0 +1,15 @@
+{
+  "generatedAtUtc": "2026-03-03T14:52:00.080Z",
+  "eventId": null,
+  "eventNameQuery": "NickTestMonday",
+  "batchSize": 50,
+  "cursorIn": null,
+  "cursorOut": null,
+  "processedCount": 0,
+  "runtimeMacroCount": 0,
+  "legacyMacroCount": 0,
+  "missingMacroCount": 0,
+  "repairRecommendedCount": 0,
+  "highRiskCount": 0,
+  "results": []
+}

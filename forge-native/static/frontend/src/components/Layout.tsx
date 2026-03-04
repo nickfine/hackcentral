@@ -200,7 +200,7 @@ export function Layout({
                   onClick={() => void refreshSwitcherRegistry()}
                   disabled={refreshingSwitcherRegistry}
                 >
-                  {refreshingSwitcherRegistry ? 'Refreshing registry…' : 'Refresh switcher registry'}
+                  {refreshingSwitcherRegistry ? 'Refreshing switcher list…' : 'Refresh switcher list'}
                 </button>
               </div>
             </section>

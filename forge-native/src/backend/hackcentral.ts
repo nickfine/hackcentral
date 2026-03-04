@@ -632,7 +632,7 @@ export async function createHack(
 ): Promise<CreateHackResult> {
   return withConfiguredBackend(
     () => repository.createHack(viewer, input),
-    () => createHackInConvex(viewer, input)
+    () => Promise.resolve(unsupportedShowcaseBackendError())
   );
 }
 

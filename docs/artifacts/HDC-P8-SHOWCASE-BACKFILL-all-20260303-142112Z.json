@@ -1,0 +1,60 @@
+{
+  "generatedAtUtc": "2026-03-03T14:21:12.400Z",
+  "dryRun": false,
+  "sourceEventId": null,
+  "batchSize": 2,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-002",
+  "processedCount": 2,
+  "createdCount": 2,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "coverage": {
+    "total": 9,
+    "pageBacked": 3,
+    "legacyCount": 6
+  },
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-001",
+      "createdPageIds": [
+        "20742145",
+        "20807681"
+      ]
+    },
+    {
+      "projectId": "demo-proj-002",
+      "createdPageIds": [
+        "20971521",
+        "20152324"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "status": "created",
+      "confluencePageId": "20742145",
+      "outputPageIds": [
+        "20807681"
+      ],
+      "createdPageIds": [
+        "20742145",
+        "20807681"
+      ]
+    },
+    {
+      "projectId": "demo-proj-002",
+      "status": "created",
+      "confluencePageId": "20971521",
+      "outputPageIds": [
+        "20152324"
+      ],
+      "createdPageIds": [
+        "20971521",
+        "20152324"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "generatedAtUtc": "2026-03-03T15:59:10.830Z",
+  "eventId": "1f2de26a-6d8f-4b72-baac-7f9cb4c5539d",
+  "eventNameQuery": "HDC",
+  "batchSize": 10,
+  "cursorIn": null,
+  "cursorOut": null,
+  "processedCount": 0,
+  "runtimeMacroCount": 0,
+  "legacyMacroCount": 0,
+  "missingMacroCount": 0,
+  "repairRecommendedCount": 0,
+  "highRiskCount": 0,
+  "results": []
+}

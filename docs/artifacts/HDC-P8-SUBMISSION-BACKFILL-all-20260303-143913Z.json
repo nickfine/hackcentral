@@ -1,0 +1,23 @@
+{
+  "generatedAtUtc": "2026-03-03T14:39:13.569Z",
+  "dryRun": false,
+  "eventId": null,
+  "batchSize": 1,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-001",
+  "processedCount": 1,
+  "createdCount": 0,
+  "skippedCount": 0,
+  "failedCount": 1,
+  "stoppedOnError": true,
+  "rollbackManifest": [],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-001",
+      "status": "failed",
+      "reason": "Creating child page failed. Last attempt: app/v2 400: {\"errors\":[{\"status\":400,\"code\":\"BAD_REQUEST\",\"title\":\"A page with this title already exists: A page already exists with the same TITLE in this space\",\"detail\":null}]}"
+    }
+  ]
+}

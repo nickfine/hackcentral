@@ -29,6 +29,9 @@
 - Increasing Library reuse rate
 - Increasing % projects shipping AI artefacts
 
+### Future Planning Notes
+- Added March 3, 2026: migrate **HackDays submissions and outputs** to be Confluence-page based (not custom-UI-only data surfaces), so submission records, deliverables, and output artifacts integrate natively with HackDay Central navigation, accessibility, and reuse flows.
+
 ---
 
 ## Technical Architecture

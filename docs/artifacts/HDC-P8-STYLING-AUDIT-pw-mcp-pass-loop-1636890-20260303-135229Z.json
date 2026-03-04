@@ -1,0 +1,46 @@
+{
+  "generatedAtUtc": "2026-03-03T13:52:29.618Z",
+  "eventNameQuery": "PW MCP Pass Loop 1636890",
+  "eventCount": 1,
+  "summary": {
+    "eventsWithMissingPageId": 0,
+    "eventsWithMissingParentPageId": 0,
+    "eventsWithNoPrimaryAdmin": 0,
+    "eventsWithNoSyncState": 0,
+    "eventsWithNoSubmittedHacks": 1,
+    "totalSubmittedHacks": 0,
+    "totalProjects": 0,
+    "totalAuditLogRows": 0
+  },
+  "events": [
+    {
+      "eventId": "5721e5c0-9006-4f34-8838-c519db7dadce",
+      "eventName": "PW MCP Pass Loop 1636890",
+      "lifecycleStatus": "draft",
+      "confluencePageId": "16973858",
+      "confluenceParentPageId": "5668895",
+      "confluencePageUrl": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16973858/PW+MCP+Pass+Loop+1636890",
+      "creationRequestId": "985b042b-4f0a-45f9-a039-b9bb232358c5",
+      "adminCount": 1,
+      "primaryAdminCount": 1,
+      "coAdminCount": 0,
+      "syncStatePresent": true,
+      "syncStatus": "not_started",
+      "submittedHackCount": 0,
+      "totalProjectCount": 0,
+      "auditLogCount": 0,
+      "integrityChecks": {
+        "hasConfluencePageId": true,
+        "hasConfluenceParentPageId": true,
+        "hasPrimaryAdmin": true,
+        "hasSyncState": true
+      }
+    }
+  ],
+  "rollbackChecklist": [
+    "Snapshot Event/EventAdmin/EventSyncState/EventAuditLog rows for affected event IDs before migration apply.",
+    "If migration validation fails, restore event rows first, then EventAdmin, then EventSyncState, then EventAuditLog.",
+    "Re-run this dry-run and verify zero regressions in page IDs, admin assignment, and sync state presence.",
+    "Confirm Confluence child pages remain reachable for all restored confluencePageId values."
+  ]
+}

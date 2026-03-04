@@ -6,7 +6,7 @@ Last updated: 2026-03-01
 
 ## Goal
 
-Define the Phase 1 Showcase contract that separates completed hacks from the Registry, supports featured curation, and exposes hack detail views with linked evidence.
+Define the Phase 1 Showcase contract that separates completed hacks from AI Tooling, supports featured curation, and exposes hack detail views with linked evidence.
 
 ## Submission Contract (`R4.1`)
 

@@ -62,6 +62,10 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [errors, setErrors] = useState({});
+  const [submissionPageLink, setSubmissionPageLink] = useState({
+    pageId: null,
+    pageUrl: null,
+  });
 
   // Initialize form with existing submission data
   useEffect(() => {
@@ -72,6 +76,10 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
         demoVideoUrl: userTeam.submission.demoVideoUrl || '',
         repoUrl: userTeam.submission.repoUrl || '',
         liveDemoUrl: userTeam.submission.liveDemoUrl || '',
+      });
+      setSubmissionPageLink({
+        pageId: userTeam.submission.submissionPageId || null,
+        pageUrl: userTeam.submission.submissionPageUrl || null,
       });
     }
   }, [userTeam]);
@@ -117,7 +125,13 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
     setIsSaving(true);
     setSaveMessage('');
     try {
-      await onSubmitProject(userTeam.id, { ...formData, status: 'draft' });
+      const result = await onSubmitProject(userTeam.id, { ...formData, status: 'draft' });
+      if (result?.submissionPageId || result?.submissionPageUrl) {
+        setSubmissionPageLink({
+          pageId: result.submissionPageId || null,
+          pageUrl: result.submissionPageUrl || null,
+        });
+      }
       setSaveMessage('Draft saved!');
     } catch (err) {
       console.error('Failed to save draft:', err);
@@ -148,7 +162,13 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
     setIsSaving(true);
     setSaveMessage('');
     try {
-      await onSubmitProject(userTeam.id, { ...formData, status: 'submitted' });
+      const result = await onSubmitProject(userTeam.id, { ...formData, status: 'submitted' });
+      if (result?.submissionPageId || result?.submissionPageUrl) {
+        setSubmissionPageLink({
+          pageId: result.submissionPageId || null,
+          pageUrl: result.submissionPageUrl || null,
+        });
+      }
       setSaveMessage('Project submitted successfully!');
     } catch (err) {
       console.error('Failed to submit project:', err);
@@ -173,6 +193,9 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
   const submissionStatus = userTeam?.submission?.status || 'not_started';
   const statusInfo = getStatusInfo(submissionStatus);
   const StatusIcon = statusInfo.icon;
+  const submissionPageHref =
+    submissionPageLink.pageUrl ||
+    (submissionPageLink.pageId ? `/wiki/pages/viewpage.action?pageId=${encodeURIComponent(submissionPageLink.pageId)}` : '');
 
   const isSubmissionPhase = eventPhase === 'hacking' || eventPhase === 'submission';
   if (!isSubmissionPhase) {
@@ -306,6 +329,18 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
             {saveMessage}
           </Alert>
         )}
+        {submissionPageHref ? (
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                window.open(submissionPageHref, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              Open submission page
+            </Button>
+          </div>
+        ) : null}
       </Card>
 
       {/* Form */}

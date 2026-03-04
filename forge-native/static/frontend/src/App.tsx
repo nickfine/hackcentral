@@ -128,6 +128,8 @@ const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_H
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 const HDC_HOME_UX_V1 = true;
 const HDC_SHOWCASE_UX_V1 = true;
+const HDC_SHOWCASE_PAGE_ONLY_V1 =
+  String(import.meta.env.VITE_HDC_SHOWCASE_PAGE_ONLY_V1 || '').trim().toLowerCase() === 'true';
 const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
   { value: 'read', label: 'Read' },
   { value: 'try', label: 'Try' },
@@ -1097,6 +1099,9 @@ function mapFeaturedHackToShowcaseItem(hack: FeaturedHack): ShowcaseHackListItem
     visibility: hack.visibility,
     tags: [],
     demoUrl: hack.demoUrl ?? undefined,
+    confluencePageId: undefined,
+    confluencePageUrl: undefined,
+    isPageBacked: false,
     pipelineStage: 'hack',
     reuseCount: hack.reuseCount,
     forkCount: 0,
@@ -1312,6 +1317,7 @@ export function App(): JSX.Element {
   const [debouncedShowcaseTagsInput, setDebouncedShowcaseTagsInput] = useState('');
   const [showcaseItems, setShowcaseItems] = useState<ShowcaseHackListItem[]>([]);
   const [showcaseCanManage, setShowcaseCanManage] = useState(false);
+  const [showcaseLegacyCount, setShowcaseLegacyCount] = useState(0);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   const [showcaseLoaded, setShowcaseLoaded] = useState(false);
   const [showcaseError, setShowcaseError] = useState('');
@@ -1612,7 +1618,7 @@ export function App(): JSX.Element {
     try {
       await loadBootstrap();
       setActionError('');
-      setActionMessage('Switcher registry refreshed.');
+      setActionMessage('HackDay switcher list refreshed.');
     } finally {
       setRefreshingSwitcherRegistry(false);
     }
@@ -2858,6 +2864,7 @@ export function App(): JSX.Element {
         }
         setShowcaseItems(items);
         setShowcaseCanManage(true);
+        setShowcaseLegacyCount(items.filter((item) => !item.isPageBacked).length);
         setShowcaseLoaded(true);
         return;
       }
@@ -2874,6 +2881,7 @@ export function App(): JSX.Element {
       });
       setShowcaseItems(result.items);
       setShowcaseCanManage(result.canManage);
+      setShowcaseLegacyCount(result.legacyCount);
       setShowcaseLoaded(true);
     } catch (error) {
       setShowcaseError(error instanceof Error ? error.message : 'Failed to load Showcase hacks.');
@@ -2902,6 +2910,8 @@ export function App(): JSX.Element {
   useEffect(() => {
     if (view !== 'hacks') return;
     if (!showcaseSelectedProjectId) return;
+    const selectedItem = showcaseItems.find((item) => item.projectId === showcaseSelectedProjectId);
+    if (selectedItem?.isPageBacked) return;
 
     const loadDetail = async (): Promise<void> => {
       setShowcaseDetailLoading(true);
@@ -3062,11 +3072,74 @@ export function App(): JSX.Element {
     [previewMode]
   );
 
-  const handleSelectShowcaseProject = useCallback((projectId: string) => {
-    setShowcaseDetailDismissed(false);
-    setShowcaseSelectedProjectId(projectId);
-    setShowcaseDetailError('');
-  }, []);
+  const handleOpenShowcasePage = useCallback(
+    async (item: ShowcaseHackListItem) => {
+      const pageId = item.confluencePageId?.trim() || '';
+      const pagePath = pageId ? buildConfluencePagePath(pageId) : '';
+      const pageUrl = item.confluencePageUrl?.trim() || '';
+      const absoluteTarget =
+        pagePath && typeof window !== 'undefined'
+          ? `${window.location.origin}${pagePath}`
+          : pageUrl;
+
+      if (!pagePath && !pageUrl) {
+        setActionError(`This hack does not yet have a linked Confluence page: ${item.title}`);
+        return;
+      }
+
+      setActionError('');
+      if (previewMode) {
+        setActionMessage(`Local preview mode: would open ${pagePath || pageUrl}`);
+        return;
+      }
+
+      if (pagePath) {
+        try {
+          await router.navigate(pagePath);
+          return;
+        } catch {
+          // Fall through.
+        }
+      }
+      if (pageUrl) {
+        try {
+          await router.navigate(pageUrl);
+          return;
+        } catch {
+          // Fall through.
+        }
+      }
+      if (absoluteTarget && typeof window !== 'undefined') {
+        window.location.assign(absoluteTarget);
+      }
+    },
+    [previewMode]
+  );
+
+  const handleSelectShowcaseProject = useCallback(
+    (item: ShowcaseHackListItem) => {
+      if (HDC_SHOWCASE_PAGE_ONLY_V1) {
+        setShowcaseSelectedProjectId(null);
+        setShowcaseDetail(null);
+        setShowcaseDetailError('');
+        setShowcaseDetailDismissed(false);
+        void handleOpenShowcasePage(item);
+        return;
+      }
+      if (item.isPageBacked && item.confluencePageId) {
+        setShowcaseSelectedProjectId(null);
+        setShowcaseDetail(null);
+        setShowcaseDetailError('');
+        setShowcaseDetailDismissed(false);
+        void handleOpenShowcasePage(item);
+        return;
+      }
+      setShowcaseDetailDismissed(false);
+      setShowcaseSelectedProjectId(item.projectId);
+      setShowcaseDetailError('');
+    },
+    [handleOpenShowcasePage]
+  );
 
   const handleCloseShowcaseDetail = useCallback(() => {
     setShowcaseDetailDismissed(true);
@@ -3125,7 +3198,7 @@ export function App(): JSX.Element {
         setRegistryItems(result.items);
         setRegistryLoaded(true);
       } catch (error) {
-        setRegistryError(error instanceof Error ? error.message : 'Failed to load Registry artifacts.');
+        setRegistryError(error instanceof Error ? error.message : 'Failed to load AI Tooling artifacts.');
       } finally {
         setRegistryLoading(false);
       }
@@ -3248,7 +3321,7 @@ export function App(): JSX.Element {
         await invokeTyped('hdcCreateArtifact', payload);
         await loadRegistryArtifacts(registryAppliedFilters);
       }
-      setActionMessage(`Artifact submitted to Registry: ${payload.title}`);
+      setActionMessage(`Artifact submitted to AI Tooling: ${payload.title}`);
       resetArtifactForm();
       setShowCreateArtifactForm(false);
     } catch (error) {
@@ -3929,9 +4002,22 @@ export function App(): JSX.Element {
     [featuredTop, showcaseItemsByProjectId]
   );
 
+  const legacyFilteredShowcaseItems = useMemo(
+    () => filteredShowcaseItems.filter((item) => !item.isPageBacked),
+    [filteredShowcaseItems]
+  );
+
+  const showcaseShouldRenderLegacyDetail = Boolean(
+    HDC_SHOWCASE_UX_V1 &&
+      !HDC_SHOWCASE_PAGE_ONLY_V1 &&
+      selectedShowcaseItem &&
+      !selectedShowcaseItem.isPageBacked &&
+      showcaseSelectedProjectId
+  );
+
   useEffect(() => {
-    if (!HDC_SHOWCASE_UX_V1 || view !== 'hacks') return;
-    if (filteredShowcaseItems.length === 0) {
+    if (!HDC_SHOWCASE_UX_V1 || HDC_SHOWCASE_PAGE_ONLY_V1 || view !== 'hacks') return;
+    if (legacyFilteredShowcaseItems.length === 0) {
       if (showcaseSelectedProjectId) {
         setShowcaseSelectedProjectId(null);
       }
@@ -3939,18 +4025,18 @@ export function App(): JSX.Element {
     }
     if (!showcaseSelectedProjectId) {
       if (showcaseDetailDismissed) return;
-      setShowcaseSelectedProjectId(filteredShowcaseItems[0].projectId);
+      setShowcaseSelectedProjectId(legacyFilteredShowcaseItems[0].projectId);
       return;
     }
-    const stillVisible = filteredShowcaseItems.some((item) => item.projectId === showcaseSelectedProjectId);
+    const stillVisible = legacyFilteredShowcaseItems.some((item) => item.projectId === showcaseSelectedProjectId);
     if (!stillVisible) {
       if (showcaseDetailDismissed) {
         setShowcaseSelectedProjectId(null);
         return;
       }
-      setShowcaseSelectedProjectId(filteredShowcaseItems[0].projectId);
+      setShowcaseSelectedProjectId(legacyFilteredShowcaseItems[0].projectId);
     }
-  }, [filteredShowcaseItems, showcaseDetailDismissed, showcaseSelectedProjectId, view]);
+  }, [legacyFilteredShowcaseItems, showcaseDetailDismissed, showcaseSelectedProjectId, view]);
 
   useEffect(() => {
     if (view === 'hacks') return;
@@ -4135,6 +4221,13 @@ export function App(): JSX.Element {
       return;
     }
 
+    const linkedArtifactIds = parseCommaSeparatedList(hackLinkedArtifactIdsInput);
+    const invalidLinkedArtifactIds = linkedArtifactIds.filter((artifactId) => !isUuid(artifactId));
+    if (invalidLinkedArtifactIds.length > 0) {
+      setActionError('Linked artifact IDs must be valid UUIDs.');
+      return;
+    }
+
     if (previewMode) {
       setActionError('');
       setActionMessage(`Local preview: simulated hack submit for "${hackTitle.trim()}"`);
@@ -4164,12 +4257,17 @@ export function App(): JSX.Element {
       teamMembers: parseCommaSeparatedList(hackTeamMembersInput),
       sourceEventId: hackSourceEventId.trim() || undefined,
       tags: parseRegistryTags(hackTagsInput),
-      linkedArtifactIds: parseCommaSeparatedList(hackLinkedArtifactIdsInput),
+      linkedArtifactIds,
     };
 
     try {
-      await invokeTyped('createHack', payload);
-      setActionMessage(`Hack submitted: ${payload.title}`);
+      const result = await invokeTyped('createHack', payload);
+      const pendingDatabaseSync = typeof result.assetId === 'string' && result.assetId.startsWith('pending-');
+      setActionMessage(
+        pendingDatabaseSync
+          ? `Hack page created: ${payload.title}. Opening Confluence page (list sync pending while storage rate limits recover)...`
+          : `Hack submitted: ${payload.title}. Opening Confluence page...`
+      );
       setHackTitle('');
       setHackDescription('');
       setHackContent('');
@@ -4179,6 +4277,34 @@ export function App(): JSX.Element {
       setHackTagsInput('');
       setHackLinkedArtifactIdsInput('');
       closeModal();
+      if (!previewMode) {
+        const targetPageId = result.confluencePageId?.trim() || '';
+        const targetPagePath = targetPageId ? buildConfluencePagePath(targetPageId) : '';
+        const targetPageUrl = result.confluencePageUrl?.trim() || '';
+        if (targetPagePath) {
+          try {
+            await router.navigate(targetPagePath);
+          } catch {
+            const absoluteTarget =
+              typeof window !== 'undefined'
+                ? `${window.location.origin}${targetPagePath}`
+                : targetPageUrl;
+            if (absoluteTarget && typeof window !== 'undefined') {
+              window.location.assign(absoluteTarget);
+            }
+          }
+        } else if (targetPageUrl) {
+          try {
+            await router.navigate(targetPageUrl);
+          } catch {
+            if (typeof window !== 'undefined') {
+              window.location.assign(targetPageUrl);
+            }
+          }
+        } else {
+          setActionMessage(`Hack submitted: ${payload.title}. Page link unavailable; refresh and open from the list.`);
+        }
+      }
       await loadBootstrap();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Failed to submit hack.');
@@ -5444,9 +5570,14 @@ export function App(): JSX.Element {
               </section>
 
               {showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
+              {HDC_SHOWCASE_PAGE_ONLY_V1 && showcaseLegacyCount > 0 ? (
+                <section className="message message-warning">
+                  Page-only mode is enabled but {showcaseLegacyCount} legacy showcase hack(s) are still missing Confluence pages.
+                </section>
+              ) : null}
 
               {HDC_SHOWCASE_UX_V1 ? (
-                <section className="showcase-layout">
+                <section className={`showcase-layout${showcaseShouldRenderLegacyDetail ? '' : ' showcase-layout-single'}`}>
                   <div className="showcase-main-column">
                     {hackTab === 'completed' ? (
                       <article className="card featured-block">
@@ -5455,7 +5586,10 @@ export function App(): JSX.Element {
                         <div className="grid featured-grid">
                           {featuredShowcaseItems.map((showcaseItem) => {
                             const hack = mapShowcaseItemToFeaturedHack(showcaseItem);
-                            const isSelected = showcaseSelectedProjectId === showcaseItem.projectId;
+                            const isSelected =
+                              !HDC_SHOWCASE_PAGE_ONLY_V1 &&
+                              showcaseSelectedProjectId === showcaseItem.projectId &&
+                              !showcaseItem.isPageBacked;
                             return (
                               <article
                                 key={`featured-${showcaseItem.projectId}`}
@@ -5464,12 +5598,36 @@ export function App(): JSX.Element {
                                 <button
                                   type="button"
                                   className="showcase-hack-hit"
-                                  onClick={() => handleSelectShowcaseProject(showcaseItem.projectId)}
+                                  onClick={() => handleSelectShowcaseProject(showcaseItem)}
                                   aria-pressed={isSelected}
                                 >
                                   <HackCard item={hack} />
                                 </button>
                                 <div className="registry-actions showcase-hack-actions">
+                                  {HDC_SHOWCASE_PAGE_ONLY_V1 ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline"
+                                      onClick={() => {
+                                        void handleOpenShowcasePage(showcaseItem);
+                                      }}
+                                      disabled={!showcaseItem.confluencePageId && !showcaseItem.confluencePageUrl}
+                                    >
+                                      Open page
+                                    </button>
+                                  ) : showcaseItem.isPageBacked && showcaseItem.confluencePageId ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline"
+                                      onClick={() => {
+                                        void handleOpenShowcasePage(showcaseItem);
+                                      }}
+                                    >
+                                      Open page
+                                    </button>
+                                  ) : (
+                                    <span className="pill pill-outline showcase-legacy-pill">Legacy</span>
+                                  )}
                                   {showcaseItem.demoUrl && isValidHttpUrl(showcaseItem.demoUrl) ? (
                                     <button
                                       type="button"
@@ -5503,9 +5661,12 @@ export function App(): JSX.Element {
                     ) : null}
 
                     <section className="grid hacks-grid showcase-results-grid">
-                      {filteredShowcaseItems.map((showcaseItem) => {
+                              {filteredShowcaseItems.map((showcaseItem) => {
                         const hack = mapShowcaseItemToFeaturedHack(showcaseItem);
-                        const isSelected = showcaseSelectedProjectId === showcaseItem.projectId;
+                        const isSelected =
+                          !HDC_SHOWCASE_PAGE_ONLY_V1 &&
+                          showcaseSelectedProjectId === showcaseItem.projectId &&
+                          !showcaseItem.isPageBacked;
                         return (
                           <article
                             key={showcaseItem.projectId}
@@ -5514,12 +5675,36 @@ export function App(): JSX.Element {
                             <button
                               type="button"
                               className="showcase-hack-hit"
-                              onClick={() => handleSelectShowcaseProject(showcaseItem.projectId)}
+                              onClick={() => handleSelectShowcaseProject(showcaseItem)}
                               aria-pressed={isSelected}
                             >
                               <HackCard item={hack} />
                             </button>
                             <div className="registry-actions showcase-hack-actions">
+                              {HDC_SHOWCASE_PAGE_ONLY_V1 ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline"
+                                  onClick={() => {
+                                    void handleOpenShowcasePage(showcaseItem);
+                                  }}
+                                  disabled={!showcaseItem.confluencePageId && !showcaseItem.confluencePageUrl}
+                                >
+                                  Open page
+                                </button>
+                              ) : showcaseItem.isPageBacked && showcaseItem.confluencePageId ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline"
+                                  onClick={() => {
+                                    void handleOpenShowcasePage(showcaseItem);
+                                  }}
+                                >
+                                  Open page
+                                </button>
+                              ) : (
+                                <span className="pill pill-outline showcase-legacy-pill">Legacy</span>
+                              )}
                               {showcaseItem.demoUrl && isValidHttpUrl(showcaseItem.demoUrl) ? (
                                 <button
                                   type="button"
@@ -5566,6 +5751,7 @@ export function App(): JSX.Element {
                     {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
                   </div>
 
+                  {showcaseShouldRenderLegacyDetail ? (
                   <aside className="card showcase-detail-drawer">
                     <section className="section-head-row showcase-detail-head">
                       <div>
@@ -5657,6 +5843,7 @@ export function App(): JSX.Element {
                       </div>
                     ) : null}
                   </aside>
+                  ) : null}
                 </section>
               ) : (
                 <>
@@ -5800,7 +5987,7 @@ export function App(): JSX.Element {
           ) : null}
 
           {view === 'team_up' ? (
-            <section className="page-stack">
+            <section className="page-stack teamup-page">
               <section className="title-row">
                 <div>
                   <h1>Team Up</h1>
@@ -5821,7 +6008,7 @@ export function App(): JSX.Element {
                 </button>
               </article>
 
-              <section className="filter-row compact">
+              <section className="filter-row compact teamup-filter-row">
                 <select defaultValue="open">
                   <option value="open">Open</option>
                 </select>
@@ -5830,9 +6017,9 @@ export function App(): JSX.Element {
                 </select>
               </section>
 
-              <section className="grid bulletin-grid">
+              <section className="grid bulletin-grid teamup-bulletin-grid">
                 {BULLETIN_POSTS.map((post) => (
-                  <article key={post.id} className="card bulletin-card">
+                  <article key={post.id} className="card bulletin-card teamup-bulletin-card">
                     <div className="bulletin-top">
                       <span className="pill pill-outline">{post.tag}</span>
                     </div>
@@ -5849,7 +6036,7 @@ export function App(): JSX.Element {
                 ))}
               </section>
 
-              <section className="filter-row">
+              <section className="filter-row problem-filter-row teamup-filter-row">
                 <input
                   type="search"
                   placeholder="Search people..."
@@ -5878,7 +6065,7 @@ export function App(): JSX.Element {
 
               <section>
                 <h2 className="list-title">HackCentral Helpers <span>({helpers.length})</span></h2>
-                <div className="grid people-grid">
+                <div className="grid people-grid teamup-people-grid">
                   {helpers.slice(0, 6).map((person) => (
                     <PersonCard key={`helper-${person.id}`} item={person} />
                   ))}
@@ -5887,7 +6074,7 @@ export function App(): JSX.Element {
 
               <section>
                 <h2 className="list-title">Hackers <span>({hackers.length})</span></h2>
-                <div className="grid people-grid">
+                <div className="grid people-grid teamup-people-grid">
                   {hackers.map((person) => (
                     <PersonCard key={person.id} item={person} />
                   ))}
@@ -5919,7 +6106,7 @@ export function App(): JSX.Element {
 
               <article className="card collective-card">
                 <h2>Our Collective Progress</h2>
-                <p>Phase 2 Team Pulse metrics from live registry/problem/reuse activity. Spark, {nextMilestone}% to Momentum.</p>
+                <p>Phase 2 Team Pulse metrics from live AI Tooling/problem/reuse activity. Spark, {nextMilestone}% to Momentum.</p>
 
                 <div className="stage-row" aria-label="Maturity stages">
                   <span className="stage active">Spark</span>
@@ -6349,7 +6536,7 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Discover Registry</h1>
+                  <h1>Discover AI Tooling</h1>
                   <p className="subtitle">Reusable AI artifacts from shipped hacks: prompts, skills, templates, and learnings</p>
                 </div>
                 <div className="registry-title-actions">
@@ -6423,7 +6610,7 @@ export function App(): JSX.Element {
                 <article className="card registry-form-card">
                   <section className="section-head-row">
                     <div>
-                      <h2>Submit Registry Artifact</h2>
+                      <h2>Submit AI Tooling Artifact</h2>
                       <p>Requires title, description, tags, and source URL (`https`). Optional source-hack linkage supported.</p>
                     </div>
                   </section>
@@ -6546,12 +6733,12 @@ export function App(): JSX.Element {
 
               {registryLoading ? (
                 <section className="card">
-                  <p className="empty-copy">Loading Registry artifacts...</p>
+                  <p className="empty-copy">Loading AI Tooling artifacts...</p>
                 </section>
               ) : null}
 
               {!registryLoading && registryLoaded && registryItems.length > 0 ? (
-                <section className="grid hacks-grid">
+                <section className="grid hacks-grid problem-grid">
                   {registryItems.map((item) => {
                     const detail = registryDetailsById[item.id];
                     return (
@@ -6652,7 +6839,7 @@ export function App(): JSX.Element {
                 </section>
               ) : (
                 !registryLoading && registryLoaded ? (
-                  <p className="empty-copy">No registry artifacts match these filters yet.</p>
+                  <p className="empty-copy">No AI Tooling artifacts match these filters yet.</p>
                 ) : null
               )}
             </section>

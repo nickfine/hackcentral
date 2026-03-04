@@ -1,5 +1,26 @@
 # Testing Guide: HackDay Duration & Schedule Events Feature
 
+## Phase 8 Validation Commands
+
+Run these from `/Users/nickster/Downloads/HackCentral`:
+
+```bash
+npm run typecheck --prefix forge-native/static/frontend
+npm run build --prefix forge-native/static/frontend
+npm run typecheck --prefix forge-native
+npm run test:backend --prefix forge-native
+cd /Users/nickster/Downloads/HackCentral/forge-native && npm run custom-ui:build
+```
+
+Phase 8 ops wrappers (write JSON + Markdown artifacts to `docs/artifacts/`):
+
+```bash
+npm run qa:phase8:styling-audit -- --event-query \"HDC\" --batch-size 50
+npm run qa:phase8:styling-repair -- --event-query \"HDC\" --batch-size 50 --dry-run
+npm run qa:phase8:showcase-backfill -- --batch-size 20 --dry-run
+npm run qa:phase8:submission-page-backfill -- --batch-size 20 --dry-run
+```
+
 ## Build Verification ✅
 - TypeScript compilation: **PASSED**
 - Vite build: **PASSED**

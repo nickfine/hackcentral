@@ -1,0 +1,46 @@
+{
+  "generatedAtUtc": "2026-03-03T13:52:24.121Z",
+  "eventNameQuery": "NickFridayNite",
+  "eventCount": 1,
+  "summary": {
+    "eventsWithMissingPageId": 0,
+    "eventsWithMissingParentPageId": 0,
+    "eventsWithNoPrimaryAdmin": 0,
+    "eventsWithNoSyncState": 0,
+    "eventsWithNoSubmittedHacks": 1,
+    "totalSubmittedHacks": 0,
+    "totalProjects": 0,
+    "totalAuditLogRows": 0
+  },
+  "events": [
+    {
+      "eventId": "a891fc19-7c88-4dfb-b904-33b1064293ce",
+      "eventName": "NickFridayNite",
+      "lifecycleStatus": "draft",
+      "confluencePageId": "16646145",
+      "confluenceParentPageId": "5668895",
+      "confluencePageUrl": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16646145/NickFridayNite",
+      "creationRequestId": "d7855667-7c39-4685-9851-0f0046529fec",
+      "adminCount": 1,
+      "primaryAdminCount": 1,
+      "coAdminCount": 0,
+      "syncStatePresent": true,
+      "syncStatus": "not_started",
+      "submittedHackCount": 0,
+      "totalProjectCount": 0,
+      "auditLogCount": 0,
+      "integrityChecks": {
+        "hasConfluencePageId": true,
+        "hasConfluenceParentPageId": true,
+        "hasPrimaryAdmin": true,
+        "hasSyncState": true
+      }
+    }
+  ],
+  "rollbackChecklist": [
+    "Snapshot Event/EventAdmin/EventSyncState/EventAuditLog rows for affected event IDs before migration apply.",
+    "If migration validation fails, restore event rows first, then EventAdmin, then EventSyncState, then EventAuditLog.",
+    "Re-run this dry-run and verify zero regressions in page IDs, admin assignment, and sync state presence.",
+    "Confirm Confluence child pages remain reachable for all restored confluencePageId values."
+  ]
+}

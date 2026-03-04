@@ -1,7 +1,7 @@
 {
   "name": "hackcentral",
   "private": true,
-  "version": "0.6.47",
+  "version": "0.6.48",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:backend & npm run dev:frontend",
@@ -33,6 +33,10 @@
     "qa:phase6:weekly-check": "npm run qa:phase6:weekly-core && npm run qa:phase6:telemetry-check",
     "qa:phase7:weekly-report-scaffold": "node scripts/phase7-weekly-report-scaffold.mjs",
     "qa:phase7:full-width-backfill": "node scripts/phase7-full-width-backfill.mjs",
+    "qa:phase8:styling-audit": "node scripts/phase8-styling-audit.mjs",
+    "qa:phase8:styling-repair": "node scripts/phase8-styling-repair.mjs",
+    "qa:phase8:showcase-backfill": "node scripts/phase8-showcase-page-backfill.mjs",
+    "qa:phase8:submission-page-backfill": "node scripts/phase8-submission-page-backfill.mjs",
     "qa:runtime:migrate-macros:dry-run": "node scripts/migrate-hackday-runtime-macro.mjs --dry-run",
     "qa:runtime:migrate-macros": "node scripts/migrate-hackday-runtime-macro.mjs",
     "qa:runtime:rollback-macros:dry-run": "node scripts/rollback-hackday-runtime-macro.mjs --dry-run",

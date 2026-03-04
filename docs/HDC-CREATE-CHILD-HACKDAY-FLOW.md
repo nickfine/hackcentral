@@ -47,7 +47,7 @@
    - Creates a **HackdayTemplateSeed** row linking the child page to the event and seed payload.
 
 5. **Open the child page**  
-   You are redirected to the new child page (or you can open it from the Registry list). The **HD26Forge** macro loads and:
+   You are redirected to the new child page (or you can open it from the HackDays list). The **HD26Forge** macro loads and:
    - Resolves context by `pageId` → finds `HackdayTemplateSeed` → creates or reuses an **Event** row in the shared DB (HD26Forge bootstrap from seed) → returns phase/branding etc. for `getEventPhase`.
    - The child page shows the HackDay UI (registration, teams, submission, voting, etc.) for that event only (page-scoped).
 
@@ -72,7 +72,7 @@
 
 - [ ] **Parent page:** Confluence page with HDC macro shows “Create HackDay template instance” (parent mode).
 - [ ] **Create:** Fill wizard, click Create Instance; no error; message shows child page id and “provisioned”.
-- [ ] **Redirect:** Browser navigates to child page (or open child from Registry).
+- [ ] **Redirect:** Browser navigates to child page (or open child from HackDays).
 - [ ] **Child page:** HD26Forge macro loads (no “extension error” banner); event name/phase visible.
 - [ ] **DB:** `Event` row with `confluence_page_id = child pageId`, `runtime_type = 'hackday_template'`; `HackdayTemplateSeed` row with same `confluence_page_id`, `provision_status` moves to `initialized` after first HD26 load.
 

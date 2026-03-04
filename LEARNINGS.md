@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 2, 2026
+**Last Updated:** March 3, 2026
 
 ## Project Overview
 
@@ -20,10 +20,10 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.45 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.48`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.47 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.56`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.13
+**Forge Native Package:** 0.3.15
 
 ## Session Update - Performance Rollout Completion + Live Telemetry Validation (Mar 1, 2026)
 
@@ -3351,3 +3351,517 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Capture post-deploy live Hacks-page smoke to confirm drawer close persistence in Confluence-hosted UI and close the UX fix rollout evidence loop.
+
+## Session Update - Confluence-Native Hack Pages + Submit Flow Recovery (2026-03-03 10:27 GMT)
+
+### Task ID
+- `P4.SHOW.01`
+
+### What Changed
+- Implemented hybrid Confluence-native hack detail rollout (new hacks only):
+  - added Showcase page-linkage migration:
+    - `forge-native/supabase/migrations/20260303110000_phase4_showcase_confluence_pages.sql`
+  - wired create/list contracts for page-backed hacks:
+    - `CreateHackResult`: `confluencePageId`, `confluencePageUrl`, `outputPageIds`
+    - `ShowcaseHackListItem`: `confluencePageId?`, `confluencePageUrl?`, `isPageBacked`
+  - updated create/fork/list flows to create and persist Confluence page linkage and output child pages.
+  - frontend Hacks list now routes page-backed items to Confluence page path and marks legacy items with `Legacy` fallback.
+- Recovered broken submit-hack journey that failed with:
+  - `Supabase GET Artifact failed (400): invalid input syntax for type uuid: "one"`
+- Added backend + frontend validation guardrails:
+  - linked artifact IDs are UUID-validated before artifact lookup
+  - legacy Team/Project creation fallback hardened for schema variance
+  - create flow retry/consistency handling added for Supabase rate-limit or partial-write scenarios.
+
+### Validation / Evidence
+- `npm run typecheck --prefix forge-native/static/frontend` (pass)
+- `npm run build --prefix forge-native/static/frontend` (pass)
+- `npm run typecheck --prefix forge-native` (pass)
+- `npm run test:backend --prefix forge-native` (pass; includes `showcase-confluence-pages-contract.test.mjs`)
+- Production browser smoke (Playwright):
+  - Submit Hack modal creates page-backed hack successfully
+  - hack card appears with `Open page` CTA
+  - Confluence page navigation works for created hack
+- Supabase persistence verified for created smoke hack:
+  - `ShowcaseHack.confluence_page_id` persisted
+  - `ShowcaseHack.output_page_ids` persisted
+  - linked `Project` row persisted.
+
+### Regressions / Gotchas
+- In this workspace, Supabase MCP project discovery can still return empty (`list_projects -> []`) even when environment is active; keep MCP-first policy, then use documented service-role/SQL fallback path for verification.
+
+### Next Recommended Step
+- Run one focused UX pass for the new page-backed submit/open flow in Confluence-hosted runtime and capture screenshot evidence under `docs/artifacts/`, then decide when to remove legacy right-panel detail fallback.
+
+## Session Update - Production Deploy + Confluence Live Smoke Evidence (2026-03-03 10:41 GMT)
+
+### Task ID
+- `P4.SHOW.01`
+
+### What Changed
+- Executed production deploy/install workflow from `forge-native`:
+  - `npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Re-ran validation gates before/with deployment:
+  - `npm run typecheck --prefix forge-native/static/frontend`
+  - `npm run build --prefix forge-native/static/frontend`
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+- Completed authenticated Confluence-hosted live smoke for hybrid Showcase behavior:
+  - confirmed `Open page` CTA on page-backed card
+  - confirmed `LEGACY` fallback labels remain on non-page-backed cards
+  - confirmed `Open page` lands on Confluence-native hack page with linked output page.
+
+### Validation / Evidence
+- Deploy/install:
+  - Forge deploy: `✔ Deployed`
+  - Forge install: `✔ Site is already at the latest version`
+- Backend tests: `21/21` passing.
+- Supabase verification path:
+  - MCP-first check: `mcp__supabase__list_projects -> []` (known workspace behavior)
+  - fallback checks succeeded:
+    - CLI `projects list` returned active `ssafugtobsqxmqtphwch`
+    - management SQL probe `select 1 as ok` passed
+    - service-role REST reads confirmed persisted linkage fields (`confluence_page_id`, `confluence_page_url`, `output_page_ids`)
+- Live UI artifacts:
+  - `docs/artifacts/HDC-P4-SHOW-LIVE-PAGE-BACKED-OPEN-20260303-1040Z.png`
+  - `docs/artifacts/HDC-P4-SHOW-LIVE-HACKS-OPENPAGE-LEGACY-20260303-1041Z.png`
+
+### Regressions / Gotchas
+- None functional in validated path.
+- Tooling notes remain non-blocking:
+  - Forge CLI version update warning (`12.14.1 -> 12.15.0`)
+  - `punycode` deprecation warning during Forge commands.
+
+### Next Recommended Step
+- Capture one additional end-to-end artifact that includes the submit modal completion state (`+ Submit Hack`) in the same session window, then schedule migration plan for legacy Showcase rows to Confluence-native page backing.
+
+## Session Update - Phase 8 Unified Rollout Implementation (2026-03-03 13:40 GMT)
+
+### What Changed
+- Added new Phase 8 ops webtrigger actions in `forge-native/src/ops.ts`:
+  - `audit_hackday_page_styling`
+  - `repair_hackday_page_styling` (dry-run default)
+  - `backfill_showcase_pages` (batch/cursor, stop-on-error, rollback manifest)
+  - `backfill_hackday_submission_pages` (batch/cursor, stop-on-error, rollback manifest)
+- Added reusable Confluence page styling helpers in `forge-native/src/backend/confluencePages.ts`:
+  - macro signature classification (`runtime|legacy|missing`)
+  - page styling inspection payloads
+  - idempotent repair flow (macro retarget, full-width, intro paragraph strip)
+  - `ensureSubmissionsParentPageUnderEventPage` for submission-page hierarchy.
+- Added phase8 artifact-generating wrappers and npm scripts:
+  - `scripts/lib/phase8-webtrigger.mjs`
+  - `scripts/phase8-styling-audit.mjs`
+  - `scripts/phase8-styling-repair.mjs`
+  - `scripts/phase8-showcase-page-backfill.mjs`
+  - `scripts/phase8-submission-page-backfill.mjs`
+  - package scripts:
+    - `qa:phase8:styling-audit`
+    - `qa:phase8:styling-repair`
+    - `qa:phase8:showcase-backfill`
+    - `qa:phase8:submission-page-backfill`
+- Added rollout metric for Showcase list contract:
+  - `ListShowcaseHacksResult` now includes `totalCount`, `pageBackedCount`, `legacyCount`.
+  - backend now returns these counts from `listShowcaseHacks`.
+- Added frontend page-only rollout flag path:
+  - `VITE_HDC_SHOWCASE_PAGE_ONLY_V1`
+  - when enabled: disables legacy detail drawer path and legacy badge rendering path in favor of page-open behavior.
+- Implemented runtime submission linkage to Confluence pages:
+  - new migration: `forge-native/supabase/migrations/20260303133000_phase8_hackday_submission_page_links.sql`
+  - `submitProject` now attempts Confluence submission/output page sync and returns:
+    - `submissionPageId`, `submissionPageUrl`, `outputPageIds`
+  - runtime `getTeams`/`getTeam`/`updateTeam` responses now hydrate submission-page link fields.
+  - runtime submission UI now exposes `Open submission page` CTA after save/submit and from hydrated submission state.
+- Expanded legacy macro migration detector to support multiple historical keys in:
+  - `scripts/migrate-hackday-runtime-macro.mjs`.
+
+### Validation / Evidence
+- `npm run typecheck --prefix forge-native/static/frontend` (pass)
+- `npm run build --prefix forge-native/static/frontend` (pass)
+- `npm run typecheck --prefix forge-native` (pass)
+- `npm run test:backend --prefix forge-native` (pass; includes new submission-page contract test)
+- `cd forge-native && npm run custom-ui:build` (pass)
+- `node --check forge-native/src/runtime/index.js` (pass)
+
+### Noted Risk / Follow-up
+- Root Vitest contract pack (`npm run test:run -- tests/forge-native-confluencePages.spec.ts tests/forge-native-showcase-contract.spec.ts`) currently has pre-existing/mock-fragile failures not part of the Phase 8 backend contract suite; no change was made to re-baseline those tests in this pass.
+
+## Session Update - Production Deploy + Styling Verification + Playwright Browser Smoke (2026-03-03 14:05 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+- `P8.STYLING.01`
+
+### What Changed
+- Fixed deploy blockers introduced during Phase 8 integration:
+  - removed duplicate `normalizeConfluencePageId` declaration in `forge-native/src/runtime/index.js`
+  - added null-safe page-id narrowing in `forge-native/src/ops.ts` (submission-page backfill path).
+- Rebuilt and redeployed production Forge app:
+  - `cd forge-native && npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+- Ran production Phase 8 styling ops scripts against affected legacy subset pages (`NickFridayNite`, `PW MCP Pass Loop 1636890`, `Perf Global Route 20260301-0030`):
+  - styling audit
+  - styling repair (apply mode)
+  - post-repair re-audit.
+- Ran Playwright MCP browser verification in authenticated Confluence context for all three pages, including one interaction check (`Open Next Step`).
+
+### Validation / Evidence
+- Local gates after code fix:
+  - `npm run typecheck --prefix forge-native` (pass)
+  - `node --check forge-native/src/runtime/index.js` (pass)
+  - `cd forge-native && npm run custom-ui:build` (pass)
+- Production deploy:
+  - `forge deploy --environment production --no-verify` (pass)
+- Styling ops artifacts:
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-*-20260303-1355*.json|md`
+  - `docs/artifacts/HDC-P8-STYLING-REPAIR-*-20260303-1356*.json|md`
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-*-20260303-1357*.json|md`
+- Styling verification outcome:
+  - macro signatures all `runtime`
+  - full-width draft/published both set
+  - repairs no-op (`changedCount=0`, `no_repairs_needed`).
+- Playwright smoke screenshots:
+  - `.../page-2026-03-03T14-00-23-497Z.png` (PW MCP Pass Loop hydrated)
+  - `.../page-2026-03-03T14-00-53-263Z.png` (NickFridayNite hydrated)
+  - `.../page-2026-03-03T14-01-30-124Z.png` (Perf Global Route hydrated)
+  - `.../page-2026-03-03T14-01-57-178Z.png` (`Open Next Step` interaction -> Schedule).
+
+### Regressions / Gotchas
+- Known non-blocking iframe popup issue remains:
+  - `Open App View` action logs blocked popup due sandbox frame missing `allow-popups`.
+- Confluence/Atlassian console warnings (FeatureGate, CSP report-only, deprecated APIs) still present and non-blocking.
+
+### Next Recommended Step
+- Execute phased `backfill_showcase_pages` rollout with dry-run + canary batches and verify `legacyCount` trend to zero before enabling `VITE_HDC_SHOWCASE_PAGE_ONLY_V1=true`.
+
+## Session Update - Phase 8 Backfill Completion + Submission Backfill Recovery (2026-03-03 14:42 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+- `P8.STYLING.01`
+
+### What Changed
+- Read startup context in required order (`README.md` -> `docs/README.md` -> `forge-native/README.md` -> `DEPLOY.md` -> `TESTING_GUIDE.md` -> latest `LEARNINGS.md` -> latest `CONTINUATION.md`) and confirmed ops execution guardrails for production.
+- Fixed production `backfill_showcase_pages` schema compatibility failure (`Project.title` missing) by hardening `forge-native/src/ops.ts`:
+  - switched phase8 backfill table reads to schema-tolerant `select('*')`
+  - normalized mixed snake_case/camelCase fields for `Project`, `User`, `Artifact`, `Team`, and `Event` rows.
+- Added Confluence backfill resilience for duplicate-title and requester-fallback edge cases:
+  - `forge-native/src/backend/confluencePages.ts`: robust request error handling in requester fallback loops, duplicate-title recovery for parent container creation, and `findChildPageByTitleUnderParent` helper.
+  - `forge-native/src/ops.ts`: submission/output child page duplicate-title recovery with deterministic suffix fallback.
+- Ran phased production Showcase backfill to completion:
+  - dry-run -> canary apply -> broad apply -> post-check dry-run.
+  - final coverage reached `legacyCount=0`.
+- Submission-page backfill initially blocked by missing `HackdaySubmissionPageLink` table and later by Confluence duplicate-title collisions.
+  - Applied migration `forge-native/supabase/migrations/20260303133000_phase8_hackday_submission_page_links.sql` via documented management SQL fallback.
+  - Re-ran phased submission backfill and recovered the remaining `demo-proj-001` edge case.
+
+### Validation / Evidence
+- Validation commands (all pass):
+  - `npm run typecheck --prefix forge-native/static/frontend`
+  - `npm run build --prefix forge-native/static/frontend`
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+  - `cd forge-native && npm run custom-ui:build`
+- Deploy/install path (production, repeated as patches were applied):
+  - `forge deploy --environment production --no-verify` (`✔ Deployed`)
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` (`✔ Site is already at the latest version`)
+- Showcase backfill artifacts:
+  - `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-142047Z.json|md` (dry-run)
+  - `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-142112Z.json|md` (canary apply)
+  - `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-142140Z.json|md` (broad apply)
+  - `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-142155Z.json|md` (post-check)
+  - post-check coverage: `total=9`, `pageBacked=9`, `legacyCount=0`.
+- Submission backfill artifacts:
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-142214Z.json|md` (dry-run)
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-142633Z.json|md` (canary continuation)
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-142711Z.json|md` (broad apply)
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-144053Z.json|md` (remaining edge-case apply)
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-144122Z.json|md` (post-check dry-run all skipped as `already_page_backed`)
+- Supabase verification path evidence:
+  - MCP-first check: `mcp__supabase__list_projects -> []`
+  - MCP execute SQL unavailable (`permission`), so service-role/management SQL fallback used:
+    - migration apply for `HackdaySubmissionPageLink` (success)
+    - verification query: submitted projects without submission link = `0`.
+- Confluence-hosted rollout closure artifact:
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-LIVE-DEMO-PROJ-001-20260303-1442Z.png`
+  - live page snapshot confirmed submission page + output links rendered under Confluence.
+
+### Guardrail Outcome
+- Keep `VITE_HDC_SHOWCASE_PAGE_ONLY_V1=false` for now (as requested), even though production backfill metrics now show `legacyCount=0`.
+
+### Regressions / Gotchas
+- Non-blocking known issue unchanged: `Open App View` popup is blocked in sandboxed iframe contexts (`allow-popups` missing).
+- Forge CLI upgrade warning (`12.14.1 -> 12.15.0`) remains non-blocking.
+
+### Next Recommended Step
+- Run one final authenticated Playwright smoke from the Confluence-hosted app shell that exercises Hacks list -> Open page and runtime submission CTA in the same session capture, then decide whether to flip `VITE_HDC_SHOWCASE_PAGE_ONLY_V1=true` now that `legacyCount=0` is confirmed.
+
+## Session Update - Runtime Styling Root Cause + Production Fix Deploy (2026-03-03 16:00 GMT)
+
+### Task IDs
+- `P8.STYLING.01`
+
+### What Changed
+- Isolated the remaining "unstyled HackDay page" issue to runtime frontend build tooling, not Confluence page/macro wiring:
+  - confirmed affected page (`21856276`) still had runtime macro signature and full-width properties set.
+  - identified missing Tailwind utility classes in deployed runtime CSS bundle (`h-12`, `px-3`, `rounded-xl`, etc.), which explains oversized header logo and flattened spacing/layout.
+- Fixed runtime frontend Tailwind/PostCSS pipeline mismatch:
+  - removed `@tailwindcss/postcss` from `forge-native/static/runtime-frontend/package.json`
+  - switched PostCSS plugin to `tailwindcss` in `forge-native/static/runtime-frontend/postcss.config.js`
+  - regenerated runtime frontend lockfile (`forge-native/static/runtime-frontend/package-lock.json`).
+- Rebuilt and redeployed production Forge app:
+  - `cd forge-native && npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Validation / Evidence
+- Runtime CSS post-fix includes previously missing utilities in emitted bundle:
+  - `index-B2AlHqeG.css`: `.h-12`, `.sm\\:h-16`, `.px-3`, `.py-2`, `.rounded-xl`, `.gap-3` all present.
+- Deploy/install status:
+  - `✔ Deployed`
+  - `✔ Site is already at the latest version`
+- Post-deploy styling audit artifact for affected event-name slice:
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-xxxxxxxxxxx-20260303-155939Z.json|md`
+  - result remains clean for target page:
+    - `macroSignature=runtime`
+    - `fullWidth draft/published=full-width`
+    - `recommendedAction=none`.
+
+### Regressions / Gotchas
+- Browser MCP verification tooling was unavailable in this session (`chrome-devtools` transport closed; Playwright MCP launch conflict), so final visual confirmation depends on manual hard refresh in Confluence page host.
+
+### Next Recommended Step
+- Hard refresh affected HackDay pages in Confluence (`Cmd+Shift+R`) and verify header/logo/nav spacing now matches runtime styled baseline; if stale assets persist, open staging URL path from `DEPLOY.md` to bypass CDN cache.
+
+## Session Update - Final Coverage Recheck + Page-Only Decision Pack (2026-03-03 16:50 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+- `P8.STYLING.01`
+
+### What Changed
+- Executed fresh production dry-run rechecks after runtime styling fix deploy:
+  - Showcase backfill dry-run (`batch-size 50`)
+  - Submission-page backfill dry-run (`batch-size 50`)
+- Generated final rollout decision artifact for `VITE_HDC_SHOWCASE_PAGE_ONLY_V1`:
+  - `docs/artifacts/HDC-P8-SHOWCASE-PAGE-ONLY-FLIP-DECISION-20260303-1650Z.md`
+- Captured user visual confirmation that affected HackDay page styling now appears correct post-deploy.
+
+### Validation / Evidence
+- `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-165024Z.json|md`
+  - `coverage.total=9`
+  - `coverage.pageBacked=9`
+  - `coverage.legacyCount=0`
+  - `failedCount=0`
+- `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-165024Z.json|md`
+  - `processedCount=8`
+  - all `status=skipped` with `reason=already_page_backed`
+  - `failedCount=0`
+- Decision artifact:
+  - `docs/artifacts/HDC-P8-SHOWCASE-PAGE-ONLY-FLIP-DECISION-20260303-1650Z.md`
+  - status: `GO-CANDIDATE` for flipping page-only flag.
+
+### Regressions / Gotchas
+- Browser MCP smoke tooling remained unavailable in this session (transport/launch conflict), so final visual confidence used dry-run + deploy evidence plus manual user confirmation.
+
+### Next Recommended Step
+- Flip `VITE_HDC_SHOWCASE_PAGE_ONLY_V1=true` in the next production build/deploy cycle and capture one post-flag Confluence-hosted smoke artifact set.
+
+## Session Update - Page-Only Flag Enabled + Production Deploy (2026-03-03 16:53 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+
+### What Changed
+- Enabled page-only Showcase mode in production build by deploying with:
+  - `VITE_HDC_SHOWCASE_PAGE_ONLY_V1=true npm run custom-ui:build`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Confirmed deploy/install succeeded and production site is at latest version.
+- Ran post-flag production dry-run verification wrappers:
+  - showcase backfill coverage check
+  - submission-page backfill coverage check.
+
+### Validation / Evidence
+- Deploy/install:
+  - `✔ Deployed`
+  - `✔ Site is already at the latest version`
+- Post-flag coverage artifacts:
+  - `docs/artifacts/HDC-P8-SHOWCASE-BACKFILL-all-20260303-165300Z.json|md`
+    - `coverage.total=9`
+    - `coverage.pageBacked=9`
+    - `coverage.legacyCount=0`
+    - `failedCount=0`
+  - `docs/artifacts/HDC-P8-SUBMISSION-BACKFILL-all-20260303-165300Z.json|md`
+    - `processedCount=8`
+    - all rows `already_page_backed`
+    - `failedCount=0`
+
+### Regressions / Gotchas
+- Browser MCP live-smoke capture remained unavailable in this session (DevTools transport closed / Playwright launch conflict), so post-flag validation is based on deploy success + artifact coverage checks.
+
+### Next Recommended Step
+- Capture one authenticated Confluence-hosted visual smoke artifact in a follow-up session to close the post-flag UX evidence loop.
+
+## Session Update - MCP Re-Verification + Production Styling Recheck + Playwright Auth Gate (2026-03-03 23:52 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+- `P8.STYLING.01`
+
+### What Changed
+- Re-ran required startup ritual in operations mode (`.claude/instructions.md` then `STARTUP.md` checklist order).
+- Re-verified Atlassian MCP connectivity in this fresh chat:
+  - `mcp__atlassian__getAccessibleAtlassianResources` -> confirmed `https://hackdaytemp.atlassian.net` (`cloudId=fa506321-b5f3-4087-9b5f-8bc611d72ba1`) with expected scopes.
+  - `mcp__atlassian__atlassianUserInfo` -> active user `Nick Fine` (`account_id=642558c74b23217e558e9a25`).
+- Attempted authenticated Confluence-hosted Playwright MCP smoke for target pages:
+  - `16646145` (`NickFridayNite`)
+  - `16973858` (`PW MCP Pass Loop 1636890`)
+  - `16875584` (`Perf Global Route 20260301-0030`)
+- All Playwright navigations redirected to `https://id.atlassian.com/login` (no authenticated browser state in current MCP session), so hydrate/styling interaction checks inside runtime iframe (`Open Next Step` -> `Schedule`) could not be executed in this run.
+- Per fallback verification, executed fresh production Phase 8 styling audits for each target event query; all returned clean (`runtime` macro, full-width set, no repair recommended), so repair flow was not required.
+- Pulled Confluence ADF for all three pages via Atlassian MCP and confirmed runtime macro extension key is present (`.../static/hackday-runtime-macro`) in production context.
+
+### Validation / Evidence
+- Guardrail validation commands (all pass):
+  - `npm run typecheck --prefix forge-native/static/frontend`
+  - `npm run build --prefix forge-native/static/frontend`
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+- Styling audit artifacts (fresh run):
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-nickfridaynite-20260303-235021Z.json|md`
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-pw-mcp-pass-loop-1636890-20260303-235021Z.json|md`
+  - `docs/artifacts/HDC-P8-STYLING-AUDIT-perf-global-route-20260301-0030-20260303-235021Z.json|md`
+  - each summary: `Runtime macro=1`, `Repair recommended=0`, `High risk=0`.
+- Playwright auth-gate screenshots captured to artifacts:
+  - `docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-BLOCKED-16646145-20260303-2352Z.png`
+  - `docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-BLOCKED-16973858-20260303-2352Z.png`
+  - `docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-BLOCKED-16875584-20260303-2352Z.png`
+- Interaction gate evidence from Playwright page evaluation on blocked state:
+  - URL remained Atlassian login page and `hasOpenNextStep=false`, `hasSchedule=false`.
+
+### Regressions / Gotchas
+- Current Playwright MCP browser context is unauthenticated; Confluence-hosted runtime smoke is blocked by Atlassian login gate in this session.
+- No styling/macro/full-width regression detected in data-layer audits for the three target pages.
+
+### Next Recommended Step
+- Re-run the same Playwright smoke once authenticated browser state is available in MCP session, then capture hydrated runtime screenshots and explicit `Open Next Step` -> `Schedule` interaction evidence to close this checkpoint.
+
+## Session Update - Authenticated Confluence Playwright Smoke Passed (2026-03-04 01:20 GMT)
+
+### Task IDs
+- `P4.SHOW.01`
+- `P8.STYLING.01`
+
+### What Changed
+- Established authenticated browser session in a headed Playwright run and persisted state to:
+  - `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+- Re-ran production smoke for target Confluence-hosted pages using frame-aware selectors (runtime UI is embedded in iframe):
+  - `16646145` (`NickFridayNite`)
+  - `16973858` (`PW MCP Pass Loop 1636890`)
+  - `16875584` (`Perf Global Route 20260301-0030`)
+- Executed interaction validation on `16646145`:
+  - clicked `Open Next Step`
+  - confirmed navigation within runtime view to `Schedule`.
+
+### Validation / Evidence
+- Saved auth-state:
+  - `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+- Frame-aware smoke artifact set:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.md`
+- Page screenshots:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16646145-2026-03-04T01-19-07-301Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16973858-2026-03-04T01-19-07-301Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16875584-2026-03-04T01-19-07-301Z.png`
+- Interaction screenshot (`Open Next Step` -> `Schedule`):
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-INTERACTION-16646145-2026-03-04T01-19-07-301Z.png`
+- Outcome summary from JSON artifact:
+  - all 3 pages: `runtimeFrameDetected=true`, `hasOpenNextStep=true`, `hasScheduleText=true`
+  - interaction: `clickedOpenNextStep=true`, `navigatedToSchedule=true`.
+
+### Regressions / Gotchas
+- Initial non-frame-aware smoke pass produced false negatives for `Open Next Step` because top-level page selectors do not traverse macro iframe content.
+- Frame-aware selectors resolve this and should be used for all future Confluence-hosted runtime interaction smokes.
+
+### Next Recommended Step
+- Reuse `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` for repeatable non-interactive smoke runs and regenerate frame-aware artifact set after any production deploy touching runtime navigation/styling.
+
+## Session Update - Playwright Auth Capture Runbook (2026-03-04 01:25 GMT)
+
+### Scope
+- Preserve the exact working approach for authenticated Confluence-hosted Playwright smoke in this workspace.
+
+### What Failed (Do Not Reuse)
+- `playwright codegen --save-storage ...` did not reliably emit `hackdaytemp-storage.json` in this environment.
+- Non-frame-aware smoke checks returned false negatives for `Open Next Step` because runtime UI is rendered inside a Confluence macro iframe.
+- Reusing live Chrome profile with `launchPersistentContext` directly failed when Chrome was open (`SingletonLock` / ProcessSingleton lock).
+
+### Working Pattern (Use This)
+1. Use headed Playwright run to complete auth once, then save storage state explicitly via `context.storageState({ path })`.
+2. Run smoke with `storageState` and frame-aware selectors that search inside `page.frames()`.
+3. Validate interaction by clicking `Open Next Step` inside runtime iframe and asserting `Schedule` view text in same frame.
+
+### Stable Artifacts From This Session
+- Auth state file:
+  - `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+- Passing frame-aware smoke summary:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.md`
+- Passing interaction screenshot (`Open Next Step` -> `Schedule`):
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-INTERACTION-16646145-2026-03-04T01-19-07-301Z.png`
+
+### Production Status Captured
+- Target pages verified in authenticated Confluence host:
+  - `16646145` (`NickFridayNite`)
+  - `16973858` (`PW MCP Pass Loop 1636890`)
+  - `16875584` (`Perf Global Route 20260301-0030`)
+- Outcome:
+  - `runtimeFrameDetected=true` on all pages
+  - `hasOpenNextStep=true` on all pages
+  - `clickedOpenNextStep=true`, `navigatedToSchedule=true` on interaction check.
+
+### Operator Guidance
+- Prefer saved storage state + frame-aware smoke for all follow-up production checks.
+- If storage state expires, refresh once with headed auth capture and overwrite:
+  - `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+
+## Session Update - Future Work Idea Captured as Next-Work Item (2026-03-04 01:27 GMT)
+
+### Captured Idea
+- Convert frame-aware Confluence runtime smoke from an ad-hoc runbook into a committed, repeatable ops command with deterministic JSON/Markdown artifacts and explicit production pass/fail gates.
+
+### Next-Work Item (Actionable)
+- **Title:** `P8.OPS.02 - Production Frame-Aware Runtime Smoke Harness`
+- **Target environment:** `production`
+- **Scope:**
+  - add a checked-in Node/Playwright runner that always uses iframe-aware selectors for runtime assertions.
+  - consume reusable auth state from `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`.
+  - assert page-level checks for `16646145`, `16973858`, `16875584`.
+  - assert interaction path on `16646145`: `Open Next Step` click then `Schedule` visible in runtime frame.
+  - emit timestamped JSON + Markdown artifacts in `docs/artifacts/`.
+
+### Acceptance Criteria
+1. A repo-tracked smoke entrypoint exists (script + npm command) and runs non-interactively.
+2. Smoke fails if runtime frame is missing or if `Open Next Step`/`Schedule` checks fail in-frame.
+3. Smoke writes both `.json` and `.md` artifacts with per-page booleans and interaction booleans.
+4. A successful run on production records:
+   - `runtimeFrameDetected=true`, `hasOpenNextStep=true`, `hasScheduleText=true` for all three target pages.
+   - `clickedOpenNextStep=true`, `navigatedToSchedule=true` for `16646145`.
+5. `TESTING_GUIDE.md` includes the new smoke command and expected artifact locations.
+
+### Validation Path (Commands)
+- Required baseline checks:
+  - `npm run typecheck --prefix forge-native/static/frontend`
+  - `npm run build --prefix forge-native/static/frontend`
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+- Smoke harness run (new command to implement under this item):
+  - `npm run qa:phase8:playwright-smoke:frameaware -- --env production --pages 16646145,16973858,16875584 --interaction-page 16646145 --storage-state /Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+- Artifact gate check (JSON assertion):
+  - `node -e "const fs=require('fs');const p=process.argv[1];const j=JSON.parse(fs.readFileSync(p,'utf8'));if(!j.pageChecks?.every(x=>x.runtimeFrameDetected&&x.hasOpenNextStep&&x.hasScheduleText)||!j.interactionCheck?.clickedOpenNextStep||!j.interactionCheck?.navigatedToSchedule){process.exit(1)}" <artifact-json-path>`
+
+### Operational Guardrails Carried Forward
+- Use frame-aware selectors for Confluence-hosted runtime checks; avoid top-level selector-only checks.
+- Supabase verification remains `MCP-first`; use service-role SQL fallback only if MCP project listing is empty in this workspace.

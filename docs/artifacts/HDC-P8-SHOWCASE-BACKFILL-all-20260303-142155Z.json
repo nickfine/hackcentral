@@ -1,0 +1,20 @@
+{
+  "generatedAtUtc": "2026-03-03T14:21:55.988Z",
+  "dryRun": true,
+  "sourceEventId": null,
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": null,
+  "processedCount": 0,
+  "createdCount": 0,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "coverage": {
+    "total": 9,
+    "pageBacked": 9,
+    "legacyCount": 0
+  },
+  "rollbackManifest": [],
+  "results": []
+}

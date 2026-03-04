@@ -2,7 +2,7 @@
 
 An AI Maturity Accelerator platform that transforms early adopter experiments into reusable assets, accelerates adoption through social pull and mentorship, and makes organizational AI maturity visible and measurable.
 
-**Current version:** `0.6.47` / forge-native `0.3.15` / Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
+**Current version:** `0.6.48` / forge-native `0.3.16` / Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
 
 ## 🤖 New Claude Code Session?
 
@@ -23,6 +23,7 @@ Default repo mode is operational maintenance (stack/context/test/deploy first), 
 ## Prerequisites
 
 - Node.js 18+ and npm
+- For Forge CLI/deploy work, use Node `22.22.0` (repo-pinned via `.nvmrc` and `.node-version` to avoid unsupported Node warnings)
 - A Convex account (free tier available at [convex.dev](https://convex.dev))
 
 ## Setup

@@ -1,0 +1,23 @@
+{
+  "generatedAtUtc": "2026-03-03T14:22:33.405Z",
+  "dryRun": false,
+  "eventId": null,
+  "batchSize": 2,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-002",
+  "processedCount": 1,
+  "createdCount": 0,
+  "skippedCount": 0,
+  "failedCount": 1,
+  "stoppedOnError": true,
+  "rollbackManifest": [],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-001",
+      "status": "failed",
+      "reason": "Supabase POST HackdaySubmissionPageLink failed (404): {\"code\":\"PGRST205\",\"details\":null,\"hint\":\"Perhaps you meant the table 'public.HackdayExtractionPrompt'\",\"message\":\"Could not find the table 'public.HackdaySubmissionPageLink' in the schema cache\"}"
+    }
+  ]
+}

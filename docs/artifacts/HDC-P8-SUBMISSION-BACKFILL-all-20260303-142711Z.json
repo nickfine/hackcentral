@@ -1,0 +1,137 @@
+{
+  "generatedAtUtc": "2026-03-03T14:27:11.303Z",
+  "dryRun": false,
+  "eventId": null,
+  "batchSize": 20,
+  "cursorIn": "demo-proj-003",
+  "cursorOut": "demo-proj-008",
+  "processedCount": 5,
+  "createdCount": 5,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-004",
+      "createdPageIds": [
+        "21856257",
+        "21889025",
+        "21823493"
+      ]
+    },
+    {
+      "projectId": "demo-proj-005",
+      "createdPageIds": [
+        "21528581",
+        "21954561",
+        "20774917"
+      ]
+    },
+    {
+      "projectId": "demo-proj-006",
+      "createdPageIds": [
+        "21299203",
+        "21987329",
+        "21200945"
+      ]
+    },
+    {
+      "projectId": "demo-proj-007",
+      "createdPageIds": [
+        "20054045",
+        "21626887",
+        "21299222"
+      ]
+    },
+    {
+      "projectId": "demo-proj-008",
+      "createdPageIds": [
+        "22085633",
+        "20971561",
+        "21889046"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-004",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-003",
+      "status": "created",
+      "submissionPageId": "21856257",
+      "outputPageIds": [
+        "21889025",
+        "21823493"
+      ],
+      "createdPageIds": [
+        "21856257",
+        "21889025",
+        "21823493"
+      ]
+    },
+    {
+      "projectId": "demo-proj-005",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-004",
+      "status": "created",
+      "submissionPageId": "21528581",
+      "outputPageIds": [
+        "21954561",
+        "20774917"
+      ],
+      "createdPageIds": [
+        "21528581",
+        "21954561",
+        "20774917"
+      ]
+    },
+    {
+      "projectId": "demo-proj-006",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-006",
+      "status": "created",
+      "submissionPageId": "21299203",
+      "outputPageIds": [
+        "21987329",
+        "21200945"
+      ],
+      "createdPageIds": [
+        "21299203",
+        "21987329",
+        "21200945"
+      ]
+    },
+    {
+      "projectId": "demo-proj-007",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-007",
+      "status": "created",
+      "submissionPageId": "20054045",
+      "outputPageIds": [
+        "21626887",
+        "21299222"
+      ],
+      "createdPageIds": [
+        "20054045",
+        "21626887",
+        "21299222"
+      ]
+    },
+    {
+      "projectId": "demo-proj-008",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-008",
+      "status": "created",
+      "submissionPageId": "22085633",
+      "outputPageIds": [
+        "20971561",
+        "21889046"
+      ],
+      "createdPageIds": [
+        "22085633",
+        "20971561",
+        "21889046"
+      ]
+    }
+  ]
+}

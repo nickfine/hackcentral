@@ -12,6 +12,8 @@ interface SupabaseErrorPayload {
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+const SUPABASE_RATE_LIMIT_MAX_RETRIES = 1;
+const SUPABASE_RATE_LIMIT_BASE_DELAY_MS = 150;
 
 export interface QueryFilter {
   field: string;
@@ -48,6 +50,26 @@ function buildSearchParams(select: string, filters: QueryFilter[]): URLSearchPar
     params.set(filter.field, `${filter.op}.${encodeFilterValue(filter.value)}`);
   }
   return params;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(retryAfterHeader: string | null): number | null {
+  if (!retryAfterHeader) return null;
+  const asSeconds = Number(retryAfterHeader);
+  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+    return Math.round(asSeconds * 1000);
+  }
+
+  const asDateMs = Date.parse(retryAfterHeader);
+  if (Number.isFinite(asDateMs)) {
+    const delay = asDateMs - Date.now();
+    return delay > 0 ? delay : 0;
+  }
+
+  return null;
 }
 
 export class SupabaseRestClient {
@@ -92,39 +114,56 @@ export class SupabaseRestClient {
     }
   ): Promise<T> {
     const query = options?.searchParams ? `?${options.searchParams.toString()}` : '';
-    const response = await fetch(`${this.config.url}/rest/v1/${path}${query}`, {
-      method,
-      headers: this.headers(method, options?.prefer),
-      body: options?.body === undefined ? undefined : JSON.stringify(options.body),
-    });
+    let lastRateLimitReason = 'Too Many Requests';
+    for (let attempt = 0; attempt <= SUPABASE_RATE_LIMIT_MAX_RETRIES; attempt += 1) {
+      const response = await fetch(`${this.config.url}/rest/v1/${path}${query}`, {
+        method,
+        headers: this.headers(method, options?.prefer),
+        body: options?.body === undefined ? undefined : JSON.stringify(options.body),
+      });
 
-    const raw = await response.text();
-    let parsed: unknown = null;
-    if (raw) {
-      try {
-        parsed = JSON.parse(raw) as unknown;
-      } catch {
-        parsed = null;
+      const raw = await response.text();
+      let parsed: unknown = null;
+      if (raw) {
+        try {
+          parsed = JSON.parse(raw) as unknown;
+        } catch {
+          parsed = null;
+        }
       }
+
+      if (response.status === 429) {
+        const reason = parsed && typeof parsed === 'object' ? JSON.stringify(parsed) : raw || 'Too Many Requests';
+        lastRateLimitReason = reason;
+        if (attempt < SUPABASE_RATE_LIMIT_MAX_RETRIES) {
+          const retryAfterMs = parseRetryAfterMs(response.headers.get('retry-after'));
+          const computedDelayMs =
+            retryAfterMs ?? SUPABASE_RATE_LIMIT_BASE_DELAY_MS * Math.pow(2, attempt) + Math.floor(Math.random() * 75);
+          await sleep(Math.min(Math.max(computedDelayMs, 150), 5000));
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const supabaseError =
+          parsed && typeof parsed === 'object' ? (parsed as SupabaseErrorPayload) : null;
+        if (
+          response.status === 403 &&
+          supabaseError?.code === '42501' &&
+          (supabaseError.message || '').toLowerCase().includes('permission denied for schema public')
+        ) {
+          throw new Error(
+            `Supabase permission error for schema "${this.config.schema}". Check SUPABASE_SERVICE_ROLE_KEY and schema grants for service_role.`
+          );
+        }
+        const reason = parsed && typeof parsed === 'object' ? JSON.stringify(parsed) : raw;
+        throw new Error(`Supabase ${method} ${path} failed (${response.status}): ${reason}`);
+      }
+
+      return parsed as T;
     }
 
-    if (!response.ok) {
-      const supabaseError =
-        parsed && typeof parsed === 'object' ? (parsed as SupabaseErrorPayload) : null;
-      if (
-        response.status === 403 &&
-        supabaseError?.code === '42501' &&
-        (supabaseError.message || '').toLowerCase().includes('permission denied for schema public')
-      ) {
-        throw new Error(
-          `Supabase permission error for schema "${this.config.schema}". Check SUPABASE_SERVICE_ROLE_KEY and schema grants for service_role.`
-        );
-      }
-      const reason = parsed && typeof parsed === 'object' ? JSON.stringify(parsed) : raw;
-      throw new Error(`Supabase ${method} ${path} failed (${response.status}): ${reason}`);
-    }
-
-    return parsed as T;
+    throw new Error(`Supabase ${method} ${path} failed (429): ${lastRateLimitReason}`);
   }
 
   async selectMany<T>(table: string, select: string, filters: QueryFilter[] = []): Promise<T[]> {

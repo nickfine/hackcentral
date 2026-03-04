@@ -1,0 +1,35 @@
+{
+  "generatedAtUtc": "2026-03-03T13:56:49.597Z",
+  "dryRun": false,
+  "eventId": null,
+  "eventNameQuery": "Perf Global Route 20260301-0030",
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+  "processedCount": 1,
+  "changedCount": 0,
+  "failedCount": 0,
+  "rollbackManifest": [
+    {
+      "eventId": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+      "pageId": "16875584",
+      "changed": false,
+      "macroRewritten": false,
+      "introParagraphRemoved": false,
+      "fullWidthUpdated": false
+    }
+  ],
+  "results": [
+    {
+      "eventId": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+      "eventName": "Perf Global Route 20260301-0030",
+      "pageId": "16875584",
+      "status": "noop",
+      "reason": "no_repairs_needed",
+      "changed": false,
+      "macroRewritten": false,
+      "introParagraphRemoved": false,
+      "fullWidthUpdated": false
+    }
+  ]
+}

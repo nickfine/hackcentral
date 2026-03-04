@@ -1,0 +1,41 @@
+{
+  "generatedAtUtc": "2026-03-03T14:40:53.895Z",
+  "dryRun": false,
+  "eventId": null,
+  "batchSize": 1,
+  "cursorIn": null,
+  "cursorOut": "demo-proj-001",
+  "processedCount": 1,
+  "createdCount": 1,
+  "skippedCount": 0,
+  "failedCount": 0,
+  "stoppedOnError": false,
+  "rollbackManifest": [
+    {
+      "projectId": "demo-proj-001",
+      "createdPageIds": [
+        "21889065",
+        "20348932",
+        "21594123"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "projectId": "demo-proj-001",
+      "eventId": "33b04313-4d98-4748-b6a7-4ff830d35029",
+      "teamId": "demo-team-001",
+      "status": "created",
+      "submissionPageId": "21889065",
+      "outputPageIds": [
+        "20348932",
+        "21594123"
+      ],
+      "createdPageIds": [
+        "21889065",
+        "20348932",
+        "21594123"
+      ]
+    }
+  ]
+}

@@ -49,6 +49,11 @@ const SEED_USER_EMAIL_PREFIX = "seed26.";
 const SUPPORTED_RESET_SEED_PROFILES = new Set([RESET_SEED_PROFILE_BALANCED_V1]);
 const HDC_RUNTIME_CONFIG_ERROR_CODE = "HDC_RUNTIME_CONFIG_INVALID";
 const HDC_RUNTIME_OWNER = "hackcentral";
+const HACKDAY_SUBMISSION_PAGE_LINK_TABLE = "HackdaySubmissionPageLink";
+const SUBMISSIONS_PARENT_PAGE_PROPERTY_KEY = "hackcentral.submissions-parent-page-id";
+const SUBMISSIONS_PARENT_TITLE = "Submissions";
+const FULL_WIDTH_PAGE_PROPERTY_KEYS = ["content-appearance-draft", "content-appearance-published"];
+const FULL_WIDTH_PAGE_APPEARANCE = "full-width";
 const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = (() => {
   const raw = String(process.env.HDC_PERF_RUNTIME_BOOTSTRAP_V2 || "").trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes";
@@ -271,6 +276,235 @@ async function fetchUserProfile(accountId) {
     console.warn("Failed to fetch user profile:", err.message);
     return null;
   }
+}
+
+function escapeStorageText(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+async function parseConfluenceJson(response, operation) {
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`${operation} failed (${response.status}): ${body}`);
+  }
+  return body ? JSON.parse(body) : {};
+}
+
+async function requestConfluencePageById(pageId, requester = "app") {
+  const actor = requester === "user" ? api.asUser() : api.asApp();
+  const response = await actor.requestConfluence(route`/wiki/api/v2/pages/${pageId}?body-format=storage`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  return parseConfluenceJson(response, `Fetch page ${pageId}`);
+}
+
+async function fetchConfluencePageWithFallback(pageId) {
+  for (const requester of ["app", "user"]) {
+    try {
+      const page = await requestConfluencePageById(pageId, requester);
+      return { page, requester };
+    } catch {
+      // Continue to the next requester.
+    }
+  }
+  return null;
+}
+
+function extractConfluencePageUrl(pagePayload) {
+  const base = pagePayload?._links?.base || "";
+  const webui = pagePayload?._links?.webui || "";
+  return base && webui ? `${base}${webui}` : "";
+}
+
+async function updateConfluencePageStorage({ page, requester = "app", storageValue, versionMessage }) {
+  const actor = requester === "user" ? api.asUser() : api.asApp();
+  const payload = {
+    id: page.id,
+    status: page.status || "current",
+    title: page.title || `HackDay ${page.id}`,
+    ...(page.spaceId ? { spaceId: String(page.spaceId) } : {}),
+    ...(page.parentId ? { parentId: String(page.parentId) } : {}),
+    version: {
+      number: Number(page?.version?.number || 0) + 1,
+      message: versionMessage || "Update HackDay submission page content",
+    },
+    body: {
+      representation: "storage",
+      value: storageValue,
+    },
+  };
+
+  const response = await actor.requestConfluence(route`/wiki/api/v2/pages/${page.id}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  await parseConfluenceJson(response, `Update page ${page.id}`);
+}
+
+async function getConfluencePagePropertyByKey(pageId, propertyKey, requester = "app") {
+  const actor = requester === "user" ? api.asUser() : api.asApp();
+  const response = await actor.requestConfluence(
+    route`/wiki/api/v2/pages/${pageId}/properties?key=${propertyKey}&limit=1`,
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    }
+  );
+  const payload = await parseConfluenceJson(response, `Read property ${propertyKey} for page ${pageId}`);
+  const results = Array.isArray(payload?.results) ? payload.results : [];
+  return results[0] || null;
+}
+
+async function upsertConfluencePageProperty(pageId, propertyKey, value, requester = "app") {
+  const actor = requester === "user" ? api.asUser() : api.asApp();
+  const existing = await getConfluencePagePropertyByKey(pageId, propertyKey, requester);
+  if (existing?.id) {
+    const response = await actor.requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties/${existing.id}`, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key: propertyKey,
+        value,
+        version: {
+          number: Number(existing?.version?.number || 1) + 1,
+          message: "Update page property",
+        },
+      }),
+    });
+    await parseConfluenceJson(response, `Update property ${propertyKey} for page ${pageId}`);
+    return;
+  }
+
+  const response = await actor.requestConfluence(route`/wiki/api/v2/pages/${pageId}/properties`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      key: propertyKey,
+      value,
+    }),
+  });
+  await parseConfluenceJson(response, `Create property ${propertyKey} for page ${pageId}`);
+}
+
+async function ensureConfluencePageFullWidth(pageId) {
+  for (const propertyKey of FULL_WIDTH_PAGE_PROPERTY_KEYS) {
+    let updated = false;
+    for (const requester of ["app", "user"]) {
+      try {
+        await upsertConfluencePageProperty(pageId, propertyKey, FULL_WIDTH_PAGE_APPEARANCE, requester);
+        updated = true;
+        break;
+      } catch {
+        // Try the next requester.
+      }
+    }
+    if (!updated) {
+      throw new Error(`Unable to set full-width page property ${propertyKey} for page ${pageId}`);
+    }
+  }
+}
+
+async function createConfluenceChildPage({ parentPageId, title, storageValue }) {
+  const parent = await fetchConfluencePageWithFallback(parentPageId);
+  if (!parent?.page?.spaceId) {
+    throw new Error(`Unable to resolve parent metadata for page ${parentPageId}`);
+  }
+
+  for (const requester of ["app", "user"]) {
+    try {
+      const actor = requester === "user" ? api.asUser() : api.asApp();
+      const response = await actor.requestConfluence(route`/wiki/api/v2/pages`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "current",
+          title,
+          spaceId: String(parent.page.spaceId),
+          parentId: parentPageId,
+          body: {
+            storage: {
+              representation: "storage",
+              value: storageValue,
+            },
+          },
+        }),
+      });
+      const payload = await parseConfluenceJson(response, `Create child page under ${parentPageId}`);
+      await ensureConfluencePageFullWidth(payload.id);
+      return {
+        pageId: String(payload.id),
+        pageUrl: extractConfluencePageUrl(payload),
+      };
+    } catch {
+      // Try the next requester.
+    }
+  }
+
+  throw new Error(`Unable to create child page "${title}" under ${parentPageId}`);
+}
+
+async function ensureSubmissionsParentPage(eventPageId) {
+  const normalizedPageId = normalizeConfluencePageId(eventPageId);
+  if (!normalizedPageId) {
+    throw new Error("A numeric event page id is required to ensure submissions parent page.");
+  }
+
+  const linkedPageIds = [];
+  for (const requester of ["app", "user"]) {
+    try {
+      const property = await getConfluencePagePropertyByKey(normalizedPageId, SUBMISSIONS_PARENT_PAGE_PROPERTY_KEY, requester);
+      const linkedPageId = normalizeConfluencePageId(property?.value);
+      if (linkedPageId) linkedPageIds.push(linkedPageId);
+    } catch {
+      // Continue.
+    }
+  }
+
+  for (const linkedPageId of [...new Set(linkedPageIds)]) {
+    const existingPage = await fetchConfluencePageWithFallback(linkedPageId);
+    if (existingPage?.page?.id) {
+      return {
+        pageId: linkedPageId,
+        pageUrl: extractConfluencePageUrl(existingPage.page),
+      };
+    }
+  }
+
+  const created = await createConfluenceChildPage({
+    parentPageId: normalizedPageId,
+    title: SUBMISSIONS_PARENT_TITLE,
+    storageValue: `<h1>${escapeStorageText(SUBMISSIONS_PARENT_TITLE)}</h1><p>Container page for HackDay submissions.</p>`,
+  });
+
+  for (const requester of ["app", "user"]) {
+    try {
+      await upsertConfluencePageProperty(normalizedPageId, SUBMISSIONS_PARENT_PAGE_PROPERTY_KEY, created.pageId, requester);
+      break;
+    } catch {
+      // Best effort only.
+    }
+  }
+
+  return created;
 }
 
 // ============================================================================
@@ -2739,7 +2973,7 @@ function transformUser(user) {
 /**
  * Transform Supabase Team to Forge team format
  */
-function transformTeam(team, members, project) {
+function transformTeam(team, members, project, submissionLink = null) {
   const captain = members.find((m) => m.role === "OWNER" && m.status === "ACCEPTED");
   const acceptedMembers = members.filter((m) => m.status === "ACCEPTED");
   const pendingRequests = members.filter((m) => m.status === "PENDING");
@@ -2788,6 +3022,9 @@ function transformTeam(team, members, project) {
           repoUrl: project.repoUrl || "",
           liveDemoUrl: project.demoUrl || "",
           submittedAt: project.submittedAt || null,
+          submissionPageId: submissionLink?.submission_page_id || null,
+          submissionPageUrl: submissionLink?.submission_page_url || null,
+          outputPageIds: Array.isArray(submissionLink?.output_page_ids) ? submissionLink.output_page_ids : [],
         }
       : undefined,
     createdAt: team.createdAt,
@@ -3531,9 +3768,32 @@ resolver.define("getTeams", async (req) => {
     }
 
     const projectByTeam = new Map();
+    const projectIds = [];
     for (const project of projectsResult.data || []) {
       if (!projectByTeam.has(project.teamId)) {
         projectByTeam.set(project.teamId, project);
+        projectIds.push(project.id);
+      }
+    }
+
+    let submissionLinksByProjectId = new Map();
+    if (projectIds.length > 0) {
+      try {
+        const { data: linkRows, error: linkError } = await supabase
+          .from(HACKDAY_SUBMISSION_PAGE_LINK_TABLE)
+          .select("project_id,submission_page_id,submission_page_url,output_page_ids")
+          .in("project_id", projectIds);
+        if (!linkError) {
+          submissionLinksByProjectId = new Map(
+            (linkRows || []).map((row) => [row.project_id, row])
+          );
+        } else if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
+      } catch (linkError) {
+        if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
       }
     }
 
@@ -3541,7 +3801,8 @@ resolver.define("getTeams", async (req) => {
       transformTeam(
         team,
         membersByTeam.get(team.id) || [],
-        projectByTeam.get(team.id)
+        projectByTeam.get(team.id),
+        projectByTeam.get(team.id) ? submissionLinksByProjectId.get(projectByTeam.get(team.id).id) : null
       )
     );
     const teamsWithDetails = await Promise.all(
@@ -3820,10 +4081,29 @@ resolver.define("getTeam", async (req) => {
       .limit(1);
 
     const projectRow = project?.[0];
+    let submissionLinkRow = null;
+    if (projectRow?.id) {
+      try {
+        const { data: linkRows, error: linkError } = await supabase
+          .from(HACKDAY_SUBMISSION_PAGE_LINK_TABLE)
+          .select("project_id,submission_page_id,submission_page_url,output_page_ids")
+          .eq("project_id", projectRow.id)
+          .limit(1);
+        if (!linkError) {
+          submissionLinkRow = linkRows?.[0] || null;
+        } else if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
+      } catch (linkError) {
+        if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
+      }
+    }
 
     // Transform team with full member set (accepted + pending).
     const transformedTeam = await hydrateTeamDetailFields(
-      transformTeam(team, members || [], projectRow)
+      transformTeam(team, members || [], projectRow, submissionLinkRow)
     );
 
     return { team: transformedTeam };
@@ -3976,10 +4256,29 @@ resolver.define("updateTeam", async (req) => {
       .eq("teamId", teamId)
       .limit(1);
     const project = projectData?.[0];
+    let submissionLinkRow = null;
+    if (project?.id) {
+      try {
+        const { data: linkRows, error: linkError } = await supabase
+          .from(HACKDAY_SUBMISSION_PAGE_LINK_TABLE)
+          .select("project_id,submission_page_id,submission_page_url,output_page_ids")
+          .eq("project_id", project.id)
+          .limit(1);
+        if (!linkError) {
+          submissionLinkRow = linkRows?.[0] || null;
+        } else if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
+      } catch (linkError) {
+        if (!hasMissingTable(linkError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+          throw linkError;
+        }
+      }
+    }
 
     return {
       team: await hydrateTeamDetailFields(
-        transformTeam(updatedTeamData?.[0], members || [], project)
+        transformTeam(updatedTeamData?.[0], members || [], project, submissionLinkRow)
       ),
     };
   } catch (error) {
@@ -4770,6 +5069,218 @@ resolver.define("respondToInvite", async (req) => {
 // SUBMISSIONS
 // ============================================================================
 
+function buildRuntimeSubmissionPageStorage(input) {
+  const lines = [];
+  lines.push("<h1>HackDay Submission</h1>");
+  lines.push(`<p><strong>Project:</strong> ${escapeStorageText(input.projectName)}</p>`);
+  lines.push(`<p><strong>Team:</strong> ${escapeStorageText(input.teamName)}</p>`);
+  lines.push(`<p>${escapeStorageText(input.description || "No description provided.")}</p>`);
+  lines.push("<h2>Delivery Links</h2>");
+  lines.push(`<p><strong>Demo video:</strong> ${input.demoVideoUrl ? `<a href="${escapeStorageText(input.demoVideoUrl)}">${escapeStorageText(input.demoVideoUrl)}</a>` : "Not provided"}</p>`);
+  lines.push(`<p><strong>Repository:</strong> ${input.repoUrl ? `<a href="${escapeStorageText(input.repoUrl)}">${escapeStorageText(input.repoUrl)}</a>` : "Not provided"}</p>`);
+  lines.push(`<p><strong>Live demo:</strong> ${input.liveDemoUrl ? `<a href="${escapeStorageText(input.liveDemoUrl)}">${escapeStorageText(input.liveDemoUrl)}</a>` : "Not provided"}</p>`);
+  lines.push("<h2>Output Pages</h2>");
+  if (!Array.isArray(input.outputLinks) || input.outputLinks.length === 0) {
+    lines.push("<p>No output pages generated yet.</p>");
+  } else {
+    lines.push(
+      `<ul>${input.outputLinks
+        .map((link) => `<li><a href="${escapeStorageText(link.url)}">${escapeStorageText(link.title)}</a></li>`)
+        .join("")}</ul>`
+    );
+  }
+  return lines.join("");
+}
+
+function buildRuntimeOutputPageStorage(input) {
+  return [
+    "<h1>Submission Output</h1>",
+    `<p><strong>Output:</strong> ${escapeStorageText(input.title)}</p>`,
+    `<p><strong>Source:</strong> ${escapeStorageText(input.sourceReference)}</p>`,
+    "<h2>Content</h2>",
+    `<p>${escapeStorageText(input.content || "No content captured yet.")}</p>`,
+  ].join("");
+}
+
+async function syncSubmissionConfluencePages({
+  supabase,
+  eventPageId,
+  eventId,
+  teamId,
+  teamName,
+  projectId,
+  projectName,
+  description,
+  demoVideoUrl,
+  repoUrl,
+  liveDemoUrl,
+}) {
+  if (!normalizeConfluencePageId(eventPageId)) {
+    return { submissionPageId: null, submissionPageUrl: null, outputPageIds: [] };
+  }
+
+  let existingLink = null;
+  try {
+    const { data: linkRows, error: linkError } = await supabase
+      .from(HACKDAY_SUBMISSION_PAGE_LINK_TABLE)
+      .select("project_id,event_id,team_id,submission_page_id,submission_page_url,output_page_ids")
+      .eq("project_id", projectId)
+      .limit(1);
+    if (!linkError) {
+      existingLink = linkRows?.[0] || null;
+    }
+  } catch (err) {
+    if (!hasMissingTable(err, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+      throw err;
+    }
+  }
+
+  const submissionsParent = await ensureSubmissionsParentPage(eventPageId);
+  const createdPageIds = [];
+  const outputDefinitions = [
+    {
+      key: "demo-video",
+      title: `${projectName} · Demo Video`,
+      sourceReference: "Submission demoVideoUrl",
+      content: demoVideoUrl || null,
+    },
+    {
+      key: "repo",
+      title: `${projectName} · Repository`,
+      sourceReference: "Submission repoUrl",
+      content: repoUrl || null,
+    },
+    {
+      key: "live-demo",
+      title: `${projectName} · Live Demo`,
+      sourceReference: "Submission liveDemoUrl",
+      content: liveDemoUrl || null,
+    },
+  ].filter((entry) => typeof entry.content === "string" && entry.content.trim().length > 0);
+
+  let submissionPage = null;
+  const existingSubmissionPageId = normalizeConfluencePageId(existingLink?.submission_page_id);
+  if (existingSubmissionPageId) {
+    const fetched = await fetchConfluencePageWithFallback(existingSubmissionPageId);
+    if (fetched?.page?.id) {
+      submissionPage = {
+        pageId: existingSubmissionPageId,
+        pageUrl: extractConfluencePageUrl(fetched.page),
+        pagePayload: fetched.page,
+        requester: fetched.requester,
+      };
+    }
+  }
+
+  if (!submissionPage) {
+    const created = await createConfluenceChildPage({
+      parentPageId: submissionsParent.pageId,
+      title: `${teamName} · ${projectName}`,
+      storageValue: buildRuntimeSubmissionPageStorage({
+        projectName,
+        teamName,
+        description,
+        demoVideoUrl,
+        repoUrl,
+        liveDemoUrl,
+        outputLinks: [],
+      }),
+    });
+    createdPageIds.push(created.pageId);
+    const fetched = await fetchConfluencePageWithFallback(created.pageId);
+    if (!fetched) {
+      throw new Error(`Unable to read newly created submission page ${created.pageId}`);
+    }
+    submissionPage = {
+      pageId: created.pageId,
+      pageUrl: created.pageUrl,
+      pagePayload: fetched.page,
+      requester: fetched.requester,
+    };
+  }
+
+  const existingOutputPageIds = Array.isArray(existingLink?.output_page_ids)
+    ? existingLink.output_page_ids.map(normalizeConfluencePageId).filter(Boolean)
+    : [];
+  const outputPageIds = [];
+  const outputLinks = [];
+
+  for (let i = 0; i < outputDefinitions.length; i += 1) {
+    const definition = outputDefinitions[i];
+    const existingOutputPageId = existingOutputPageIds[i] || null;
+    if (existingOutputPageId) {
+      const fetchedOutput = await fetchConfluencePageWithFallback(existingOutputPageId);
+      if (fetchedOutput?.page?.id) {
+        await updateConfluencePageStorage({
+          page: fetchedOutput.page,
+          requester: fetchedOutput.requester,
+          storageValue: buildRuntimeOutputPageStorage(definition),
+          versionMessage: "Refresh HackDay submission output page",
+        });
+        outputPageIds.push(existingOutputPageId);
+        outputLinks.push({
+          title: definition.title,
+          url: extractConfluencePageUrl(fetchedOutput.page) || `/wiki/pages/viewpage.action?pageId=${existingOutputPageId}`,
+        });
+        continue;
+      }
+    }
+
+    const createdOutput = await createConfluenceChildPage({
+      parentPageId: submissionPage.pageId,
+      title: definition.title,
+      storageValue: buildRuntimeOutputPageStorage(definition),
+    });
+    createdPageIds.push(createdOutput.pageId);
+    outputPageIds.push(createdOutput.pageId);
+    outputLinks.push({
+      title: definition.title,
+      url: createdOutput.pageUrl || `/wiki/pages/viewpage.action?pageId=${createdOutput.pageId}`,
+    });
+  }
+
+  const refreshedSubmission = await fetchConfluencePageWithFallback(submissionPage.pageId);
+  if (!refreshedSubmission) {
+    throw new Error(`Unable to refresh submission page ${submissionPage.pageId}`);
+  }
+  await updateConfluencePageStorage({
+    page: refreshedSubmission.page,
+    requester: refreshedSubmission.requester,
+    storageValue: buildRuntimeSubmissionPageStorage({
+      projectName,
+      teamName,
+      description,
+      demoVideoUrl,
+      repoUrl,
+      liveDemoUrl,
+      outputLinks,
+    }),
+    versionMessage: "Refresh HackDay submission summary",
+  });
+
+  const { error: upsertError } = await supabase.from(HACKDAY_SUBMISSION_PAGE_LINK_TABLE).upsert(
+    {
+      project_id: projectId,
+      event_id: eventId || null,
+      team_id: teamId || null,
+      submission_page_id: submissionPage.pageId,
+      submission_page_url: submissionPage.pageUrl || null,
+      output_page_ids: outputPageIds,
+    },
+    { onConflict: "project_id" }
+  );
+  if (upsertError && !hasMissingTable(upsertError, HACKDAY_SUBMISSION_PAGE_LINK_TABLE)) {
+    throw upsertError;
+  }
+
+  return {
+    submissionPageId: submissionPage.pageId,
+    submissionPageUrl: submissionPage.pageUrl || null,
+    outputPageIds,
+    createdPageIds,
+  };
+}
+
 /**
  * Helper: Validate URL format and protocol
  */
@@ -4826,9 +5337,20 @@ resolver.define("submitProject", async (req) => {
       throw new Error("User is not a member of this team");
     }
 
+    const { data: teamData, error: teamError } = await supabase
+      .from("Team")
+      .select("id,eventId,name")
+      .eq("id", teamId)
+      .limit(1);
+    const team = teamData?.[0] || null;
+    if (teamError || !team) {
+      throw new Error("Team not found");
+    }
+
     // Check if project exists
     const { data: existingData } = await supabase.from("Project").select("id").eq("teamId", teamId).limit(1);
     const existing = existingData?.[0];
+    const projectId = existing?.id || makeId("proj");
 
     const projectData = {
       name: String(submissionData.projectName || "").trim(),
@@ -4847,7 +5369,7 @@ resolver.define("submitProject", async (req) => {
     } else {
       // Create new project
       const { error: insertError } = await supabase.from("Project").insert({
-        id: makeId("proj"),
+        id: projectId,
         teamId,
         ...projectData,
         createdAt: new Date().toISOString(),
@@ -4855,7 +5377,38 @@ resolver.define("submitProject", async (req) => {
       if (insertError) throw insertError;
     }
 
-    return { success: true };
+    let submissionPageId = null;
+    let submissionPageUrl = null;
+    let outputPageIds = [];
+    const eventRow = team.eventId ? await getEventById(supabase, team.eventId) : null;
+    const eventPageId = normalizeConfluencePageId(eventRow?.confluence_page_id);
+    if (eventPageId) {
+      try {
+        const pageSync = await syncSubmissionConfluencePages({
+          supabase,
+          eventPageId,
+          eventId: team.eventId,
+          teamId: team.id,
+          teamName: String(team.name || "").trim() || `Team ${team.id}`,
+          projectId,
+          projectName: projectData.name || `Submission ${projectId}`,
+          description: projectData.description || "",
+          demoVideoUrl: projectData.videoUrl || null,
+          repoUrl: projectData.repoUrl || null,
+          liveDemoUrl: projectData.demoUrl || null,
+        });
+        submissionPageId = pageSync.submissionPageId || null;
+        submissionPageUrl = pageSync.submissionPageUrl || null;
+        outputPageIds = Array.isArray(pageSync.outputPageIds) ? pageSync.outputPageIds : [];
+      } catch (pageSyncError) {
+        console.warn(
+          "submitProject page sync warning:",
+          pageSyncError instanceof Error ? pageSyncError.message : String(pageSyncError)
+        );
+      }
+    }
+
+    return { success: true, submissionPageId, submissionPageUrl, outputPageIds };
   } catch (error) {
     console.error("submitProject error:", error);
     throw new Error(`Failed to submit project: ${error.message}`);

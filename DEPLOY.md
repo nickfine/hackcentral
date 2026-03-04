@@ -21,6 +21,22 @@ Open Confluence on hackdaytemp → HackCentral. Done.
 
 ---
 
+## Showcase Page-Only Rollout Flag
+
+Set this at build-time for `forge-native/static/frontend` when legacy showcase fallback can be retired:
+
+```bash
+VITE_HDC_SHOWCASE_PAGE_ONLY_V1=true
+```
+
+- `false` (default): hybrid mode (`Open page` for page-backed, legacy detail fallback for old rows).
+- `true`: page-only mode (all cards route to Confluence pages; legacy drawer path disabled).
+
+Recommended guardrail before enabling:
+- Run `npm run qa:phase8:showcase-backfill -- --apply` until coverage report shows `legacyCount=0`.
+
+---
+
 ## Confluence still old? Use staging (bypass CDN)
 
 Staging has no CDN cache, so you see the bundle you just deployed.

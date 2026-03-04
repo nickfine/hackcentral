@@ -111,6 +111,15 @@ import type {
   ViewerContext,
 } from '../../shared/types';
 import { SupabaseRestClient, type QueryFilter } from './client';
+import {
+  buildConfluencePageUrl,
+  buildHackOutputPageStorageValue,
+  buildHackPageStorageValue,
+  createStandardChildPage,
+  deletePage,
+  ensureHacksParentPageUnderParent,
+  setPageStorageContent,
+} from '../confluencePages';
 
 const EVENT_TABLE = 'Event';
 const USER_TABLE = 'User';
@@ -348,6 +357,9 @@ interface DbShowcaseHack {
   project_id: string;
   featured: boolean | null;
   demo_url: string | null;
+  confluence_page_id: string | null;
+  confluence_page_url: string | null;
+  output_page_ids: string[] | null;
   team_members: string[] | null;
   source_event_id: string | null;
   tags: string[] | null;
@@ -1245,8 +1257,15 @@ function normalizeShowcaseTeamMembers(teamMembers: string[]): string[] {
 function normalizeShowcaseLinkedArtifactIds(linkedArtifactIds: string[]): string[] {
   const normalized = linkedArtifactIds
     .map((artifactId) => artifactId.trim())
-    .filter((artifactId) => artifactId.length > 0);
+    .filter((artifactId) => artifactId.length > 0)
+    .filter((artifactId) => isUuid(artifactId));
   return [...new Set(normalized)].slice(0, 24);
+}
+
+function normalizeConfluenceParentPageId(value: string | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return /^\d+$/.test(trimmed) ? trimmed : null;
 }
 
 function normalizeShowcaseStatus(project: DbProject): ShowcaseHackStatus {
@@ -1968,6 +1987,9 @@ function createShowcaseHackListItem(input: {
     tags: normalizeShowcaseTags(metadata?.tags ?? []),
     sourceEventId: metadata?.source_event_id ?? project.event_id ?? undefined,
     demoUrl: metadata?.demo_url ?? undefined,
+    confluencePageId: metadata?.confluence_page_id ?? undefined,
+    confluencePageUrl: metadata?.confluence_page_url ?? undefined,
+    isPageBacked: Boolean(metadata?.confluence_page_id),
     pipelineStage: resolveProjectPipelineStage(project),
     reuseCount: Math.max(0, Math.floor(reuseCount)),
     forkCount: Math.max(0, Math.floor(forkCount)),
@@ -2339,6 +2361,16 @@ function hasProjectTeamForeignKeyError(error: unknown): boolean {
   );
 }
 
+function isSupabaseRateLimitError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = normalizeSupabaseErrorMessage(error).toLowerCase();
+  return message.includes('(429)') || message.includes('too many requests');
+}
+
+function delayMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function normalizeSupabaseErrorMessage(error: Error): string {
   return error.message.replace(/\\+"/g, '"');
 }
@@ -2364,11 +2396,22 @@ function extractTeamNotNullColumn(error: unknown): string | null {
   return match ? match[1] : null;
 }
 
-function defaultTeamFieldValue(column: string, teamId: string, ownerId: string | null, now: string): unknown {
+function defaultTeamFieldValue(
+  column: string,
+  teamId: string,
+  ownerId: string | null,
+  now: string,
+  eventId: string | null
+): unknown {
   const col = column.toLowerCase();
   if (col === 'id') return teamId;
   if (col === 'teamid') return teamId;
   if (col === 'name' || col === 'title') return `Forge Team ${teamId.slice(-8)}`;
+  if (col === 'eventid' || col === 'event_id') return eventId;
+  if (col === 'trackside' || col === 'track_side') return 'AI';
+  if (col === 'maxsize' || col === 'max_size') return 8;
+  if (col === 'ispublic' || col === 'is_public') return true;
+  if (col === 'isautocreated' || col === 'is_auto_created') return true;
   if (col === 'createdat' || col === 'updatedat') return now;
   if (col === 'created_at' || col === 'updated_at') return now;
   if (col === 'ownerid' || col === 'owner_id') return ownerId ?? 'forge-system';
@@ -2377,19 +2420,88 @@ function defaultTeamFieldValue(column: string, teamId: string, ownerId: string |
   return null;
 }
 
+async function getAnyEventId(client: SupabaseRestClient): Promise<string | null> {
+  try {
+    const rows = await client.selectMany<{ id?: string }>(EVENT_TABLE, 'id');
+    for (const row of rows) {
+      if (typeof row.id === 'string' && row.id.trim()) {
+        return row.id.trim();
+      }
+    }
+  } catch {
+    // Best-effort fallback only.
+  }
+  return null;
+}
+
+async function resolveExistingTeamId(client: SupabaseRestClient, identifier: string): Promise<string | null> {
+  const normalized = identifier.trim();
+  if (!normalized) return null;
+  try {
+    const byId = await client.selectOne<{ id?: string }>(TEAM_TABLE, 'id', [{ field: 'id', op: 'eq', value: normalized }]);
+    if (byId && typeof byId.id === 'string' && byId.id.trim()) {
+      return byId.id.trim();
+    }
+  } catch {
+    // Fallback below.
+  }
+  try {
+    const byTeamId = await client.selectOne<{ id?: string }>(TEAM_TABLE, 'id', [
+      { field: 'teamId', op: 'eq', value: normalized },
+    ]);
+    if (byTeamId && typeof byTeamId.id === 'string' && byTeamId.id.trim()) {
+      return byTeamId.id.trim();
+    }
+  } catch {
+    // Optional compatibility path.
+  }
+  return null;
+}
+
 async function ensureLegacyTeamRecord(
   client: SupabaseRestClient,
   ownerId: string | null,
-  preferredTeamId?: string
+  preferredTeamId?: string,
+  preferredEventId?: string | null
 ): Promise<string | null> {
   const teamId = preferredTeamId || generateLegacyTeamId();
   const now = nowIso();
   const baseName = `Forge Team ${teamId.slice(-8)}`;
+  let fallbackEventId = preferredEventId?.trim() || null;
+  if (!fallbackEventId) {
+    fallbackEventId = await getAnyEventId(client);
+  }
   const queue: Array<Record<string, unknown>> = [
-    { id: teamId, name: baseName, ownerId: ownerId ?? undefined, createdAt: now, updatedAt: now },
-    { teamId, name: baseName, ownerId: ownerId ?? undefined, createdAt: now, updatedAt: now },
-    { id: teamId, name: baseName, owner_id: ownerId ?? undefined, created_at: now, updated_at: now },
-    { teamId, name: baseName, owner_id: ownerId ?? undefined, created_at: now, updated_at: now },
+    {
+      id: teamId,
+      eventId: fallbackEventId ?? undefined,
+      name: baseName,
+      description: '',
+      trackSide: 'AI',
+      createdAt: now,
+      updatedAt: now,
+      isPublic: true,
+      isAutoCreated: true,
+      slug: `forge-${teamId.slice(-8)}`,
+    },
+    { id: teamId, name: baseName, ownerId: ownerId ?? undefined, eventId: fallbackEventId ?? undefined, createdAt: now, updatedAt: now },
+    { teamId, name: baseName, ownerId: ownerId ?? undefined, eventId: fallbackEventId ?? undefined, createdAt: now, updatedAt: now },
+    {
+      id: teamId,
+      name: baseName,
+      owner_id: ownerId ?? undefined,
+      event_id: fallbackEventId ?? undefined,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      teamId,
+      name: baseName,
+      owner_id: ownerId ?? undefined,
+      event_id: fallbackEventId ?? undefined,
+      created_at: now,
+      updated_at: now,
+    },
     { id: teamId, name: baseName, createdAt: now, updatedAt: now },
     { teamId, name: baseName, createdAt: now, updatedAt: now },
     { id: teamId, name: baseName },
@@ -2410,13 +2522,23 @@ async function ensureLegacyTeamRecord(
     seen.add(signature);
 
     try {
-      await client.insert(TEAM_TABLE, candidate);
-      return teamId;
+      const inserted = await client.insert<Record<string, unknown>>(TEAM_TABLE, candidate);
+      const insertedId = getStringField(inserted, ['id', 'teamId']);
+      if (insertedId) {
+        return insertedId;
+      }
+      const resolved = await resolveExistingTeamId(client, teamId);
+      if (resolved) {
+        return resolved;
+      }
     } catch (error) {
       if (error instanceof Error) {
         const normalized = normalizeSupabaseErrorMessage(error).toLowerCase();
         if (normalized.includes('23505') || normalized.includes('duplicate key value violates unique constraint')) {
-          return teamId;
+          const resolved = await resolveExistingTeamId(client, teamId);
+          if (resolved) {
+            return resolved;
+          }
         }
       }
 
@@ -2429,7 +2551,11 @@ async function ensureLegacyTeamRecord(
 
       const notNullColumn = extractTeamNotNullColumn(error);
       if (notNullColumn && !(notNullColumn in candidate)) {
-        const defaultValue = defaultTeamFieldValue(notNullColumn, teamId, ownerId, now);
+        const normalizedColumn = notNullColumn.toLowerCase();
+        if ((normalizedColumn === 'eventid' || normalizedColumn === 'event_id') && !fallbackEventId) {
+          fallbackEventId = await getAnyEventId(client);
+        }
+        const defaultValue = defaultTeamFieldValue(notNullColumn, teamId, ownerId, now, fallbackEventId);
         queue.push({
           ...candidate,
           [notNullColumn]: defaultValue,
@@ -3142,8 +3268,14 @@ export class SupabaseRepository {
 
   private async getAnyTeamId(): Promise<string | null> {
     try {
-      const row = await this.client.selectOne<{ id: string }>(TEAM_TABLE, 'id');
-      return row?.id ?? null;
+      const [teamRows, projects] = await Promise.all([
+        this.client.selectMany<{ id: string }>(TEAM_TABLE, 'id'),
+        this.listProjects(),
+      ]);
+      const teamIds = teamRows.map((row) => row.id).filter((id) => typeof id === 'string' && id.length > 0);
+      if (teamIds.length === 0) return null;
+      const usedTeamIds = new Set(projects.map((project) => project.team_id).filter((id): id is string => Boolean(id)));
+      return teamIds.find((teamId) => !usedTeamIds.has(teamId)) ?? null;
     } catch {
       return null;
     }
@@ -3178,6 +3310,9 @@ export class SupabaseRepository {
   }
 
   private async getArtifactRowById(artifactId: string): Promise<DbArtifact | null> {
+    if (!isUuid(artifactId)) {
+      return null;
+    }
     return this.client.selectOne<DbArtifact>(
       ARTIFACT_TABLE,
       'id,title,description,artifact_type,tags,source_url,source_label,source_hack_project_id,source_hackday_event_id,created_by_user_id,visibility,reuse_count,created_at,updated_at,archived_at',
@@ -3267,15 +3402,50 @@ export class SupabaseRepository {
         : typeof payload.ownerId === 'string'
           ? payload.ownerId
           : null;
-    let fallbackTeamId = await this.getAnyTeamId();
+    const projectEventId =
+      typeof payload.event_id === 'string'
+        ? payload.event_id.trim() || null
+        : typeof payload.eventId === 'string'
+          ? payload.eventId.trim() || null
+          : null;
+    let fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId, undefined, projectEventId);
     if (!fallbackTeamId) {
-      fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+      fallbackTeamId = await this.getAnyTeamId();
     }
     const exhaustedTeamIds = new Set<string>();
     const legacyTimestamp = nowIso();
+    const normalizedDescription =
+      typeof payload.description === 'string'
+        ? payload.description
+        : payload.description === null || payload.description === undefined
+          ? ''
+          : String(payload.description);
     const withLegacyTeam = fallbackTeamId ? { teamId: fallbackTeamId } : {};
     const withLegacyTimestamps = { createdAt: legacyTimestamp, updatedAt: legacyTimestamp };
+    const legacyCoreCandidate: Record<string, unknown> = {
+      id: projectId,
+      name: payload.title,
+      description: normalizedDescription,
+      source_type:
+        typeof payload.source_type === 'string'
+          ? payload.source_type
+          : typeof payload.sourceType === 'string'
+            ? payload.sourceType
+            : null,
+      hack_type: payload.hack_type ?? null,
+      visibility: payload.visibility ?? null,
+      owner_id: ownerId,
+      workflow_transformed:
+        typeof payload.workflow_transformed === 'boolean' ? payload.workflow_transformed : false,
+      synced_to_library_at: payload.synced_to_library_at ?? null,
+      event_id: projectEventId,
+      pipeline_stage: payload.pipeline_stage ?? null,
+      pipeline_stage_entered_at: payload.pipeline_stage_entered_at ?? null,
+      ...withLegacyTeam,
+      ...withLegacyTimestamps,
+    };
     const queue: Array<Record<string, unknown>> = [
+      legacyCoreCandidate,
       { ...payload, id: projectId, name: payload.title, ...withLegacyTeam, ...withLegacyTimestamps },
       { ...payload, id: projectId, ...withLegacyTeam, ...withLegacyTimestamps },
       { ...payload, id: projectId, name: payload.title, ...withLegacyTimestamps },
@@ -3307,35 +3477,28 @@ export class SupabaseRepository {
         if (hasDuplicateProjectTeamId(error) && candidate.teamId) {
           const currentTeamId = String(candidate.teamId);
           exhaustedTeamIds.add(currentTeamId);
-          const alternatives = await this.listTeamIds();
-          const alternativeTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId));
-
-          if (alternativeTeamId) {
-            exhaustedTeamIds.add(alternativeTeamId);
+          let nextTeamId = await ensureLegacyTeamRecord(this.client, ownerId, undefined, projectEventId);
+          if (!nextTeamId || exhaustedTeamIds.has(nextTeamId)) {
+            const alternatives = await this.listTeamIds();
+            nextTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId)) ?? null;
+          }
+          if (nextTeamId) {
+            exhaustedTeamIds.add(nextTeamId);
             queue.push({
               ...candidate,
-              teamId: alternativeTeamId,
+              teamId: nextTeamId,
             });
-          } else {
-            const freshTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
-            if (freshTeamId) {
-              exhaustedTeamIds.add(freshTeamId);
-              queue.push({
-                ...candidate,
-                teamId: freshTeamId,
-              });
-            }
           }
         }
 
         const notNullColumn = extractProjectNotNullColumn(error);
         if (notNullColumn === 'teamId' && !candidate.teamId) {
           if (!fallbackTeamId || exhaustedTeamIds.has(fallbackTeamId)) {
-            const alternatives = await this.listTeamIds();
-            fallbackTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId)) ?? null;
-          }
-          if (!fallbackTeamId) {
-            fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId);
+            fallbackTeamId = await ensureLegacyTeamRecord(this.client, ownerId, undefined, projectEventId);
+            if (!fallbackTeamId || exhaustedTeamIds.has(fallbackTeamId)) {
+              const alternatives = await this.listTeamIds();
+              fallbackTeamId = alternatives.find((teamId) => !exhaustedTeamIds.has(teamId)) ?? null;
+            }
           }
           if (fallbackTeamId) {
             exhaustedTeamIds.add(fallbackTeamId);
@@ -3354,12 +3517,23 @@ export class SupabaseRepository {
         if (notNullColumn === 'createdAt' && !candidate.createdAt) {
           queue.push({ ...candidate, createdAt: nowIso() });
         }
+        if (notNullColumn === 'description' && (candidate.description === null || candidate.description === undefined)) {
+          queue.push({ ...candidate, description: '' });
+        }
 
         if (!hasMissingProjectColumn(error)) {
           if (hasProjectTeamForeignKeyError(error) && typeof candidate.teamId === 'string' && candidate.teamId) {
-            const ensured = await ensureLegacyTeamRecord(this.client, ownerId, candidate.teamId);
-            if (ensured) {
+            exhaustedTeamIds.add(candidate.teamId);
+            const ensured = await ensureLegacyTeamRecord(this.client, ownerId, candidate.teamId, projectEventId);
+            if (ensured && !exhaustedTeamIds.has(ensured)) {
+              exhaustedTeamIds.add(ensured);
               queue.push({ ...candidate, teamId: ensured });
+              continue;
+            }
+            const freshTeamId = await ensureLegacyTeamRecord(this.client, ownerId, undefined, projectEventId);
+            if (freshTeamId && !exhaustedTeamIds.has(freshTeamId)) {
+              exhaustedTeamIds.add(freshTeamId);
+              queue.push({ ...candidate, teamId: freshTeamId });
               continue;
             }
           }
@@ -3368,6 +3542,7 @@ export class SupabaseRepository {
             hasProjectTeamForeignKeyError(error) ||
             notNullColumn === 'teamId' ||
             notNullColumn === 'name' ||
+            notNullColumn === 'description' ||
             notNullColumn === 'updatedAt' ||
             notNullColumn === 'createdAt'
           ) {
@@ -3447,7 +3622,7 @@ export class SupabaseRepository {
       this.client
         .selectMany<DbShowcaseHack>(
           SHOWCASE_HACK_TABLE,
-          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
+          'project_id,featured,demo_url,confluence_page_id,confluence_page_url,output_page_ids,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
         )
         .catch((error) => {
           if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) return [];
@@ -5461,11 +5636,20 @@ export class SupabaseRepository {
 
   async createHack(viewer: ViewerContext, input: CreateHackInput): Promise<CreateHackResult> {
     const user = await this.ensureUser(viewer);
+    const hackTitle = input.title.trim();
+    if (!hackTitle) {
+      throw createShowcaseValidationError('title is required.');
+    }
     const sourceEventId = input.sourceEventId?.trim() || null;
     const demoUrl = input.demoUrl?.trim() || null;
     const normalizedTags = normalizeShowcaseTags(input.tags ?? []);
     const normalizedTeamMembers = normalizeShowcaseTeamMembers(input.teamMembers ?? []);
     const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(input.linkedArtifactIds ?? []);
+    const linkedArtifacts: DbArtifact[] = [];
+    const hdcParentPageId = normalizeConfluenceParentPageId(process.env.CONFLUENCE_HDC_PARENT_PAGE_ID);
+    if (!hdcParentPageId) {
+      throw createShowcaseValidationError('CONFLUENCE_HDC_PARENT_PAGE_ID must be configured for hack page creation.');
+    }
 
     if (!demoUrl) {
       throw createShowcaseValidationError('demoUrl is required.');
@@ -5485,13 +5669,14 @@ export class SupabaseRepository {
         if (!artifact || artifact.archived_at) {
           throw createShowcaseValidationError(`linkedArtifactId "${artifactId}" was not found.`);
         }
+        linkedArtifacts.push(artifact);
       }
     }
 
-    const inserted = await this.insertProject({
-      title: input.title,
-      name: input.title,
-      description: input.description ?? null,
+    const projectInsertPayload = {
+      title: hackTitle,
+      name: hackTitle,
+      description: input.description?.trim() || '',
       status: 'completed',
       hack_type: input.assetType,
       visibility: input.visibility ?? 'org',
@@ -5502,15 +5687,126 @@ export class SupabaseRepository {
       synced_to_library_at: null,
       pipeline_stage: 'hack',
       pipeline_stage_entered_at: nowIso(),
-    });
+    };
+
+    let inserted: { id: string; title?: string | null; name?: string | null } | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        inserted = await this.insertProject(projectInsertPayload);
+        break;
+      } catch (error) {
+        if (!isSupabaseRateLimitError(error) || attempt === 2) {
+          throw error;
+        }
+        await delayMs(150 * (attempt + 1));
+      }
+    }
+
+    const createdPageIds: string[] = [];
+    const outputPageIds: string[] = [];
 
     try {
-      await this.client.upsert<DbShowcaseHack>(
-        SHOWCASE_HACK_TABLE,
-        {
+      const hacksParentPage = await ensureHacksParentPageUnderParent({
+        parentPageId: hdcParentPageId,
+        nonBlockingFullWidth: true,
+      });
+      const backLinkUrl =
+        process.env.CONFLUENCE_HDC_PARENT_PAGE_URL?.trim() || buildConfluencePageUrl(viewer.siteUrl, hdcParentPageId);
+
+      const hackPage = await createStandardChildPage({
+        parentPageId: hacksParentPage.pageId,
+        title: hackTitle,
+        storageValue: buildHackPageStorageValue({
+          title: hackTitle,
+          description: input.description ?? '',
+          assetType: input.assetType,
+          visibility: input.visibility ?? 'org',
+          authorName: user.full_name || user.email || 'Unknown',
+          tags: normalizedTags,
+          sourceEventId,
+          demoUrl,
+          teamMembers: normalizedTeamMembers,
+          outputLinks: [],
+          backLinkUrl,
+        }),
+        nonBlockingFullWidth: true,
+      });
+      createdPageIds.push(hackPage.pageId);
+
+      const outputLinks: Array<{ title: string; url: string }> = [];
+      const content = input.content?.trim() || '';
+      if (content) {
+        const outputTitle = `${hackTitle} · Primary Output`;
+        const outputPage = await createStandardChildPage({
+          parentPageId: hackPage.pageId,
+          title: outputTitle,
+          storageValue: buildHackOutputPageStorageValue({
+            outputTitle,
+            sourceReference: 'Submit Hack content payload',
+            content,
+          }),
+          nonBlockingFullWidth: true,
+        });
+        createdPageIds.push(outputPage.pageId);
+        outputPageIds.push(outputPage.pageId);
+        outputLinks.push({
+          title: outputTitle,
+          url: outputPage.pageUrl || buildConfluencePageUrl(viewer.siteUrl, outputPage.pageId),
+        });
+      }
+
+      for (const artifact of linkedArtifacts) {
+        const outputTitle = `${artifact.title} · Linked Artifact`;
+        const outputPage = await createStandardChildPage({
+          parentPageId: hackPage.pageId,
+          title: outputTitle,
+          storageValue: buildHackOutputPageStorageValue({
+            outputTitle,
+            sourceReference: `Artifact ID: ${artifact.id}`,
+            content: artifact.description || `Artifact source URL: ${artifact.source_url}`,
+          }),
+          nonBlockingFullWidth: true,
+        });
+        createdPageIds.push(outputPage.pageId);
+        outputPageIds.push(outputPage.pageId);
+        outputLinks.push({
+          title: outputTitle,
+          url: outputPage.pageUrl || buildConfluencePageUrl(viewer.siteUrl, outputPage.pageId),
+        });
+      }
+
+      await setPageStorageContent(
+        hackPage.pageId,
+        buildHackPageStorageValue({
+          title: hackTitle,
+          description: input.description ?? '',
+          assetType: input.assetType,
+          visibility: input.visibility ?? 'org',
+          authorName: user.full_name || user.email || 'Unknown',
+          tags: normalizedTags,
+          sourceEventId,
+          demoUrl,
+          teamMembers: normalizedTeamMembers,
+          outputLinks,
+          backLinkUrl,
+        })
+      );
+
+      if (!inserted) {
+        throw new Error('Unable to persist hack record to storage after retries.');
+      }
+
+      if (inserted) {
+        const showcaseMetadataRow: Omit<
+          DbShowcaseHack,
+          'created_at' | 'updated_at'
+        > = {
           project_id: inserted.id,
           featured: false,
           demo_url: demoUrl,
+          confluence_page_id: hackPage.pageId,
+          confluence_page_url: hackPage.pageUrl || null,
+          output_page_ids: outputPageIds,
           team_members: normalizedTeamMembers,
           source_event_id: sourceEventId,
           tags: normalizedTags,
@@ -5520,14 +5816,48 @@ export class SupabaseRepository {
           risk_notes: null,
           source_repo_url: null,
           created_by_user_id: user.id,
-        },
-        'project_id'
-      );
+        };
+
+        let showcasePersisted = false;
+        let lastShowcaseError: unknown = null;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            await this.client.upsert<DbShowcaseHack>(SHOWCASE_HACK_TABLE, showcaseMetadataRow, 'project_id');
+            showcasePersisted = true;
+            break;
+          } catch (error) {
+            lastShowcaseError = error;
+            if (!isSupabaseRateLimitError(error) || attempt === 2) {
+              throw error;
+            }
+            await delayMs(150 * (attempt + 1));
+          }
+        }
+        if (!showcasePersisted && lastShowcaseError) {
+          throw lastShowcaseError;
+        }
+      }
+
+      return {
+        assetId: inserted.id,
+        title: inserted?.title ?? inserted?.name ?? hackTitle,
+        confluencePageId: hackPage.pageId,
+        confluencePageUrl: hackPage.pageUrl || null,
+        outputPageIds,
+      };
     } catch (error) {
-      // Best-effort rollback to avoid partially created showcase projects if metadata persistence fails.
-      await this.client
-        .deleteMany(PROJECT_TABLE, [{ field: 'id', op: 'eq', value: inserted.id }])
-        .catch(() => []);
+      for (const pageId of createdPageIds.slice().reverse()) {
+        try {
+          await deletePage(pageId);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+      if (inserted?.id) {
+        await this.client
+          .deleteMany(PROJECT_TABLE, [{ field: 'id', op: 'eq', value: inserted.id }])
+          .catch(() => []);
+      }
       if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
         throw new Error(
           `Missing required table ${SHOWCASE_HACK_TABLE}. Apply the phase 1 showcase migration before calling createHack.`
@@ -5535,11 +5865,6 @@ export class SupabaseRepository {
       }
       throw error;
     }
-
-    return {
-      assetId: inserted.id,
-      title: inserted.title ?? inserted.name ?? input.title,
-    };
   }
 
   async forkShowcaseHack(viewer: ViewerContext, input: ForkShowcaseHackInput): Promise<ForkShowcaseHackResult> {
@@ -5560,7 +5885,7 @@ export class SupabaseRepository {
     try {
       sourceMetadata = await this.client.selectOne<DbShowcaseHack>(
         SHOWCASE_HACK_TABLE,
-        'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
+        'project_id,featured,demo_url,confluence_page_id,confluence_page_url,output_page_ids,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
         [{ field: 'project_id', op: 'eq', value: sourceProjectId }]
       );
     } catch (error) {
@@ -5582,6 +5907,10 @@ export class SupabaseRepository {
     const sourceEventId = sourceMetadata?.source_event_id ?? sourceProject.event_id ?? null;
     const normalizedTags = normalizeShowcaseTags([...(sourceMetadata?.tags ?? []), 'fork']);
     const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(sourceMetadata?.linked_artifact_ids ?? []);
+    const hdcParentPageId = normalizeConfluenceParentPageId(process.env.CONFLUENCE_HDC_PARENT_PAGE_ID);
+    if (!hdcParentPageId) {
+      throw createForkValidationError('CONFLUENCE_HDC_PARENT_PAGE_ID must be configured for fork page creation.');
+    }
 
     const insertedProject = await this.insertProject({
       title,
@@ -5599,13 +5928,43 @@ export class SupabaseRepository {
       pipeline_stage_entered_at: createdAt,
     });
 
+    const createdPageIds: string[] = [];
     try {
+      const hacksParentPage = await ensureHacksParentPageUnderParent({
+        parentPageId: hdcParentPageId,
+        nonBlockingFullWidth: true,
+      });
+      const backLinkUrl =
+        process.env.CONFLUENCE_HDC_PARENT_PAGE_URL?.trim() || buildConfluencePageUrl(viewer.siteUrl, hdcParentPageId);
+      const hackPage = await createStandardChildPage({
+        parentPageId: hacksParentPage.pageId,
+        title,
+        storageValue: buildHackPageStorageValue({
+          title,
+          description,
+          assetType: sourceProject.hack_type ?? 'app',
+          visibility: input.visibility ?? asVisibility(sourceProject.visibility),
+          authorName: user.full_name || user.email || 'Unknown',
+          tags: normalizedTags,
+          sourceEventId,
+          demoUrl: null,
+          teamMembers: [],
+          outputLinks: [],
+          backLinkUrl,
+        }),
+        nonBlockingFullWidth: true,
+      });
+      createdPageIds.push(hackPage.pageId);
+
       await this.client.upsert<DbShowcaseHack>(
         SHOWCASE_HACK_TABLE,
         {
           project_id: insertedProject.id,
           featured: false,
           demo_url: null,
+          confluence_page_id: hackPage.pageId,
+          confluence_page_url: hackPage.pageUrl || null,
+          output_page_ids: [],
           team_members: [],
           source_event_id: sourceEventId,
           tags: normalizedTags,
@@ -5621,6 +5980,13 @@ export class SupabaseRepository {
         'project_id'
       );
     } catch (error) {
+      for (const pageId of createdPageIds.slice().reverse()) {
+        try {
+          await deletePage(pageId);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
       await this.client
         .deleteMany(PROJECT_TABLE, [{ field: 'id', op: 'eq', value: insertedProject.id }])
         .catch(() => []);
@@ -5916,6 +6282,9 @@ export class SupabaseRepository {
     if (!normalizedId) {
       throw createRegistryValidationError('artifactId is required.');
     }
+    if (!isUuid(normalizedId)) {
+      throw createRegistryValidationError('artifactId must be a valid UUID.');
+    }
 
     let artifact: DbArtifact | null = null;
     try {
@@ -5960,6 +6329,9 @@ export class SupabaseRepository {
     const normalizedId = artifactId.trim();
     if (!normalizedId) {
       throw createRegistryValidationError('artifactId is required.');
+    }
+    if (!isUuid(normalizedId)) {
+      throw createRegistryValidationError('artifactId must be a valid UUID.');
     }
     const user = await this.ensureUser(viewer);
 
@@ -7296,7 +7668,7 @@ export class SupabaseRepository {
         this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
         this.client.selectMany<DbShowcaseHack>(
           SHOWCASE_HACK_TABLE,
-          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
+          'project_id,featured,demo_url,confluence_page_id,confluence_page_url,output_page_ids,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at'
         ),
         this.client
           .selectMany<DbArtifact>(
@@ -7325,7 +7697,7 @@ export class SupabaseRepository {
         hackRows = projects;
       }
 
-      let items = hackRows
+      const allItems = hackRows
         .filter((project) => project.id.trim().length > 0)
         .map((project) =>
           createShowcaseHackListItem({
@@ -7336,6 +7708,10 @@ export class SupabaseRepository {
             forkCount: forkCountByProjectId.get(project.id) ?? 0,
           })
         );
+      const totalCount = allItems.length;
+      const pageBackedCount = allItems.filter((item) => item.isPageBacked).length;
+      const legacyCount = Math.max(0, totalCount - pageBackedCount);
+      let items = allItems;
 
       if (query) {
         items = items.filter((item) =>
@@ -7382,7 +7758,7 @@ export class SupabaseRepository {
         })
         .slice(0, limit);
 
-      return { items, canManage };
+      return { items, canManage, totalCount, pageBackedCount, legacyCount };
     } catch (error) {
       if (hasMissingTable(error, SHOWCASE_HACK_TABLE)) {
         throw new Error(
@@ -7416,7 +7792,7 @@ export class SupabaseRepository {
       const [showcaseRow, artifacts, problems, owner, forkCount] = await Promise.all([
         this.client.selectOne<DbShowcaseHack>(
           SHOWCASE_HACK_TABLE,
-          'project_id,featured,demo_url,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
+          'project_id,featured,demo_url,confluence_page_id,confluence_page_url,output_page_ids,team_members,source_event_id,tags,linked_artifact_ids,context,limitations,risk_notes,source_repo_url,created_by_user_id,created_at,updated_at',
           [{ field: 'project_id', op: 'eq', value: normalizedProjectId }]
         ),
         this.client

@@ -1,0 +1,46 @@
+{
+  "generatedAtUtc": "2026-03-03T13:52:34.312Z",
+  "eventNameQuery": "Perf Global Route 20260301-0030",
+  "eventCount": 1,
+  "summary": {
+    "eventsWithMissingPageId": 0,
+    "eventsWithMissingParentPageId": 0,
+    "eventsWithNoPrimaryAdmin": 0,
+    "eventsWithNoSyncState": 0,
+    "eventsWithNoSubmittedHacks": 1,
+    "totalSubmittedHacks": 0,
+    "totalProjects": 0,
+    "totalAuditLogRows": 0
+  },
+  "events": [
+    {
+      "eventId": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+      "eventName": "Perf Global Route 20260301-0030",
+      "lifecycleStatus": "draft",
+      "confluencePageId": "16875584",
+      "confluenceParentPageId": "5668895",
+      "confluencePageUrl": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16875584/Perf+Global+Route+20260301-0030",
+      "creationRequestId": "156ac93e-4702-43d8-bf4d-1c61393f9aec",
+      "adminCount": 2,
+      "primaryAdminCount": 1,
+      "coAdminCount": 1,
+      "syncStatePresent": true,
+      "syncStatus": "not_started",
+      "submittedHackCount": 0,
+      "totalProjectCount": 0,
+      "auditLogCount": 0,
+      "integrityChecks": {
+        "hasConfluencePageId": true,
+        "hasConfluenceParentPageId": true,
+        "hasPrimaryAdmin": true,
+        "hasSyncState": true
+      }
+    }
+  ],
+  "rollbackChecklist": [
+    "Snapshot Event/EventAdmin/EventSyncState/EventAuditLog rows for affected event IDs before migration apply.",
+    "If migration validation fails, restore event rows first, then EventAdmin, then EventSyncState, then EventAuditLog.",
+    "Re-run this dry-run and verify zero regressions in page IDs, admin assignment, and sync state presence.",
+    "Confirm Confluence child pages remain reachable for all restored confluencePageId values."
+  ]
+}

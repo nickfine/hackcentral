@@ -167,3 +167,85 @@ describe('createChildPageUnderParent full-width defaults', () => {
     warnSpy.mockRestore();
   });
 });
+
+describe('hackday page styling inspection and repair', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    (globalThis as unknown as { __forge_fetch__?: typeof forgeFetchMock }).__forge_fetch__ = forgeFetchMock;
+  });
+
+  it('classifies legacy macro pages and recommends full repair', async () => {
+    forgeFetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: 'legacy-page-1',
+          title: 'Legacy Page',
+          version: { number: 3 },
+          body: {
+            storage: {
+              value:
+                '<p>Legacy intro paragraph</p><ac:adf-extension><ac:adf-node type="extension"><ac:adf-attribute key="extension-key">legacy-app/legacy-env/static/hackday-2026-customui</ac:adf-attribute></ac:adf-node></ac:adf-extension>',
+            },
+          },
+        })
+      )
+      .mockResolvedValueOnce(jsonResponse({ results: [{ value: 'fixed-width' }] }))
+      .mockResolvedValueOnce(jsonResponse({ results: [{ value: 'fixed-width' }] }));
+
+    const { inspectHackdayPageStyling } = await import('../forge-native/src/backend/confluencePages');
+    const inspection = await inspectHackdayPageStyling('legacy-page-1');
+
+    expect(inspection.reachable).toBe(true);
+    expect(inspection.macroSignature).toBe('legacy');
+    expect(inspection.hasLeadingParagraphBeforeMacro).toBe(true);
+    expect(inspection.recommendedAction).toBe('repair_all');
+    expect(inspection.fullWidthDraftOk).toBe(false);
+    expect(inspection.fullWidthPublishedOk).toBe(false);
+  });
+
+  it('supports dry-run styling repair without mutating Confluence page storage', async () => {
+    forgeFetchMock
+      // inspect() fetch + properties
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: 'legacy-page-2',
+          title: 'Legacy Page 2',
+          version: { number: 9 },
+          body: {
+            storage: {
+              value:
+                '<p>Legacy intro paragraph</p><ac:adf-extension><ac:adf-node type="extension"><ac:adf-attribute key="extension-key">legacy-app/legacy-env/static/hackday-2026-customui</ac:adf-attribute></ac:adf-node></ac:adf-extension>',
+            },
+          },
+        })
+      )
+      .mockResolvedValueOnce(jsonResponse({ results: [] }))
+      .mockResolvedValueOnce(jsonResponse({ results: [] }))
+      // repair() second page fetch
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: 'legacy-page-2',
+          title: 'Legacy Page 2',
+          version: { number: 9 },
+          body: {
+            storage: {
+              value:
+                '<p>Legacy intro paragraph</p><ac:adf-extension><ac:adf-node type="extension"><ac:adf-attribute key="extension-key">legacy-app/legacy-env/static/hackday-2026-customui</ac:adf-attribute></ac:adf-node></ac:adf-extension>',
+            },
+          },
+        })
+      );
+
+    const { repairHackdayPageStyling } = await import('../forge-native/src/backend/confluencePages');
+    const result = await repairHackdayPageStyling('legacy-page-2', { dryRun: true });
+
+    expect(result.dryRun).toBe(true);
+    expect(result.changed).toBe(true);
+    expect(result.macroRewritten).toBe(true);
+    expect(result.introParagraphRemoved).toBe(true);
+
+    const putCalls = forgeFetchMock.mock.calls.filter(([, , init]) => init?.method === 'PUT');
+    expect(putCalls.length).toBe(0);
+  });
+});

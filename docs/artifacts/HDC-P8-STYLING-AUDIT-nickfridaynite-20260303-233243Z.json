@@ -1,0 +1,30 @@
+{
+  "generatedAtUtc": "2026-03-03T23:32:43.887Z",
+  "eventId": null,
+  "eventNameQuery": "NickFridayNite",
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "a891fc19-7c88-4dfb-b904-33b1064293ce",
+  "processedCount": 1,
+  "runtimeMacroCount": 1,
+  "legacyMacroCount": 0,
+  "missingMacroCount": 0,
+  "repairRecommendedCount": 0,
+  "highRiskCount": 0,
+  "results": [
+    {
+      "eventId": "a891fc19-7c88-4dfb-b904-33b1064293ce",
+      "eventName": "NickFridayNite",
+      "pageId": "16646145",
+      "reachable": true,
+      "macroSignature": "runtime",
+      "fullWidth": {
+        "draft": "full-width",
+        "published": "full-width"
+      },
+      "hasLeadingParagraphBeforeMacro": false,
+      "recommendedAction": "none",
+      "riskLevel": "low"
+    }
+  ]
+}

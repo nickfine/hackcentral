@@ -63,7 +63,15 @@ function encodeFilterValue(value) {
 }
 
 function buildOldAndNewMacroConfig() {
-  const oldMacroKey = String(process.env.HACKDAY_TEMPLATE_MACRO_KEY || 'hackday-2026-customui').trim();
+  const oldMacroKeys = [
+    ...String(process.env.HACKDAY_TEMPLATE_MACRO_KEY || 'hackday-2026-customui')
+      .split(',')
+      .map((key) => key.trim())
+      .filter(Boolean),
+    'hackday-2026-customui',
+    'hackday-central-customui',
+    'hackday-template-macro',
+  ];
   const oldAppId = extractAppUuid(process.env.HACKDAY_TEMPLATE_APP_ID || '');
   const oldEnvironmentId = String(process.env.HACKDAY_TEMPLATE_ENVIRONMENT_ID || '').trim();
 
@@ -71,7 +79,7 @@ function buildOldAndNewMacroConfig() {
   const newAppId = extractAppUuid(process.env.HDC_RUNTIME_APP_ID || process.env.FORGE_APP_ID || '');
   const newEnvironmentId = String(process.env.HDC_RUNTIME_ENVIRONMENT_ID || process.env.FORGE_ENVIRONMENT_ID || '').trim();
 
-  if (!oldMacroKey) throw new Error('Missing HACKDAY_TEMPLATE_MACRO_KEY (or fallback) for legacy macro detection.');
+  if (oldMacroKeys.length === 0) throw new Error('Missing HACKDAY_TEMPLATE_MACRO_KEY (or fallback) for legacy macro detection.');
   if (!newMacroKey || !newAppId || !newEnvironmentId) {
     throw new Error(
       'Missing runtime macro target config. Set HDC_RUNTIME_MACRO_KEY, HDC_RUNTIME_APP_ID/FORGE_APP_ID, and HDC_RUNTIME_ENVIRONMENT_ID/FORGE_ENVIRONMENT_ID.'
@@ -82,7 +90,7 @@ function buildOldAndNewMacroConfig() {
     old: {
       appId: oldAppId,
       environmentId: oldEnvironmentId,
-      macroKey: oldMacroKey,
+      macroKeys: [...new Set(oldMacroKeys)],
     },
     next: {
       appId: newAppId,
@@ -98,8 +106,10 @@ function rewriteMacroStorage(storage, config) {
   }
 
   const { old, next } = config;
-  const oldMacroPattern = new RegExp(`/static/${old.macroKey}(?=[<\"])`, 'g');
-  if (!oldMacroPattern.test(storage)) {
+  const matchedOldKey = old.macroKeys.find((macroKey) =>
+    new RegExp(`/static/${macroKey}(?=[<\"])`, 'i').test(storage)
+  );
+  if (!matchedOldKey) {
     return { updated: storage, changed: false, reason: 'legacy_macro_not_found' };
   }
 

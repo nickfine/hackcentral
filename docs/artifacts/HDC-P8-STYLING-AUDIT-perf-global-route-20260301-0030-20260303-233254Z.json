@@ -1,0 +1,30 @@
+{
+  "generatedAtUtc": "2026-03-03T23:32:54.049Z",
+  "eventId": null,
+  "eventNameQuery": "Perf Global Route 20260301-0030",
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+  "processedCount": 1,
+  "runtimeMacroCount": 1,
+  "legacyMacroCount": 0,
+  "missingMacroCount": 0,
+  "repairRecommendedCount": 0,
+  "highRiskCount": 0,
+  "results": [
+    {
+      "eventId": "42818bfa-ab12-4f2b-bcac-01633e9da590",
+      "eventName": "Perf Global Route 20260301-0030",
+      "pageId": "16875584",
+      "reachable": true,
+      "macroSignature": "runtime",
+      "fullWidth": {
+        "draft": "full-width",
+        "published": "full-width"
+      },
+      "hasLeadingParagraphBeforeMacro": false,
+      "recommendedAction": "none",
+      "riskLevel": "low"
+    }
+  ]
+}

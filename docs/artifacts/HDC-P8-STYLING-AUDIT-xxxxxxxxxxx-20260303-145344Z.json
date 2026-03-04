@@ -1,0 +1,44 @@
+{
+  "generatedAtUtc": "2026-03-03T14:53:44.679Z",
+  "eventId": null,
+  "eventNameQuery": "XXXXXXXXXXX",
+  "batchSize": 20,
+  "cursorIn": null,
+  "cursorOut": "caa8c5ee-ecef-4fa4-9c0b-9f347234db06",
+  "processedCount": 2,
+  "runtimeMacroCount": 2,
+  "legacyMacroCount": 0,
+  "missingMacroCount": 0,
+  "repairRecommendedCount": 0,
+  "highRiskCount": 0,
+  "results": [
+    {
+      "eventId": "1f2de26a-6d8f-4b72-baac-7f9cb4c5539d",
+      "eventName": "XXXXXXXXXXX",
+      "pageId": "21856276",
+      "reachable": true,
+      "macroSignature": "runtime",
+      "fullWidth": {
+        "draft": "full-width",
+        "published": "full-width"
+      },
+      "hasLeadingParagraphBeforeMacro": false,
+      "recommendedAction": "none",
+      "riskLevel": "low"
+    },
+    {
+      "eventId": "caa8c5ee-ecef-4fa4-9c0b-9f347234db06",
+      "eventName": "XXXXXXXXXXXXX",
+      "pageId": "17793025",
+      "reachable": true,
+      "macroSignature": "runtime",
+      "fullWidth": {
+        "draft": "full-width",
+        "published": "full-width"
+      },
+      "hasLeadingParagraphBeforeMacro": false,
+      "recommendedAction": "none",
+      "riskLevel": "low"
+    }
+  ]
+}
