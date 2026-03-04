@@ -3975,3 +3975,23 @@ Use this template at the end of every work session:
   - `npm run typecheck --prefix forge-native`
   - `npm run test:backend --prefix forge-native`
 - Optional clean migration replay command remains environment-dependent (`supabase db reset` on disposable project/local stack).
+
+## Session Update - Supabase Security Advisor Closure Snapshot (2026-03-04 15:13 GMT)
+
+### Status
+- Supabase Security Advisor now reports:
+  - `Errors: 0`
+  - `Warnings: 1`
+  - `Info: 0`
+- Remaining warning:
+  - `auth_leaked_password_protection` (`Leaked Password Protection Disabled` under Auth).
+
+### Governance Decision
+- Marked as **accepted risk exception** for current environment because leaked-password protection is a plan-gated Supabase feature (Pro-tier capability).
+- All database-side security hardening actions are complete and validated; no further SQL/policy remediation remains for current warning set.
+
+### Evidence
+- Final Security Advisor screenshot provided in-session showing only the single Auth warning and zero errors.
+
+### Next Recommended Step
+- Revisit this exception if/when project plan tier includes leaked-password-protection capability; then enable and remove exception.

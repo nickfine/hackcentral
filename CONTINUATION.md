@@ -2063,3 +2063,27 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 
 1) Run optional clean migration replay (`supabase db reset`) in disposable/local database context to validate from-zero migration chain.
 2) Keep service-role-only backend policy posture as default; do not reintroduce anon fallback paths in runtime code.
+
+## Session Update - Supabase Security Closure + Accepted Risk Exception (Mar 4, 2026 15:13 GMT)
+
+### Completed
+
+- Captured final Supabase Security Advisor state after hardening:
+  - `0` errors
+  - `1` warning
+  - `0` info suggestions.
+- Confirmed only remaining warning is Auth platform setting:
+  - `auth_leaked_password_protection`.
+
+### Decision
+
+- Logged as accepted risk exception (plan-gated feature; not remediable via SQL in current tier).
+
+### Evidence
+
+- In-session Security Advisor screenshot shows final warning-only state (`Leaked Password Protection Disabled`).
+
+### Next Work Priority
+
+1) Keep exception documented until plan/tier supports leaked-password protection.
+2) If upgraded, enable leaked-password protection in Supabase Auth settings and re-run Advisor to close exception.
