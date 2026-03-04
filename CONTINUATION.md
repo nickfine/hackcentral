@@ -2025,3 +2025,20 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 
 1) Enable leaked-password protection in Supabase Auth dashboard.
 2) Rerun Security Advisor and capture post-fix screenshot for closure evidence.
+
+## Session Update - Supabase RLS Policy Presence Info Cleanup Applied (Mar 4, 2026 03:10 GMT)
+
+### Completed
+
+- Added/applied migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304031000_phase9_security_add_service_role_policies.sql`
+- Added explicit service-role policy on each of the 21 hardened backend tables to clear `rls_enabled_no_policy` infos.
+
+### Evidence
+
+- All targeted tables now show `policy_count=1` with `rls_enabled=true`.
+- All newly-added policies are `roles={service_role}` and `cmd=ALL`.
+
+### Note
+
+- Any remaining warning after advisor refresh is non-SQL platform config (`auth_leaked_password_protection`).

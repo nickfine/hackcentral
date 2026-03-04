@@ -3926,3 +3926,26 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Toggle leaked-password protection in Supabase Auth settings, rerun Security Advisor, and capture one closure artifact screenshot.
+
+## Session Update - Supabase Info Suggestion Cleanup (RLS Enabled No Policy) (2026-03-04 03:10 GMT)
+
+### Task IDs
+- `P9.SEC.03`
+
+### What Changed
+- Added and applied migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304031000_phase9_security_add_service_role_policies.sql`
+- For 21 backend-managed tables (Artifact/Problem/ShowcaseHack/Pathway family/etc.), created explicit policy:
+  - `"Service role can manage rows"`
+  - `FOR ALL TO service_role USING (true) WITH CHECK (true)`
+- This retains lock-down posture for client roles while satisfying advisor expectation that RLS-enabled tables have at least one policy.
+
+### Validation / Evidence
+- Migration apply response: `[]`.
+- Targeted table check confirms all 21 tables:
+  - `rls_enabled=true`
+  - `policy_count=1`
+- Policy inspection confirms all new policies are scoped to `roles={service_role}`.
+
+### Remaining Platform Warning
+- If still present, the remaining warning is typically `auth_leaked_password_protection` and requires dashboard toggle (Auth settings), not SQL migration.
