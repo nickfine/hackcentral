@@ -1999,3 +1999,29 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 1) Re-run Supabase advisors in dashboard and capture a new post-fix security screenshot/artifact for closure evidence.
 2) Plan a second hardening pass to remove broad `anon/authenticated` Forge-backend RLS policies on RLS-enabled tables where backend-only operations should be `service_role` only.
 3) Keep MCP-first protocol for Supabase checks, then fallback to Management API SQL when project-admin MCP endpoints are permission-scoped.
+
+## Session Update - Supabase Warning Cleanup (Policy + Function Hardening) Applied (Mar 4, 2026 02:26 GMT)
+
+### Completed
+
+- Added and applied migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304023500_phase9_security_policy_search_path_hardening.sql`
+- Fixed function-search-path warnings by setting explicit `search_path=pg_catalog, public` on six trigger functions.
+- Re-scoped 11 permissive `Forge backend ...` policies from `anon/authenticated` to `service_role`.
+
+### Evidence
+
+- Migration apply response: `[]`.
+- Function proconfig checks now show explicit search path on all six listed functions.
+- Policy checks show targeted policy roles as `{service_role}`.
+- Warning-equivalent permissive policy query for `anon/authenticated/public` returns `[]`.
+
+### Remaining Item
+
+- One warning is non-SQL/platform config:
+  - `auth_leaked_password_protection` (Supabase Auth setting).
+
+### Next Work Priority
+
+1) Enable leaked-password protection in Supabase Auth dashboard.
+2) Rerun Security Advisor and capture post-fix screenshot for closure evidence.

@@ -3898,3 +3898,31 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Rotate out remaining permissive `anon/authenticated` Forge-backend RLS policies on already-RLS tables (`Project`, `Team`, `TeamInvite`, `Vote`, `JudgeScore`, etc.) by moving backend-only access assumptions fully to `service_role` and preserving only explicit user-scope policies.
+
+## Session Update - Supabase Warning Cleanup Applied (2026-03-04 02:26 GMT)
+
+### Task IDs
+- `P9.SEC.02`
+
+### What Changed
+- Added migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304023500_phase9_security_policy_search_path_hardening.sql`
+- Applied migration to production Supabase (`ssafugtobsqxmqtphwch`) via Management API `database/query`.
+- Fixed six mutable-search-path function warnings by setting:
+  - `search_path = pg_catalog, public`
+  - functions: `artifact_set_updated_at_fn`, `problem_set_updated_at_fn`, `showcase_hack_set_updated_at_fn`, `pathway_set_updated_at_fn`, `pipeline_stage_criteria_set_updated_at_fn`, `hackday_submission_page_link_set_updated_at_fn`.
+- Hardened 11 permissive Forge backend policies by changing role target from `anon, authenticated` to `service_role`:
+  - `EventRegistration`, `JudgeScore`, `Project`, `Team` (create/update/delete), `TeamInvite`, `TeamMember`, `User` (create/update), `Vote`.
+
+### Validation / Evidence
+- Migration apply response: `[]`.
+- Function config check now reports `proconfig="search_path=pg_catalog, public"` for all six warning functions.
+- Policy role check confirms all targeted `Forge backend ...` policies now use `roles={service_role}`.
+- Warning-equivalent policy scan for non-SELECT `USING/WITH CHECK = true` on `anon/authenticated/public` now returns `[]`.
+
+### Remaining Warning (Manual Platform Setting)
+- `auth_leaked_password_protection` remains a Supabase Auth dashboard configuration warning.
+- Enable in Supabase dashboard: Auth -> Email -> Password security -> Leaked password protection.
+
+### Next Recommended Step
+- Toggle leaked-password protection in Supabase Auth settings, rerun Security Advisor, and capture one closure artifact screenshot.
