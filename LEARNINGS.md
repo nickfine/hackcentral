@@ -3949,3 +3949,29 @@ Use this template at the end of every work session:
 
 ### Remaining Platform Warning
 - If still present, the remaining warning is typically `auth_leaked_password_protection` and requires dashboard toggle (Auth settings), not SQL migration.
+
+## Session Update - Integrity Review Fixes Implemented (2026-03-04 15:08 GMT)
+
+### Task IDs
+- `P9.SEC.04`
+
+### What Changed
+- Patched migration replay safety in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260304023500_phase9_security_policy_search_path_hardening.sql`
+- Changed function search-path hardening statements to `ALTER FUNCTION IF EXISTS ...` to avoid fresh-environment bootstrap failure when optional trigger functions are absent.
+- Enforced service-role-only runtime auth in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/supabase.js`
+- Removed `SUPABASE_ANON_KEY` fallback path; runtime now requires `SUPABASE_SERVICE_ROLE_KEY`.
+- Added contract tests:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/supabase-security-integrity-contract.test.mjs`
+    - verifies no anon fallback remains in runtime client source
+    - verifies migration uses `IF EXISTS` for optional function alters.
+- Updated docs:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/README.md`
+  - note added that backend runtime requires `SUPABASE_SERVICE_ROLE_KEY` and anon fallback is unsupported.
+
+### Validation
+- Planned validation commands executed in this session:
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+- Optional clean migration replay command remains environment-dependent (`supabase db reset` on disposable project/local stack).

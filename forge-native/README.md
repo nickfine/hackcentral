@@ -78,3 +78,4 @@ forge install --upgrade --non-interactive --site https://<your-site>.atlassian.n
 
 - `forge tunnel` is useful for resolver debugging, but frontend visual changes still require `npm run frontend:build` + deploy.
 - Backend egress is scoped to `*.supabase.co`.
+- Backend runtime requires `SUPABASE_SERVICE_ROLE_KEY`; `SUPABASE_ANON_KEY` fallback is intentionally unsupported after security hardening.

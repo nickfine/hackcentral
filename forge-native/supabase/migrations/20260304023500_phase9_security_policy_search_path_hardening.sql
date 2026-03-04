@@ -3,12 +3,12 @@
 -- 2) Move permissive Forge backend RLS policies from anon/authenticated to service_role.
 
 -- --- Function search_path hardening ---
-ALTER FUNCTION public.artifact_set_updated_at_fn() SET search_path = pg_catalog, public;
-ALTER FUNCTION public.problem_set_updated_at_fn() SET search_path = pg_catalog, public;
-ALTER FUNCTION public.showcase_hack_set_updated_at_fn() SET search_path = pg_catalog, public;
-ALTER FUNCTION public.pathway_set_updated_at_fn() SET search_path = pg_catalog, public;
-ALTER FUNCTION public.pipeline_stage_criteria_set_updated_at_fn() SET search_path = pg_catalog, public;
-ALTER FUNCTION public.hackday_submission_page_link_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.artifact_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.problem_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.showcase_hack_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.pathway_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.pipeline_stage_criteria_set_updated_at_fn() SET search_path = pg_catalog, public;
+ALTER FUNCTION IF EXISTS public.hackday_submission_page_link_set_updated_at_fn() SET search_path = pg_catalog, public;
 
 -- --- RLS policy role hardening ---
 ALTER POLICY "Forge backend can register users" ON public."EventRegistration"

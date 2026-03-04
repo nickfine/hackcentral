@@ -26,18 +26,14 @@ export function getSupabaseClient() {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-  const supabaseKey = supabaseServiceRoleKey || supabaseAnonKey;
+  const supabaseKey = supabaseServiceRoleKey;
 
-  if (!supabaseUrl || !supabaseKey) {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error(
       'Supabase credentials not configured. ' +
       'Run: forge variables set SUPABASE_URL <url> && ' +
       'forge variables set --encrypt SUPABASE_SERVICE_ROLE_KEY <key>'
     );
-  }
-  if (!supabaseServiceRoleKey) {
-    console.warn('[Supabase] SUPABASE_SERVICE_ROLE_KEY missing; falling back to SUPABASE_ANON_KEY for compatibility.');
   }
 
   // Create Supabase client with custom fetch using Forge's api.fetch

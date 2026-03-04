@@ -2042,3 +2042,24 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 ### Note
 
 - Any remaining warning after advisor refresh is non-SQL platform config (`auth_leaked_password_protection`).
+
+## Session Update - Integrity Findings Fixes Applied (Mar 4, 2026 15:08 GMT)
+
+### Completed
+
+- Updated migration `20260304023500_phase9_security_policy_search_path_hardening.sql` to use `ALTER FUNCTION IF EXISTS` for optional search-path function updates.
+- Removed runtime `SUPABASE_ANON_KEY` fallback from `forge-native/src/runtime/lib/supabase.js`; backend runtime now hard-requires `SUPABASE_SERVICE_ROLE_KEY`.
+- Added backend contract test coverage in `forge-native/tests/backend/supabase-security-integrity-contract.test.mjs` for:
+  - service-role-only runtime auth contract
+  - migration integrity contract (`IF EXISTS` assertions).
+- Updated `forge-native/README.md` with explicit service-role requirement note.
+
+### Validation
+
+- `npm run typecheck --prefix forge-native`
+- `npm run test:backend --prefix forge-native`
+
+### Next Work Priority
+
+1) Run optional clean migration replay (`supabase db reset`) in disposable/local database context to validate from-zero migration chain.
+2) Keep service-role-only backend policy posture as default; do not reintroduce anon fallback paths in runtime code.
