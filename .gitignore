@@ -15,6 +15,7 @@ dist-ssr
 # MCP configuration (may contain project-specific settings)
 .mcp.json
 .playwright-mcp/
+.auth/
 
 # Convex
 .convex/
