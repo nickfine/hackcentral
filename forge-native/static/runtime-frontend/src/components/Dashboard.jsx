@@ -1061,10 +1061,7 @@ function Dashboard({
       <section data-testid="dashboard-row1-status-card">
         <div
           data-testid="dashboard-hero-card"
-          className={cn(
-            'dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm',
-            canEditHeroBanner ? 'dashboard-hero-card-editable' : ''
-          )}
+          className="dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm"
         >
           {heroBannerImageUrl ? (
             <img
@@ -1092,20 +1089,9 @@ function Dashboard({
             onChange={handleHeroImageFilePicked}
           />
           {canEditHeroBanner ? (
-            <button
-              type="button"
-              className="dashboard-hero-image-upload-btn"
-              onClick={handleOpenHeroImagePicker}
-              disabled={isHeroImageUploading}
-            >
+            <div className="dashboard-hero-upload-overlay" aria-hidden="true">
               <Upload className="h-3.5 w-3.5" />
-              {isHeroImageUploading ? 'Uploading...' : heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
-            </button>
-          ) : null}
-          {canEditHeroBanner ? (
-            <div className="dashboard-hero-edit-indicator">
-              <Upload className="h-3.5 w-3.5" />
-              <span>{isHeroImageUploading ? 'Uploading hero image...' : 'Config Mode: click anywhere in this hero to upload or change image'}</span>
+              <span>{isHeroImageUploading ? 'Uploading hero image…' : 'Upload hero image'}</span>
             </div>
           ) : null}
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
