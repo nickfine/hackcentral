@@ -80,6 +80,8 @@ permissions:
         - '*.atlassian.net'
       client:
         - '*.supabase.co'
+    images:
+      - '*.supabase.co'
 
 environment:
   variables:

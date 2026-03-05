@@ -594,7 +594,7 @@ function Dashboard({
         invokeResolver: (resolverName, payload) => invoke(resolverName, payload),
       });
       configMode?.setFieldValue?.('branding.bannerImageUrl', uploaded.publicUrl);
-      setHeroImageUploadSuccess('Hero image uploaded to draft. Publish in Config Mode to apply for participants.');
+      setHeroImageUploadSuccess('Hero image updated in draft preview.');
     } catch (error) {
       setHeroImageUploadError(error?.message || 'Failed to upload hero image.');
     } finally {
@@ -1068,6 +1068,9 @@ function Dashboard({
               src={heroBannerImageUrl}
               alt="HackDay hero banner"
               className="dashboard-hero-banner-image"
+              onError={() => {
+                setHeroImageUploadError('Unable to load hero image preview. Please upload again.');
+              }}
             />
           ) : null}
           {heroBannerImageUrl ? <div className="dashboard-hero-banner-overlay" /> : null}

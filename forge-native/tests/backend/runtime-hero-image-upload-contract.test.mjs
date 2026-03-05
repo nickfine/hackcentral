@@ -46,3 +46,10 @@ test('migration provisions public storage bucket with file constraints for hero 
   assert.match(migration, /image\/png/i);
   assert.match(migration, /image\/webp/i);
 });
+
+test('manifest allows runtime client fetch and image render from supabase', async () => {
+  const manifest = await readSource('../../manifest.yml');
+
+  assert.match(manifest, /external:\s*[\s\S]*fetch:\s*[\s\S]*client:\s*[\s\S]*'\*\.supabase\.co'/);
+  assert.match(manifest, /external:\s*[\s\S]*images:\s*[\s\S]*'\*\.supabase\.co'/);
+});
