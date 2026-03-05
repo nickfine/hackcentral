@@ -3057,28 +3057,15 @@ export function App(): JSX.Element {
 
       setActionError('');
       if (previewMode) {
-        setActionMessage(`Local preview mode: would open ${pagePath || pageUrl}`);
+        setActionMessage(`Local preview mode: would open in new tab ${pagePath || pageUrl}`);
         return;
       }
 
-      if (pagePath) {
-        try {
-          await router.navigate(pagePath);
-          return;
-        } catch {
-          // Fall through.
-        }
-      }
-      if (pageUrl) {
-        try {
-          await router.navigate(pageUrl);
-          return;
-        } catch {
-          // Fall through.
-        }
-      }
       if (absoluteTarget && typeof window !== 'undefined') {
-        window.location.assign(absoluteTarget);
+        const popup = window.open(absoluteTarget, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+          setActionError('Could not open a new tab. Please allow pop-ups for Atlassian and try again.');
+        }
       }
     },
     [previewMode]
