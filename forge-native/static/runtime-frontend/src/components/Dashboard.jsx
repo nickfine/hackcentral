@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, memo, useMemo, useCallback, useRef } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Upload } from 'lucide-react';
 import { Badge, Modal } from './ui';
 import {
   EVENT_PHASE_ORDER,
@@ -18,6 +18,7 @@ import { cn, BUTTON_VARIANTS } from '../lib/design-system';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
 import { useConfigMode } from '../configMode/ConfigModeContext';
+import { uploadHeroImageInline } from '../lib/heroImageUpload';
 
 // ============================================================================
 // MOCK DATA (fallback when resolver data is unavailable)
@@ -470,6 +471,7 @@ function Dashboard({
   eventPhase = 'signup',
   eventMotd = '',
   eventAdminMessage = null,
+  eventBranding = {},
   onNavigate,
   onTrackEvent,
   devRoleOverride,
@@ -482,6 +484,10 @@ function Dashboard({
   const [error, setError] = useState(null);
   const [showOwnerWelcome, setShowOwnerWelcome] = useState(false);
   const [dataLoadedAt, setDataLoadedAt] = useState(() => new Date().toISOString());
+  const [isHeroImageUploading, setIsHeroImageUploading] = useState(false);
+  const [heroImageUploadError, setHeroImageUploadError] = useState('');
+  const [heroImageUploadSuccess, setHeroImageUploadSuccess] = useState('');
+  const heroImageFileInputRef = useRef(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -555,6 +561,47 @@ function Dashboard({
 
   // Track if reminder check has been done this session
   const reminderCheckDone = useRef(false);
+
+  const heroBannerImageUrl = useMemo(() => {
+    const fallback = typeof eventBranding?.bannerImageUrl === 'string' ? eventBranding.bannerImageUrl : '';
+    const next = configMode?.getFieldValue?.('branding.bannerImageUrl', fallback);
+    return typeof next === 'string' ? next.trim() : '';
+  }, [configMode, eventBranding?.bannerImageUrl]);
+
+  const canEditHeroBanner = Boolean(
+    configMode?.isEnabled &&
+    configMode?.canEdit &&
+    configMode?.isFieldEditable?.('branding.bannerImageUrl')
+  );
+
+  const handleOpenHeroImagePicker = useCallback(() => {
+    if (!canEditHeroBanner || isHeroImageUploading) return;
+    heroImageFileInputRef.current?.click();
+  }, [canEditHeroBanner, isHeroImageUploading]);
+
+  const handleHeroImageFilePicked = useCallback(async (event) => {
+    const file = event.target?.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setHeroImageUploadError('');
+    setHeroImageUploadSuccess('');
+    setIsHeroImageUploading(true);
+
+    try {
+      const { invoke } = await import('@forge/bridge');
+      const uploaded = await uploadHeroImageInline({
+        file,
+        invokeResolver: (resolverName, payload) => invoke(resolverName, payload),
+      });
+      configMode?.setFieldValue?.('branding.bannerImageUrl', uploaded.publicUrl);
+      setHeroImageUploadSuccess('Hero image uploaded to draft. Publish in Config Mode to apply for participants.');
+    } catch (error) {
+      setHeroImageUploadError(error?.message || 'Failed to upload hero image.');
+    } finally {
+      setIsHeroImageUploading(false);
+    }
+  }, [configMode]);
 
   // Check for free agent reminders when dashboard loads
   useEffect(() => {
@@ -1017,6 +1064,32 @@ function Dashboard({
           data-testid="dashboard-hero-card"
           className="dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm"
         >
+          {heroBannerImageUrl ? (
+            <img
+              src={heroBannerImageUrl}
+              alt="HackDay hero banner"
+              className="dashboard-hero-banner-image"
+            />
+          ) : null}
+          <div className="dashboard-hero-banner-overlay" />
+          <input
+            ref={heroImageFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleHeroImageFilePicked}
+          />
+          {canEditHeroBanner ? (
+            <button
+              type="button"
+              className="dashboard-hero-image-upload-btn"
+              onClick={handleOpenHeroImagePicker}
+              disabled={isHeroImageUploading}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {isHeroImageUploading ? 'Uploading...' : heroBannerImageUrl ? 'Change image' : 'Upload image'}
+            </button>
+          ) : null}
           <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">
               <img
@@ -1102,6 +1175,12 @@ function Dashboard({
               </button>
             </div>
           </div>
+          {heroImageUploadError ? (
+            <p className="dashboard-hero-upload-status dashboard-hero-upload-status-error">{heroImageUploadError}</p>
+          ) : null}
+          {heroImageUploadSuccess ? (
+            <p className="dashboard-hero-upload-status dashboard-hero-upload-status-success">{heroImageUploadSuccess}</p>
+          ) : null}
         </div>
       </section>
 

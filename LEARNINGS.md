@@ -3995,3 +3995,44 @@ Use this template at the end of every work session:
 
 ### Next Recommended Step
 - Revisit this exception if/when project plan tier includes leaked-password-protection capability; then enable and remove exception.
+
+## Session Update - Runtime Hero Inline Image Upload Implemented (Mar 5, 2026 00:51 GMT)
+
+### Task IDs
+- `P10.RUNTIME.HERO.01`
+
+### What Changed
+- Implemented runtime inline hero-image upload flow for event admins (config mode only) using Supabase Storage signed upload URLs.
+- Added runtime resolver and guards in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js`
+  - new resolver: `createEventBrandingImageUploadUrl`
+  - server-side validations: mime allowlist (`jpeg/png/webp`), size (`<= 2MB`), dimensions (`>=1200x400`).
+- Added storage bucket migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260305090000_create_event_branding_images_bucket.sql`
+  - bucket: `event-branding-images` (public, 2MB limit, jpeg/png/webp allowlist).
+- Updated manifest client egress for browser PUT to signed URLs:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+  - added `permissions.external.fetch.client: *.supabase.co`.
+- Added runtime frontend inline upload UX:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Dashboard.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/index.css`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/lib/heroImageUpload.js`
+  - click hero image/CTA in config mode -> file picker -> normalize/compress -> signed upload -> set draft field `branding.bannerImageUrl`.
+- Extended shared resolver contracts:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/shared/types.ts`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/types.ts`.
+- Added backend/contract tests:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/runtime-hero-image-upload-contract.test.mjs`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/runtime-hero-image-upload-helper.test.mjs`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/runtime-resolver-contract.test.mjs` updated resolver list.
+
+### Validation / Evidence
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run build --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
+- `npm run test:backend --prefix forge-native` ✅
+- `npm run runtime:build --prefix forge-native` ✅
+
+### Operational Notes
+- Flow intentionally uses config-mode draft/publish semantics; upload updates preview immediately but participant-facing visibility still follows publish.
+- Storage-first design keeps binary assets out of `Event`/seed payloads; only URL metadata is stored in branding.

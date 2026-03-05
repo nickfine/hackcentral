@@ -40,6 +40,12 @@ const JOIN_REASON_MAX_LENGTH = 300;
 const INVITE_EXPIRY_DAYS = 7;
 const APP_MODE_CONTEXT_SCHEMA_VERSION = 1;
 const APP_MODE_CONTEXT_TTL_MS = 12 * 60 * 60 * 1000;
+const EVENT_BRANDING_IMAGES_BUCKET = "event-branding-images";
+const EVENT_BRANDING_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const EVENT_BRANDING_UPLOAD_MAX_BYTES = 2_000_000;
+const EVENT_BRANDING_UPLOAD_MIN_WIDTH = 1200;
+const EVENT_BRANDING_UPLOAD_MIN_HEIGHT = 400;
+const EVENT_BRANDING_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const APP_MODE_RUNTIME_SOURCES = Object.freeze({
   ACTIVE: "app_mode_active_context",
   REQUIRED: "app_mode_context_required",
@@ -6217,13 +6223,8 @@ resolver.define("publishEventConfigDraft", async (req) => {
   });
 });
 
-/**
- * Update event branding (event admin only — creator or co-admin from HackdayTemplateSeed).
- * Writes to HackdayTemplateSeed.seed_payload.branding and Event.event_branding.
- */
-resolver.define("updateEventBranding", async (req) => {
+async function resolveEventBrandingAdminContext(req) {
   const accountId = getCallerAccountId(req);
-  const payload = req.payload || {};
   const supabase = getSupabaseClient();
   const context = await getCurrentEventContext(supabase, req);
   const event = context?.event;
@@ -6251,15 +6252,47 @@ resolver.define("updateEventBranding", async (req) => {
       email = storedEmail;
     }
   }
-  const cur = normalizeEmail(email);
+  const normalizedEmail = normalizeEmail(email);
   const primary = normalizeEmail(String(seed.primary_admin_email || "").trim());
-  const co = Array.isArray(seed.co_admin_emails)
-    ? seed.co_admin_emails.map((e) => normalizeEmail(String(e).trim())).filter(Boolean)
+  const coAdmins = Array.isArray(seed.co_admin_emails)
+    ? seed.co_admin_emails.map((candidate) => normalizeEmail(String(candidate).trim())).filter(Boolean)
     : [];
-  const isEventAdmin = cur && (cur === primary || co.includes(cur));
+  const isEventAdmin = Boolean(normalizedEmail && (normalizedEmail === primary || coAdmins.includes(normalizedEmail)));
   if (!isEventAdmin) {
     throw new Error("Only the event creator or co-admins can update branding");
   }
+
+  return {
+    accountId,
+    supabase,
+    event,
+    pageId,
+    seed,
+  };
+}
+
+function toPositiveInteger(value, fieldName) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${fieldName} must be a positive number`);
+  }
+  return Math.round(parsed);
+}
+
+function getBrandingImageExtension(contentType) {
+  if (contentType === "image/jpeg") return "jpg";
+  if (contentType === "image/png") return "png";
+  if (contentType === "image/webp") return "webp";
+  return null;
+}
+
+/**
+ * Update event branding (event admin only — creator or co-admin from HackdayTemplateSeed).
+ * Writes to HackdayTemplateSeed.seed_payload.branding and Event.event_branding.
+ */
+resolver.define("updateEventBranding", async (req) => {
+  const payload = req.payload || {};
+  const { supabase, event, pageId, seed } = await resolveEventBrandingAdminContext(req);
 
   const existingPayload = normalizeSeedPayload(seed);
   const existingBranding = existingPayload.branding && typeof existingPayload.branding === "object" ? existingPayload.branding : {};
@@ -6291,6 +6324,66 @@ resolver.define("updateEventBranding", async (req) => {
   }
 
   return { success: true, branding: mergedBranding };
+});
+
+resolver.define("createEventBrandingImageUploadUrl", async (req) => {
+  const payload = req?.payload || {};
+  const { supabase, event } = await resolveEventBrandingAdminContext(req);
+
+  const fileName = String(payload.fileName || "").trim().slice(0, 200);
+  const contentType = String(payload.contentType || "").trim().toLowerCase();
+  const fileSizeBytes = toPositiveInteger(payload.fileSizeBytes, "fileSizeBytes");
+  const imageWidth = toPositiveInteger(payload.imageWidth, "imageWidth");
+  const imageHeight = toPositiveInteger(payload.imageHeight, "imageHeight");
+
+  if (!fileName) {
+    throw new Error("fileName is required");
+  }
+  if (!EVENT_BRANDING_UPLOAD_ALLOWED_TYPES.has(contentType)) {
+    throw new Error("Unsupported contentType. Use image/jpeg, image/png, or image/webp.");
+  }
+  if (fileSizeBytes > EVENT_BRANDING_UPLOAD_MAX_BYTES) {
+    throw new Error("Image file too large. Max size is 2 MB.");
+  }
+  if (imageWidth < EVENT_BRANDING_UPLOAD_MIN_WIDTH || imageHeight < EVENT_BRANDING_UPLOAD_MIN_HEIGHT) {
+    throw new Error(`Image dimensions too small. Minimum is ${EVENT_BRANDING_UPLOAD_MIN_WIDTH}x${EVENT_BRANDING_UPLOAD_MIN_HEIGHT}.`);
+  }
+
+  const extension = getBrandingImageExtension(contentType);
+  if (!extension) {
+    throw new Error("Unable to determine image extension.");
+  }
+
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+  const objectPath = `events/${event.id}/branding/hero-${stamp}-${randomUUID()}.${extension}`;
+  const bucket = EVENT_BRANDING_IMAGES_BUCKET;
+
+  const { data: signedUploadData, error: signedUploadError } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(objectPath);
+
+  if (signedUploadError) {
+    throw new Error(`Failed to generate signed upload URL: ${signedUploadError.message}`);
+  }
+
+  const signedUploadUrl = signedUploadData?.signedUrl;
+  if (!signedUploadUrl) {
+    throw new Error("Signed upload URL is missing in storage response.");
+  }
+
+  const publicUrlResult = supabase.storage.from(bucket).getPublicUrl(objectPath);
+  const publicUrl = publicUrlResult?.data?.publicUrl || null;
+  if (!publicUrl) {
+    throw new Error("Failed to generate public URL for uploaded image.");
+  }
+
+  return {
+    bucket,
+    objectPath,
+    signedUploadUrl,
+    publicUrl,
+    expiresAt: new Date(Date.now() + EVENT_BRANDING_UPLOAD_URL_TTL_MS).toISOString(),
+  };
 });
 
 /**

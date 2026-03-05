@@ -78,6 +78,8 @@ permissions:
         - '*.supabase.co'
         - '*.convex.cloud'
         - '*.atlassian.net'
+      client:
+        - '*.supabase.co'
 
 environment:
   variables:

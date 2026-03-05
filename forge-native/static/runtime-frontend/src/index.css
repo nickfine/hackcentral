@@ -429,6 +429,62 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+.dashboard-hero-banner-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.dashboard-hero-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.2) 100%);
+  pointer-events: none;
+}
+
+.dashboard-hero-image-upload-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+}
+
+.dashboard-hero-image-upload-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.dashboard-hero-upload-status {
+  position: relative;
+  z-index: 10;
+  margin-top: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dashboard-hero-upload-status-error {
+  color: #b91c1c;
+}
+
+.dashboard-hero-upload-status-success {
+  color: #0f766e;
+}
+
 .dashboard-hero-logo {
   height: 100px;
   width: auto;
@@ -729,6 +785,20 @@
 
 [data-color-mode="dark"] .dashboard-hero-logo {
   filter: brightness(1.25) saturate(0.85);
+}
+
+[data-color-mode="dark"] .dashboard-hero-image-upload-btn {
+  background: rgba(15, 23, 42, 0.88);
+  color: #5eead4;
+  border-color: rgba(94, 234, 212, 0.45);
+}
+
+[data-color-mode="dark"] .dashboard-hero-upload-status-error {
+  color: #fca5a5;
+}
+
+[data-color-mode="dark"] .dashboard-hero-upload-status-success {
+  color: #5eead4;
 }
 
 

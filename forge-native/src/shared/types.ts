@@ -1292,6 +1292,22 @@ export interface BulkImportHackdaySubmissionsResult {
   importedAt: string | null;
 }
 
+export interface CreateEventBrandingImageUploadUrlInput {
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  imageWidth: number;
+  imageHeight: number;
+}
+
+export interface CreateEventBrandingImageUploadUrlResult {
+  bucket: string;
+  objectPath: string;
+  signedUploadUrl: string;
+  publicUrl: string;
+  expiresAt: string;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
@@ -1338,4 +1354,7 @@ export type Defs = {
   hdcTrackTeamPulseExport: (payload: TrackTeamPulseExportInput) => TrackTeamPulseExportResult;
   hdcCompleteAndSync: (payload: { eventId: string }) => SyncResult;
   hdcRetrySync: (payload: { eventId: string }) => SyncResult;
+  createEventBrandingImageUploadUrl: (
+    payload: CreateEventBrandingImageUploadUrlInput
+  ) => CreateEventBrandingImageUploadUrlResult;
 };

@@ -2087,3 +2087,36 @@ Do not use ROADMAP.md or HDC-PRODUCT-EXECUTION-PLAN.md unless explicitly asked f
 
 1) Keep exception documented until plan/tier supports leaked-password protection.
 2) If upgraded, enable leaked-password protection in Supabase Auth settings and re-run Advisor to close exception.
+
+## Session Update - Runtime Hero Inline Upload Delivered (Mar 5, 2026 00:51 GMT)
+
+### Completed
+- Implemented event-admin inline hero image upload in runtime Dashboard (config mode gated).
+- Added runtime resolver `createEventBrandingImageUploadUrl` with server-side size/type/dimension validation and signed upload URL generation.
+- Provisioned constrained Supabase Storage bucket `event-branding-images` via migration.
+- Added manifest client egress for Supabase signed URL browser PUT.
+- Added runtime helper + UI wiring to upload, then patch `branding.bannerImageUrl` in config draft for preview.
+- Added contract/helper tests for resolver exposure, validation rules, migration presence, helper behavior, and config patch wiring.
+
+### Validation Commands Run
+- `npm run typecheck --prefix forge-native/static/frontend`
+- `npm run build --prefix forge-native/static/frontend`
+- `npm run typecheck --prefix forge-native`
+- `npm run test:backend --prefix forge-native`
+- `npm run runtime:build --prefix forge-native`
+
+All passed in-session.
+
+### Current Status
+- Change is implemented and locally validated.
+- Not deployed in this session.
+
+### Next Work Priority
+1) Run a production app-shell manual acceptance pass:
+   - upload valid hero image in config mode
+   - verify immediate preview
+   - publish
+   - verify participant view sees updated hero.
+2) If accepted, deploy through standard production path (`custom-ui:build`, `forge deploy`, `forge install --upgrade`).
+3) Capture artifacts/screenshots and append closure evidence.
+4) Create concrete next-work item from `Pending Future Work Idea Capture` placeholders in `LEARNINGS.md` and `CONTINUATION.md` with acceptance criteria + validation commands (still pending from prior carry-forward note).

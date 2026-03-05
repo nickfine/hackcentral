@@ -36,6 +36,7 @@ test('runtime resolver exposes core app-mode and team lifecycle endpoints', asyn
     'getEventConfigModeState',
     'saveEventConfigDraft',
     'publishEventConfigDraft',
+    'createEventBrandingImageUploadUrl',
   ];
 
   for (const resolverName of expectedResolvers) {
