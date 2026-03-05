@@ -6841,71 +6841,73 @@ export function App(): JSX.Element {
                 </div>
               </section>
 
-              <section className="filter-row">
-                <input
-                  type="search"
-                  placeholder="Search pains by title or description..."
-                  value={problemSearchInput}
-                  onChange={(event) => setProblemSearchInput(event.target.value)}
-                  onKeyDown={handleProblemSearchKeyDown}
-                />
-                <input
-                  type="text"
-                  placeholder="Teams (comma separated)"
-                  value={problemTeamsInput}
-                  onChange={(event) => setProblemTeamsInput(event.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="Domains (comma separated)"
-                  value={problemDomainsInput}
-                  onChange={(event) => setProblemDomainsInput(event.target.value)}
-                />
-                <select
-                  value={problemStatusFilter}
-                  onChange={(event) => setProblemStatusFilter(event.target.value as ProblemStatus | 'all')}
-                >
-                  <option value="all">All Statuses</option>
-                  {PROBLEM_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {formatLabel(status)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={problemSortBy}
-                  onChange={(event) => setProblemSortBy(event.target.value as ProblemSortBy)}
-                >
-                  <option value="votes">Top Votes</option>
-                  <option value="time_wasted">Highest Time Wasted</option>
-                  <option value="newest">Newest</option>
-                </select>
-                <label className="check-label">
+              <section className="card problem-toolbar">
+                <section className="filter-row problem-filter-row">
                   <input
-                    type="checkbox"
-                    checked={problemIncludeHidden}
-                    onChange={(event) => setProblemIncludeHidden(event.target.checked)}
-                    disabled={!problemCanModerate}
+                    type="search"
+                    placeholder="Search pains by title or description..."
+                    value={problemSearchInput}
+                    onChange={(event) => setProblemSearchInput(event.target.value)}
+                    onKeyDown={handleProblemSearchKeyDown}
                   />
-                  Include hidden/removed
-                </label>
-              </section>
+                  <input
+                    type="text"
+                    placeholder="Teams (comma separated)"
+                    value={problemTeamsInput}
+                    onChange={(event) => setProblemTeamsInput(event.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Domains (comma separated)"
+                    value={problemDomainsInput}
+                    onChange={(event) => setProblemDomainsInput(event.target.value)}
+                  />
+                  <select
+                    value={problemStatusFilter}
+                    onChange={(event) => setProblemStatusFilter(event.target.value as ProblemStatus | 'all')}
+                  >
+                    <option value="all">All Statuses</option>
+                    {PROBLEM_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {formatLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={problemSortBy}
+                    onChange={(event) => setProblemSortBy(event.target.value as ProblemSortBy)}
+                  >
+                    <option value="votes">Top Votes</option>
+                    <option value="time_wasted">Highest Time Wasted</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={problemIncludeHidden}
+                      onChange={(event) => setProblemIncludeHidden(event.target.checked)}
+                      disabled={!problemCanModerate}
+                    />
+                    Include hidden/removed
+                  </label>
+                </section>
 
-              <section className="problem-filter-actions">
-                <button type="button" className="btn btn-primary" onClick={applyProblemFiltersToList}>
-                  Apply Filters
-                </button>
-                <button type="button" className="btn btn-outline" onClick={clearProblemFilters}>
-                  Reset
-                </button>
-                <span className="meta">
-                  Showing {problemItems.length} pain{problemItems.length === 1 ? '' : 's'}
-                </span>
-                {!problemCanModerate ? (
+                <section className="problem-filter-actions">
+                  <button type="button" className="btn btn-primary" onClick={applyProblemFiltersToList}>
+                    Apply Filters
+                  </button>
+                  <button type="button" className="btn btn-outline" onClick={clearProblemFilters}>
+                    Reset
+                  </button>
                   <span className="meta">
-                    Moderation mode: {formatLabel(problemModerationMode)}. Remove/Reinstate actions are restricted.
+                    Showing {problemItems.length} pain{problemItems.length === 1 ? '' : 's'}
                   </span>
-                ) : null}
+                  {!problemCanModerate ? (
+                    <span className="meta">
+                      Moderation mode: {formatLabel(problemModerationMode)}. Remove/Reinstate actions are restricted.
+                    </span>
+                  ) : null}
+                </section>
               </section>
 
               {showCreateProblemForm ? (
@@ -7026,156 +7028,164 @@ export function App(): JSX.Element {
                     const moderationAction = resolveProblemModerationAction(problemCanModerate, problem.moderationState);
                     return (
                       <article key={problem.id} className="card hack-card problem-card">
-                        <div className="hack-card-head">
-                          <div className="hack-card-title-wrap">
-                            <h3>{problem.title}</h3>
+                        <div className="problem-card-main">
+                          <div className="hack-card-head">
+                            <div className="hack-card-title-wrap">
+                              <h3>{problem.title}</h3>
+                            </div>
+                            <div className="problem-pill-row">
+                              <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
+                              {problem.moderationState !== 'visible' ? (
+                                <span className={`pill pill-moderation-${problem.moderationState}`}>
+                                  {formatLabel(problem.moderationState)}
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="problem-pill-row">
-                            <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
-                            {problem.moderationState !== 'visible' ? (
-                              <span className={`pill pill-moderation-${problem.moderationState}`}>
-                                {formatLabel(problem.moderationState)}
-                              </span>
-                            ) : null}
+
+                          <p className="hack-card-copy">{problem.description}</p>
+
+                          <div className="problem-meta-grid">
+                            <span className="meta">Team: {problem.team}</span>
+                            <span className="meta">Domain: {problem.domain}</span>
+                            <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
+                            <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
+                            <span className="meta">Submitted by {problem.createdByName}</span>
+                            <span className="meta">Contact: {problem.contactDetails}</span>
                           </div>
-                        </div>
 
-                        <p className="hack-card-copy">{problem.description}</p>
-
-                        <div className="problem-meta-grid">
-                          <span className="meta">Team: {problem.team}</span>
-                          <span className="meta">Domain: {problem.domain}</span>
-                          <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
-                          <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
-                          <span className="meta">Submitted by {problem.createdByName}</span>
-                          <span className="meta">Contact: {problem.contactDetails}</span>
-                        </div>
-
-                        <div className="hack-card-foot">
-                          <div className="problem-actions">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => {
-                                void handleVoteProblem(problem.id);
-                              }}
-                              disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
-                            >
-                              {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline"
-                              onClick={() => {
-                                void handleFlagProblem(problem);
-                              }}
-                              disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
-                            >
-                              {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
-                            </button>
-                            {moderationAction ? (
+                          <div className="hack-card-foot">
+                            <div className="problem-actions">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => {
+                                  void handleVoteProblem(problem.id);
+                                }}
+                                disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
+                              >
+                                {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
+                              </button>
                               <button
                                 type="button"
                                 className="btn btn-outline"
                                 onClick={() => {
-                                  void handleModerateProblem(problem, moderationAction);
+                                  void handleFlagProblem(problem);
                                 }}
-                                disabled={problemModerationPendingId === problem.id}
+                                disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
                               >
-                                {problemModerationPendingId === problem.id
-                                  ? 'Saving...'
-                                  : moderationAction === 'reinstate'
-                                    ? 'Reinstate'
-                                    : 'Remove'}
+                                {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
                               </button>
-                            ) : null}
+                              {moderationAction ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline"
+                                  onClick={() => {
+                                    void handleModerateProblem(problem, moderationAction);
+                                  }}
+                                  disabled={problemModerationPendingId === problem.id}
+                                >
+                                  {problemModerationPendingId === problem.id
+                                    ? 'Saving...'
+                                    : moderationAction === 'reinstate'
+                                      ? 'Reinstate'
+                                      : 'Remove'}
+                                </button>
+                              ) : null}
+                            </div>
+                            <span className="meta">
+                              {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
+                            </span>
                           </div>
-                          <span className="meta">
-                            {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
-                          </span>
                         </div>
 
-                        <section className="problem-inline-section">
-                          <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
-                          <input
-                            id={`problem-flag-reason-${problem.id}`}
-                            value={flagReasonValue}
-                            onChange={(event) =>
-                              setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
-                            }
-                            placeholder="Reason to help moderators review"
-                          />
-                        </section>
+                        <aside className="problem-card-side">
+                          <section className="problem-inline-section">
+                            <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
+                            <input
+                              id={`problem-flag-reason-${problem.id}`}
+                              value={flagReasonValue}
+                              onChange={(event) =>
+                                setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
+                              }
+                              placeholder="Reason to help moderators review"
+                            />
+                          </section>
 
-                        <section className="problem-status-panel">
-                          <h4>Update status</h4>
-                          <div className="problem-status-grid">
-                            <select
-                              value={statusValue}
-                              onChange={(event) =>
-                                setProblemStatusDraftById((current) => ({
-                                  ...current,
-                                  [problem.id]: event.target.value as ProblemStatus,
-                                }))
-                              }
-                            >
-                              {PROBLEM_STATUSES.map((status) => (
-                                <option key={status} value={status}>
-                                  {formatLabel(status)}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              value={linkedHackProjectValue}
-                              onChange={(event) =>
-                                setProblemLinkHackProjectById((current) => ({
-                                  ...current,
-                                  [problem.id]: event.target.value,
-                                }))
-                              }
-                              placeholder="Linked hack project ID (required for solved unless artifact linked)"
-                            />
-                            <input
-                              value={linkedArtifactValue}
-                              onChange={(event) =>
-                                setProblemLinkArtifactById((current) => ({
-                                  ...current,
-                                  [problem.id]: event.target.value,
-                                }))
-                              }
-                              placeholder="Linked artifact ID (required for solved unless project linked)"
-                            />
-                            <input
-                              value={statusNoteValue}
-                              onChange={(event) =>
-                                setProblemStatusNoteById((current) => ({
-                                  ...current,
-                                  [problem.id]: event.target.value,
-                                }))
-                              }
-                              placeholder="Transition note (optional)"
-                            />
-                          </div>
-                          <div className="problem-status-actions">
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => {
-                                void handleUpdateProblemStatus(problem);
-                              }}
-                              disabled={problemStatusPendingId === problem.id}
-                            >
-                              {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
-                            </button>
-                          </div>
-                          {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
-                            <p className="meta">
-                              Linked sources:
-                              {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
-                              {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
-                            </p>
-                          ) : null}
-                        </section>
+                          <section className="problem-status-panel">
+                            <h4>Update status</h4>
+                            <div className="problem-status-grid">
+                              <select
+                                className="problem-status-field problem-status-field-wide"
+                                value={statusValue}
+                                onChange={(event) =>
+                                  setProblemStatusDraftById((current) => ({
+                                    ...current,
+                                    [problem.id]: event.target.value as ProblemStatus,
+                                  }))
+                                }
+                              >
+                                {PROBLEM_STATUSES.map((status) => (
+                                  <option key={status} value={status}>
+                                    {formatLabel(status)}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                className="problem-status-field"
+                                value={linkedHackProjectValue}
+                                onChange={(event) =>
+                                  setProblemLinkHackProjectById((current) => ({
+                                    ...current,
+                                    [problem.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Linked hack project ID (required for solved unless artifact linked)"
+                              />
+                              <input
+                                className="problem-status-field"
+                                value={linkedArtifactValue}
+                                onChange={(event) =>
+                                  setProblemLinkArtifactById((current) => ({
+                                    ...current,
+                                    [problem.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Linked artifact ID (required for solved unless project linked)"
+                              />
+                              <input
+                                className="problem-status-field problem-status-field-wide"
+                                value={statusNoteValue}
+                                onChange={(event) =>
+                                  setProblemStatusNoteById((current) => ({
+                                    ...current,
+                                    [problem.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Transition note (optional)"
+                              />
+                            </div>
+                            <div className="problem-status-actions">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => {
+                                  void handleUpdateProblemStatus(problem);
+                                }}
+                                disabled={problemStatusPendingId === problem.id}
+                              >
+                                {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
+                              </button>
+                            </div>
+                            {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
+                              <p className="meta">
+                                Linked sources:
+                                {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
+                                {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
+                              </p>
+                            ) : null}
+                          </section>
+                        </aside>
                       </article>
                     );
                   })}

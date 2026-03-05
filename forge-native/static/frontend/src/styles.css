@@ -1681,11 +1681,19 @@ button {
   gap: 8px;
 }
 
+.problem-toolbar {
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
 .problem-filter-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 
 .problem-form-card {
@@ -1711,34 +1719,28 @@ button {
 .pains-grid {
   grid-template-columns: 1fr;
   align-items: start;
+  gap: 14px;
 }
 
 .problem-card {
   border-left-color: #f59e0b;
   min-width: 0;
-  height: 100%;
-  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
   column-gap: 16px;
-  row-gap: 10px;
+  row-gap: 0;
   align-items: start;
+  padding: 14px;
 }
 
-.problem-card > .hack-card-head,
-.problem-card > .hack-card-copy,
-.problem-card > .problem-meta-grid,
-.problem-card > .hack-card-foot {
-  grid-column: 1;
+.problem-card-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
-.problem-card > .problem-inline-section,
-.problem-card > .problem-status-panel {
-  grid-column: 2;
+.problem-card-main .hack-card-foot {
+  padding-top: 8px;
   margin-top: 0;
-  border-top: 0;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
 }
 
 .problem-card .hack-card-title-wrap h3,
@@ -1761,6 +1763,12 @@ button {
   gap: 6px 10px;
 }
 
+.problem-card-side {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
 .problem-actions {
   display: flex;
   align-items: center;
@@ -1769,9 +1777,11 @@ button {
 }
 
 .problem-inline-section {
-  border-top: 1px solid var(--line);
-  margin-top: 8px;
-  padding-top: 10px;
+  margin-top: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
   display: grid;
   gap: 6px;
 }
@@ -1782,9 +1792,11 @@ button {
 }
 
 .problem-status-panel {
-  border-top: 1px solid var(--line);
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
   display: grid;
   gap: 8px;
 }
@@ -1799,11 +1811,11 @@ button {
 
 .problem-status-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.problem-status-grid input,
-.problem-status-grid select {
+.problem-status-field {
   width: 100%;
   min-height: 40px;
   border-radius: 10px;
@@ -1811,6 +1823,10 @@ button {
   background: #fff;
   padding: 0 12px;
   color: var(--text);
+}
+
+.problem-status-field-wide {
+  grid-column: 1 / -1;
 }
 
 .problem-status-actions {
@@ -3570,17 +3586,12 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .problem-card > .hack-card-head,
-  .problem-card > .hack-card-copy,
-  .problem-card > .problem-meta-grid,
-  .problem-card > .hack-card-foot,
-  .problem-card > .problem-inline-section,
-  .problem-card > .problem-status-panel {
-    grid-column: 1;
+  .problem-card-side {
+    grid-template-columns: 1fr;
   }
 
-  .problem-card > .problem-inline-section,
-  .problem-card > .problem-status-panel {
+  .problem-inline-section,
+  .problem-status-panel {
     padding: 10px 0 0;
     border: 0;
     border-top: 1px solid var(--line);
@@ -3796,6 +3807,10 @@ button {
   }
 
   .problem-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .problem-status-grid {
     grid-template-columns: 1fr;
   }
 
