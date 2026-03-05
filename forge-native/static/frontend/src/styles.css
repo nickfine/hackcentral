@@ -1704,7 +1704,7 @@ button {
 }
 
 .problem-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -1712,6 +1712,28 @@ button {
   border-left-color: #f59e0b;
   min-width: 0;
   height: 100%;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  column-gap: 16px;
+  row-gap: 10px;
+  align-items: start;
+}
+
+.problem-card > .hack-card-head,
+.problem-card > .hack-card-copy,
+.problem-card > .problem-meta-grid,
+.problem-card > .hack-card-foot {
+  grid-column: 1;
+}
+
+.problem-card > .problem-inline-section,
+.problem-card > .problem-status-panel {
+  grid-column: 2;
+  margin-top: 0;
+  border-top: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 82%, var(--surface-muted));
 }
 
 .problem-card .hack-card-title-wrap h3,
@@ -3517,7 +3539,7 @@ button {
   }
 
   .problem-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .showcase-layout {
@@ -3535,6 +3557,30 @@ button {
 
   .quote-body {
     font-size: 42px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .problem-card {
+    grid-template-columns: 1fr;
+  }
+
+  .problem-card > .hack-card-head,
+  .problem-card > .hack-card-copy,
+  .problem-card > .problem-meta-grid,
+  .problem-card > .hack-card-foot,
+  .problem-card > .problem-inline-section,
+  .problem-card > .problem-status-panel {
+    grid-column: 1;
+  }
+
+  .problem-card > .problem-inline-section,
+  .problem-card > .problem-status-panel {
+    padding: 10px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
   }
 }
 
