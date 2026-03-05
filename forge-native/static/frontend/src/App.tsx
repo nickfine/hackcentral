@@ -1109,6 +1109,15 @@ function mapFeaturedHackToShowcaseItem(hack: FeaturedHack): ShowcaseHackListItem
   };
 }
 
+function hasShowcasePageLink(
+  item: Pick<ShowcaseHackListItem, 'confluencePageId' | 'confluencePageUrl'>
+): boolean {
+  const rawPageId = item.confluencePageId?.trim() || '';
+  if (/^\d+$/.test(rawPageId)) return true;
+  const pageUrl = item.confluencePageUrl?.trim() || '';
+  return isValidHttpsUrl(pageUrl);
+}
+
 function mapProblemListItemToImportCandidate(problem: ProblemListItem): ProblemImportCandidate {
   return {
     problemId: problem.id,
@@ -2847,9 +2856,10 @@ export function App(): JSX.Element {
         sortBy: 'featured',
         limit: 100,
       });
-      setShowcaseItems(result.items);
+      const linkedItems = result.items.filter((item) => hasShowcasePageLink(item));
+      setShowcaseItems(linkedItems);
       setShowcaseCanManage(result.canManage);
-      setShowcaseLegacyCount(result.legacyCount);
+      setShowcaseLegacyCount(0);
       setShowcaseLoaded(true);
     } catch (error) {
       setShowcaseError(error instanceof Error ? error.message : 'Failed to load Showcase hacks.');
@@ -3087,7 +3097,7 @@ export function App(): JSX.Element {
         void handleOpenShowcasePage(item);
         return;
       }
-      if (item.isPageBacked && item.confluencePageId) {
+      if (hasShowcasePageLink(item)) {
         setShowcaseSelectedProjectId(null);
         setShowcaseDetail(null);
         setShowcaseDetailError('');
@@ -3964,7 +3974,7 @@ export function App(): JSX.Element {
   );
 
   const legacyFilteredShowcaseItems = useMemo(
-    () => filteredShowcaseItems.filter((item) => !item.isPageBacked),
+    () => filteredShowcaseItems.filter((item) => !hasShowcasePageLink(item)),
     [filteredShowcaseItems]
   );
 
@@ -3972,7 +3982,7 @@ export function App(): JSX.Element {
     HDC_SHOWCASE_UX_V1 &&
       !HDC_SHOWCASE_PAGE_ONLY_V1 &&
       selectedShowcaseItem &&
-      !selectedShowcaseItem.isPageBacked &&
+      !hasShowcasePageLink(selectedShowcaseItem) &&
       showcaseSelectedProjectId
   );
 
@@ -5550,7 +5560,7 @@ export function App(): JSX.Element {
                             const isSelected =
                               !HDC_SHOWCASE_PAGE_ONLY_V1 &&
                               showcaseSelectedProjectId === showcaseItem.projectId &&
-                              !showcaseItem.isPageBacked;
+                              !hasShowcasePageLink(showcaseItem);
                             return (
                               <article
                                 key={`featured-${showcaseItem.projectId}`}
@@ -5572,11 +5582,11 @@ export function App(): JSX.Element {
                                       onClick={() => {
                                         void handleOpenShowcasePage(showcaseItem);
                                       }}
-                                      disabled={!showcaseItem.confluencePageId && !showcaseItem.confluencePageUrl}
+                                      disabled={!hasShowcasePageLink(showcaseItem)}
                                     >
                                       Open page
                                     </button>
-                                  ) : showcaseItem.isPageBacked && showcaseItem.confluencePageId ? (
+                                  ) : hasShowcasePageLink(showcaseItem) ? (
                                     <button
                                       type="button"
                                       className="btn btn-outline"
@@ -5627,7 +5637,7 @@ export function App(): JSX.Element {
                         const isSelected =
                           !HDC_SHOWCASE_PAGE_ONLY_V1 &&
                           showcaseSelectedProjectId === showcaseItem.projectId &&
-                          !showcaseItem.isPageBacked;
+                          !hasShowcasePageLink(showcaseItem);
                         return (
                           <article
                             key={showcaseItem.projectId}
@@ -5649,11 +5659,11 @@ export function App(): JSX.Element {
                                   onClick={() => {
                                     void handleOpenShowcasePage(showcaseItem);
                                   }}
-                                  disabled={!showcaseItem.confluencePageId && !showcaseItem.confluencePageUrl}
+                                  disabled={!hasShowcasePageLink(showcaseItem)}
                                 >
                                   Open page
                                 </button>
-                              ) : showcaseItem.isPageBacked && showcaseItem.confluencePageId ? (
+                              ) : hasShowcasePageLink(showcaseItem) ? (
                                 <button
                                   type="button"
                                   className="btn btn-outline"

@@ -40,7 +40,9 @@ test('frontend showcase supports page-only rollout flag while keeping fallback p
 
   assert.match(appSource, /VITE_HDC_SHOWCASE_PAGE_ONLY_V1/);
   assert.match(appSource, /buildConfluencePagePath\(pageId\)/);
-  assert.match(appSource, /showcaseItem\.isPageBacked && showcaseItem\.confluencePageId/);
+  assert.match(appSource, /function hasShowcasePageLink/);
+  assert.match(appSource, /result\.items\.filter\(\(item\) => hasShowcasePageLink\(item\)\)/);
+  assert.match(appSource, /hasShowcasePageLink\(showcaseItem\)/);
   assert.match(appSource, /Open page/);
   assert.match(appSource, /Legacy/);
 });
