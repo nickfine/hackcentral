@@ -41,3 +41,11 @@ test('phase9 search-path hardening migration uses IF EXISTS for optional functio
     /ALTER FUNCTION public\.pipeline_stage_criteria_set_updated_at_fn\(\) SET search_path = pg_catalog, public;/
   );
 });
+
+test('event-admin access checks guard against non-uuid user ids', async () => {
+  const source = await readSource('../../src/backend/supabase/repositories.ts');
+
+  assert.match(source, /private async isEventAdminForEvent\(eventId: string, userId: string\): Promise<boolean>[\s\S]*if \(!isUuid\(userId\)\) \{\s*return false;\s*\}/);
+  assert.match(source, /private async hasAnyEventAdminAccess\(userId: string\): Promise<boolean>[\s\S]*if \(!isUuid\(userId\)\) \{\s*return false;\s*\}/);
+  assert.match(source, /private async listEventAdminsByUserId\(userId: string\): Promise<DbEventAdmin\[]>[\s\S]*if \(!isUuid\(userId\)\) \{\s*return \[\];\s*\}/);
+});

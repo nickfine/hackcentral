@@ -3167,6 +3167,9 @@ export class SupabaseRepository {
   }
 
   private async isEventAdminForEvent(eventId: string, userId: string): Promise<boolean> {
+    if (!isUuid(userId)) {
+      return false;
+    }
     try {
       const rows = await this.client.selectMany<{ id: string }>(EVENT_ADMIN_TABLE, 'id', [
         { field: 'event_id', op: 'eq', value: eventId },
@@ -3182,6 +3185,9 @@ export class SupabaseRepository {
   }
 
   private async hasAnyEventAdminAccess(userId: string): Promise<boolean> {
+    if (!isUuid(userId)) {
+      return false;
+    }
     try {
       const rows = await this.client.selectMany<{ id: string }>(EVENT_ADMIN_TABLE, 'id', [
         { field: 'user_id', op: 'eq', value: userId },
@@ -8631,6 +8637,9 @@ export class SupabaseRepository {
   }
 
   private async listEventAdminsByUserId(userId: string): Promise<DbEventAdmin[]> {
+    if (!isUuid(userId)) {
+      return [];
+    }
     return this.client.selectMany<DbEventAdmin>(
       EVENT_ADMIN_TABLE,
       'id,event_id,user_id,role',
