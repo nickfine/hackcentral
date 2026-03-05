@@ -1061,7 +1061,10 @@ function Dashboard({
       <section data-testid="dashboard-row1-status-card">
         <div
           data-testid="dashboard-hero-card"
-          className="dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm"
+          className={cn(
+            'dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm',
+            canEditHeroBanner ? 'dashboard-hero-card-editable' : ''
+          )}
         >
           {heroBannerImageUrl ? (
             <img
@@ -1098,6 +1101,12 @@ function Dashboard({
               <Upload className="h-3.5 w-3.5" />
               {isHeroImageUploading ? 'Uploading...' : heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
             </button>
+          ) : null}
+          {canEditHeroBanner ? (
+            <div className="dashboard-hero-edit-indicator">
+              <Upload className="h-3.5 w-3.5" />
+              <span>{isHeroImageUploading ? 'Uploading hero image...' : 'Config Mode: click anywhere in this hero to upload or change image'}</span>
+            </div>
           ) : null}
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">

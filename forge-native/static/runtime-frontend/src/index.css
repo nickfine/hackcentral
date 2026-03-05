@@ -429,6 +429,12 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
+.dashboard-hero-card-editable {
+  cursor: pointer;
+  outline: 2px dashed rgba(20, 184, 166, 0.5);
+  outline-offset: -8px;
+}
+
 .dashboard-hero-banner-image {
   position: absolute;
   inset: 0;
@@ -482,6 +488,25 @@
 .dashboard-hero-image-upload-btn:disabled {
   opacity: 0.65;
   cursor: wait;
+}
+
+.dashboard-hero-edit-indicator {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.35rem 0.55rem;
+  max-width: min(92%, 620px);
 }
 
 .dashboard-hero-upload-status {
@@ -803,6 +828,16 @@
 }
 
 [data-color-mode="dark"] .dashboard-hero-image-upload-btn {
+  background: rgba(15, 23, 42, 0.88);
+  color: #5eead4;
+  border-color: rgba(94, 234, 212, 0.45);
+}
+
+[data-color-mode="dark"] .dashboard-hero-card-editable {
+  outline-color: rgba(94, 234, 212, 0.55);
+}
+
+[data-color-mode="dark"] .dashboard-hero-edit-indicator {
   background: rgba(15, 23, 42, 0.88);
   color: #5eead4;
   border-color: rgba(94, 234, 212, 0.45);
