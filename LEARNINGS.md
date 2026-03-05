@@ -20,10 +20,10 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.52 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.58`, `HACKCENTRAL_MACRO_VERSION=0.6.45` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.53 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.59`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.26
+**Forge Native Package:** 0.3.27
 
 ## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
 

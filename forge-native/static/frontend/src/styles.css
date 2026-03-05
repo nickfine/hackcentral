@@ -1704,6 +1704,11 @@ button {
 }
 
 .problem-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.pains-grid {
   grid-template-columns: 1fr;
   align-items: start;
 }
@@ -1739,8 +1744,8 @@ button {
 .problem-card .hack-card-title-wrap h3,
 .problem-card .hack-card-copy,
 .problem-card .meta {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .problem-pill-row {
@@ -3539,7 +3544,7 @@ button {
   }
 
   .problem-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .showcase-layout {

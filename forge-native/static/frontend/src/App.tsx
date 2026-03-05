@@ -110,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.58';
+const HACKCENTRAL_UI_VERSION = '0.6.59';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -7016,7 +7016,7 @@ export function App(): JSX.Element {
               ) : null}
 
               {!problemLoading && problemLoaded && problemItems.length > 0 ? (
-                <section className="grid hacks-grid">
+                <section className="grid pains-grid">
                   {problemItems.map((problem) => {
                     const statusValue = problemStatusDraftById[problem.id] ?? problem.status;
                     const linkedHackProjectValue = problemLinkHackProjectById[problem.id] ?? problem.linkedHackProjectId ?? '';
