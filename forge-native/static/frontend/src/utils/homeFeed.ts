@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 export const HOME_FEED_ACTIVITY_SUBCOPY =
-  'Recent activity across hacks, problems, artifacts, and upcoming HackDays.';
+  'Recent activity across hacks, pains, artifacts, and upcoming HackDays.';
 export const HOME_FEED_RECOMMENDATION_SUBCOPY =
   'Suggestions based on your team activity and role.';
 

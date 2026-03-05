@@ -1,13 +1,8 @@
-import type { PipelineBoardItem, PipelineStage, PipelineStageCriteria } from '../../types';
+import type { PipelineBoardItem, PipelineStage, PipelineStageCriteria, ProblemListItem } from '../../types';
 import { getInitials } from '../../utils/format';
+import type { HeroStageDefinition } from './types';
 
-const AVATAR_PALETTE = [
-  'hsl(215, 40%, 45%)',
-  'hsl(30, 20%, 50%)',
-  'hsl(350, 35%, 50%)',
-  'hsl(150, 30%, 45%)',
-  'hsl(40, 40%, 48%)',
-];
+const AVATAR_TONE_COUNT = 5;
 
 function hashName(value: string): number {
   let hash = 0;
@@ -18,13 +13,21 @@ function hashName(value: string): number {
   return Math.abs(hash);
 }
 
-function avatarColor(ownerName: string): string {
-  return AVATAR_PALETTE[hashName(ownerName) % AVATAR_PALETTE.length];
+function avatarToneClass(value: string): string {
+  return `pipeline-avatar-tone-${hashName(value) % AVATAR_TONE_COUNT}`;
+}
+
+function formatAgeDays(createdAt: string): string {
+  const parsed = Date.parse(createdAt);
+  if (!Number.isFinite(parsed)) return '0 days old';
+  const days = Math.max(0, Math.round((Date.now() - parsed) / (1000 * 60 * 60 * 24)));
+  return `${days} days old`;
 }
 
 interface StageDetailProps {
-  stage: PipelineStageCriteria;
+  stage: HeroStageDefinition;
   items: PipelineBoardItem[];
+  painsItems: ProblemListItem[];
   stages: PipelineStageCriteria[];
   canManage: boolean;
   pipelineMovePendingProjectId: string | null;
@@ -33,11 +36,13 @@ interface StageDetailProps {
   onPipelineMoveStageChange: (projectId: string, stage: PipelineStage) => void;
   onPipelineMoveNoteChange: (projectId: string, note: string) => void;
   onMoveItem: (item: PipelineBoardItem) => void;
+  onOpenPains: () => void;
 }
 
 export function StageDetail({
   stage,
   items,
+  painsItems,
   stages,
   canManage,
   pipelineMovePendingProjectId,
@@ -46,9 +51,14 @@ export function StageDetail({
   onPipelineMoveStageChange,
   onPipelineMoveNoteChange,
   onMoveItem,
+  onOpenPains,
 }: StageDetailProps): JSX.Element {
-  const visibleItems = items.slice(0, 3);
-  const overflowCount = Math.max(items.length - visibleItems.length, 0);
+  const isPainsStage = stage.stage === 'pains';
+  const visiblePainItems = painsItems.slice(0, 3);
+  const visibleProjectItems = items.slice(0, 3);
+  const overflowCount = isPainsStage
+    ? Math.max(painsItems.length - visiblePainItems.length, 0)
+    : Math.max(items.length - visibleProjectItems.length, 0);
 
   return (
     <article className="pipeline-detail-panel" aria-label={`${stage.label} details`}>
@@ -57,11 +67,13 @@ export function StageDetail({
           <h3>{stage.label}</h3>
           <p>{stage.description}</p>
         </div>
-        <span className="pipeline-detail-count">{items.length} items in stage</span>
+        <span className="pipeline-detail-count">
+          {isPainsStage ? painsItems.length : items.length} {isPainsStage ? 'pains' : 'items'} in stage
+        </span>
       </header>
 
       <section className="pipeline-detail-section">
-        <h4>Gate criteria</h4>
+        <h4>{isPainsStage ? 'Pain criteria' : 'Gate criteria'}</h4>
         <ul className="pipeline-detail-criteria-list">
           {stage.criteria.map((criterion) => (
             <li key={criterion}>
@@ -77,71 +89,92 @@ export function StageDetail({
       </section>
 
       <section className="pipeline-detail-section">
-        <h4>Items</h4>
-        {visibleItems.length === 0 ? (
-          <p className="empty-copy">No items in this stage.</p>
+        <h4>{isPainsStage ? 'Pains' : 'Items'}</h4>
+        {(isPainsStage ? visiblePainItems.length === 0 : visibleProjectItems.length === 0) ? (
+          <p className="empty-copy">{isPainsStage ? 'No pains in this stage.' : 'No items in this stage.'}</p>
         ) : (
           <div className="pipeline-detail-items">
-            {visibleItems.map((item) => {
-              const targetOptions = stages.filter((candidate) => candidate.stage !== item.stage);
-              const selectedTarget = pipelineMoveStageByProjectId[item.projectId] ?? '';
-              const isPending = pipelineMovePendingProjectId === item.projectId;
-
-              return (
-                <article key={item.projectId} className="pipeline-detail-item">
+            {isPainsStage ? (
+              visiblePainItems.map((pain) => (
+                <article key={pain.id} className="pipeline-detail-item">
                   <div className="pipeline-detail-item-main">
-                    <span className="pipeline-item-avatar" style={{ backgroundColor: avatarColor(item.ownerName) }} aria-hidden>
-                      {getInitials(item.ownerName)}
+                    <span className={`pipeline-item-avatar ${avatarToneClass(pain.team)}`} aria-hidden>
+                      {getInitials(pain.team)}
                     </span>
                     <div>
-                      <p className="pipeline-item-title">{item.title}</p>
-                      <p className="pipeline-item-meta">{item.ownerName} • {item.daysInStage} days in stage</p>
+                      <p className="pipeline-item-title">{pain.title}</p>
+                      <p className="pipeline-item-meta">Team: {pain.team} • Domain: {pain.domain} • {formatAgeDays(pain.createdAt)}</p>
                     </div>
                   </div>
-                  {canManage ? (
-                    <div className="pipeline-item-move-row">
-                      <label>
-                        <span className="sr-only">Target stage</span>
-                        <select
-                          value={selectedTarget}
-                          onChange={(event) => {
-                            if (!event.target.value) return;
-                            onPipelineMoveStageChange(item.projectId, event.target.value as PipelineStage);
-                          }}
+                  <div className="pipeline-pain-item-actions">
+                    <button type="button" className="btn btn-outline" onClick={onOpenPains}>
+                      Open in Pains
+                    </button>
+                  </div>
+                </article>
+              ))
+            ) : (
+              visibleProjectItems.map((projectItem) => {
+                const targetOptions = stages.filter((candidate) => candidate.stage !== projectItem.stage);
+                const selectedTarget = pipelineMoveStageByProjectId[projectItem.projectId] ?? '';
+                const isPending = pipelineMovePendingProjectId === projectItem.projectId;
+
+                return (
+                  <article key={projectItem.projectId} className="pipeline-detail-item">
+                    <div className="pipeline-detail-item-main">
+                      <span className={`pipeline-item-avatar ${avatarToneClass(projectItem.ownerName)}`} aria-hidden>
+                        {getInitials(projectItem.ownerName)}
+                      </span>
+                      <div>
+                        <p className="pipeline-item-title">{projectItem.title}</p>
+                        <p className="pipeline-item-meta">{projectItem.ownerName} • {projectItem.daysInStage} days in stage</p>
+                      </div>
+                    </div>
+                    {canManage ? (
+                      <div className="pipeline-item-move-row">
+                        <label>
+                          <span className="sr-only">Target stage</span>
+                          <select
+                            value={selectedTarget}
+                            onChange={(event) => {
+                              if (!event.target.value) return;
+                              onPipelineMoveStageChange(projectItem.projectId, event.target.value as PipelineStage);
+                            }}
+                            disabled={isPending}
+                          >
+                            <option value="">Select target stage</option>
+                            {targetOptions.map((option) => (
+                              <option key={`${projectItem.projectId}-${option.stage}`} value={option.stage}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          <span className="sr-only">Move note</span>
+                          <input
+                            type="text"
+                            value={pipelineMoveNoteByProjectId[projectItem.projectId] ?? ''}
+                            onChange={(event) => onPipelineMoveNoteChange(projectItem.projectId, event.target.value)}
+                            placeholder="Add a note"
+                            disabled={isPending}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onMoveItem(projectItem)}
                           disabled={isPending}
                         >
-                          <option value="">Select target stage</option>
-                          {targetOptions.map((option) => (
-                            <option key={`${item.projectId}-${option.stage}`} value={option.stage}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span className="sr-only">Move note</span>
-                        <input
-                          type="text"
-                          value={pipelineMoveNoteByProjectId[item.projectId] ?? ''}
-                          onChange={(event) => onPipelineMoveNoteChange(item.projectId, event.target.value)}
-                          placeholder="Add a note"
-                          disabled={isPending}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onMoveItem(item)}
-                        disabled={isPending}
-                      >
-                        {isPending ? 'Moving…' : 'Move'}
-                      </button>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
-            {overflowCount > 0 ? <p className="pipeline-more-items">+{overflowCount} more items</p> : null}
+                          {isPending ? 'Moving…' : 'Move'}
+                        </button>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+            {overflowCount > 0 ? <p className="pipeline-more-items">+{overflowCount} more {isPainsStage ? 'pains' : 'items'}</p> : null}
           </div>
         )}
       </section>

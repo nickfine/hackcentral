@@ -110,7 +110,7 @@ import type {
 import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.56';
+const HACKCENTRAL_UI_VERSION = '0.6.57';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -128,6 +128,7 @@ const HDC_PERF_CREATE_HANDOFF_V1 = String(import.meta.env.VITE_HDC_PERF_CREATE_H
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 const HDC_HOME_UX_V1 = true;
 const HDC_SHOWCASE_UX_V1 = true;
+const PIPELINE_PAIN_STATUSES: ProblemStatus[] = ['open', 'claimed', 'solved', 'closed'];
 const HDC_SHOWCASE_PAGE_ONLY_V1 =
   String(import.meta.env.VITE_HDC_SHOWCASE_PAGE_ONLY_V1 || '').trim().toLowerCase() === 'true';
 const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }> = [
@@ -137,13 +138,13 @@ const PATHWAY_STEP_TYPE_OPTIONS: Array<{ value: PathwayStepType; label: string }
 ];
 const HOME_FEED_ACTIVITY_LABELS: Record<HomeFeedActivityType, string> = {
   new_hack: 'New hack',
-  trending_problem: 'Trending problem',
+  trending_problem: 'Trending pain',
   new_artifact: 'New artifact',
   pipeline_movement: 'Pipeline movement',
   upcoming_hackday: 'Upcoming HackDay',
 };
 const HOME_FEED_RECOMMENDATION_LABELS: Record<HomeFeedRecommendationType, string> = {
-  problem_domain: 'Problems in your domain',
+  problem_domain: 'Pains in your domain',
   team_artifact: 'Artifacts used by your team',
   pathway_role: 'Pathways for your role',
 };
@@ -374,7 +375,7 @@ const BULLETIN_POSTS: BulletinPost[] = [
 
 const BADGES: Badge[] = [
   { id: 'b-artifact', label: 'First Artifact', badgeVariant: 'amber' },
-  { id: 'b-problem', label: 'First Problem Solved', badgeVariant: 'blue' },
+  { id: 'b-problem', label: 'First Pain Solved', badgeVariant: 'blue' },
   { id: 'b-reused', label: '5x Reused', badgeVariant: 'blue' },
   { id: 'b-mentor', label: 'Mentor Champion', badgeVariant: 'teal' },
   { id: 'b-pathway', label: 'Pathway Contributor', badgeVariant: 'amber' },
@@ -975,7 +976,7 @@ const PIPELINE_STAGE_DEFINITIONS: PipelineStageCriteria[] = [
     stage: 'hack',
     label: 'Hack',
     description: 'Submitted and demoed.',
-    criteria: ['Demo exists', 'Problem Exchange link if applicable'],
+    criteria: ['Demo exists', 'Pain link if applicable'],
   },
   {
     stage: 'validated_prototype',
@@ -1405,6 +1406,9 @@ export function App(): JSX.Element {
   const [pipelineMovePendingProjectId, setPipelineMovePendingProjectId] = useState<string | null>(null);
   const [pipelineMoveStageByProjectId, setPipelineMoveStageByProjectId] = useState<Record<string, PipelineStage>>({});
   const [pipelineMoveNoteByProjectId, setPipelineMoveNoteByProjectId] = useState<Record<string, string>>({});
+  const [pipelinePainsItems, setPipelinePainsItems] = useState<ProblemListItem[]>([]);
+  const [pipelinePainsLoading, setPipelinePainsLoading] = useState(false);
+  const [pipelinePainsError, setPipelinePainsError] = useState('');
 
   const [pathwayQueryInput, setPathwayQueryInput] = useState('');
   const [pathwayDomainInput, setPathwayDomainInput] = useState('');
@@ -1723,6 +1727,15 @@ export function App(): JSX.Element {
   const effectivePipelineStageCriteria = pipelineStageCriteria.length > 0 ? pipelineStageCriteria : PIPELINE_STAGE_DEFINITIONS;
   const effectivePipelineItems = pipelineLoaded ? pipelineItems : fallbackPipelineItems;
   const effectivePipelineMetrics = pipelineMetrics ?? fallbackPipelineMetrics;
+  const displayPipelineStageCriteria = useMemo(
+    () =>
+      effectivePipelineStageCriteria.map((stage) => ({
+        ...stage,
+        description: stage.description.replaceAll('Problem Exchange', 'Pains'),
+        criteria: stage.criteria.map((criterion) => criterion.replaceAll('Problem Exchange', 'Pains')),
+      })),
+    [effectivePipelineStageCriteria]
+  );
   const pipelineItemsByStage = useMemo(() => {
     const map: Record<PipelineStage, PipelineBoardItem[]> = {
       hack: [],
@@ -1735,6 +1748,26 @@ export function App(): JSX.Element {
     }
     return map;
   }, [effectivePipelineItems]);
+  const pipelinePainsSummary = useMemo(() => {
+    const painsCount = pipelinePainsItems.length;
+    const linkedHackCount = pipelinePainsItems.filter((item) => Boolean(item.linkedHackProjectId)).length;
+    const ageDays = pipelinePainsItems
+      .map((item) => {
+        const parsed = Date.parse(item.createdAt);
+        if (!Number.isFinite(parsed)) return 0;
+        return Math.max(0, (Date.now() - parsed) / (1000 * 60 * 60 * 24));
+      })
+      .filter((value) => Number.isFinite(value));
+    const averageDays =
+      ageDays.length > 0 ? Math.round((ageDays.reduce((sum, value) => sum + value, 0) / ageDays.length) * 10) / 10 : null;
+    const painsToHackConversionRate = painsCount > 0 ? (linkedHackCount / painsCount) * 100 : null;
+
+    return {
+      painsCount,
+      averageDays,
+      painsToHackConversionRate,
+    };
+  }, [pipelinePainsItems]);
 
   useEffect(() => {
     if (view !== 'projects') return;
@@ -1794,10 +1827,43 @@ export function App(): JSX.Element {
     }
   }, [fallbackPipelineItems, fallbackPipelineMetrics, previewMode]);
 
+  const loadPipelinePains = useCallback(async () => {
+    setPipelinePainsLoading(true);
+    setPipelinePainsError('');
+    try {
+      if (previewMode) {
+        const fallbackAuthor = bootstrap?.viewer.accountId ?? 'Local Preview User';
+        const seed = problemPreviewItems.length > 0 ? problemPreviewItems : seedPreviewProblems(featuredHacks, fallbackAuthor);
+        const visible = seed
+          .filter((item) => item.moderationState === 'visible')
+          .filter((item) => PIPELINE_PAIN_STATUSES.includes(item.status))
+          .slice(0, 200);
+        if (problemPreviewItems.length === 0) {
+          setProblemPreviewItems(seed);
+        }
+        setPipelinePainsItems(visible);
+        return;
+      }
+
+      const result = await invokeTyped('hdcListProblems', {
+        statuses: PIPELINE_PAIN_STATUSES,
+        includeHidden: false,
+        sortBy: 'newest',
+        limit: 200,
+      });
+      setPipelinePainsItems(result.items);
+    } catch (error) {
+      setPipelinePainsError(error instanceof Error ? error.message : 'Failed to load pains.');
+    } finally {
+      setPipelinePainsLoading(false);
+    }
+  }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]);
+
   useEffect(() => {
     if (view !== 'pipeline') return;
     void loadPipelineBoard();
-  }, [view, loadPipelineBoard]);
+    void loadPipelinePains();
+  }, [view, loadPipelineBoard, loadPipelinePains]);
 
   const handleMovePipelineItem = useCallback(
     async (item: PipelineBoardItem) => {
@@ -2285,7 +2351,7 @@ export function App(): JSX.Element {
                 { section: 'summary', dimension: 'all', id: 'all', label: 'All', metric: 'problems_solved', value: String(problemsSolved) },
               ],
               formattedSummary:
-                `Preview ROI scaffold (${window}). Outputs: hacks=${hacksCompleted}, artifacts=${artifactsPublished}, problems=${problemsSolved}. ` +
+                `Preview ROI scaffold (${window}). Outputs: hacks=${hacksCompleted}, artifacts=${artifactsPublished}, pains=${problemsSolved}. ` +
                 'Spend metrics are unavailable in preview mode.',
             },
             notes: ['Preview mode: ROI spend/token sources are not available.'],
@@ -3436,7 +3502,7 @@ export function App(): JSX.Element {
         setProblemItems(result.items);
         setProblemLoaded(true);
       } catch (error) {
-        setProblemError(error instanceof Error ? error.message : 'Failed to load Problem Exchange items.');
+        setProblemError(error instanceof Error ? error.message : 'Failed to load pains.');
       } finally {
         setProblemLoading(false);
       }
@@ -3556,11 +3622,11 @@ export function App(): JSX.Element {
         await invokeTyped('hdcCreateProblem', payload);
         await loadProblemExchangeItems(problemAppliedFilters);
       }
-      setActionMessage(`Problem posted: ${payload.title}`);
+      setActionMessage(`Pain posted: ${payload.title}`);
       resetProblemForm();
       setShowCreateProblemForm(false);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to create problem.');
+      setActionError(error instanceof Error ? error.message : 'Failed to create pain.');
     } finally {
       setProblemSubmitting(false);
     }
@@ -3612,9 +3678,9 @@ export function App(): JSX.Element {
         setProblemItems((current) =>
           current.map((item) => (item.id === problemId ? { ...item, voteCount: result.voteCount } : item))
         );
-        setActionMessage(result.alreadyVoted ? 'You already voted for this problem.' : 'Vote recorded.');
+        setActionMessage(result.alreadyVoted ? 'You already voted for this pain.' : 'Vote recorded.');
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Failed to vote for problem.');
+        setActionError(error instanceof Error ? error.message : 'Failed to vote for pain.');
       } finally {
         setProblemVotePendingId(null);
       }
@@ -3657,7 +3723,7 @@ export function App(): JSX.Element {
                 : item
             )
           );
-          setActionMessage(`Problem status updated to ${formatLabel(status)} (preview mode).`);
+          setActionMessage(`Pain status updated to ${formatLabel(status)} (preview mode).`);
           return;
         }
 
@@ -3682,9 +3748,9 @@ export function App(): JSX.Element {
               : item
           )
         );
-        setActionMessage(`Problem status updated to ${formatLabel(result.status)}.`);
+        setActionMessage(`Pain status updated to ${formatLabel(result.status)}.`);
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Failed to update problem status.');
+        setActionError(error instanceof Error ? error.message : 'Failed to update pain status.');
       } finally {
         setProblemStatusPendingId(null);
       }
@@ -3714,13 +3780,13 @@ export function App(): JSX.Element {
           });
           if (!previewResult) return;
           if (previewResult.alreadyFlagged) {
-            setActionMessage('You already flagged this problem (preview mode).');
+            setActionMessage('You already flagged this pain (preview mode).');
             return;
           }
           setProblemPreviewFlaggedIds(previewResult.nextFlaggedIds);
           setActionMessage(
             previewResult.autoHidden
-              ? 'Flag recorded. Problem auto-hidden pending moderation.'
+              ? 'Flag recorded. Pain auto-hidden pending moderation.'
               : 'Flag recorded (preview mode).'
           );
           return;
@@ -3743,12 +3809,12 @@ export function App(): JSX.Element {
           )
         );
         if (result.autoHidden) {
-          setActionMessage('Flag recorded. Problem auto-hidden pending moderation.');
+          setActionMessage('Flag recorded. Pain auto-hidden pending moderation.');
         } else {
-          setActionMessage(result.alreadyFlagged ? 'You already flagged this problem.' : 'Flag recorded.');
+          setActionMessage(result.alreadyFlagged ? 'You already flagged this pain.' : 'Flag recorded.');
         }
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Failed to flag problem.');
+        setActionError(error instanceof Error ? error.message : 'Failed to flag pain.');
       } finally {
         setProblemFlagPendingId(null);
       }
@@ -3777,8 +3843,8 @@ export function App(): JSX.Element {
           );
           setActionMessage(
             decision === 'remove'
-              ? 'Problem removed by moderator (preview mode).'
-              : 'Problem reinstated (preview mode).'
+              ? 'Pain removed by moderator (preview mode).'
+              : 'Pain reinstated (preview mode).'
           );
           return;
         }
@@ -3794,9 +3860,9 @@ export function App(): JSX.Element {
               : item
           )
         );
-        setActionMessage(decision === 'remove' ? 'Problem removed by moderator.' : 'Problem reinstated.');
+        setActionMessage(decision === 'remove' ? 'Pain removed by moderator.' : 'Pain reinstated.');
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Failed to moderate problem.');
+        setActionError(error instanceof Error ? error.message : 'Failed to moderate pain.');
       } finally {
         setProblemModerationPendingId(null);
       }
@@ -4436,7 +4502,7 @@ export function App(): JSX.Element {
       );
       setWProblemImportLoaded(true);
     } catch (error) {
-      setWProblemImportError(error instanceof Error ? error.message : 'Failed to load Problem Exchange candidates.');
+      setWProblemImportError(error instanceof Error ? error.message : 'Failed to load pain candidates.');
     } finally {
       setWProblemImportLoading(false);
     }
@@ -5127,7 +5193,7 @@ export function App(): JSX.Element {
                   <div className="section-head-row">
                     <div>
                       <h2>What&apos;s happening</h2>
-                      <p>{HDC_HOME_UX_V1 ? HOME_FEED_ACTIVITY_SUBCOPY : 'R12.1 activity feed across hacks, problems, artifacts, pipeline, and upcoming events.'}</p>
+                      <p>{HDC_HOME_UX_V1 ? HOME_FEED_ACTIVITY_SUBCOPY : 'R12.1 activity feed across hacks, pains, artifacts, pipeline, and upcoming events.'}</p>
                     </div>
                     <div className="section-head-actions">
                       {HDC_HOME_UX_V1 ? (
@@ -5194,7 +5260,7 @@ export function App(): JSX.Element {
                     <div>
                       <h2>Recommended for you</h2>
                       <p className="caption">
-                        {HDC_HOME_UX_V1 ? HOME_FEED_RECOMMENDATION_SUBCOPY : 'R12.2 includes domain problems, team artifact usage, and role pathways.'}
+                        {HDC_HOME_UX_V1 ? HOME_FEED_RECOMMENDATION_SUBCOPY : 'R12.2 includes domain pains, team artifact usage, and role pathways.'}
                       </p>
                     </div>
                     {HDC_HOME_UX_V1 ? (
@@ -5256,7 +5322,7 @@ export function App(): JSX.Element {
 
                 <article className="card recognition-card dashboard-recognition-card">
                   <h3>Your recognition</h3>
-                  <p>Publish artifacts, solve problems, mentor others, and complete pathways to earn badges.</p>
+                  <p>Publish artifacts, solve pains, mentor others, and complete pathways to earn badges.</p>
                   <div className="badge-wrap">
                     {dashboardBadges.map((badge) => (
                       <span key={badge.id} className="badge-pill" data-badge={badge.badgeVariant ?? undefined}>
@@ -5698,7 +5764,7 @@ export function App(): JSX.Element {
                         </button>
                       </div>
                     ) : (
-                      <p className="empty-copy">Select a hack card to inspect team context, outputs, and solved problems.</p>
+                      <p className="empty-copy">Select a hack card to inspect team context, outputs, and solved pains.</p>
                     )}
 
                     {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
@@ -5729,7 +5795,7 @@ export function App(): JSX.Element {
                           ) : (
                             <p className="empty-copy">No linked artifacts yet.</p>
                           )}
-                          <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
+                          <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                           {showcaseDetail.problemsSolved.length > 0 ? (
                             <ul className="showcase-meta-list">
                               {showcaseDetail.problemsSolved.map((problem) => (
@@ -5739,7 +5805,7 @@ export function App(): JSX.Element {
                               ))}
                             </ul>
                           ) : (
-                            <p className="empty-copy">No linked solved problems yet.</p>
+                            <p className="empty-copy">No linked solved pains yet.</p>
                           )}
                         </div>
                       </div>
@@ -5866,7 +5932,7 @@ export function App(): JSX.Element {
                             ) : (
                               <p className="empty-copy">No linked artifacts yet.</p>
                             )}
-                            <h3>Problems Solved ({showcaseDetail.problemsSolved.length})</h3>
+                            <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                             {showcaseDetail.problemsSolved.length > 0 ? (
                               <ul className="showcase-meta-list">
                                 {showcaseDetail.problemsSolved.map((problem) => (
@@ -5876,7 +5942,7 @@ export function App(): JSX.Element {
                                 ))}
                               </ul>
                             ) : (
-                              <p className="empty-copy">No linked solved problems yet.</p>
+                              <p className="empty-copy">No linked solved pains yet.</p>
                             )}
                           </div>
                         </div>
@@ -6008,7 +6074,7 @@ export function App(): JSX.Element {
 
               <article className="card collective-card">
                 <h2>Our Collective Progress</h2>
-                <p>Phase 2 Team Pulse metrics from live AI Tooling/problem/reuse activity. Spark, {nextMilestone}% to Momentum.</p>
+                <p>Phase 2 Team Pulse metrics from live AI Tooling/pain/reuse activity. Spark, {nextMilestone}% to Momentum.</p>
 
                 <div className="stage-row" aria-label="Maturity stages">
                   <span className="stage active">Spark</span>
@@ -6027,7 +6093,7 @@ export function App(): JSX.Element {
                     <strong>{reuseRatePct.toFixed(1)}%</strong>
                   </div>
                   <div>
-                    <span className="meta-label">Problem Conversion</span>
+                    <span className="meta-label">Pain Conversion</span>
                     <strong>{problemConversionPct.toFixed(1)}%</strong>
                   </div>
                 </div>
@@ -6054,10 +6120,10 @@ export function App(): JSX.Element {
                   </small>
                 </article>
                 <article className="card metric-tile">
-                  <h3>PROBLEM CONVERSION</h3>
+                  <h3>PAIN CONVERSION</h3>
                   <p>{problemConversionPct.toFixed(1)}%</p>
                   <small>
-                    {teamPulse?.solvedProblemCount ?? 0} solved problems out of {teamPulse?.totalProblemCount ?? 0} submitted.
+                    {teamPulse?.solvedProblemCount ?? 0} solved pains out of {teamPulse?.totalProblemCount ?? 0} submitted.
                   </small>
                 </article>
               </section>
@@ -6751,8 +6817,8 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Problem Exchange</h1>
-                  <p className="subtitle">Surface repeat pain points, vote for impact, and connect solved problems to shipped hacks.</p>
+                  <h1>Pains</h1>
+                  <p className="subtitle">Surface repeat pain points, vote for impact, and connect solved pains to shipped hacks.</p>
                 </div>
                 <div className="problem-title-actions">
                   <button
@@ -6760,7 +6826,7 @@ export function App(): JSX.Element {
                     className="btn btn-outline"
                     onClick={() => setShowCreateProblemForm((current) => !current)}
                   >
-                    {showCreateProblemForm ? 'Close Form' : '+ Submit Problem'}
+                    {showCreateProblemForm ? 'Close Form' : '+ Submit Pain'}
                   </button>
                   <button
                     type="button"
@@ -6778,7 +6844,7 @@ export function App(): JSX.Element {
               <section className="filter-row">
                 <input
                   type="search"
-                  placeholder="Search problems by title or description..."
+                  placeholder="Search pains by title or description..."
                   value={problemSearchInput}
                   onChange={(event) => setProblemSearchInput(event.target.value)}
                   onKeyDown={handleProblemSearchKeyDown}
@@ -6833,7 +6899,7 @@ export function App(): JSX.Element {
                   Reset
                 </button>
                 <span className="meta">
-                  Showing {problemItems.length} problem{problemItems.length === 1 ? '' : 's'}
+                  Showing {problemItems.length} pain{problemItems.length === 1 ? '' : 's'}
                 </span>
                 {!problemCanModerate ? (
                   <span className="meta">
@@ -6846,7 +6912,7 @@ export function App(): JSX.Element {
                 <article className="card problem-form-card">
                   <section className="section-head-row">
                     <div>
-                      <h2>Submit Problem</h2>
+                      <h2>Submit Pain</h2>
                       <p>Share a repeated workflow pain point. Add enough context for others to vote, claim, and solve.</p>
                     </div>
                   </section>
@@ -6934,7 +7000,7 @@ export function App(): JSX.Element {
                         Reset
                       </button>
                       <button type="submit" className="btn btn-primary" disabled={problemSubmitting}>
-                        {problemSubmitting ? 'Submitting...' : 'Submit Problem'}
+                        {problemSubmitting ? 'Submitting...' : 'Submit Pain'}
                       </button>
                     </section>
                   </form>
@@ -6945,7 +7011,7 @@ export function App(): JSX.Element {
 
               {problemLoading ? (
                 <section className="card">
-                  <p className="empty-copy">Loading Problem Exchange items...</p>
+                  <p className="empty-copy">Loading pains...</p>
                 </section>
               ) : null}
 
@@ -7116,7 +7182,7 @@ export function App(): JSX.Element {
                 </section>
               ) : (
                 !problemLoading && problemLoaded ? (
-                  <p className="empty-copy">No problems match these filters yet.</p>
+                  <p className="empty-copy">No pains match these filters yet.</p>
                 ) : null
               )}
             </section>
@@ -7861,7 +7927,7 @@ export function App(): JSX.Element {
                         </div>
                         <div className="problem-title-actions">
                           <p className="meta">
-                            Import high-voted Problem Exchange items as official challenges (vote threshold: {CHILD_IMPORT_MIN_VOTES_DEFAULT}+).
+                            Import high-voted pains as official challenges (vote threshold: {CHILD_IMPORT_MIN_VOTES_DEFAULT}+).
                           </p>
                           <button
                             type="button"
@@ -7875,7 +7941,7 @@ export function App(): JSX.Element {
                           </button>
                         </div>
                         {wProblemImportError ? <p className="error-text">{wProblemImportError}</p> : null}
-                        {wProblemImportLoading ? <p className="meta">Loading Problem Exchange candidates…</p> : null}
+                        {wProblemImportLoading ? <p className="meta">Loading pain candidates…</p> : null}
                         {!wProblemImportLoading && wProblemImportLoaded ? (
                           wProblemImportCandidateItems.length > 0 ? (
                             <div className="wizard-fields">
@@ -8068,15 +8134,19 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>Pipeline</h1>
-                  <p className="subtitle">Structured stage-gate board from hack to product candidate.</p>
+                  <p className="subtitle">Structured stage-gate board from pains to product candidate.</p>
                 </div>
               </section>
-              {pipelineLoading ? <p className="empty-copy">Loading pipeline board…</p> : null}
+              {pipelineLoading || pipelinePainsLoading ? <p className="empty-copy">Loading pipeline board…</p> : null}
               {pipelineError ? <p className="error-text">{pipelineError}</p> : null}
+              {pipelinePainsError ? <p className="error-text">{pipelinePainsError}</p> : null}
               <PipelineHero
-                stages={effectivePipelineStageCriteria}
+                stages={displayPipelineStageCriteria}
                 itemsByStage={pipelineItemsByStage}
                 metrics={effectivePipelineMetrics}
+                painsItems={pipelinePainsItems}
+                painsAverageDays={pipelinePainsSummary.averageDays}
+                painsToHackConversionRate={pipelinePainsSummary.painsToHackConversionRate}
                 canManage={pipelineCanManage}
                 pipelineMovePendingProjectId={pipelineMovePendingProjectId}
                 pipelineMoveStageByProjectId={pipelineMoveStageByProjectId}
@@ -8094,6 +8164,7 @@ export function App(): JSX.Element {
                   }))
                 }
                 onMoveItem={handleMovePipelineItem}
+                onOpenPains={() => setView('problem_exchange')}
               />
             </section>
           ) : null}

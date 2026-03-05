@@ -3,8 +3,8 @@ interface ConversionArrowProps {
 }
 
 function formatRate(rate: number | null): string {
-  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) return '-';
-  return `${Math.round(rate)}%`;
+  if (typeof rate !== 'number' || !Number.isFinite(rate)) return '-';
+  return `${Math.max(0, Math.round(rate))}%`;
 }
 
 export function ConversionArrow({ rate }: ConversionArrowProps): JSX.Element {

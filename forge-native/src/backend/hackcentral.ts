@@ -360,7 +360,7 @@ function unsupportedRegistryBackendError(): never {
 
 function unsupportedProblemExchangeBackendError(): never {
   throw new Error(
-    '[PROBLEM_EXCHANGE_UNSUPPORTED_BACKEND] Problem Exchange operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
+    '[PROBLEM_EXCHANGE_UNSUPPORTED_BACKEND] Pains operations require Supabase backend. Set FORGE_DATA_BACKEND=supabase.'
   );
 }
 

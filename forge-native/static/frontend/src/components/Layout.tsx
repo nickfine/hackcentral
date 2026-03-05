@@ -61,8 +61,8 @@ export function Layout({
           <span className="search-icon" aria-hidden>🔍</span>
           <input
             type="search"
-            placeholder="Search hacks, people, and problems..."
-            aria-label="Search hacks, people, and problems"
+            placeholder="Search hacks, people, and pains..."
+            aria-label="Search hacks, people, and pains"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') setView('search'); }}

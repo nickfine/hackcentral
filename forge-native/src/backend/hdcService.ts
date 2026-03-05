@@ -832,7 +832,7 @@ function normalizeChildIntegrationConfig(
   const rawIds = Array.isArray(input?.importProblemIds) ? (input?.importProblemIds ?? []) : [];
   const importProblemIds = [...new Set(rawIds.map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean))];
   if (importProblemIds.length > 25) {
-    throw new Error('Select at most 25 Problem Exchange challenges for child import.');
+    throw new Error('Select at most 25 pains for child import.');
   }
   return {
     importProblemIds,
@@ -1428,7 +1428,7 @@ export class HdcService {
         const missingProblemIds = childIntegration.importProblemIds.filter((problemId) => !candidateById.has(problemId));
         if (missingProblemIds.length > 0) {
           throw new Error(
-            `[CHILD_IMPORT_INVALID] One or more selected Problem Exchange items are not importable: ${missingProblemIds.join(', ')}`
+            `[CHILD_IMPORT_INVALID] One or more selected pains are not importable: ${missingProblemIds.join(', ')}`
           );
         }
         importedProblemSnapshots = childIntegration.importProblemIds

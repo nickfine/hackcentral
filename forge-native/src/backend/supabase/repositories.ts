@@ -1195,7 +1195,7 @@ function defaultPipelineStageCriteria(): PipelineStageCriteria[] {
       stage: 'hack',
       label: 'Hack',
       description: 'Submitted and demoed.',
-      criteria: ['Demo exists', 'Problem Exchange link if applicable'],
+      criteria: ['Demo exists', 'Pain link if applicable'],
     },
     {
       stage: 'validated_prototype',
@@ -4013,7 +4013,7 @@ export class SupabaseRepository {
       .map((problem) => ({
         id: `trending_problem:${problem.id}`,
         type: 'trending_problem',
-        title: `Trending problem: ${problem.title}`,
+        title: `Trending pain: ${problem.title}`,
         description: `${problem.vote_count ?? 0} votes · ${problem.team || 'Unknown team'} / ${problem.domain || 'General'}`,
         occurredAt: toFeedTimestamp(problem.updated_at ?? problem.created_at, calculatedAt),
         actorName: problem.created_by_user_id ? userNameById.get(problem.created_by_user_id) ?? 'Unknown' : null,
@@ -4154,7 +4154,7 @@ export class SupabaseRepository {
           title: problem.title,
           reason: preferredDomain
             ? `Matches your active domain signal (${preferredDomain}).`
-            : 'Trending in Problem Exchange.',
+            : 'Trending in Pains.',
           score: (problem.vote_count ?? 0) + (preferredDomain ? 2 : 0),
           relatedId: problem.id,
           context: [problem.team, problem.domain].filter((value): value is string => Boolean(value)),

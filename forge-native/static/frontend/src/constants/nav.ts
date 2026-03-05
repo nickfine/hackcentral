@@ -34,7 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard',   label: 'Home',       icon: '🏠', groupLabel: 'Discover' },
   { id: 'hacks',       label: 'Hacks',      icon: '⚡' },
   { id: 'library',     label: 'AI Tooling', icon: '📚' },
-  { id: 'problem_exchange', label: 'Problem Exchange', icon: '🧩' },
+  { id: 'problem_exchange', label: 'Pains', icon: '🧩' },
   { id: 'hackdays',    label: 'HackDays',   icon: '🚀' },
   { id: 'pipeline',    label: 'Pipeline',   icon: '📈' },
 

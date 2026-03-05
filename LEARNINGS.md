@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 3, 2026
+**Last Updated:** March 5, 2026
 
 ## Project Overview
 
@@ -20,10 +20,46 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.47 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.56`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.51 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.57`, `HACKCENTRAL_MACRO_VERSION=0.6.44` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
 **Forge Native Package:** 0.3.15
+
+## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
+
+### Completed
+
+- Renamed user-facing Problem Exchange language to Pains across primary surfaces without changing route/API identifiers:
+  - nav label (`problem_exchange` route kept)
+  - global search placeholder
+  - Pains page headings/actions/empty/loading/action messages
+  - home feed copy and recommendation labels
+  - related UI copy that referenced solved problems now references solved pains
+- Added a synthetic **Pains** stage to the Pipeline hero as stage 0:
+  - pipeline now renders 5 visual stages (pains -> hack -> validated -> incubating -> candidate)
+  - pains data is loaded via existing resolver `hdcListProblems` with:
+    - `statuses: ['open','claimed','solved','closed']`
+    - `includeHidden: false`
+    - `limit: 200`
+  - preview mode uses preview problems source with the same visibility/status filtering
+- Added pains-derived metrics in the frontend read model:
+  - `painsCount`
+  - average age in days from `createdAt`
+  - pains->hack conversion from `linkedHackProjectId`
+- Updated pipeline components for mixed stage keys (`'pains' | PipelineStage`) and detail behavior:
+  - Pains detail shows pain rows + CTA to open Pains page
+  - no move controls for pains
+  - admin move controls remain unchanged for project stages
+- Kept backend contracts intact:
+  - no resolver signature changes
+  - no DB schema changes
+  - no backend enum expansion
+
+### Validation
+
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run build --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
 
 ## Session Update - Performance Rollout Completion + Live Telemetry Validation (Mar 1, 2026)
 

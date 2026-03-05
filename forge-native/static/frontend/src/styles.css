@@ -4279,6 +4279,26 @@ button {
   font-weight: 700;
 }
 
+.pipeline-avatar-tone-0 {
+  background: hsl(215 40% 45%);
+}
+
+.pipeline-avatar-tone-1 {
+  background: hsl(30 20% 50%);
+}
+
+.pipeline-avatar-tone-2 {
+  background: hsl(350 35% 50%);
+}
+
+.pipeline-avatar-tone-3 {
+  background: hsl(150 30% 45%);
+}
+
+.pipeline-avatar-tone-4 {
+  background: hsl(40 40% 48%);
+}
+
 .pipeline-item-title {
   margin: 0;
   color: var(--text);
@@ -4313,6 +4333,11 @@ button {
   color: var(--text);
   padding: 8px 10px;
   font-size: 0.82rem;
+}
+
+.pipeline-pain-item-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .pipeline-more-items {

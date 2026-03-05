@@ -1,12 +1,12 @@
-import type { PipelineStageCriteria } from '../../types';
+import type { HeroStageDefinition, HeroStageKey } from './types';
 
 interface StageNodeProps {
-  stage: PipelineStageCriteria;
+  stage: HeroStageDefinition;
   index: number;
   count: number;
   averageDays: number | null;
   isActive: boolean;
-  onToggleStage: (stageId: PipelineStageCriteria['stage']) => void;
+  onToggleStage: (stageId: HeroStageKey) => void;
 }
 
 function formatAverageDays(value: number | null): string {
@@ -16,6 +16,8 @@ function formatAverageDays(value: number | null): string {
 }
 
 export function StageNode({ stage, index, count, averageDays, isActive, onToggleStage }: StageNodeProps): JSX.Element {
+  const countLabel = stage.stage === 'pains' ? 'pains' : 'items';
+
   return (
     <button
       type="button"
@@ -34,7 +36,7 @@ export function StageNode({ stage, index, count, averageDays, isActive, onToggle
       <div className="pipeline-stage-metrics">
         <div>
           <strong>{count}</strong>
-          <span>items</span>
+          <span>{countLabel}</span>
         </div>
         <div>
           <strong>{formatAverageDays(averageDays)}</strong>
