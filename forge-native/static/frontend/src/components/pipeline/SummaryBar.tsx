@@ -11,10 +11,6 @@ function formatThroughput(entered: number, graduated: number): string {
 export function SummaryBar({ entered, graduated }: SummaryBarProps): JSX.Element {
   return (
     <section className="pipeline-summary-bar" aria-label="Pipeline summary">
-      <div>
-        <h2>Pipeline</h2>
-        <p>Stage-gate board from pains to product candidate.</p>
-      </div>
       <div className="pipeline-summary-metrics">
         <div>
           <strong>{entered}</strong>

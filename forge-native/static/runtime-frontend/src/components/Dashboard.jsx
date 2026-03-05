@@ -1078,38 +1078,29 @@ function Dashboard({
             className="hidden"
             onChange={handleHeroImageFilePicked}
           />
-          {canEditHeroBanner && heroBannerImageUrl ? (
-            <button
-              type="button"
-              className="dashboard-hero-image-overlay-btn"
-              onClick={handleOpenHeroImagePicker}
-              disabled={isHeroImageUploading}
-              aria-label={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
-              title={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              <span>{isHeroImageUploading ? 'Uploading hero image…' : 'Upload hero image'}</span>
-            </button>
-          ) : null}
-          {canEditHeroBanner && !heroBannerImageUrl ? (
-            <button
-              type="button"
-              className="dashboard-hero-image-upload-btn"
-              onClick={handleOpenHeroImagePicker}
-              disabled={isHeroImageUploading}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {isHeroImageUploading ? 'Uploading...' : 'Upload hero image'}
-            </button>
-          ) : null}
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">
-              <img
-                src={useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png'}
-                alt={useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo'}
-                data-testid="dashboard-hero-logo"
-                className="dashboard-hero-logo shrink-0"
-              />
+              <div className="dashboard-hero-logo-wrap shrink-0">
+                <img
+                  src={useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png'}
+                  alt={useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo'}
+                  data-testid="dashboard-hero-logo"
+                  className="dashboard-hero-logo"
+                />
+                {canEditHeroBanner ? (
+                  <button
+                    type="button"
+                    className="dashboard-hero-image-overlay-btn"
+                    onClick={handleOpenHeroImagePicker}
+                    disabled={isHeroImageUploading}
+                    aria-label={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
+                    title={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>{isHeroImageUploading ? 'Uploading…' : 'Upload hero image'}</span>
+                  </button>
+                ) : null}
+              </div>
               <div className="min-w-0 space-y-3">
                 <div className="space-y-1">
                   <EditableText
