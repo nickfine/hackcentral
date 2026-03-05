@@ -1,8 +1,7 @@
 export const HERO_IMAGE_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 export const HERO_IMAGE_MAX_FILE_SIZE_BYTES = 2_000_000;
-export const HERO_IMAGE_MIN_WIDTH = 1200;
-export const HERO_IMAGE_MIN_HEIGHT = 400;
-export const HERO_IMAGE_MAX_WIDTH = 1600;
+export const HERO_IMAGE_MAX_WIDTH = 1200;
+export const HERO_IMAGE_REQUIRED_HEIGHT = 400;
 
 const COMPRESSION_PROFILES = [
   { scale: 1, webpQuality: 0.82, jpegQuality: 0.85 },
@@ -46,21 +45,43 @@ async function normalizeHeroImage(file) {
   assertFileTypeAndSize(file);
   const image = await loadImageFromFile(file);
 
-  if (image.naturalWidth < HERO_IMAGE_MIN_WIDTH || image.naturalHeight < HERO_IMAGE_MIN_HEIGHT) {
-    throw new Error(`Image resolution too small. Minimum is ${HERO_IMAGE_MIN_WIDTH}x${HERO_IMAGE_MIN_HEIGHT}.`);
+  const baseScale = HERO_IMAGE_REQUIRED_HEIGHT / Math.max(1, image.naturalHeight);
+  const scaledWidthAtRequiredHeight = Math.max(1, Math.round(image.naturalWidth * baseScale));
+  const targetWidthBase = Math.min(HERO_IMAGE_MAX_WIDTH, scaledWidthAtRequiredHeight);
+  const targetHeightBase = HERO_IMAGE_REQUIRED_HEIGHT;
+
+  const cropSourceForMaxWidth = scaledWidthAtRequiredHeight > HERO_IMAGE_MAX_WIDTH;
+  const targetAspectRatio = targetWidthBase / targetHeightBase;
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+  if (cropSourceForMaxWidth) {
+    const targetSourceWidth = Math.max(1, Math.round(image.naturalHeight * targetAspectRatio));
+    sourceWidth = Math.min(image.naturalWidth, targetSourceWidth);
+    sourceX = Math.max(0, Math.round((image.naturalWidth - sourceWidth) / 2));
   }
 
-  const baseScale = Math.min(1, HERO_IMAGE_MAX_WIDTH / image.naturalWidth);
-
   for (const profile of COMPRESSION_PROFILES) {
-    const targetWidth = Math.max(1, Math.round(image.naturalWidth * baseScale * profile.scale));
-    const targetHeight = Math.max(1, Math.round(image.naturalHeight * (targetWidth / image.naturalWidth)));
+    const widthScale = cropSourceForMaxWidth ? 1 : profile.scale;
+    const targetWidth = Math.max(1, Math.round(targetWidthBase * widthScale));
+    const targetHeight = targetHeightBase;
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Browser does not support canvas image processing.');
-    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
 
     const webpBlob = await canvasToBlob(canvas, 'image/webp', profile.webpQuality);
     if (webpBlob && webpBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {

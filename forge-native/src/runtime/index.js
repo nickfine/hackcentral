@@ -43,8 +43,8 @@ const APP_MODE_CONTEXT_TTL_MS = 12 * 60 * 60 * 1000;
 const EVENT_BRANDING_IMAGES_BUCKET = "event-branding-images";
 const EVENT_BRANDING_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EVENT_BRANDING_UPLOAD_MAX_BYTES = 2_000_000;
-const EVENT_BRANDING_UPLOAD_MIN_WIDTH = 1200;
-const EVENT_BRANDING_UPLOAD_MIN_HEIGHT = 400;
+const EVENT_BRANDING_UPLOAD_MAX_WIDTH = 1200;
+const EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT = 400;
 const EVENT_BRANDING_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const APP_MODE_RUNTIME_SOURCES = Object.freeze({
   ACTIVE: "app_mode_active_context",
@@ -6345,8 +6345,11 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
   if (fileSizeBytes > EVENT_BRANDING_UPLOAD_MAX_BYTES) {
     throw new Error("Image file too large. Max size is 2 MB.");
   }
-  if (imageWidth < EVENT_BRANDING_UPLOAD_MIN_WIDTH || imageHeight < EVENT_BRANDING_UPLOAD_MIN_HEIGHT) {
-    throw new Error(`Image dimensions too small. Minimum is ${EVENT_BRANDING_UPLOAD_MIN_WIDTH}x${EVENT_BRANDING_UPLOAD_MIN_HEIGHT}.`);
+  if (imageWidth > EVENT_BRANDING_UPLOAD_MAX_WIDTH) {
+    throw new Error(`Image width too large. Maximum is ${EVENT_BRANDING_UPLOAD_MAX_WIDTH}px.`);
+  }
+  if (imageHeight !== EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT) {
+    throw new Error(`Image height must be exactly ${EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT}px.`);
   }
 
   const extension = getBrandingImageExtension(contentType);

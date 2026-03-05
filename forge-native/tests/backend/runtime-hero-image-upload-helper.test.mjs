@@ -127,16 +127,37 @@ test('runtime hero helper rejects unsupported file type and oversized files', as
   );
 });
 
-test('runtime hero helper rejects images below minimum dimensions', async () => {
-  await withMockedBrowserEnv({ width: 1024, height: 320 }, async () => {
-    await assert.rejects(
-      uploadHeroImageInline({
-        file: { name: 'small.png', type: 'image/png', size: 200_000 },
-        invokeResolver: async () => ({}),
-      }),
-      /Image resolution too small/
-    );
-  });
+test('runtime hero helper accepts smaller source images and normalizes height to 400px', async () => {
+  const resolverCalls = [];
+
+  await withMockedBrowserEnv(
+    {
+      width: 300,
+      height: 300,
+      webpBlobSize: 150_000,
+      jpegBlobSize: 200_000,
+    },
+    async ({ createdCanvasSizes }) => {
+      const result = await uploadHeroImageInline({
+        file: { name: 'small.png', type: 'image/png', size: 180_000 },
+        invokeResolver: async (name, payload) => {
+          resolverCalls.push({ name, payload });
+          return {
+            signedUploadUrl: 'https://signed-upload.example.com/upload',
+            publicUrl: 'https://public.example.com/events/123/hero-small.webp',
+          };
+        },
+      });
+
+      assert.equal(result.width, 400);
+      assert.equal(result.height, 400);
+      assert.equal(resolverCalls.length, 1);
+      assert.equal(resolverCalls[0].payload.imageWidth, 400);
+      assert.equal(resolverCalls[0].payload.imageHeight, 400);
+      assert.equal(createdCanvasSizes[0].width, 400);
+      assert.equal(createdCanvasSizes[0].height, 400);
+    }
+  );
 });
 
 test('runtime hero helper normalizes dimensions, uploads via signed URL, and returns public URL', async () => {
@@ -163,13 +184,13 @@ test('runtime hero helper normalizes dimensions, uploads via signed URL, and ret
 
       assert.equal(result.publicUrl, 'https://public.example.com/events/123/hero.webp');
       assert.equal(result.contentType, 'image/webp');
-      assert.equal(result.width, 1600);
-      assert.equal(result.height, 800);
+      assert.equal(result.width, 800);
+      assert.equal(result.height, 400);
       assert.equal(resolverCalls.length, 1);
       assert.equal(resolverCalls[0].name, 'createEventBrandingImageUploadUrl');
       assert.equal(resolverCalls[0].payload.contentType, 'image/webp');
-      assert.equal(resolverCalls[0].payload.imageWidth, 1600);
-      assert.equal(resolverCalls[0].payload.imageHeight, 800);
+      assert.equal(resolverCalls[0].payload.imageWidth, 800);
+      assert.equal(resolverCalls[0].payload.imageHeight, 400);
       assert.equal(resolverCalls[0].payload.fileName, 'hero-source.png');
       assert.ok(resolverCalls[0].payload.fileSizeBytes <= HERO_IMAGE_MAX_FILE_SIZE_BYTES);
 
@@ -181,8 +202,40 @@ test('runtime hero helper normalizes dimensions, uploads via signed URL, and ret
       assert.equal(fetchCalls[0].init.body.size, 1_050_000);
 
       assert.ok(createdCanvasSizes.length >= 1);
-      assert.equal(createdCanvasSizes[0].width, 1600);
-      assert.equal(createdCanvasSizes[0].height, 800);
+      assert.equal(createdCanvasSizes[0].width, 800);
+      assert.equal(createdCanvasSizes[0].height, 400);
+    }
+  );
+});
+
+test('runtime hero helper crops very wide images to max 1200x400', async () => {
+  const resolverCalls = [];
+
+  await withMockedBrowserEnv(
+    {
+      width: 5000,
+      height: 1000,
+      webpBlobSize: 900_000,
+      jpegBlobSize: 1_000_000,
+    },
+    async ({ createdCanvasSizes }) => {
+      const result = await uploadHeroImageInline({
+        file: { name: 'wide.png', type: 'image/png', size: 1_200_000 },
+        invokeResolver: async (name, payload) => {
+          resolverCalls.push({ name, payload });
+          return {
+            signedUploadUrl: 'https://signed-upload.example.com/upload',
+            publicUrl: 'https://public.example.com/events/123/hero-wide.webp',
+          };
+        },
+      });
+
+      assert.equal(result.width, 1200);
+      assert.equal(result.height, 400);
+      assert.equal(resolverCalls[0].payload.imageWidth, 1200);
+      assert.equal(resolverCalls[0].payload.imageHeight, 400);
+      assert.equal(createdCanvasSizes[0].width, 1200);
+      assert.equal(createdCanvasSizes[0].height, 400);
     }
   );
 });
