@@ -3042,26 +3042,29 @@ export function App(): JSX.Element {
 
   const handleOpenShowcasePage = useCallback(
     async (item: ShowcaseHackListItem) => {
-      const pageId = item.confluencePageId?.trim() || '';
+      const rawPageId = item.confluencePageId?.trim() || '';
+      const pageId = /^\d+$/.test(rawPageId) ? rawPageId : '';
       const pagePath = pageId ? buildConfluencePagePath(pageId) : '';
       const pageUrl = item.confluencePageUrl?.trim() || '';
+      const validPageUrl = isValidHttpsUrl(pageUrl) ? pageUrl : '';
       const absoluteTarget =
-        pagePath && typeof window !== 'undefined'
+        validPageUrl ||
+        (pagePath && typeof window !== 'undefined'
           ? `${window.location.origin}${pagePath}`
-          : pageUrl;
+          : '');
 
-      if (!pagePath && !pageUrl) {
+      if (!absoluteTarget) {
         setActionError(`This hack does not yet have a linked Confluence page: ${item.title}`);
         return;
       }
 
       setActionError('');
       if (previewMode) {
-        setActionMessage(`Local preview mode: would open in new tab ${pagePath || pageUrl}`);
+        setActionMessage(`Local preview mode: would open in new tab ${absoluteTarget}`);
         return;
       }
 
-      if (absoluteTarget && typeof window !== 'undefined') {
+      if (typeof window !== 'undefined') {
         const opened = await openWithRouterTimeout(absoluteTarget);
         if (!opened) {
           const popup = window.open(absoluteTarget, '_blank', 'noopener,noreferrer');
