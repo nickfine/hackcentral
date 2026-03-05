@@ -385,6 +385,11 @@ export interface BootstrapData {
   parentPageUrl?: string | null;
   /** Confluence page ID of the HackDay Central parent page. Set CONFLUENCE_HDC_PARENT_PAGE_ID in Forge env. */
   parentPageId?: string | null;
+  /** Viewer permissions for HackDay extraction admin operations. */
+  extractionAccess?: {
+    canReadPrompt: boolean;
+    canBulkImport: boolean;
+  };
 }
 
 export interface CreateHackInput {

@@ -3181,6 +3181,20 @@ export class SupabaseRepository {
     }
   }
 
+  private async hasAnyEventAdminAccess(userId: string): Promise<boolean> {
+    try {
+      const rows = await this.client.selectMany<{ id: string }>(EVENT_ADMIN_TABLE, 'id', [
+        { field: 'user_id', op: 'eq', value: userId },
+      ]);
+      return rows.length > 0;
+    } catch (error) {
+      if (hasMissingTable(error, EVENT_ADMIN_TABLE)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
   private async requireExtractionReadOrPromptAccess(viewer: ViewerContext, eventId: string): Promise<string> {
     const accountId = viewer.accountId?.trim();
     if (!accountId || accountId === 'unknown-atlassian-account') {
@@ -3791,6 +3805,25 @@ export class SupabaseRepository {
       viewerBadgeCount,
     });
 
+    let extractionAccess: BootstrapData['extractionAccess'] = {
+      canReadPrompt: false,
+      canBulkImport: false,
+    };
+    const accountId = viewer.accountId?.trim();
+    if (accountId && accountId !== 'unknown-atlassian-account') {
+      const access = await this.getExtractionAccessLookup(accountId);
+      if (access.userId) {
+        const isHdcOrPlatformAdmin =
+          access.isAdmin || access.tags.includes('hdc_admin') || access.tags.includes('platform_admin');
+        const hasEventAdminAccess =
+          access.tags.includes('event_admin') || (await this.hasAnyEventAdminAccess(access.userId));
+        extractionAccess = {
+          canReadPrompt: isHdcOrPlatformAdmin || hasEventAdminAccess,
+          canBulkImport: isHdcOrPlatformAdmin,
+        };
+      }
+    }
+
     return {
       viewer,
       source: this.getSourceInfo(),
@@ -3808,6 +3841,7 @@ export class SupabaseRepository {
       recentProjects,
       people,
       registry,
+      extractionAccess,
     };
   }
 
