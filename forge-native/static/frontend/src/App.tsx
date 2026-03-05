@@ -3062,9 +3062,12 @@ export function App(): JSX.Element {
       }
 
       if (absoluteTarget && typeof window !== 'undefined') {
-        const popup = window.open(absoluteTarget, '_blank', 'noopener,noreferrer');
-        if (!popup) {
-          setActionError('Could not open a new tab. Please allow pop-ups for Atlassian and try again.');
+        const opened = await openWithRouterTimeout(absoluteTarget);
+        if (!opened) {
+          const popup = window.open(absoluteTarget, '_blank', 'noopener,noreferrer');
+          if (!popup) {
+            setActionError('Could not open a new tab. Please allow pop-ups for Atlassian and try again.');
+          }
         }
       }
     },
