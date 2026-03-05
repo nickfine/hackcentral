@@ -570,8 +570,7 @@ function Dashboard({
 
   const canEditHeroBanner = Boolean(
     configMode?.isEnabled &&
-    configMode?.canEdit &&
-    configMode?.isFieldEditable?.('branding.bannerImageUrl')
+    configMode?.canEdit
   );
 
   const handleOpenHeroImagePicker = useCallback(() => {
@@ -1071,7 +1070,17 @@ function Dashboard({
               className="dashboard-hero-banner-image"
             />
           ) : null}
-          <div className="dashboard-hero-banner-overlay" />
+          {heroBannerImageUrl ? <div className="dashboard-hero-banner-overlay" /> : null}
+          {canEditHeroBanner ? (
+            <button
+              type="button"
+              className="dashboard-hero-image-hitbox"
+              onClick={handleOpenHeroImagePicker}
+              disabled={isHeroImageUploading}
+              aria-label={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
+              title={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
+            />
+          ) : null}
           <input
             ref={heroImageFileInputRef}
             type="file"
@@ -1087,10 +1096,10 @@ function Dashboard({
               disabled={isHeroImageUploading}
             >
               <Upload className="h-3.5 w-3.5" />
-              {isHeroImageUploading ? 'Uploading...' : heroBannerImageUrl ? 'Change image' : 'Upload image'}
+              {isHeroImageUploading ? 'Uploading...' : heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
             </button>
           ) : null}
-          <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">
               <img
                 src={useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png'}

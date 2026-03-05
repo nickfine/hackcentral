@@ -52,7 +52,6 @@ import type {
   TriggerPostHackdayExtractionPromptResult,
   UpsertPathwayInput,
   UpsertPathwayStepInput,
-  UpdatePipelineStageCriteriaInput,
   UpdateProblemStatusInput,
   UpdateMentorProfileInput,
   WizardStep,
@@ -103,6 +102,7 @@ import {
   resolveHomeFeedRecommendationTarget,
 } from './utils/homeFeed';
 import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
+import { PipelineHero } from './components/pipeline';
 import type {
   ScheduleBuilderOutput as ScheduleBuilderV2Output,
   ScheduleBuilderState as ScheduleBuilderV2State,
@@ -1005,10 +1005,6 @@ function mapProjectStatusToPipelineStage(project: ProjectSnapshot): PipelineStag
   return 'hack';
 }
 
-function parsePipelineCriteriaText(value: string): string[] {
-  return [...new Set(value.split('\n').map((line) => line.trim()).filter(Boolean))];
-}
-
 function parseCommaSeparatedList(value: string): string[] {
   return [...new Set(value.split(',').map((token) => token.trim()).filter(Boolean))];
 }
@@ -1409,21 +1405,6 @@ export function App(): JSX.Element {
   const [pipelineMovePendingProjectId, setPipelineMovePendingProjectId] = useState<string | null>(null);
   const [pipelineMoveStageByProjectId, setPipelineMoveStageByProjectId] = useState<Record<string, PipelineStage>>({});
   const [pipelineMoveNoteByProjectId, setPipelineMoveNoteByProjectId] = useState<Record<string, string>>({});
-  const [pipelineCriteriaDescriptionDraftByStage, setPipelineCriteriaDescriptionDraftByStage] = useState<
-    Record<PipelineStage, string>
-  >({
-    hack: PIPELINE_STAGE_DEFINITIONS[0].description,
-    validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].description,
-    incubating_project: PIPELINE_STAGE_DEFINITIONS[2].description,
-    product_candidate: PIPELINE_STAGE_DEFINITIONS[3].description,
-  });
-  const [pipelineCriteriaTextDraftByStage, setPipelineCriteriaTextDraftByStage] = useState<Record<PipelineStage, string>>({
-    hack: PIPELINE_STAGE_DEFINITIONS[0].criteria.join('\n'),
-    validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].criteria.join('\n'),
-    incubating_project: PIPELINE_STAGE_DEFINITIONS[2].criteria.join('\n'),
-    product_candidate: PIPELINE_STAGE_DEFINITIONS[3].criteria.join('\n'),
-  });
-  const [pipelineCriteriaSavePendingStage, setPipelineCriteriaSavePendingStage] = useState<PipelineStage | null>(null);
 
   const [pathwayQueryInput, setPathwayQueryInput] = useState('');
   const [pathwayDomainInput, setPathwayDomainInput] = useState('');
@@ -1756,27 +1737,6 @@ export function App(): JSX.Element {
   }, [effectivePipelineItems]);
 
   useEffect(() => {
-    const nextDescriptions: Record<PipelineStage, string> = {
-      hack: PIPELINE_STAGE_DEFINITIONS[0].description,
-      validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].description,
-      incubating_project: PIPELINE_STAGE_DEFINITIONS[2].description,
-      product_candidate: PIPELINE_STAGE_DEFINITIONS[3].description,
-    };
-    const nextCriteriaText: Record<PipelineStage, string> = {
-      hack: PIPELINE_STAGE_DEFINITIONS[0].criteria.join('\n'),
-      validated_prototype: PIPELINE_STAGE_DEFINITIONS[1].criteria.join('\n'),
-      incubating_project: PIPELINE_STAGE_DEFINITIONS[2].criteria.join('\n'),
-      product_candidate: PIPELINE_STAGE_DEFINITIONS[3].criteria.join('\n'),
-    };
-    for (const stage of effectivePipelineStageCriteria) {
-      nextDescriptions[stage.stage] = stage.description;
-      nextCriteriaText[stage.stage] = stage.criteria.join('\n');
-    }
-    setPipelineCriteriaDescriptionDraftByStage(nextDescriptions);
-    setPipelineCriteriaTextDraftByStage(nextCriteriaText);
-  }, [effectivePipelineStageCriteria]);
-
-  useEffect(() => {
     if (view !== 'projects') return;
     setView('pipeline');
   }, [view]);
@@ -1842,12 +1802,13 @@ export function App(): JSX.Element {
   const handleMovePipelineItem = useCallback(
     async (item: PipelineBoardItem) => {
       const targetStage = pipelineMoveStageByProjectId[item.projectId] ?? item.stage;
-      const note = (pipelineMoveNoteByProjectId[item.projectId] || '').trim();
+      const noteInput = (pipelineMoveNoteByProjectId[item.projectId] || '').trim();
+      const note = noteInput.length === 0 ? 'Moved via Pipeline hero' : noteInput;
       if (targetStage === item.stage) {
         setActionError('Choose a different target stage before moving this item.');
         return;
       }
-      if (note.length < 6) {
+      if (noteInput.length > 0 && noteInput.length < 6) {
         setActionError('Transition note must be at least 6 characters.');
         return;
       }
@@ -1894,77 +1855,6 @@ export function App(): JSX.Element {
       }
     },
     [loadPipelineBoard, pipelineMoveNoteByProjectId, pipelineMoveStageByProjectId, previewMode]
-  );
-
-  const handleSavePipelineCriteria = useCallback(
-    async (stage: PipelineStage) => {
-      const existing = effectivePipelineStageCriteria.find((item) => item.stage === stage);
-      if (!existing) return;
-
-      const description = (pipelineCriteriaDescriptionDraftByStage[stage] ?? existing.description).trim();
-      const criteria = parsePipelineCriteriaText(
-        pipelineCriteriaTextDraftByStage[stage] ?? existing.criteria.join('\n')
-      );
-      if (criteria.length === 0) {
-        setActionError('Stage criteria must include at least one item.');
-        return;
-      }
-      if (criteria.some((item) => item.length < 3 || item.length > 240)) {
-        setActionError('Each stage criteria item must be 3-240 characters.');
-        return;
-      }
-
-      setPipelineCriteriaSavePendingStage(stage);
-      setActionError('');
-      setActionMessage('');
-      try {
-        if (previewMode) {
-          setPipelineStageCriteria((current) =>
-            current.map((item) =>
-              item.stage === stage
-                ? {
-                    ...item,
-                    description,
-                    criteria,
-                  }
-                : item
-            )
-          );
-          setActionMessage(`Stage criteria saved for ${existing.label} (preview mode).`);
-          return;
-        }
-
-        const payload: UpdatePipelineStageCriteriaInput = {
-          stage,
-          label: existing.label,
-          description,
-          criteria,
-        };
-        const result = await invokeTyped('hdcUpdatePipelineStageCriteria', payload);
-        setPipelineStageCriteria((current) =>
-          current.map((item) => (item.stage === stage ? result.stageCriteria : item))
-        );
-        setPipelineCriteriaDescriptionDraftByStage((current) => ({
-          ...current,
-          [stage]: result.stageCriteria.description,
-        }));
-        setPipelineCriteriaTextDraftByStage((current) => ({
-          ...current,
-          [stage]: result.stageCriteria.criteria.join('\n'),
-        }));
-        setActionMessage(`Stage criteria updated for ${result.stageCriteria.label}.`);
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Failed to update stage criteria.');
-      } finally {
-        setPipelineCriteriaSavePendingStage(null);
-      }
-    },
-    [
-      effectivePipelineStageCriteria,
-      pipelineCriteriaDescriptionDraftByStage,
-      pipelineCriteriaTextDraftByStage,
-      previewMode,
-    ]
   );
 
   const loadPathways = useCallback(
@@ -8181,181 +8071,30 @@ export function App(): JSX.Element {
                   <p className="subtitle">Structured stage-gate board from hack to product candidate.</p>
                 </div>
               </section>
-              <section className="pipeline-metrics-grid">
-                <article className="card">
-                  <h2 className="list-title">Items Per Stage</h2>
-                  <ul className="pipeline-metric-list">
-                    {effectivePipelineMetrics.itemsPerStage.map((metric) => (
-                      <li key={metric.stage}>
-                        <span>{formatLabel(metric.stage)}</span>
-                        <strong>{metric.count}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-                <article className="card">
-                  <h2 className="list-title">Average Time In Stage (days)</h2>
-                  <ul className="pipeline-metric-list">
-                    {effectivePipelineMetrics.averageDaysInStage.map((metric) => (
-                      <li key={metric.stage}>
-                        <span>{formatLabel(metric.stage)}</span>
-                        <strong>{metric.averageDays}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-                <article className="card">
-                  <h2 className="list-title">Conversion And Throughput</h2>
-                  <ul className="pipeline-metric-list">
-                    <li>
-                      <span>Hack → Validated</span>
-                      <strong>{effectivePipelineMetrics.conversionHackToValidated.toFixed(1)}%</strong>
-                    </li>
-                    <li>
-                      <span>Validated → Incubating</span>
-                      <strong>{effectivePipelineMetrics.conversionValidatedToIncubating.toFixed(1)}%</strong>
-                    </li>
-                    <li>
-                      <span>Incubating → Candidate</span>
-                      <strong>{effectivePipelineMetrics.conversionIncubatingToCandidate.toFixed(1)}%</strong>
-                    </li>
-                    <li>
-                      <span>Total entered / graduated</span>
-                      <strong>
-                        {effectivePipelineMetrics.totalEntered} / {effectivePipelineMetrics.totalGraduated}
-                      </strong>
-                    </li>
-                  </ul>
-                </article>
-              </section>
-
               {pipelineLoading ? <p className="empty-copy">Loading pipeline board…</p> : null}
               {pipelineError ? <p className="error-text">{pipelineError}</p> : null}
-
-              <section className="pipeline-board" aria-label="Pipeline board">
-                {effectivePipelineStageCriteria.map((stage) => {
-                  const items = pipelineItemsByStage[stage.stage];
-                  return (
-                    <article key={stage.stage} className="pipeline-column">
-                      <header className="pipeline-column-header">
-                        <h2>{stage.label}</h2>
-                        <span>{items.length}</span>
-                      </header>
-                      <p className="pipeline-column-description">{stage.description}</p>
-                      <ul className="pipeline-criteria-list">
-                        {stage.criteria.map((criterion) => (
-                          <li key={criterion}>{criterion}</li>
-                        ))}
-                      </ul>
-                      {pipelineCanManage ? (
-                        <div className="pipeline-stage-editor">
-                          <label>
-                            Stage description
-                            <input
-                              type="text"
-                              value={pipelineCriteriaDescriptionDraftByStage[stage.stage] ?? stage.description}
-                              onChange={(event) =>
-                                setPipelineCriteriaDescriptionDraftByStage((current) => ({
-                                  ...current,
-                                  [stage.stage]: event.target.value,
-                                }))
-                              }
-                              placeholder="Short stage definition"
-                            />
-                          </label>
-                          <label>
-                            Stage criteria (one per line)
-                            <textarea
-                              value={pipelineCriteriaTextDraftByStage[stage.stage] ?? stage.criteria.join('\n')}
-                              onChange={(event) =>
-                                setPipelineCriteriaTextDraftByStage((current) => ({
-                                  ...current,
-                                  [stage.stage]: event.target.value,
-                                }))
-                              }
-                              rows={4}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => void handleSavePipelineCriteria(stage.stage)}
-                            disabled={pipelineCriteriaSavePendingStage === stage.stage}
-                          >
-                            {pipelineCriteriaSavePendingStage === stage.stage ? 'Saving…' : 'Save stage criteria'}
-                          </button>
-                        </div>
-                      ) : null}
-                      <div className="pipeline-column-body">
-                        {items.length > 0 ? (
-                          items.map((item) => (
-                            <article key={item.projectId} className="card pipeline-card">
-                              <h3>{item.title}</h3>
-                              <p>{item.description || 'No description provided.'}</p>
-                              <div className="pipeline-card-meta">
-                                <span>Owner: {item.ownerName}</span>
-                                <span>Days in stage: {item.daysInStage}</span>
-                                <span>Attached hacks: {item.attachedHacksCount}</span>
-                                <span>Comments: {item.commentCount}</span>
-                                <span>
-                                  Time saved estimate:{' '}
-                                  {item.timeSavedEstimate !== null ? `${item.timeSavedEstimate}h` : 'n/a'}
-                                </span>
-                              </div>
-                              {pipelineCanManage ? (
-                                <div className="pipeline-move-controls">
-                                  <label>
-                                    Target stage
-                                    <select
-                                      value={pipelineMoveStageByProjectId[item.projectId] ?? item.stage}
-                                      onChange={(event) =>
-                                        setPipelineMoveStageByProjectId((current) => ({
-                                          ...current,
-                                          [item.projectId]: event.target.value as PipelineStage,
-                                        }))
-                                      }
-                                    >
-                                      {effectivePipelineStageCriteria.map((option) => (
-                                        <option key={option.stage} value={option.stage}>
-                                          {option.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </label>
-                                  <label>
-                                    Transition note (required)
-                                    <input
-                                      type="text"
-                                      value={pipelineMoveNoteByProjectId[item.projectId] ?? ''}
-                                      onChange={(event) =>
-                                        setPipelineMoveNoteByProjectId((current) => ({
-                                          ...current,
-                                          [item.projectId]: event.target.value,
-                                        }))
-                                      }
-                                      placeholder="Reason for this stage move"
-                                    />
-                                  </label>
-                                  <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={() => void handleMovePipelineItem(item)}
-                                    disabled={pipelineMovePendingProjectId === item.projectId}
-                                  >
-                                    {pipelineMovePendingProjectId === item.projectId ? 'Moving…' : 'Move stage'}
-                                  </button>
-                                </div>
-                              ) : null}
-                            </article>
-                          ))
-                        ) : (
-                          <p className="empty-copy">No items in this stage.</p>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </section>
+              <PipelineHero
+                stages={effectivePipelineStageCriteria}
+                itemsByStage={pipelineItemsByStage}
+                metrics={effectivePipelineMetrics}
+                canManage={pipelineCanManage}
+                pipelineMovePendingProjectId={pipelineMovePendingProjectId}
+                pipelineMoveStageByProjectId={pipelineMoveStageByProjectId}
+                pipelineMoveNoteByProjectId={pipelineMoveNoteByProjectId}
+                onPipelineMoveStageChange={(projectId, stage) =>
+                  setPipelineMoveStageByProjectId((current) => ({
+                    ...current,
+                    [projectId]: stage,
+                  }))
+                }
+                onPipelineMoveNoteChange={(projectId, note) =>
+                  setPipelineMoveNoteByProjectId((current) => ({
+                    ...current,
+                    [projectId]: note,
+                  }))
+                }
+                onMoveItem={handleMovePipelineItem}
+              />
             </section>
           ) : null}
 

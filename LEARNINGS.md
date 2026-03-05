@@ -4036,3 +4036,42 @@ Use this template at the end of every work session:
 ### Operational Notes
 - Flow intentionally uses config-mode draft/publish semantics; upload updates preview immediately but participant-facing visibility still follows publish.
 - Storage-first design keeps binary assets out of `Event`/seed payloads; only URL metadata is stored in branding.
+
+## Session Update - Pipeline Hero Refactor v2.1 Implemented (Mar 5, 2026 01:22 GMT)
+
+### Task IDs
+- `P10.PIPE.HERO.01`
+
+### What Changed
+- Replaced the legacy Pipeline page tables + editable stage columns with a hero-first stage-gate visualization in Forge custom UI.
+- Added new pipeline component module:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/PipelineHero.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/StageNode.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/ConversionArrow.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/StageDetail.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/SummaryBar.tsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/components/pipeline/index.ts`
+- Updated `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx` to:
+  - mount `PipelineHero` in `view === 'pipeline'`
+  - keep live data path (`hdcGetPipelineBoard`) and move mutation (`hdcMovePipelineItem`)
+  - remove stage criteria editing UI/state/handler from Pipeline page
+  - apply default move note fallback (`"Moved via Pipeline hero"`) only when note input is blank
+- Updated `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/styles.css` with new pipeline hero styles and removed obsolete class families from old metrics/stage-editor layout (`.pipeline-metrics-grid`, `.pipeline-column*`, `.pipeline-stage-editor*`, old `.pipeline-board` block).
+
+### UX/Behavior Outcomes
+- Pipeline now renders as three zones:
+  - summary bar (entered/graduated/throughput)
+  - stage-gate hero with stage nodes and conversion connectors
+  - conditional stage detail panel (single-open toggle behavior)
+- Mobile behavior below 768px uses dedicated vertical conversion connectors (not rotated horizontal arrows).
+- Stage detail panel uses `max-height` transition for smoother open/close.
+- Stage item avatars use deterministic owner-name hashing to the design-system 5-hue palette.
+- Admin move controls remain available in stage detail rows; target-stage options exclude the current stage.
+
+### Validation / Evidence
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run build --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
+
+### Notes
+- Shared contract `hdcUpdatePipelineStageCriteria` remains in shared types/backend contracts for future admin/settings surface compatibility, but is no longer invoked by the Pipeline page UI.

@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-03-04T16:33:32.074Z",
+  "environment": "production",
+  "storageStatePath": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "results": [
+    {
+      "pageId": "16646145",
+      "name": "NickFridayNite",
+      "url": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16646145/NickFridayNite",
+      "title": "NickFridayNite - IT Support - Confluence",
+      "runtimeFrameDetected": true,
+      "hasOpenNextStep": true,
+      "hasScheduleText": false,
+      "screenshot": "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16646145-2026-03-04T16-31-39-3NZ.png"
+    },
+    {
+      "pageId": "16973858",
+      "name": "PW MCP Pass Loop 1636890",
+      "url": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16973858/PW+MCP+Pass+Loop+1636890",
+      "title": "PW MCP Pass Loop 1636890 - IT Support - Confluence",
+      "runtimeFrameDetected": true,
+      "hasOpenNextStep": true,
+      "hasScheduleText": false,
+      "screenshot": "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16973858-2026-03-04T16-31-39-3NZ.png"
+    },
+    {
+      "pageId": "16875584",
+      "name": "Perf Global Route 20260301-0030",
+      "url": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16875584/Perf+Global+Route+20260301-0030",
+      "title": "Perf Global Route 20260301-0030 - IT Support - Confluence",
+      "runtimeFrameDetected": true,
+      "hasOpenNextStep": true,
+      "hasScheduleText": false,
+      "screenshot": "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-16875584-2026-03-04T16-31-39-3NZ.png"
+    }
+  ],
+  "interaction": {
+    "pageId": "16646145",
+    "clickedOpenNextStep": true,
+    "navigatedToSchedule": false,
+    "urlBeforeClick": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16646145/NickFridayNite",
+    "urlAfterClick": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/16646145/NickFridayNite",
+    "screenshot": "/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-INTERACTION-16646145-2026-03-04T16-31-39-3NZ.png"
+  }
+}
