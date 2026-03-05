@@ -19,6 +19,7 @@ test('manifest exposes hackday runtime page, macro, and resolver modules', async
   assert.match(manifest, /key:\s*hackday-runtime-macro/);
   assert.match(manifest, /key:\s*runtime-resolver/);
   assert.match(manifest, /handler:\s*runtime\/index\.handler/);
+  assert.doesNotMatch(manifest, /key:\s*hackday-runtime-global-page[\s\S]*isSiteAdmin:\s*true/);
   assert.match(manifest, /HDC_RUNTIME_OWNER/);
   assert.match(manifest, /HDC_RUNTIME_APP_ID/);
   assert.match(manifest, /HDC_RUNTIME_ENVIRONMENT_ID/);

@@ -14,8 +14,6 @@ modules:
     - key: hackday-runtime-global-page
       title: HackCentral Runtime (Internal)
       route: hackday-app
-      displayConditions:
-        isSiteAdmin: true
       resource: runtime-ui-frontend
       resolver:
         function: runtime-resolver
