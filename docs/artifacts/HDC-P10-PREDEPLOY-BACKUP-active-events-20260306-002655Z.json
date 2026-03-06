@@ -1,0 +1,32 @@
+{
+  "generatedAtUtc": "2026-03-06T00:26:55.240Z",
+  "source": "predeploy",
+  "dryRun": false,
+  "requestedEventIds": [],
+  "requestedCount": 0,
+  "candidateCount": 2,
+  "processedCount": 2,
+  "createdCount": 0,
+  "plannedCount": 0,
+  "failedCount": 2,
+  "skippedCount": 0,
+  "durationMs": 12350,
+  "results": [
+    {
+      "eventId": "7047d6d2-16a7-4d08-aea2-fb9ac26f8125",
+      "eventName": "HackDay 2026",
+      "lifecycleStatus": "registration",
+      "runtimeType": "hackday_template",
+      "status": "failed",
+      "error": "Failed to upload backup snapshot: Bucket not found"
+    },
+    {
+      "eventId": "d3f7bb14-7d8f-4e92-8740-23b02994b4d4",
+      "eventName": "Shona's IT Hack",
+      "lifecycleStatus": "registration",
+      "runtimeType": "hackday_template",
+      "status": "failed",
+      "error": "Failed to upload backup snapshot: Bucket not found"
+    }
+  ]
+}

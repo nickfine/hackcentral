@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, PanelRightClose, Save, Upload, Undo2, X, Shield } from 'lucide-react';
 import { Badge, Button } from '../components/ui';
 import { cn } from '../lib/design-system';
@@ -20,12 +21,45 @@ function ConfigSidePanel({ isMacroHost = false }) {
     hasUnsavedChanges,
     hasDraft,
     publishSuccess,
+    backupError,
+    backupCoverageStatus,
+    backupSnapshots,
+    restorePreview,
+    isCreatingBackup,
+    isLoadingBackups,
+    isPreviewingRestore,
+    isApplyingRestore,
+    createBackupSnapshotNow,
+    refreshBackupSnapshots,
+    previewBackupRestore,
+    applyBackupRestore,
+    capabilities,
   } = useConfigMode();
-
-  if (!canEdit || !isEnabled || !isDrawerOpen) return null;
-
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
   const canDiscard = hasDraft || hasUnsavedChanges;
   const canPublish = hasDraft || hasUnsavedChanges;
+  const isPlatformAdmin = Boolean(capabilities?.isPlatformAdmin);
+  const latestSnapshotLabel = useMemo(() => {
+    const latest = backupCoverageStatus?.latestSnapshot || null;
+    if (!latest?.createdAt) return 'No snapshots yet';
+    try {
+      return new Date(latest.createdAt).toLocaleString();
+    } catch {
+      return latest.createdAt;
+    }
+  }, [backupCoverageStatus]);
+
+  useEffect(() => {
+    if (!Array.isArray(backupSnapshots) || backupSnapshots.length === 0) {
+      setSelectedSnapshotId('');
+      return;
+    }
+    if (!selectedSnapshotId || !backupSnapshots.some((snapshot) => snapshot.snapshotId === selectedSnapshotId)) {
+      setSelectedSnapshotId(backupSnapshots[0].snapshotId);
+    }
+  }, [backupSnapshots, selectedSnapshotId]);
+
+  if (!canEdit || !isEnabled || !isDrawerOpen) return null;
 
   const panel = (
     <aside
@@ -79,6 +113,117 @@ function ConfigSidePanel({ isMacroHost = false }) {
                   <p className="text-xs text-text-secondary">{publishSuccess.message}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {backupError && (
+            <div className="rounded-xl border border-error/35 bg-error/8 px-3 py-2">
+              <p className="text-sm font-semibold text-error">Backup operation failed</p>
+              <p className="text-xs text-text-secondary">{backupError}</p>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-arena-border bg-arena-card px-3 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Backup Safety</p>
+                <p className="text-xs text-text-secondary">
+                  Latest snapshot: {latestSnapshotLabel}
+                </p>
+              </div>
+              {backupCoverageStatus?.coverageHealthy
+                ? <Badge variant="success">Active</Badge>
+                : <Badge variant="warning">Needs refresh</Badge>}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => createBackupSnapshotNow()}
+                loading={isCreatingBackup}
+                disabled={isApplyingRestore || isPreviewingRestore}
+              >
+                Create Backup Now
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refreshBackupSnapshots()}
+                loading={isLoadingBackups}
+                disabled={isCreatingBackup || isApplyingRestore || isPreviewingRestore}
+              >
+                Refresh
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-text-muted">
+              Snapshots: {Array.isArray(backupSnapshots) ? backupSnapshots.length : 0}
+            </p>
+          </div>
+
+          {isPlatformAdmin && (
+            <div className="rounded-xl border border-arena-border bg-arena-card px-3 py-3">
+              <p className="text-sm font-semibold text-text-primary">Restore (Platform Admin)</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Dry-run preview is required before apply.
+              </p>
+              <div className="mt-2">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Snapshot
+                </label>
+                <select
+                  className="w-full rounded-lg border border-arena-border bg-arena-elevated px-2 py-2 text-sm text-text-primary"
+                  value={selectedSnapshotId}
+                  onChange={(event) => setSelectedSnapshotId(event.target.value)}
+                >
+                  {(backupSnapshots || []).map((snapshot) => (
+                    <option key={snapshot.snapshotId} value={snapshot.snapshotId}>
+                      {snapshot.source} • {new Date(snapshot.createdAt).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => previewBackupRestore(selectedSnapshotId)}
+                  loading={isPreviewingRestore}
+                  disabled={!selectedSnapshotId || isApplyingRestore}
+                >
+                  Preview Restore
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => applyBackupRestore({})}
+                  loading={isApplyingRestore}
+                  disabled={
+                    !restorePreview ||
+                    restorePreview.snapshotId !== selectedSnapshotId ||
+                    isPreviewingRestore
+                  }
+                >
+                  Apply Restore
+                </Button>
+              </div>
+              {restorePreview && (
+                <div className="mt-3 rounded-lg border border-warning/35 bg-warning/8 px-2 py-2 text-xs text-text-secondary">
+                  <p className="font-semibold text-text-primary">Dry-run Summary</p>
+                  <p>
+                    Create: {restorePreview?.diffSummary?.totals?.toCreate || 0} • Update: {restorePreview?.diffSummary?.totals?.toUpdate || 0} • Delete: {restorePreview?.diffSummary?.totals?.toDelete || 0}
+                  </p>
+                  <p>Impacted pages: {restorePreview?.diffSummary?.pages?.impactedPageIds?.length || 0}</p>
+                  {Array.isArray(restorePreview?.warnings) && restorePreview.warnings.length > 0 && (
+                    <div className="mt-2 border-t border-warning/30 pt-2">
+                      <p className="font-semibold text-text-primary">Warnings</p>
+                      <ul className="mt-1 space-y-1">
+                        {restorePreview.warnings.map((warning, index) => (
+                          <li key={`${index}-${warning}`}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

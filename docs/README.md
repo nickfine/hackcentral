@@ -26,6 +26,7 @@ Planning docs (optional): `../HDC-PRODUCT-EXECUTION-PLAN.md`, `../ROADMAP.md`.
 | `HDC-P1-MODULE-ROLLOUT-CHECKPOINT-TEMPLATE.md` | Standard GO/NO-GO checkpoint template for Phase 1 modules (`P1.OBS.01`). |
 | `HDC-P3-EXTRACT-CONTRACT-SPEC.md` | Phase 3 extraction contract (`P3.EXTRACT.01`). |
 | `HDC-P3-EXTRACT-OPS-RUNBOOK.md` | Phase 3 extraction replay/idempotency/rollback operations runbook (`P3.EXTRACT.01`). |
+| `HDC-EVENT-BACKUP-RESTORE-RUNBOOK.md` | Event-scoped backup + restore operations and recovery workflow. |
 | `artifacts/HDC-P1-PIPE-ROLLOUT-CHECKPOINT-20260301-1108Z.md` | Phase 1 Pipeline rollout decision artifact (`P1.PIPE.01`). |
 | `artifacts/HDC-P1-OBS-ROLLOUT-CHECKPOINT-20260301-1112Z.md` | Phase 1 observability guardrails checkpoint (`P1.OBS.01`). |
 | `HDC-P1-PROBLEM-EXCHANGE-ROLLOUT-CHECKLIST.md` | Phase 1 Problem Exchange rollout gates and rollback checklist (`P1.PX.01`). |

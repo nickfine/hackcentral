@@ -130,6 +130,12 @@ function normalizeConfigModeStateResponse(payload, fallbackBranding, fallbackMot
     payload?.publishedMotdMessage ?? payload?.motdMessage,
     payload?.motd || ''
   ) || normalizeAdminMessage(fallbackMotd, fallbackMotd?.message || '');
+  const backupCoverageStatus =
+    payload?.backupCoverageStatus && typeof payload.backupCoverageStatus === 'object'
+      ? payload.backupCoverageStatus
+      : payload?.coverage && typeof payload.coverage === 'object'
+        ? payload.coverage
+        : null;
 
   return {
     capabilities,
@@ -137,6 +143,7 @@ function normalizeConfigModeStateResponse(payload, fallbackBranding, fallbackMot
     draftEnvelope,
     publishedBranding,
     publishedMotdMessage: publishedMotdMessage?.message ? publishedMotdMessage : (publishedMotdMessage || null),
+    backupCoverageStatus,
   };
 }
 
@@ -276,6 +283,14 @@ export function ConfigModeProvider({
   const [saveError, setSaveError] = useState(null);
   const [conflict, setConflict] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(null);
+  const [backupError, setBackupError] = useState(null);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+  const [isPreviewingRestore, setIsPreviewingRestore] = useState(false);
+  const [isApplyingRestore, setIsApplyingRestore] = useState(false);
+  const [backupCoverageStatus, setBackupCoverageStatus] = useState(null);
+  const [backupSnapshots, setBackupSnapshots] = useState([]);
+  const [restorePreview, setRestorePreview] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingConfirmType, setPendingConfirmType] = useState(null);
 
@@ -318,6 +333,8 @@ export function ConfigModeProvider({
       setWorkingPatch(normalized.draftEnvelope?.patch ? clonePatch(normalized.draftEnvelope.patch) : clonePatch(EMPTY_DRAFT_PATCH));
       setPublishedBranding(normalized.publishedBranding || (eventBranding || {}));
       setPublishedMotdMessage(normalized.publishedMotdMessage || normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || ''));
+      setBackupCoverageStatus(normalized.backupCoverageStatus || null);
+      setBackupError(null);
       setHasUnsavedChanges(false);
       loadedEventIdRef.current = eventId;
     } catch (err) {
@@ -344,6 +361,10 @@ export function ConfigModeProvider({
       setDraftEnvelope(null);
       setWorkingPatch(clonePatch(EMPTY_DRAFT_PATCH));
       setPublishedOverrides({ ...EMPTY_PUBLISHED_OVERRIDES, values: {} });
+      setBackupCoverageStatus(null);
+      setBackupSnapshots([]);
+      setRestorePreview(null);
+      setBackupError(null);
       setHasUnsavedChanges(false);
       setPendingConfirmType(null);
       setPublishSuccess(null);
@@ -636,6 +657,145 @@ export function ConfigModeProvider({
     }
   }, [canEdit, eventId, isForgeHost, persistLocalState, publishedBranding, publishedMotdMessage]);
 
+  const refreshBackupSnapshots = useCallback(async () => {
+    if (!canEdit || !eventId) return { snapshots: [], coverage: null };
+    if (!isForgeHost) {
+      return { snapshots: [], coverage: null };
+    }
+
+    setIsLoadingBackups(true);
+    setBackupError(null);
+    try {
+      const [listResponse, coverageResponse] = await Promise.all([
+        invokeForgeResolver('listEventBackupSnapshots', {}),
+        invokeForgeResolver('getEventBackupCoverageStatus', {}),
+      ]);
+      const snapshots = Array.isArray(listResponse?.snapshots) ? listResponse.snapshots : [];
+      const coverage = coverageResponse?.coverage || listResponse?.backupCoverageStatus || null;
+      setBackupSnapshots(snapshots);
+      setBackupCoverageStatus(coverage);
+      return { snapshots, coverage };
+    } catch (err) {
+      console.error('[ConfigMode] refreshBackupSnapshots failed:', err);
+      setBackupError(err?.message || 'Failed to load backups');
+      return { snapshots: [], coverage: null, error: err };
+    } finally {
+      setIsLoadingBackups(false);
+    }
+  }, [canEdit, eventId, isForgeHost]);
+
+  const createBackupSnapshotNow = useCallback(async () => {
+    if (!canEdit || !eventId) return { success: false, skipped: true };
+    if (!isForgeHost) {
+      setBackupError('Manual backups require Forge host context.');
+      return { success: false, skipped: true };
+    }
+
+    setIsCreatingBackup(true);
+    setBackupError(null);
+    try {
+      const result = await invokeForgeResolver('createEventBackupSnapshot', {});
+      if (result?.backupCoverageStatus) {
+        setBackupCoverageStatus(result.backupCoverageStatus);
+      }
+      await refreshBackupSnapshots();
+      return { success: true, result };
+    } catch (err) {
+      console.error('[ConfigMode] createBackupSnapshotNow failed:', err);
+      setBackupError(err?.message || 'Failed to create backup snapshot');
+      return { success: false, error: err };
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  }, [canEdit, eventId, isForgeHost, refreshBackupSnapshots]);
+
+  const previewBackupRestore = useCallback(async (snapshotId) => {
+    if (!canEdit || !eventId) return { success: false, skipped: true };
+    if (!isForgeHost) {
+      setBackupError('Restore preview requires Forge host context.');
+      return { success: false, skipped: true };
+    }
+    if (!snapshotId) {
+      setBackupError('Choose a snapshot to preview restore.');
+      return { success: false, skipped: true };
+    }
+
+    setIsPreviewingRestore(true);
+    setBackupError(null);
+    try {
+      const result = await invokeForgeResolver('previewEventBackupRestore', { snapshotId });
+      const dryRun = result?.dryRun || null;
+      setRestorePreview(
+        dryRun
+          ? {
+              snapshotId,
+              restoreRunId: dryRun.restoreRunId,
+              confirmationToken: dryRun.confirmationToken,
+              diffSummary: dryRun.diffSummary,
+              warnings: dryRun.warnings || [],
+              createdAt: dryRun.createdAt,
+            }
+          : null
+      );
+      return { success: true, result };
+    } catch (err) {
+      console.error('[ConfigMode] previewBackupRestore failed:', err);
+      setBackupError(err?.message || 'Failed to preview restore');
+      return { success: false, error: err };
+    } finally {
+      setIsPreviewingRestore(false);
+    }
+  }, [canEdit, eventId, isForgeHost]);
+
+  const applyBackupRestore = useCallback(async ({ snapshotId, restoreRunId, confirmationToken } = {}) => {
+    if (!canEdit || !eventId) return { success: false, skipped: true };
+    if (!isForgeHost) {
+      setBackupError('Restore apply requires Forge host context.');
+      return { success: false, skipped: true };
+    }
+
+    const effectiveSnapshotId = snapshotId || restorePreview?.snapshotId || null;
+    const effectiveRestoreRunId = restoreRunId || restorePreview?.restoreRunId || null;
+    const effectiveConfirmationToken = confirmationToken || restorePreview?.confirmationToken || null;
+
+    if (!effectiveSnapshotId || !effectiveRestoreRunId || !effectiveConfirmationToken) {
+      setBackupError('Restore apply requires a successful dry-run preview first.');
+      return { success: false, skipped: true };
+    }
+
+    setIsApplyingRestore(true);
+    setBackupError(null);
+    try {
+      const result = await invokeForgeResolver('applyEventBackupRestore', {
+        snapshotId: effectiveSnapshotId,
+        restoreRunId: effectiveRestoreRunId,
+        confirmationToken: effectiveConfirmationToken,
+      });
+      setRestorePreview(null);
+      if (result?.backupCoverageStatus) {
+        setBackupCoverageStatus(result.backupCoverageStatus);
+      }
+      await refreshBackupSnapshots();
+      try {
+        await onRefreshEventPhase?.();
+      } catch (refreshErr) {
+        console.warn('[ConfigMode] refresh after restore failed:', refreshErr);
+      }
+      return { success: true, result };
+    } catch (err) {
+      console.error('[ConfigMode] applyBackupRestore failed:', err);
+      setBackupError(err?.message || 'Failed to apply restore');
+      return { success: false, error: err };
+    } finally {
+      setIsApplyingRestore(false);
+    }
+  }, [canEdit, eventId, isForgeHost, restorePreview, refreshBackupSnapshots, onRefreshEventPhase]);
+
+  useEffect(() => {
+    if (!baseCanEdit || !eventId || !isForgeHost) return;
+    void refreshBackupSnapshots();
+  }, [baseCanEdit, eventId, isForgeHost, refreshBackupSnapshots]);
+
   const closeConfirmDialog = useCallback(() => {
     setPendingConfirmType(null);
   }, []);
@@ -855,6 +1015,14 @@ export function ConfigModeProvider({
       saveError,
       conflict,
       publishSuccess,
+      backupCoverageStatus,
+      backupSnapshots,
+      backupError,
+      restorePreview,
+      isCreatingBackup,
+      isLoadingBackups,
+      isPreviewingRestore,
+      isApplyingRestore,
     });
   }, [
     onStateChange,
@@ -875,6 +1043,14 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    backupCoverageStatus,
+    backupSnapshots,
+    backupError,
+    restorePreview,
+    isCreatingBackup,
+    isLoadingBackups,
+    isPreviewingRestore,
+    isApplyingRestore,
   ]);
 
   const contextValue = useMemo(() => ({
@@ -893,6 +1069,14 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    backupError,
+    backupCoverageStatus,
+    backupSnapshots,
+    restorePreview,
+    isCreatingBackup,
+    isLoadingBackups,
+    isPreviewingRestore,
+    isApplyingRestore,
     capabilities,
     publishedOverrides,
     effectiveBranding,
@@ -910,6 +1094,10 @@ export function ConfigModeProvider({
     saveDraft,
     publishDraft,
     discardDraft: requestDiscardDraft,
+    createBackupSnapshotNow,
+    refreshBackupSnapshots,
+    previewBackupRestore,
+    applyBackupRestore,
     requestPublishDraft,
     requestDiscardDraft,
     requestExitConfigMode,
@@ -938,6 +1126,14 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    backupError,
+    backupCoverageStatus,
+    backupSnapshots,
+    restorePreview,
+    isCreatingBackup,
+    isLoadingBackups,
+    isPreviewingRestore,
+    isApplyingRestore,
     capabilities,
     publishedOverrides,
     effectiveBranding,
@@ -954,6 +1150,10 @@ export function ConfigModeProvider({
     saveDraft,
     publishDraft,
     requestDiscardDraft,
+    createBackupSnapshotNow,
+    refreshBackupSnapshots,
+    previewBackupRestore,
+    applyBackupRestore,
     requestPublishDraft,
     confirmDialog,
     confirmDialogAction,
@@ -993,6 +1193,14 @@ export function useConfigMode() {
       saveError: null,
       conflict: false,
       publishSuccess: null,
+      backupError: null,
+      backupCoverageStatus: null,
+      backupSnapshots: [],
+      restorePreview: null,
+      isCreatingBackup: false,
+      isLoadingBackups: false,
+      isPreviewingRestore: false,
+      isApplyingRestore: false,
       capabilities: { enabled: false, canUseConfigMode: false },
       publishedOverrides: EMPTY_PUBLISHED_OVERRIDES,
       effectiveBranding: {},
@@ -1010,6 +1218,10 @@ export function useConfigMode() {
       saveDraft: async () => ({ success: false, skipped: true }),
       publishDraft: async () => ({ success: false, skipped: true }),
       discardDraft: async () => {},
+      createBackupSnapshotNow: async () => ({ success: false, skipped: true }),
+      refreshBackupSnapshots: async () => ({ snapshots: [], coverage: null }),
+      previewBackupRestore: async () => ({ success: false, skipped: true }),
+      applyBackupRestore: async () => ({ success: false, skipped: true }),
       requestPublishDraft: () => {},
       requestDiscardDraft: () => {},
       requestExitConfigMode: () => {},

@@ -35,13 +35,25 @@ modules:
       handler: index.handler
     - key: runtime-resolver
       handler: runtime/index.handler
+    - key: event-backup-daily-job
+      handler: runtime/backupOps.scheduledHandler
+    - key: event-backup-ops
+      handler: runtime/backupOps.predeployHandler
     - key: phase5-migration-ops
       handler: ops.handler
     - key: create-from-web
       handler: createFromWeb.handler
+  scheduledTrigger:
+    - key: event-backup-daily-trigger
+      function: event-backup-daily-job
+      interval: day
   webtrigger:
     - key: phase5-migration-wt
       function: phase5-migration-ops
+      response:
+        type: dynamic
+    - key: event-backup-ops-wt
+      function: event-backup-ops
       response:
         type: dynamic
     - key: hackday-create-from-web
@@ -104,3 +116,4 @@ environment:
     - CONFLUENCE_HDC_PARENT_PAGE_ID
     - HACKDAY_CREATE_WEB_SECRET
     - HACKDAY_CREATE_APP_URL
+    - HDC_EVENT_BACKUP_DAILY_MAX_EVENTS

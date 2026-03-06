@@ -18,6 +18,42 @@ import api from '@forge/api';
 // Singleton instance to prevent creating new clients on every resolver call
 let supabaseInstance = null;
 
+function normalizeHeaders(headersInit) {
+  if (!headersInit) return {};
+  if (typeof headersInit.forEach === 'function') {
+    const next = {};
+    headersInit.forEach((value, key) => {
+      next[key] = value;
+    });
+    return next;
+  }
+  if (Array.isArray(headersInit)) {
+    return Object.fromEntries(headersInit);
+  }
+  return { ...headersInit };
+}
+
+function hasHeader(headers, name) {
+  const target = String(name || '').toLowerCase();
+  return Object.keys(headers || {}).some((key) => key.toLowerCase() === target);
+}
+
+function getHeader(headers, name) {
+  const target = String(name || '').toLowerCase();
+  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === target);
+  return entry ? entry[1] : undefined;
+}
+
+function isBinaryLikeBody(body) {
+  if (!body) return false;
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) return true;
+  if (body instanceof ArrayBuffer) return true;
+  if (ArrayBuffer.isView(body)) return true;
+  if (typeof Blob !== 'undefined' && body instanceof Blob) return true;
+  if (typeof FormData !== 'undefined' && body instanceof FormData) return true;
+  return false;
+}
+
 export function getSupabaseClient() {
   // Return existing instance if available
   if (supabaseInstance) {
@@ -42,23 +78,24 @@ export function getSupabaseClient() {
       fetch: async (url, options = {}) => {
         try {
           // Prepare headers - Supabase requires both apikey and Authorization headers
-          const headers = { ...(options.headers || {}) };
+          const headers = normalizeHeaders(options.headers);
           
           // Ensure both headers are present for Supabase REST API
-          if (!headers['apikey']) {
+          if (!hasHeader(headers, 'apikey')) {
             headers['apikey'] = supabaseKey;
           }
-          if (!headers['Authorization']) {
+          if (!hasHeader(headers, 'Authorization')) {
             headers['Authorization'] = `Bearer ${supabaseKey}`;
           }
           
           // Prepare body - handle both string and object
           let body = options.body;
           if (body) {
-            if (!headers['Content-Type']) {
+            const isBinaryBody = isBinaryLikeBody(body);
+            if (!hasHeader(headers, 'Content-Type') && !isBinaryBody && typeof body !== 'string') {
               headers['Content-Type'] = 'application/json';
             }
-            if (body != null && typeof body === 'object') {
+            if (!isBinaryBody && body != null && typeof body === 'object') {
               body = JSON.stringify(body);
             }
           }
@@ -80,13 +117,15 @@ export function getSupabaseClient() {
             console.log(`[Supabase] Response: ${response.status}`);
           }
 
-          // Read response as text (consumes the body)
-          let text = '';
+          // Eagerly buffer the body so callers can consume it as json/text/blob/arrayBuffer.
+          let bytes = Buffer.alloc(0);
           try {
-            text = await response.text();
+            const arrayBuffer = await response.arrayBuffer();
+            bytes = Buffer.from(arrayBuffer);
           } catch (e) {
-            text = '';
+            bytes = Buffer.alloc(0);
           }
+          const text = bytes.toString('utf8');
           
           // Log errors
           if (!response.ok) {
@@ -101,9 +140,16 @@ export function getSupabaseClient() {
             data = { error: text, message: `Error: ${response.status} ${response.statusText || 'Error'}` };
           }
           
+          const contentTypeHeader =
+            response.headers?.get?.('content-type') ||
+            getHeader(headers, 'Content-Type') ||
+            (text.trim().startsWith('{') || text.trim().startsWith('[')
+              ? 'application/json'
+              : 'application/octet-stream');
+
           // Create Response-like object for Supabase client
           const responseHeaders = new Map();
-          responseHeaders.set('content-type', 'application/json');
+          responseHeaders.set('content-type', contentTypeHeader);
           
           return {
             ok: response.ok,
@@ -114,6 +160,12 @@ export function getSupabaseClient() {
             },
             json: async () => data,
             text: async () => text,
+            arrayBuffer: async () =>
+              bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+            blob: async () =>
+              new Blob([bytes], {
+                type: contentTypeHeader,
+              }),
           };
         } catch (error) {
           console.error('[Supabase] Fetch error:', error.message);

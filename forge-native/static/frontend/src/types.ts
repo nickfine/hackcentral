@@ -1330,6 +1330,98 @@ export interface CreateEventBrandingImageUploadUrlResult {
   expiresAt: string;
 }
 
+export type EventBackupSnapshotSource = 'manual' | 'publish' | 'predeploy' | 'daily' | 'pre_restore';
+
+export interface EventBackupSnapshotSummary {
+  snapshotId: string;
+  eventId: string;
+  source: EventBackupSnapshotSource;
+  scopeVersion: string;
+  checksumSha256: string;
+  dbRowCounts: Record<string, number>;
+  pageCounts: {
+    requested?: number;
+    captured?: number;
+    failed?: number;
+  };
+  status: 'ready' | 'failed';
+  warnings: string[];
+  createdByUserId: string | null;
+  createdAt: string;
+}
+
+export interface EventBackupDiffTableSummary {
+  table: string;
+  keyField: string | null;
+  liveCount: number;
+  snapshotCount: number;
+  toCreate: number;
+  toUpdate: number;
+  toDelete: number;
+  unchanged: number;
+}
+
+export interface EventBackupDiffSummary {
+  scopeVersion: string;
+  eventId: string | null;
+  tables: EventBackupDiffTableSummary[];
+  pages: {
+    liveCount: number;
+    snapshotCount: number;
+    toCreate: number;
+    toUpdate: number;
+    toDelete: number;
+    unchanged: number;
+    impactedPageIds: string[];
+  };
+  totals: {
+    toCreate: number;
+    toUpdate: number;
+    toDelete: number;
+  };
+}
+
+export interface EventBackupCoverageStatus {
+  eventId: string;
+  backupsActive: boolean;
+  latestSnapshot: EventBackupSnapshotSummary | null;
+  latestSnapshotAgeHours: number | null;
+  coverageHealthy: boolean;
+  recentSnapshotCount: number;
+}
+
+export interface EventBackupRestoreRunResult {
+  restoreRunId: string;
+  eventId: string;
+  snapshotId: string;
+  status: 'succeeded' | 'failed';
+  warnings: string[];
+  changesApplied?: {
+    tableDeletes: Record<string, number>;
+    tableInserts: Record<string, number>;
+    pageRestore: {
+      restoredCount: number;
+      failedCount: number;
+    };
+    preRestoreSnapshotId: string | null;
+  };
+  completedAt?: string;
+}
+
+export interface CreateEventBackupSnapshotInput {
+  source?: EventBackupSnapshotSource;
+}
+
+export interface PreviewEventBackupRestoreInput {
+  snapshotId: string;
+}
+
+export interface ApplyEventBackupRestoreInput {
+  snapshotId: string;
+  restoreRunId: string;
+  confirmationToken: string;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
@@ -1386,4 +1478,28 @@ export type Defs = {
   createEventBrandingImageUploadUrl: (
     payload: CreateEventBrandingImageUploadUrlInput
   ) => CreateEventBrandingImageUploadUrlResult;
+  createEventBackupSnapshot: (
+    payload: CreateEventBackupSnapshotInput
+  ) => { success: true; snapshot: EventBackupSnapshotSummary; backupCoverageStatus: EventBackupCoverageStatus };
+  listEventBackupSnapshots: (
+    payload: { limit?: number }
+  ) => { success: true; eventId: string; snapshots: EventBackupSnapshotSummary[] };
+  previewEventBackupRestore: (
+    payload: PreviewEventBackupRestoreInput
+  ) => {
+    success: true;
+    dryRun: {
+      restoreRunId: string;
+      eventId: string;
+      snapshotId: string;
+      confirmationToken: string;
+      diffSummary: EventBackupDiffSummary;
+      warnings: string[];
+      createdAt: string;
+    };
+  };
+  applyEventBackupRestore: (
+    payload: ApplyEventBackupRestoreInput
+  ) => { success: true; applied: EventBackupRestoreRunResult; backupCoverageStatus: EventBackupCoverageStatus };
+  getEventBackupCoverageStatus: () => { success: true; coverage: EventBackupCoverageStatus };
 };

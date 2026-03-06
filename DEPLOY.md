@@ -11,6 +11,8 @@
 **You must build the Custom UI first. Forge does not build it.**
 
 ```bash
+cd /Users/nickster/Downloads/HackCentral
+npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net
 cd /Users/nickster/Downloads/HackCentral/forge-native
 npm run custom-ui:build
 forge deploy --environment production --no-verify

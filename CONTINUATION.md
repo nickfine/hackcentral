@@ -2120,3 +2120,205 @@ All passed in-session.
 2) If accepted, deploy through standard production path (`custom-ui:build`, `forge deploy`, `forge install --upgrade`).
 3) Capture artifacts/screenshots and append closure evidence.
 4) Create concrete next-work item from `Pending Future Work Idea Capture` placeholders in `LEARNINGS.md` and `CONTINUATION.md` with acceptance criteria + validation commands (still pending from prior carry-forward note).
+
+## Session Update - Production Stabilization & Access Fixes (Mar 5, 2026 23:02 GMT)
+
+### What Shipped
+- Showcase open flow hardened:
+  - validates page linkage before open.
+  - opens valid linked pages in a new tab.
+- Hacks list now excludes entries without valid Confluence linkage.
+- Runtime hero upload finalized:
+  - draft preview updates immediately after upload.
+  - success copy now reflects preview behavior.
+  - Supabase image rendering enabled via manifest `external.images`.
+- Backend Supabase integrity fix:
+  - guarded EventAdmin UUID lookups against non-UUID user IDs (`22P02` mitigation).
+- HackDay `Open` access fix:
+  - removed `isSiteAdmin` gate from `hackday-runtime-global-page` route to allow non-site-admin users to open HackDays.
+
+### Commits Deployed
+- `93de35f` - validate linked page target before open.
+- `b5afbda` - hide hacks without valid page linkage.
+- `62833ed` - runtime hero preview/CSP fixes.
+- `25bb21b` - Supabase EventAdmin non-UUID guard.
+- `f22f3db` - remove site-admin-only gate from runtime route.
+
+### Production Status
+- All listed fixes are deployed to `production` and installed on `hackdaytemp.atlassian.net`.
+
+### Current Known Warning
+- Supabase Security Advisor still has one accepted, plan-gated warning:
+  - `auth_leaked_password_protection`.
+
+### Suggested First Task In Next Chat
+1) Capture and concretize the pending future-work idea placeholders into a concrete next-work item with:
+   - explicit acceptance criteria
+   - validation commands
+   - owner and execution order.
+
+## Session Update - Event Backup/Restore v1 Completion (Mar 6, 2026 00:20 GMT)
+
+### Completed in this session
+- Implemented end-to-end event-scoped backup/restore v1:
+  - migration + storage bucket (`EventBackupSnapshot`, `EventBackupRestoreRun`, `event-backup-snapshots`)
+  - backup engine + restore dry-run/apply + retention + checksum
+  - runtime resolver APIs + publish auto-snapshot + config mode backup UI
+  - platform-admin-only restore gating with mandatory dry-run confirmation token
+  - pre-restore snapshot hook on every apply.
+- Added operations paths:
+  - daily scheduled backup sweep (`manifest` scheduled trigger)
+  - predeploy backup webtrigger handler + local CLI script:
+    - `npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+  - artifact output to `docs/artifacts/`.
+- Added runbook + docs updates:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-EVENT-BACKUP-RESTORE-RUNBOOK.md`
+  - deploy/testing/docs index updates.
+- Added/updated backend contract tests for:
+  - resolver exposure
+  - platform-admin restore guard presence
+  - dry-run requirement enforcement
+  - pre-restore snapshot wiring
+  - manifest scheduled/webtrigger wiring.
+
+### Validation completed
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
+- `npm run test:backend --prefix forge-native` ✅
+- `npm run build --prefix forge-native/static/frontend` ✅
+- `npm run runtime:build --prefix forge-native` ✅
+- `npm run custom-ui:build --prefix forge-native` ✅
+
+### Known follow-up before production predeploy command works
+- New backup ops webtrigger is not available until this version is deployed; local script currently fails at `forge webtrigger list ... -f event-backup-ops-wt` in pre-deploy state.
+
+### Suggested First Task In Next Chat
+1) Deploy the updated Forge manifest and handlers to production.
+2) Create/list the `event-backup-ops-wt` webtrigger and run a dry-run predeploy backup sweep.
+3) Capture generated artifact paths from `docs/artifacts/` and confirm coverage status in runtime config mode.
+
+## Session Update - Event Backup/Restore v1 Production Rollout Closed (Mar 6, 2026 00:33 GMT)
+
+### Closed in this session
+- Deployed backup/restore v1 to Forge production and upgraded site install.
+- Ran `event-backup-ops-wt` predeploy backup flow:
+  - dry-run succeeded for 2 active hackday-template events.
+  - first apply attempt exposed two live issues:
+    - Supabase bucket missing in production
+    - backup engine assumed insert representation row was always returned.
+- Remediated both:
+  - applied live Supabase migration to `ssafugtobsqxmqtphwch` via Management API fallback
+  - corrected migration column types (`event_id`/user ids must be `text`)
+  - patched runtime backup engine fallback lookup after insert
+  - redeployed Forge production.
+- Final apply run succeeded and produced snapshots for both active events.
+
+### Evidence
+- Dry-run artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-002602Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-002602Z.md`
+- Final successful apply artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-003106Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-003106Z.md`
+- Live runtime Config Mode verification:
+  - `HackDay 2026` page shows `Backup Safety` -> `Active`
+  - `Shona's IT Hack` page shows `Backup Safety` -> `Active`
+
+### Current state
+- Predeploy backup command is now operational in production.
+- Two active hackday-template events have fresh `predeploy` snapshots from `2026-03-06 00:31 UTC`.
+- Daily scheduled trigger is deployed with the same handler path.
+
+### Suggested First Task In Next Chat
+1) Inspect the two snapshot warning payloads and decide whether any missing optional tables/pages need cleanup or are acceptable noise.
+2) Run one platform-admin restore dry-run in production against a non-critical event to verify the restore UI path and artifact trail end-to-end.
+
+## Session Update - Restore Dry-Run Verified; Wrapper Fixes Required (Mar 6, 2026 00:54 GMT)
+
+### Closed in this session
+- Ran one restore dry-run against non-critical production event `Shona's IT Hack`.
+- Before success, found and fixed two live Forge/Supabase integration bugs in `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/supabase.js`:
+  - storage downloads failed because Forge response shim lacked `blob()` / `arrayBuffer()`
+  - storage uploads failed because binary bodies were JSON-stringified and upload headers from `Headers` were not normalized.
+- Added backend contract assertions in `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/supabase-security-integrity-contract.test.mjs`.
+- Redeployed Forge production after each fix.
+
+### Verified production outcome
+- Fresh manual snapshot created successfully:
+  - snapshot `be1cb9eb-21bb-413a-ac37-bb1640916c5c`
+- Restore dry-run succeeded:
+  - restore run `736a0cf9-2f26-460e-a177-3352889317a1`
+  - confirmation token `df2198b7-2a7a-4644-869e-bff975e57c14`
+- Persisted warnings are currently:
+  - missing `Vote.event_id`/`Vote.eventId` scope path for event-scoped capture
+  - missing `JudgeScore.team_id`/`JudgeScore.teamId` scope path for team-scoped capture
+- Persisted diff summary:
+  - `toCreate=0`
+  - `toUpdate=1` (`HackdayTemplateSeed`)
+  - `toDelete=1` (`EventAuditLog`)
+  - impacted pages `0`
+
+### Current state
+- Backup create path works in production with valid gzip payloads.
+- Restore dry-run path works in production and persists a valid `EventBackupRestoreRun` row.
+- Warning payloads are present end-to-end in resolver responses and DB, but not yet displayed in the runtime Config Mode UI.
+
+### Suggested First Task In Next Chat
+1) Decide whether to suppress or exclude `EventAuditLog` from exact-restore diffs, since manual snapshot creation itself creates expected drift.
+2) Investigate why `HackdayTemplateSeed` drifts immediately after snapshot creation and whether that table needs field-level ignore rules.
+3) Optionally surface restore warnings in the Config Mode side panel so platform admins can inspect them without querying production DB.
+
+## Session Update - Backup/Restore v1 Ready for Use (Mar 6, 2026 01:02 GMT)
+
+### Closed in this session
+- Removed restore preview noise and cleaned the remaining backup scope warnings.
+- Production schema-specific scoping fix:
+  - `Vote` rows are event-scoped through `projectId`
+  - `JudgeScore` rows are event-scoped through `projectId`
+- Diff/reconcile hardening:
+  - `EventAuditLog` excluded from diff totals and restore reconcile
+  - `HackdayTemplateSeed.updated_at` ignored for diff comparisons
+- Runtime UI now renders restore warnings if any are returned.
+
+### Final production evidence
+- Snapshot: `02b44d46-3431-48b8-b724-33ebd920954d`
+- Dry-run restore run: `06ec8a1f-81a6-44ad-97d8-47d94dd2ae14`
+- Confirmation token: `d1592831-0b1c-4d07-83ad-106c372684cf`
+- Outcome:
+  - `warnings=[]`
+  - `toCreate=0`
+  - `toUpdate=0`
+  - `toDelete=0`
+  - impacted pages `0`
+
+### Current state
+- Backup creation is working in production.
+- Predeploy backup flow is working in production.
+- Restore dry-run is working in production with clean output.
+- This is in practical sign-off state for admins to begin populating content with backup/restore protection in place.
+
+### Suggested First Task In Next Chat
+1) Optionally run one controlled restore `apply` on a seeded non-critical fixture event if you want a final destructive-path rehearsal.
+2) Otherwise shift focus back to product development; backup/restore v1 no longer appears to be blocking admin content entry.
+
+## Session Update - Restore Apply Rehearsal Completed (Mar 6, 2026 01:06 GMT)
+
+### Closed in this session
+- Ran a full production restore rehearsal, not just dry-run.
+- Verified end-to-end sequence:
+  - snapshot create
+  - controlled event mutation
+  - dry-run diff
+  - apply restore
+  - post-apply zero-drift verification
+
+### Evidence
+- Snapshot: `29e449af-41ae-49db-bba0-a4aa9b99e7ef`
+- Dry-run: `287997a7-76b4-472a-ab10-37e95325009a`
+- Apply restore: `382ef9a4-98d7-49e1-b35c-b50ebc8871bc`
+- Pre-restore snapshot: `d9636836-3cc6-424f-8595-c467651bef33`
+- Post-apply verification dry-run: `1774da8d-7231-481d-8d7d-d5e3365d8ba9`
+
+### Current state
+- Backup/restore v1 has now passed both production dry-run and production apply rehearsal on a non-critical target.
+- This feature is no longer blocked on validation work.

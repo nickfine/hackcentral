@@ -36,6 +36,11 @@ test('runtime resolver exposes core app-mode and team lifecycle endpoints', asyn
     'getEventConfigModeState',
     'saveEventConfigDraft',
     'publishEventConfigDraft',
+    'createEventBackupSnapshot',
+    'listEventBackupSnapshots',
+    'previewEventBackupRestore',
+    'applyEventBackupRestore',
+    'getEventBackupCoverageStatus',
     'createEventBrandingImageUploadUrl',
   ];
 
@@ -46,4 +51,10 @@ test('runtime resolver exposes core app-mode and team lifecycle endpoints', asyn
       `Expected runtime resolver: ${resolverName}`
     );
   }
+});
+
+test('runtime restore resolvers enforce platform-admin-only access', async () => {
+  const source = await readRuntimeSource();
+  assert.match(source, /resolver\.define\("previewEventBackupRestore"[\s\S]*if \(!access\.isPlatformAdmin\)/);
+  assert.match(source, /resolver\.define\("applyEventBackupRestore"[\s\S]*if \(!access\.isPlatformAdmin\)/);
 });

@@ -12,6 +12,23 @@ npm run test:backend --prefix forge-native
 cd /Users/nickster/Downloads/HackCentral/forge-native && npm run custom-ui:build
 ```
 
+## Phase 10 Backup/Restore Validation Commands
+
+Run these from `/Users/nickster/Downloads/HackCentral`:
+
+```bash
+npm run typecheck --prefix forge-native/static/frontend
+npm run typecheck --prefix forge-native
+npm run test:backend --prefix forge-native
+npm run qa:backup:predeploy-snapshot -- --dry-run --environment production --site hackdaytemp.atlassian.net
+```
+
+Optional targeted predeploy snapshot:
+
+```bash
+npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net --event-id <event-id>
+```
+
 Phase 8 ops wrappers (write JSON + Markdown artifacts to `docs/artifacts/`):
 
 ```bash

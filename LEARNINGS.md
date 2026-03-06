@@ -4111,3 +4111,215 @@ Use this template at the end of every work session:
 
 ### Notes
 - Shared contract `hdcUpdatePipelineStageCriteria` remains in shared types/backend contracts for future admin/settings surface compatibility, but is no longer invoked by the Pipeline page UI.
+
+## Session Update - Runtime/Hacks Production Hardening Sweep (Mar 5, 2026 22:58 GMT)
+
+### Completed
+- Fixed showcase `Open page` invalid-target handling:
+  - validate numeric `confluencePageId` and HTTPS `confluencePageUrl` before opening.
+  - prevent dead open attempts when linkage is invalid.
+- Updated Hacks list behavior to hide items without valid page linkage.
+- Updated runtime hero upload UX and delivery:
+  - success message now reflects draft preview behavior (`Hero image updated in draft preview.`).
+  - added runtime image-load error feedback in hero card.
+  - increased hero image visibility in preview (opacity/overlay tuning).
+  - added manifest `permissions.external.images: '*.supabase.co'` to allow Supabase hero images in Forge iframe CSP.
+- Fixed backend UUID mismatch causing user-facing invocation failure:
+  - guarded `EventAdmin` lookups against non-UUID `userId` values.
+- Fixed non-site-admin access to HackDay `Open` route:
+  - removed `displayConditions.isSiteAdmin: true` from `hackday-runtime-global-page`.
+
+### Production Status
+- All above fixes were pushed and deployed to production Confluence app (`hackdaytemp.atlassian.net`) in-session.
+
+### Validation Commands Run
+- `npm run typecheck --prefix forge-native/static/frontend`
+- `npm run build --prefix forge-native/static/frontend`
+- `npm run typecheck --prefix forge-native`
+- `npm run test:backend --prefix forge-native`
+- `npm run custom-ui:build --prefix forge-native`
+- `forge deploy --environment production --no-verify`
+- `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Commits
+- `93de35f` - fix(showcase): validate linked page target before open
+- `b5afbda` - fix(showcase): hide hacks without valid page linkage
+- `62833ed` - fix(runtime): allow supabase hero images and improve draft preview UX
+- `25bb21b` - fix(supabase): guard event admin lookups from non-uuid user ids
+- `f22f3db` - fix(runtime-route): allow non-site-admin access to hackday-app
+
+## Session Update - Event Backup/Restore v1 Implemented (Mar 6, 2026 00:20 GMT)
+
+### What Changed
+- Added event backup/restore persistence migration:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260306001000_phase10_event_backup_restore.sql`
+  - tables: `EventBackupSnapshot`, `EventBackupRestoreRun`
+  - private storage bucket: `event-backup-snapshots`
+  - service-role-only RLS policies.
+- Added backup engine:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/eventBackup.mjs`
+  - snapshot build/store/list/coverage, dry-run diff, apply restore with required dry-run token, pre-restore snapshot hook, retention pruning.
+  - added failure telemetry event `event_backup_restore_failed`.
+- Added runtime resolver/API support and publish auto-snapshot hook:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js`
+  - resolvers: `createEventBackupSnapshot`, `listEventBackupSnapshots`, `previewEventBackupRestore`, `applyEventBackupRestore`, `getEventBackupCoverageStatus`.
+  - publish path now auto-creates `source=publish` snapshot before apply.
+- Added scheduled + predeploy backup ops handlers:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/backupOps.js`
+  - daily scheduled sweep (`source=daily`) over active events in batches.
+  - webtrigger predeploy sweep (`source=predeploy`) with optional targeted event IDs.
+- Updated manifest wiring:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/manifest.yml`
+  - new function keys + `scheduledTrigger` + `event-backup-ops-wt` webtrigger.
+- Added predeploy backup CLI + artifact output:
+  - `/Users/nickster/Downloads/HackCentral/scripts/predeploy-event-backup-snapshot.mjs`
+  - outputs JSON + Markdown artifacts under `/Users/nickster/Downloads/HackCentral/docs/artifacts/`.
+- Added runtime config mode UI backup section and restore panel wiring:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx`
+  - fixed hook-order/runtime issues during implementation.
+- Added docs and workflow updates:
+  - `/Users/nickster/Downloads/HackCentral/docs/HDC-EVENT-BACKUP-RESTORE-RUNBOOK.md`
+  - `/Users/nickster/Downloads/HackCentral/DEPLOY.md`
+  - `/Users/nickster/Downloads/HackCentral/TESTING_GUIDE.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/README.md`
+  - `/Users/nickster/Downloads/HackCentral/package.json` script `qa:backup:predeploy-snapshot`.
+
+### Validation Commands Run
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
+- `npm run test:backend --prefix forge-native` ✅
+- `npm run build --prefix forge-native/static/frontend` ✅
+- `npm run runtime:build --prefix forge-native` ✅
+- `npm run custom-ui:build --prefix forge-native` ✅
+
+### Operational Note
+- Local invocation of predeploy backup script failed before deploy:
+  - `node scripts/predeploy-event-backup-snapshot.mjs --dry-run --environment production --site hackdaytemp.atlassian.net --max-events 1`
+  - failure at `forge webtrigger list ... -f event-backup-ops-wt` because new function/webtrigger is not yet deployed to production in this session.
+
+## Session Update - Event Backup/Restore v1 Deployed + Verified (Mar 6, 2026 00:33 GMT)
+
+### What Changed
+- Deployed updated Forge app to `production` after implementing backup/restore v1:
+  - `PATH="/opt/homebrew/opt/node@22/bin:$PATH" forge deploy --environment production --no-verify`
+  - `PATH="/opt/homebrew/opt/node@22/bin:$PATH" forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Ran predeploy backup dry-run and apply via new CLI/webtrigger:
+  - `npm run qa:backup:predeploy-snapshot -- --dry-run --environment production --site hackdaytemp.atlassian.net`
+  - `npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+- Supabase MCP remained empty (`list_projects -> []`), so used documented fallback against production project `ssafugtobsqxmqtphwch`.
+- Applied live migration via Supabase Management API:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/supabase/migrations/20260306001000_phase10_event_backup_restore.sql`
+- Patched migration after live schema mismatch discovery:
+  - `Event.id` and `User.id` are `text`, not `uuid`
+  - updated backup table event/user reference columns to `text`
+  - reapplied migration successfully (`[]` response).
+- Fixed backup engine false-negative behavior:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/eventBackup.mjs`
+  - insert now falls back to deterministic row lookup when PostgREST returns no representation row after successful insert.
+- Redeployed production Forge backend after that patch.
+
+### Production Verification
+- Dry-run artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-002602Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-002602Z.md`
+- Successful apply artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-003106Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-003106Z.md`
+- Created production snapshots:
+  - `HackDay 2026` (`7047d6d2-16a7-4d08-aea2-fb9ac26f8125`) -> snapshot `384e8c32-13a0-44b9-b75f-def0f0409371`
+  - `Shona's IT Hack` (`d3f7bb14-7d8f-4e92-8740-23b02994b4d4`) -> snapshot `92bf1604-c4a2-4741-adf0-bde08d308b0f`
+- Verified in live runtime Config Mode using authenticated Playwright session:
+  - `/wiki/spaces/IS/pages/22970369/HackDay+2026` -> `Backup Safety`, latest snapshot `3/6/2026, 12:31:00 AM`, status `Active`, `Snapshots: 2`
+  - `/wiki/spaces/IS/pages/24510466/Shona+s+IT+Hack` -> `Backup Safety`, latest snapshot `3/6/2026, 12:31:05 AM`, status `Active`, `Snapshots: 2`
+
+### Notes
+- First apply attempt created snapshots but reported failure because metadata insert returned no representation row; this is now fixed in code and reflected by the final successful artifact run.
+
+## Session Update - Restore Dry-Run Path Verified in Production (Mar 6, 2026 00:54 GMT)
+
+### What Changed
+- Investigated the first live restore dry-run failure on non-critical event `Shona's IT Hack` (`d3f7bb14-7d8f-4e92-8740-23b02994b4d4`).
+- Fixed Forge Supabase response wrapper so storage downloads expose binary methods required by `supabase-js`:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/supabase.js`
+  - added `arrayBuffer()` and `blob()` support backed by eagerly buffered response bytes.
+- After redeploy, restore path advanced and exposed a second live issue:
+  - snapshot uploads were being corrupted because binary request bodies were JSON-stringified by the same wrapper.
+- Patched the wrapper again to preserve binary upload bodies and normalize non-plain-object headers (notably `Headers`) so storage keeps `content-type: application/gzip`.
+- Added contract coverage for both binary response and binary upload handling:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/supabase-security-integrity-contract.test.mjs`
+- Redeployed Forge production after each runtime fix.
+
+### Production Verification
+- Created fresh manual snapshot through the live Forge bridge on `Shona's IT Hack` page:
+  - snapshot `be1cb9eb-21bb-413a-ac37-bb1640916c5c`
+  - created at `2026-03-06T00:53:10.482+00:00`
+- Ran live restore dry-run through the production Forge bridge against that snapshot:
+  - restore run `736a0cf9-2f26-460e-a177-3352889317a1`
+  - confirmation token `df2198b7-2a7a-4644-869e-bff975e57c14`
+  - status `succeeded`
+- Persisted warning payloads matched between snapshot response and restore run row:
+  - `Unable to scope table Vote: no matching scope column found among [event_id, eventId].`
+  - `Unable to scope table JudgeScore by any of [team_id, teamId].`
+- Dry-run diff summary in production:
+  - totals: `toCreate=0`, `toUpdate=1`, `toDelete=1`
+  - `HackdayTemplateSeed` flagged one update
+  - `EventAuditLog` flagged one delete
+  - impacted pages: `0`
+
+### Notes
+- The `EventAuditLog` delete is expected noise for exact restore after a manual snapshot because `createEventBackupSnapshot` appends an audit row after the snapshot is captured.
+- The current runtime Config Mode UI only surfaces dry-run aggregate counts; warning arrays are persisted and returned by resolvers but are not rendered in the side panel yet.
+
+## Session Update - Backup/Restore Hardening Reached Sign-Off State (Mar 6, 2026 01:02 GMT)
+
+### What Changed
+- Hardened backup/restore diff behavior in `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/eventBackup.mjs`:
+  - `EventAuditLog` is still captured in snapshots for evidence, but is excluded from restore diff totals and restore reconcile operations.
+  - `HackdayTemplateSeed.updated_at` is ignored during diff comparison to avoid timestamp-only drift.
+  - `Vote` and `JudgeScore` snapshot scoping now follows actual production schema (`projectId`) instead of warning on missing `event_id` / `team_id` columns.
+- Surfaced restore warnings in the runtime side panel dry-run summary:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx`
+- Added/updated contract coverage:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/event-backup-contract.test.mjs`
+
+### Validation
+- `npm run typecheck --prefix forge-native` ✅
+- `npm run test:backend --prefix forge-native` ✅ (`49/49`)
+- `npm run build --prefix forge-native/static/frontend` ✅
+- Redeployed Forge production after hardening patches.
+
+### Final Production Verification
+- Fresh manual snapshot on `Shona's IT Hack`:
+  - snapshot `02b44d46-3431-48b8-b724-33ebd920954d`
+- Fresh restore dry-run on that snapshot:
+  - restore run `06ec8a1f-81a6-44ad-97d8-47d94dd2ae14`
+  - confirmation token `d1592831-0b1c-4d07-83ad-106c372684cf`
+- Result:
+  - `warnings: []`
+  - `totals: toCreate=0, toUpdate=0, toDelete=0`
+  - pages impacted `0`
+- `EventAuditLog` still appears in table detail with `excludedFromDiff: true`, which is intentional and no longer affects totals or restore reconcile.
+
+## Session Update - Restore Apply Rehearsal Passed in Production (Mar 6, 2026 01:06 GMT)
+
+### Production rehearsal
+- Used non-critical event `Shona's IT Hack` as the final destructive-path rehearsal target because only two production events exist.
+- Created fresh manual snapshot:
+  - snapshot `29e449af-41ae-49db-bba0-a4aa9b99e7ef`
+- Applied controlled reversible mutation directly to `Event.tagline`:
+  - original value `null`
+  - temporary value `RESTORE-REHEARSAL-1772759098596`
+- Ran restore dry-run:
+  - restore run `287997a7-76b4-472a-ab10-37e95325009a`
+  - confirmation token `0563a7ac-8cae-415d-aee6-d5e903a2f308`
+  - totals `toCreate=0`, `toUpdate=1`, `toDelete=0`
+  - warnings `[]`
+- Ran restore apply successfully:
+  - apply run `382ef9a4-98d7-49e1-b35c-b50ebc8871bc`
+  - pre-restore snapshot `d9636836-3cc6-424f-8595-c467651bef33`
+  - warnings `[]`
+  - page restore `restoredCount=1`, `failedCount=0`
+- Verified state was restored:
+  - `Event.tagline` returned to `null`
+  - post-apply dry-run `1774da8d-7231-481d-8d7d-d5e3365d8ba9` returned `toCreate=0`, `toUpdate=0`, `toDelete=0`, warnings `[]`

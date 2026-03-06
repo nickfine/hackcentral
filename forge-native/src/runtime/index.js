@@ -14,6 +14,13 @@ import {
   runSaveConfigModeDraftCore,
   runPublishConfigModeDraftCore,
 } from "./lib/configModeResolverCore.mjs";
+import {
+  applyEventBackupRestore,
+  createEventBackupSnapshot,
+  createRestoreDryRun,
+  getEventBackupCoverageStatus,
+  listEventBackupSnapshots,
+} from "./lib/eventBackup.mjs";
 
 const resolver = new Resolver();
 const DEBUG_LOGS = process.env.DEBUG_PERF === "true";
@@ -511,6 +518,55 @@ async function ensureSubmissionsParentPage(eventPageId) {
   }
 
   return created;
+}
+
+async function getConfluencePageStorageForBackup(pageId) {
+  const fetched = await fetchConfluencePageWithFallback(pageId);
+  if (!fetched?.page?.id) {
+    throw new Error(`Unable to fetch page ${pageId}`);
+  }
+  return {
+    pageId: String(fetched.page.id),
+    pageUrl: extractConfluencePageUrl(fetched.page) || null,
+    title: fetched.page.title || null,
+    versionNumber: Number(fetched.page?.version?.number || 0) || null,
+    storageValue: fetched.page?.body?.storage?.value || "",
+  };
+}
+
+async function restoreConfluencePageStorageFromBackup({ pageId, storageValue }) {
+  const fetched = await fetchConfluencePageWithFallback(pageId);
+  if (!fetched?.page?.id) {
+    throw new Error(`Unable to resolve page ${pageId} for restore.`);
+  }
+  await updateConfluencePageStorage({
+    page: fetched.page,
+    requester: fetched.requester,
+    storageValue: typeof storageValue === "string" ? storageValue : "",
+    versionMessage: "Restore page content from HackDay backup snapshot",
+  });
+}
+
+async function appendEventBackupAuditLog(supabase, { eventId, actorUserId, action, newValue, previousValue = null }) {
+  if (!eventId || !action) return;
+  if (!actorUserId) return;
+
+  try {
+    const { error } = await supabase.from("EventAuditLog").insert({
+      id: randomUUID(),
+      event_id: eventId,
+      actor_user_id: actorUserId,
+      action,
+      previous_value: previousValue,
+      new_value: newValue ?? null,
+      created_at: new Date().toISOString(),
+    });
+    if (error) {
+      console.warn("[event-backup] EventAuditLog insert failed:", error.message);
+    }
+  } catch (err) {
+    console.warn("[event-backup] EventAuditLog insert exception:", err?.message || String(err));
+  }
 }
 
 // ============================================================================
@@ -6031,6 +6087,15 @@ async function buildConfigModeStateResponse(supabase, req, access) {
     event?.event_config_draft || event?.eventConfigDraft || null
   );
   const draft = storedDraft || eventDraft;
+  let backupCoverageStatus = null;
+  try {
+    backupCoverageStatus = await getEventBackupCoverageStatus({
+      supabase,
+      eventId: event.id,
+    });
+  } catch (err) {
+    console.warn("[event-backup] Unable to load backup coverage status:", err?.message || String(err));
+  }
 
   return {
     success: true,
@@ -6047,6 +6112,7 @@ async function buildConfigModeStateResponse(supabase, req, access) {
       isEventAdmin: Boolean(ctx.isEventAdmin),
       actorRole: ctx.isPlatformAdmin ? "admin" : (ctx.isEventAdmin ? "event_admin" : "unknown"),
     },
+    backupCoverageStatus,
     hasConfigDraft: Boolean(draft),
   };
 }
@@ -6055,6 +6121,181 @@ resolver.define("getEventConfigModeState", async (req) => {
   const supabase = getSupabaseClient();
   const access = await resolveConfigModeAccess(supabase, req);
   return buildConfigModeStateResponse(supabase, req, access);
+});
+
+resolver.define("createEventBackupSnapshot", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  const payload = req.payload || {};
+  const requestedSource =
+    typeof payload.source === "string" && payload.source.trim()
+      ? payload.source.trim().toLowerCase()
+      : "manual";
+  if (requestedSource !== "manual") {
+    throw new Error('Only "manual" source is supported from this endpoint.');
+  }
+
+  const snapshot = await createEventBackupSnapshot({
+    supabase,
+    eventId: access.event.id,
+    source: requestedSource,
+    actorUserId: access.userRow?.id || null,
+    fetchPageStorageById: getConfluencePageStorageForBackup,
+    logger: console,
+  });
+
+  await appendEventBackupAuditLog(supabase, {
+    eventId: access.event.id,
+    actorUserId: access.userRow?.id || null,
+    action: "event_backup_snapshot_created",
+    newValue: {
+      source: requestedSource,
+      snapshotId: snapshot.snapshotId,
+      dbRowCounts: snapshot.dbRowCounts,
+      pageCounts: snapshot.pageCounts,
+      warningCount: Array.isArray(snapshot.warnings) ? snapshot.warnings.length : 0,
+    },
+  });
+
+  const coverage = await getEventBackupCoverageStatus({
+    supabase,
+    eventId: access.event.id,
+  });
+
+  return {
+    success: true,
+    snapshot,
+    backupCoverageStatus: coverage,
+  };
+});
+
+resolver.define("listEventBackupSnapshots", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  const payload = req.payload || {};
+  const snapshots = await listEventBackupSnapshots({
+    supabase,
+    eventId: access.event.id,
+    limit: payload.limit,
+  });
+  return {
+    success: true,
+    eventId: access.event.id,
+    snapshots,
+  };
+});
+
+resolver.define("getEventBackupCoverageStatus", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  const coverage = await getEventBackupCoverageStatus({
+    supabase,
+    eventId: access.event.id,
+  });
+  return {
+    success: true,
+    coverage,
+  };
+});
+
+resolver.define("previewEventBackupRestore", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  if (!access.isPlatformAdmin) {
+    throw new Error("Only platform admins can preview backup restore.");
+  }
+  const payload = req.payload || {};
+  const snapshotId = typeof payload.snapshotId === "string" ? payload.snapshotId.trim() : "";
+  if (!snapshotId) {
+    throw new Error("snapshotId is required for restore preview.");
+  }
+
+  const dryRun = await createRestoreDryRun({
+    supabase,
+    eventId: access.event.id,
+    snapshotId,
+    requestedByUserId: access.userRow?.id || null,
+    fetchPageStorageById: getConfluencePageStorageForBackup,
+    logger: console,
+  });
+
+  await appendEventBackupAuditLog(supabase, {
+    eventId: access.event.id,
+    actorUserId: access.userRow?.id || null,
+    action: "event_backup_restore_dry_run",
+    newValue: {
+      snapshotId,
+      restoreRunId: dryRun.restoreRunId,
+      totals: dryRun.diffSummary?.totals || null,
+      impactedPageCount: dryRun.diffSummary?.pages?.impactedPageIds?.length || 0,
+    },
+  });
+
+  return {
+    success: true,
+    dryRun,
+  };
+});
+
+resolver.define("applyEventBackupRestore", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  if (!access.isPlatformAdmin) {
+    throw new Error("Only platform admins can apply backup restore.");
+  }
+  const payload = req.payload || {};
+  const snapshotId = typeof payload.snapshotId === "string" ? payload.snapshotId.trim() : "";
+  const restoreRunId = typeof payload.restoreRunId === "string" ? payload.restoreRunId.trim() : "";
+  const confirmationToken = typeof payload.confirmationToken === "string" ? payload.confirmationToken.trim() : "";
+  if (!snapshotId || !restoreRunId || !confirmationToken) {
+    throw new Error("snapshotId, restoreRunId, and confirmationToken are required.");
+  }
+
+  const applied = await applyEventBackupRestore({
+    supabase,
+    eventId: access.event.id,
+    snapshotId,
+    restoreRunId,
+    confirmationToken,
+    requestedByUserId: access.userRow?.id || null,
+    confirmedByUserId: access.userRow?.id || null,
+    fetchPageStorageById: getConfluencePageStorageForBackup,
+    updatePageStorageById: restoreConfluencePageStorageFromBackup,
+    createPreRestoreSnapshot: async () =>
+      createEventBackupSnapshot({
+        supabase,
+        eventId: access.event.id,
+        source: "pre_restore",
+        actorUserId: access.userRow?.id || null,
+        fetchPageStorageById: getConfluencePageStorageForBackup,
+        logger: console,
+      }),
+    logger: console,
+  });
+
+  await appendEventBackupAuditLog(supabase, {
+    eventId: access.event.id,
+    actorUserId: access.userRow?.id || null,
+    action: "event_backup_restore_applied",
+    newValue: {
+      snapshotId,
+      restoreRunId,
+      appliedRestoreRunId: applied.restoreRunId,
+      warnings: applied.warnings || [],
+      changesApplied: applied.changesApplied || null,
+    },
+  });
+
+  const coverage = await getEventBackupCoverageStatus({
+    supabase,
+    eventId: access.event.id,
+  });
+
+  return {
+    success: true,
+    applied,
+    backupCoverageStatus: coverage,
+  };
 });
 
 resolver.define("saveEventConfigDraft", async (req) => {
@@ -6121,6 +6362,28 @@ resolver.define("publishEventConfigDraft", async (req) => {
   const payload = req.payload || {};
   const currentDraft = await getStoredEventConfigDraft(access.event.id);
   const nowIso = new Date().toISOString();
+
+  // Guardrail: always create a publish-bound snapshot before applying live content updates.
+  const publishSnapshot = await createEventBackupSnapshot({
+    supabase,
+    eventId: access.event.id,
+    source: "publish",
+    actorUserId: access.userRow?.id || null,
+    fetchPageStorageById: getConfluencePageStorageForBackup,
+    logger: console,
+  });
+  await appendEventBackupAuditLog(supabase, {
+    eventId: access.event.id,
+    actorUserId: access.userRow?.id || null,
+    action: "event_backup_snapshot_created",
+    newValue: {
+      source: "publish",
+      snapshotId: publishSnapshot.snapshotId,
+      dbRowCounts: publishSnapshot.dbRowCounts,
+      pageCounts: publishSnapshot.pageCounts,
+      warningCount: Array.isArray(publishSnapshot.warnings) ? publishSnapshot.warnings.length : 0,
+    },
+  });
 
   return runPublishConfigModeDraftCore({
     access,

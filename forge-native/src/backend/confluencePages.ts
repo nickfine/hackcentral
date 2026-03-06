@@ -760,6 +760,14 @@ async function fetchPageContentWithFallback(
   return null;
 }
 
+export interface ConfluencePageStorageSnapshot {
+  pageId: string;
+  pageUrl: string;
+  title: string | null;
+  versionNumber: number | null;
+  storageValue: string;
+}
+
 async function updatePageContentStorage(
   page: ConfluencePage,
   bodyStorageValue: string,
@@ -808,6 +816,21 @@ export async function setPageStorageContent(pageId: string, bodyStorageValue: st
     }
   }
   throw new Error(`Unable to update page content for ${pageId}. ${failures.join(' | ') || 'unknown error'}`);
+}
+
+export async function getPageStorageContent(pageId: string): Promise<ConfluencePageStorageSnapshot> {
+  const fetched = await fetchPageContentWithFallback(pageId);
+  if (!fetched?.page?.id) {
+    throw new Error(`Unable to fetch page content for ${pageId}`);
+  }
+
+  return {
+    pageId: fetched.page.id,
+    pageUrl: extractPageUrl(fetched.page) || buildConfluencePageUrl(null, fetched.page.id),
+    title: fetched.page.title || null,
+    versionNumber: Number(fetched.page.version?.number || 0) || null,
+    storageValue: fetched.page.body?.storage?.value || '',
+  };
 }
 
 export async function stripInjectedChildPageIntroParagraph(pageId: string): Promise<{
