@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, Code, Flag, Globe, Mic, Sparkles, Trophy, Users } from 'lucide-react';
 import { cn } from '../lib/design-system';
-import { Card, Badge, Button } from './ui';
+import { Card, Badge } from './ui';
 import { BackButton } from './shared';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { getUserLocale, getUserTimezone, getTimezoneAbbr, EVENT_TIMEZONE } from '../data/constants';
@@ -569,29 +569,12 @@ function PublishedScheduleView({ dayColumns }) {
 function UnpublishedScheduleState({ canEdit, isConfigEnabled, onNavigate }) {
   return (
     <Card padding="lg" className="border-dashed">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</p>
-          <h2 className="mt-2 text-2xl font-black text-text-primary">Schedule not published yet</h2>
-          <p className="mt-2 max-w-2xl text-text-secondary">
-            The event team is still preparing key dates, deadlines, and judging windows. Check back soon for the live schedule.
-          </p>
-        </div>
-        {canEdit ? (
-          <div className="min-w-[220px] rounded-card border border-teal-500/25 bg-teal-500/5 p-4">
-            <p className="text-sm font-semibold text-text-primary">Admin note</p>
-            <p className="mt-1 text-sm text-text-secondary">
-              {isConfigEnabled
-                ? 'Config Mode is on. Start building the schedule below and publish when ready.'
-                : 'Turn on Config Mode to draft and publish the event schedule.'}
-            </p>
-            {!isConfigEnabled ? (
-              <Button className="mt-3 w-full justify-center" variant="secondary" onClick={() => onNavigate('admin')}>
-                Open Admin Panel
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</p>
+        <h2 className="mt-2 text-2xl font-black text-text-primary">Schedule not published yet</h2>
+        <p className="mt-2 max-w-2xl text-text-secondary">
+          Turn on Config Mode in the header to create the HackDay schedule.
+        </p>
       </div>
     </Card>
   );
