@@ -567,6 +567,10 @@ function Dashboard({
     const next = configMode?.getFieldValue?.('branding.bannerImageUrl', fallback);
     return typeof next === 'string' ? next.trim() : '';
   }, [configMode, eventBranding?.bannerImageUrl]);
+  const heroLogoSrc = heroBannerImageUrl || (useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png');
+  const heroLogoAlt = heroBannerImageUrl
+    ? 'Uploaded event logo'
+    : (useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo');
 
   const canEditHeroBanner = Boolean(
     configMode?.isEnabled &&
@@ -594,9 +598,9 @@ function Dashboard({
         invokeResolver: (resolverName, payload) => invoke(resolverName, payload),
       });
       configMode?.setFieldValue?.('branding.bannerImageUrl', uploaded.publicUrl);
-      setHeroImageUploadSuccess('Hero image updated in draft preview.');
+      setHeroImageUploadSuccess('Hero logo updated in draft preview.');
     } catch (error) {
-      setHeroImageUploadError(error?.message || 'Failed to upload hero image.');
+      setHeroImageUploadError(error?.message || 'Failed to upload hero logo.');
     } finally {
       setIsHeroImageUploading(false);
     }
@@ -1063,17 +1067,6 @@ function Dashboard({
           data-testid="dashboard-hero-card"
           className="dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm"
         >
-          {heroBannerImageUrl ? (
-            <img
-              src={heroBannerImageUrl}
-              alt="HackDay hero banner"
-              className="dashboard-hero-banner-image"
-              onError={() => {
-                setHeroImageUploadError('Unable to load hero image preview. Please upload again.');
-              }}
-            />
-          ) : null}
-          {heroBannerImageUrl ? <div className="dashboard-hero-banner-overlay" /> : null}
           <input
             ref={heroImageFileInputRef}
             type="file"
@@ -1083,12 +1076,20 @@ function Dashboard({
           />
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">
-              <div className="dashboard-hero-logo-wrap shrink-0">
+              <div
+                className={cn(
+                  'dashboard-hero-logo-wrap shrink-0',
+                  heroBannerImageUrl ? 'dashboard-hero-logo-wrap--uploaded' : null
+                )}
+              >
                 <img
-                  src={useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png'}
-                  alt={useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo'}
+                  src={heroLogoSrc}
+                  alt={heroLogoAlt}
                   data-testid="dashboard-hero-logo"
-                  className="dashboard-hero-logo"
+                  className={cn('dashboard-hero-logo', heroBannerImageUrl ? 'dashboard-hero-logo--uploaded' : null)}
+                  onError={() => {
+                    setHeroImageUploadError('Unable to load uploaded logo preview. Please upload again.');
+                  }}
                 />
                 {canEditHeroBanner ? (
                   <button
@@ -1096,11 +1097,11 @@ function Dashboard({
                     className="dashboard-hero-image-overlay-btn"
                     onClick={handleOpenHeroImagePicker}
                     disabled={isHeroImageUploading}
-                    aria-label={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
-                    title={heroBannerImageUrl ? 'Change hero image' : 'Upload hero image'}
+                    aria-label={heroBannerImageUrl ? 'Change hero logo' : 'Upload hero logo'}
+                    title={heroBannerImageUrl ? 'Change hero logo' : 'Upload hero logo'}
                   >
                     <Upload className="h-3.5 w-3.5" />
-                    <span>{isHeroImageUploading ? 'Uploading…' : 'Upload hero image'}</span>
+                    <span>{isHeroImageUploading ? 'Uploading…' : 'Upload hero logo'}</span>
                   </button>
                 ) : null}
               </div>

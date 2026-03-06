@@ -431,10 +431,14 @@
 
 .dashboard-hero-banner-image {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  top: 50%;
+  left: 50%;
+  width: auto;
+  height: auto;
+  max-width: calc(100% - 2rem);
+  max-height: min(400px, calc(100% - 2rem));
+  transform: translate(-50%, -50%);
+  object-fit: contain;
   object-position: center;
   opacity: 0.62;
   pointer-events: none;
@@ -452,6 +456,10 @@
 .dashboard-hero-logo-wrap {
   position: relative;
   display: inline-flex;
+}
+
+.dashboard-hero-logo-wrap--uploaded {
+  padding-inline: 1rem;
 }
 
 .dashboard-hero-image-overlay-btn {
@@ -504,9 +512,27 @@
   opacity: 0.8;
 }
 
+.dashboard-hero-logo--uploaded {
+  max-width: min(240px, 32vw);
+  max-height: 100px;
+  height: auto;
+  width: auto;
+  object-fit: contain;
+  opacity: 1;
+  filter: none !important;
+}
+
 @media (min-width: 640px) {
   .dashboard-hero-logo {
     height: 160px;
+  }
+
+  .dashboard-hero-logo-wrap--uploaded {
+    padding-inline: 1.5rem;
+  }
+
+  .dashboard-hero-logo--uploaded {
+    max-height: 160px;
   }
 }
 
