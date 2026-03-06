@@ -2453,3 +2453,27 @@ All passed in-session.
 1. Merge or fast-forward this branch into `main`.
 2. Deploy `v0.3.31`.
 3. Re-check the hosted schedule page dark-mode empty state after deployment.
+
+## Session Update - v0.3.31 Production Rollout Completed (Mar 6, 2026 02:27 GMT)
+
+### Closed in this session
+- Deployed `v0.3.31` commit `8a69d65` to Forge production.
+- Upgraded Confluence production install on `hackdaytemp.atlassian.net`.
+- Shipped the dark-mode / CTA follow-up for the unpublished schedule empty state.
+
+### Evidence
+- Predeploy backup artifacts:
+  - `/private/tmp/hackcentral-release-v031/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-022456Z.json`
+  - `/private/tmp/hackcentral-release-v031/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-022456Z.md`
+- Build/install path completed:
+  - `npm run custom-ui:build --prefix forge-native`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence now includes the `v0.3.31` schedule empty-state improvements.
+- `main` should be updated to point at the deployed release commit.
+
+### Suggested First Task In Next Chat
+1. Recheck the hosted child `Schedule` page in dark mode.
+2. Confirm the new empty-state CTA is easy to discover for admins.

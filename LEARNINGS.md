@@ -4465,3 +4465,31 @@ Use this template at the end of every work session:
 ### Release Notes
 - Version bumped locally to `v0.3.31`.
 - This session committed and pushed the follow-up change only; no Forge deploy/install has been run yet for `v0.3.31`.
+
+## Session Update - v0.3.31 Deployed To Production (Mar 6, 2026 02:27 GMT)
+
+### What Changed
+- Deployed `v0.3.31` from commit `8a69d65` to Forge production on `hackdaytemp.atlassian.net`.
+- Included the schedule empty-state follow-up:
+  - stronger dark-mode card treatment
+  - direct `Turn On Config Mode` CTA for admins
+  - cleaner participant copy
+
+### Validation / Evidence
+- Runtime guardrail:
+  - `node -v` ✅ `v22.22.0`
+- Predeploy backup sweep:
+  - `/private/tmp/hackcentral-release-v031/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-022456Z.json`
+  - `/private/tmp/hackcentral-release-v031/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-022456Z.md`
+- Build/install path completed:
+  - `npm install --prefix forge-native` ✅
+  - `npm run custom-ui:install --prefix forge-native` ✅
+  - `npm run custom-ui:build --prefix forge-native` ✅
+  - `forge deploy --environment production --no-verify` ✅
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+
+### Operational Notes
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
