@@ -4554,3 +4554,30 @@ Use this template at the end of every work session:
 ### Release Notes
 - Version bumped locally to `v0.3.33`.
 - This session is packaging and deploying the published schedule contrast fix.
+
+## Session Update - v0.3.33 Deployed To Production (Mar 6, 2026 02:43 GMT)
+
+### What Changed
+- Deployed `v0.3.33` from commit `624f062` to Forge production on `hackdaytemp.atlassian.net`.
+- Fixed the published child HackDay schedule card contrast regression in dark mode:
+  - event titles now use explicit dark high-contrast text on signal-colored cards
+  - event descriptions now use explicit dark secondary text on signal-colored cards
+
+### Validation / Evidence
+- Runtime guardrail:
+  - `node -v` ✅ `v22.22.0`
+- Predeploy backup sweep:
+  - `/private/tmp/hackcentral-release-v033/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-024130Z.json`
+  - `/private/tmp/hackcentral-release-v033/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-024130Z.md`
+- Build/install path completed:
+  - `npm install --prefix forge-native` ✅
+  - `npm run custom-ui:install --prefix forge-native` ✅
+  - `npm run custom-ui:build --prefix forge-native` ✅
+  - `forge deploy --environment production --no-verify` ✅
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+
+### Operational Notes
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output

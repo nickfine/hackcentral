@@ -2536,3 +2536,27 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Deploy `v0.3.33`.
 2. Recheck the hosted published schedule cards in dark mode.
+
+## Session Update - v0.3.33 Production Rollout Completed (Mar 6, 2026 02:43 GMT)
+
+### Closed in this session
+- Deployed `v0.3.33` commit `624f062` to Forge production.
+- Upgraded Confluence production install on `hackdaytemp.atlassian.net`.
+- Fixed the published schedule card text contrast regression in dark mode.
+
+### Evidence
+- Predeploy backup artifacts:
+  - `/private/tmp/hackcentral-release-v033/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-024130Z.json`
+  - `/private/tmp/hackcentral-release-v033/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-024130Z.md`
+- Build/install path completed:
+  - `npm run custom-ui:build --prefix forge-native`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence now includes the `v0.3.33` published schedule card contrast fix.
+- `main` is the deployed source of truth at `624f062`.
+
+### Suggested First Task In Next Chat
+1. Recheck the hosted published `Schedule` page in dark mode.
+2. Confirm event titles and descriptions are readable on the pastel signal cards.
