@@ -2454,6 +2454,23 @@ All passed in-session.
 2. Deploy `v0.3.31`.
 3. Re-check the hosted schedule page dark-mode empty state after deployment.
 
+## Session Update - v0.3.32 Dark-Mode Schedule Empty-State Hardening Prepared (Mar 6, 2026 02:32 GMT)
+
+### Closed in this session
+- Addressed remaining readability issues in the unpublished schedule empty state in dark mode.
+- Replaced the softer card and text styling with an explicit high-contrast dark presentation.
+- Kept the CTA and made it visually stronger with the primary button style.
+
+### Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend`
+
+### Current state
+- `main` contains the `v0.3.32` follow-up locally and is ready to ship.
+
+### Suggested First Task In Next Chat
+1. Deploy `v0.3.32`.
+2. Visually recheck the hosted child `Schedule` page in dark mode.
+
 ## Session Update - v0.3.31 Production Rollout Completed (Mar 6, 2026 02:27 GMT)
 
 ### Closed in this session

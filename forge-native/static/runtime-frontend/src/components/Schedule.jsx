@@ -569,21 +569,21 @@ function PublishedScheduleView({ dayColumns }) {
 function UnpublishedScheduleState({ canEdit, isConfigEnabled, onToggleConfigMode }) {
   return (
     <Card
-      variant="elevated"
+      variant="ghost"
       padding="lg"
-      className="border border-teal-500/20 bg-arena-elevated shadow-[0_18px_40px_rgba(9,17,40,0.18)]"
+      className="border border-teal-400/25 bg-[linear-gradient(135deg,rgba(8,19,45,0.96)_0%,rgba(10,26,60,0.98)_58%,rgba(5,15,36,0.99)_100%)] shadow-[0_20px_44px_rgba(2,8,23,0.42)]"
     >
       <div className="flex flex-col gap-4">
-        <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</p>
-        <h2 className="mt-2 text-2xl font-black text-text-primary">Schedule not published yet</h2>
-        <p className="mt-2 max-w-2xl text-text-secondary">
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-300/80">Schedule</p>
+        <h2 className="mt-2 text-2xl font-black text-white">Schedule not published yet</h2>
+        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-slate-200">
           {canEdit
             ? 'Turn on Config Mode in the header to create the HackDay schedule.'
             : 'The HackDay schedule will be published here soon.'}
         </p>
         {canEdit ? (
           <div>
-            <Button variant="secondary" onClick={onToggleConfigMode}>
+            <Button variant="primary" onClick={onToggleConfigMode}>
               {isConfigEnabled ? 'Open Schedule Builder' : 'Turn On Config Mode'}
             </Button>
           </div>

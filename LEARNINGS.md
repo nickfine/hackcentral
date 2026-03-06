@@ -4466,6 +4466,23 @@ Use this template at the end of every work session:
 - Version bumped locally to `v0.3.31`.
 - This session committed and pushed the follow-up change only; no Forge deploy/install has been run yet for `v0.3.31`.
 
+## Session Update - v0.3.32 Dark-Mode Schedule Empty-State Hardening Prepared (Mar 6, 2026 02:32 GMT)
+
+### What Changed
+- Further refined the unpublished child HackDay schedule empty state in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`.
+- Replaced the softer theme-token treatment with an explicit high-contrast dark surface and text colors after production feedback showed the content was still hard to read in dark mode.
+- Kept the admin CTA in place and made it visually stronger:
+  - `Turn On Config Mode`
+  - primary button treatment
+  - still wired to the runtime Config Mode toggle
+
+### Validation / Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend` ✅
+
+### Release Notes
+- Version bumped locally to `v0.3.32`.
+- This session is preparing commit/push/deploy for `v0.3.32`.
+
 ## Session Update - v0.3.31 Deployed To Production (Mar 6, 2026 02:27 GMT)
 
 ### What Changed
