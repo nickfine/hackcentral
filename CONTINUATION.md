@@ -2494,3 +2494,29 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Recheck the hosted child `Schedule` page in dark mode.
 2. Confirm the new empty-state CTA is easy to discover for admins.
+
+## Session Update - v0.3.32 Production Rollout Completed (Mar 6, 2026 02:38 GMT)
+
+### Closed in this session
+- Deployed `v0.3.32` commit `195ce54` to Forge production.
+- Upgraded Confluence production install on `hackdaytemp.atlassian.net`.
+- Shipped the hardened dark-mode schedule empty state:
+  - explicit high-contrast dark styling
+  - stronger Config Mode CTA
+
+### Evidence
+- Predeploy backup artifacts:
+  - `/private/tmp/hackcentral-release-v032/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-023655Z.json`
+  - `/private/tmp/hackcentral-release-v032/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-023655Z.md`
+- Build/install path completed:
+  - `npm run custom-ui:build --prefix forge-native`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence now includes the `v0.3.32` unreadable-dark-mode fix on the child `Schedule` page.
+- `main` is the deployed source of truth at `195ce54`.
+
+### Suggested First Task In Next Chat
+1. Manually verify the hosted child `Schedule` page in dark mode.
+2. Confirm the CTA is now visible and readable in production.
