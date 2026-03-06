@@ -2433,3 +2433,23 @@ All passed in-session.
 1. Browser-verify the hosted Confluence schedule flow end to end on production.
 2. Confirm the HackCentral create flow no longer exposes schedule setup.
 3. Delete `codex/schedule-config-mode-v03030` if no longer needed.
+
+## Session Update - v0.3.31 Empty-State Follow-Up Prepared (Mar 6, 2026 02:23 GMT)
+
+### Closed in this session
+- Addressed post-rollout feedback on the unpublished schedule empty state.
+- Improved dark-mode presentation.
+- Restored a clear CTA by wiring the empty-state action directly to the runtime Config Mode toggle.
+- Kept the admin-note box removed.
+
+### Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend`
+
+### Current state
+- Branch `codex/schedule-config-mode-v03030` contains the `v0.3.31` follow-up.
+- No deployment has been performed yet for this patch release.
+
+### Suggested First Task In Next Chat
+1. Merge or fast-forward this branch into `main`.
+2. Deploy `v0.3.31`.
+3. Re-check the hosted schedule page dark-mode empty state after deployment.

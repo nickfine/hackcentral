@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, Code, Flag, Globe, Mic, Sparkles, Trophy, Users } from 'lucide-react';
 import { cn } from '../lib/design-system';
-import { Card, Badge } from './ui';
+import { Card, Badge, Button } from './ui';
 import { BackButton } from './shared';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { getUserLocale, getUserTimezone, getTimezoneAbbr, EVENT_TIMEZONE } from '../data/constants';
@@ -566,15 +566,28 @@ function PublishedScheduleView({ dayColumns }) {
   );
 }
 
-function UnpublishedScheduleState({ canEdit, isConfigEnabled, onNavigate }) {
+function UnpublishedScheduleState({ canEdit, isConfigEnabled, onToggleConfigMode }) {
   return (
-    <Card padding="lg" className="border-dashed">
-      <div>
+    <Card
+      variant="elevated"
+      padding="lg"
+      className="border border-teal-500/20 bg-arena-elevated shadow-[0_18px_40px_rgba(9,17,40,0.18)]"
+    >
+      <div className="flex flex-col gap-4">
         <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</p>
         <h2 className="mt-2 text-2xl font-black text-text-primary">Schedule not published yet</h2>
         <p className="mt-2 max-w-2xl text-text-secondary">
-          Turn on Config Mode in the header to create the HackDay schedule.
+          {canEdit
+            ? 'Turn on Config Mode in the header to create the HackDay schedule.'
+            : 'The HackDay schedule will be published here soon.'}
         </p>
+        {canEdit ? (
+          <div>
+            <Button variant="secondary" onClick={onToggleConfigMode}>
+              {isConfigEnabled ? 'Open Schedule Builder' : 'Turn On Config Mode'}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </Card>
   );
@@ -732,7 +745,7 @@ function Schedule({ onNavigate }) {
         <UnpublishedScheduleState
           canEdit={canEditSchedule}
           isConfigEnabled={configMode.isEnabled}
-          onNavigate={onNavigate}
+          onToggleConfigMode={configMode.toggleConfigMode}
         />
       ) : (
         <PublishedScheduleView dayColumns={dayColumns} />

@@ -4445,3 +4445,23 @@ Use this template at the end of every work session:
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - v0.3.31 Empty-State Follow-Up Prepared (Mar 6, 2026 02:23 GMT)
+
+### What Changed
+- Refined the unpublished child HackDay schedule empty state in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`.
+- Fixed the two UX issues reported after the `v0.3.30` rollout:
+  - dark-mode empty-state treatment now uses a stronger elevated card with explicit accent border
+  - a real CTA is restored without reintroducing the separate admin-note panel
+- Admin behavior now shows a direct runtime CTA button:
+  - `Turn On Config Mode`
+  - wired to the existing Config Mode toggle
+- Participant behavior now shows:
+  - `The HackDay schedule will be published here soon.`
+
+### Validation / Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend` ✅
+
+### Release Notes
+- Version bumped locally to `v0.3.31`.
+- This session committed and pushed the follow-up change only; no Forge deploy/install has been run yet for `v0.3.31`.
