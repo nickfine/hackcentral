@@ -12,11 +12,11 @@
 
 ```bash
 cd /Users/nickster/Downloads/HackCentral
-npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net
+./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net
 cd /Users/nickster/Downloads/HackCentral/forge-native
-npm run custom-ui:build
-forge deploy --environment production --no-verify
-forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
+../scripts/with-node22.sh npm run custom-ui:build
+../scripts/with-node22.sh forge deploy --environment production --no-verify
+../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
 Open Confluence on hackdaytemp → HackCentral. Done.
@@ -45,9 +45,9 @@ Staging has no CDN cache, so you see the bundle you just deployed.
 
 ```bash
 cd /Users/nickster/Downloads/HackCentral/forge-native
-npm run custom-ui:build
-forge deploy --environment staging --no-verify
-forge install -e staging --non-interactive --site hackdaytemp.atlassian.net --product confluence
+../scripts/with-node22.sh npm run custom-ui:build
+../scripts/with-node22.sh forge deploy --environment staging --no-verify
+../scripts/with-node22.sh forge install -e staging --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
 Get the staging environment ID:

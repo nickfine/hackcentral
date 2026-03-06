@@ -4446,6 +4446,21 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - Repo-Local Node 22 Wrapper Added (Mar 6, 2026 10:21 GMT)
+
+### What Changed
+- Added `/Users/nickster/Downloads/HackCentral/scripts/with-node22.sh` to force the repo-pinned Homebrew Node 22 toolchain without changing the machine-wide default Node version.
+- Updated `/Users/nickster/Downloads/HackCentral/STARTUP.md` to verify runtime with the wrapper instead of ad hoc PATH edits.
+- Updated `/Users/nickster/Downloads/HackCentral/DEPLOY.md` so predeploy snapshot, Custom UI build, and Forge deploy/install commands all run through the wrapper.
+
+### Validation / Evidence
+- `./scripts/with-node22.sh node -v` ✅ `v22.22.0`
+- `./scripts/with-node22.sh npm -v` ✅ `10.9.4`
+
+### Operational Notes
+- Default shell Node on this machine is still `v25.5.0`; that remains unchanged on purpose to avoid cross-repo impact.
+- For HackCentral Forge work, prefer `./scripts/with-node22.sh <command>` from repo root or `../scripts/with-node22.sh <command>` from `forge-native/`.
+
 ## Session Update - v0.3.31 Empty-State Follow-Up Prepared (Mar 6, 2026 02:23 GMT)
 
 ### What Changed

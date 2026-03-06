@@ -10,7 +10,7 @@ Current mode: operations and maintenance.
 Runtime guardrail before any Forge command:
 
 - Use Node `22.22.0` (repo-pinned in `.nvmrc` / `.node-version`)
-- Verify with `node -v` (or run with `PATH="/opt/homebrew/opt/node@22/bin:$PATH"` if your shell default is unsupported)
+- Verify with `./scripts/with-node22.sh node -v` if your shell default is unsupported
 
 Read these files in order:
 
