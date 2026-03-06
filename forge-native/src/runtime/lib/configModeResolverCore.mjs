@@ -102,6 +102,7 @@ export async function runPublishConfigModeDraftCore({
     applyBranding,
     applyMotdMessage,
     applyContentOverrides,
+    applySchedule,
     clearDraft,
     syncEventColumns,
     buildResponse,
@@ -112,6 +113,7 @@ export async function runPublishConfigModeDraftCore({
   if (typeof applyBranding !== 'function') throw new Error('applyBranding dependency is required');
   if (typeof applyMotdMessage !== 'function') throw new Error('applyMotdMessage dependency is required');
   if (typeof applyContentOverrides !== 'function') throw new Error('applyContentOverrides dependency is required');
+  if (typeof applySchedule !== 'function') throw new Error('applySchedule dependency is required');
   if (typeof clearDraft !== 'function') throw new Error('clearDraft dependency is required');
   if (typeof syncEventColumns !== 'function') throw new Error('syncEventColumns dependency is required');
   if (typeof buildResponse !== 'function') throw new Error('buildResponse dependency is required');
@@ -152,10 +154,20 @@ export async function runPublishConfigModeDraftCore({
       appliedSections.push('contentOverrides');
     }
 
+    let nextPublishedSchedule = null;
+    if (patch.schedule && typeof patch.schedule === 'object' && Object.keys(patch.schedule).length > 0) {
+      nextPublishedSchedule = await applySchedule({
+        patchSchedule: patch.schedule,
+        access,
+        nowIso,
+      });
+      appliedSections.push('schedule');
+    }
+
     await clearDraft({ access, nowIso });
 
     try {
-      await syncEventColumns({ access, nowIso, nextPublishedContentOverrides });
+      await syncEventColumns({ access, nowIso, nextPublishedContentOverrides, nextPublishedSchedule });
     } catch (err) {
       logger.warn?.(
         'publishEventConfigDraft: Event column sync exception (storage/source updates applied):',

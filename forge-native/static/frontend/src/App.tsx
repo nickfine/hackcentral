@@ -11,7 +11,6 @@ import type {
   CreateInstanceDraftInput,
   CreateProblemInput,
   CreateProjectInput,
-  EventDuration,
   FlagProblemInput,
   FeaturedHack,
   GetHomeFeedInput,
@@ -44,7 +43,6 @@ import type {
   ProjectSnapshot,
   RoiDashboardSnapshot,
   RoiTimeWindow,
-  ScheduleEventType,
   ShowcaseHackListItem,
   ThemePreference,
   TrackRoiExportInput,
@@ -101,13 +99,7 @@ import {
   resolveHomeFeedActivityTarget,
   resolveHomeFeedRecommendationTarget,
 } from './utils/homeFeed';
-import { ScheduleBuilderV2, ScheduleBuilderV2Preview } from './components/schedule-builder-v2';
 import { PipelineHero } from './components/pipeline';
-import type {
-  ScheduleBuilderOutput as ScheduleBuilderV2Output,
-  ScheduleBuilderState as ScheduleBuilderV2State,
-} from './types/scheduleBuilderV2';
-import { getDefaultSelections } from './data/scheduleEvents';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
 const HACKCENTRAL_UI_VERSION = '0.6.59';
@@ -316,10 +308,6 @@ function logHomeTelemetry(input: {
 
 function isAdaptavistEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN);
-}
-
-function isDateRangeInvalid(start: string, end: string): boolean {
-  return Boolean(start && end && start > end);
 }
 
 const ACTIVE_HACKDAY_LIFECYCLE_STATUSES = new Set<LifecycleStatus>([
@@ -1518,16 +1506,6 @@ export function App(): JSX.Element {
   const [wCoAdminsInput, setWCoAdminsInput] = useState('');
   const [wEventNameError, setWEventNameError] = useState('');
   const [wPendingRequestId, setWPendingRequestId] = useState<string | null>(null);
-  const [wTimezone, setWTimezone] = useState(DEFAULT_TIMEZONE);
-  const [wRegistrationOpensAt, setWRegistrationOpensAt] = useState('');
-  const [wRegistrationClosesAt, setWRegistrationClosesAt] = useState('');
-  const [wTeamFormationStartsAt, setWTeamFormationStartsAt] = useState('');
-  const [wTeamFormationEndsAt, setWTeamFormationEndsAt] = useState('');
-  const [wHackingStartsAt, setWHackingStartsAt] = useState('');
-  const [wSubmissionDeadlineAt, setWSubmissionDeadlineAt] = useState('');
-  const [wVotingStartsAt, setWVotingStartsAt] = useState('');
-  const [wVotingEndsAt, setWVotingEndsAt] = useState('');
-  const [wResultsAnnounceAt, setWResultsAnnounceAt] = useState('');
   const [wAllowCrossTeamMentoring, setWAllowCrossTeamMentoring] = useState(true);
   const [wMinTeamSize, setWMinTeamSize] = useState('1');
   const [wMaxTeamSize, setWMaxTeamSize] = useState('6');
@@ -1547,10 +1525,6 @@ export function App(): JSX.Element {
   const [wProblemImportLoading, setWProblemImportLoading] = useState(false);
   const [wProblemImportLoaded, setWProblemImportLoaded] = useState(false);
   const [wProblemImportError, setWProblemImportError] = useState('');
-  const [wScheduleOutput, setWScheduleOutput] = useState<ScheduleBuilderV2Output | null>(null);
-  const [wScheduleBuilderState, setWScheduleBuilderState] = useState<ScheduleBuilderV2State | null>(null);
-  const [wEventDuration, setWEventDuration] = useState<EventDuration>(2);
-  const [wSelectedEvents] = useState<ScheduleEventType[]>(getDefaultSelections());
 
   const isLocalPreview =
     typeof window !== 'undefined' && LOCAL_PREVIEW_HOSTS.has(window.location.hostname);
@@ -4382,16 +4356,6 @@ export function App(): JSX.Element {
     setWCoAdminsInput('');
     setWEventNameError('');
     setWPendingRequestId(null);
-    setWTimezone(DEFAULT_TIMEZONE);
-    setWRegistrationOpensAt('');
-    setWRegistrationClosesAt('');
-    setWTeamFormationStartsAt('');
-    setWTeamFormationEndsAt('');
-    setWHackingStartsAt('');
-    setWSubmissionDeadlineAt('');
-    setWVotingStartsAt('');
-    setWVotingEndsAt('');
-    setWResultsAnnounceAt('');
     setWAllowCrossTeamMentoring(true);
     setWMinTeamSize('1');
     setWMaxTeamSize('6');
@@ -4411,8 +4375,6 @@ export function App(): JSX.Element {
     setWProblemImportLoading(false);
     setWProblemImportLoaded(false);
     setWProblemImportError('');
-    setWScheduleOutput(null);
-    setWScheduleBuilderState(null);
   }, []);
 
   const getWizardValidationError = useCallback((step: WizardStep): string | null => {
@@ -4433,18 +4395,12 @@ export function App(): JSX.Element {
       if (badCoAdmin) return `All co-admin emails must be ${ALLOWED_EMAIL_DOMAIN} addresses.`;
     }
     if (step >= 2) {
-      if (isDateRangeInvalid(wRegistrationOpensAt, wRegistrationClosesAt)) return 'Registration close must be after open.';
-      if (isDateRangeInvalid(wTeamFormationStartsAt, wTeamFormationEndsAt)) return 'Team formation end must be after start.';
-      if (isDateRangeInvalid(wHackingStartsAt, wSubmissionDeadlineAt)) return 'Submission deadline must be after hacking start.';
-      if (isDateRangeInvalid(wVotingStartsAt, wVotingEndsAt)) return 'Voting end must be after start.';
-    }
-    if (step >= 4) {
       const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
       const maxT = Math.max(1, Math.floor(Number(wMaxTeamSize) || 1));
       if (minT > maxT) return 'Minimum team size must be ≤ maximum team size.';
     }
     return null;
-  }, [wCoAdminsInput, wEventName, wHackingStartsAt, wMaxTeamSize, wMinTeamSize, wPrimaryAdminEmail, wRegistrationClosesAt, wRegistrationOpensAt, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wVotingEndsAt, wVotingStartsAt]);
+  }, [wCoAdminsInput, wEventName, wMaxTeamSize, wMinTeamSize, wPrimaryAdminEmail]);
 
   const resolveAppViewUrlForPage = useCallback(async (targetPageId: string): Promise<string | null> => {
     if (previewMode || !targetPageId) return null;
@@ -4512,7 +4468,7 @@ export function App(): JSX.Element {
   }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]);
 
   useEffect(() => {
-    if (view !== 'create_hackday' || wStep !== 6) return;
+    if (view !== 'create_hackday' || wStep !== 4) return;
     if (wProblemImportLoaded || wProblemImportLoading) return;
     void loadProblemImportCandidates();
   }, [loadProblemImportCandidates, view, wProblemImportLoaded, wProblemImportLoading, wStep]);
@@ -4574,19 +4530,7 @@ export function App(): JSX.Element {
         coAdminEmails: coAdminEmails.length > 0 ? coAdminEmails : undefined,
       },
       schedule: {
-        timezone: wScheduleOutput?.timezone || wTimezone,
-        duration: wEventDuration,
-        selectedEvents: wSelectedEvents,
-        ...(wScheduleOutput || {}),
-        registrationOpensAt: wScheduleOutput?.registrationOpensAt || wRegistrationOpensAt || undefined,
-        registrationClosesAt: wScheduleOutput?.registrationClosesAt || wRegistrationClosesAt || undefined,
-        teamFormationStartsAt: wScheduleOutput?.teamFormationStartsAt || wTeamFormationStartsAt || undefined,
-        teamFormationEndsAt: wScheduleOutput?.teamFormationEndsAt || wTeamFormationEndsAt || undefined,
-        hackingStartsAt: wScheduleOutput?.hackingStartsAt || wHackingStartsAt || undefined,
-        submissionDeadlineAt: wScheduleOutput?.submissionDeadlineAt || wSubmissionDeadlineAt || undefined,
-        votingStartsAt: wScheduleOutput?.votingStartsAt || wVotingStartsAt || undefined,
-        votingEndsAt: wScheduleOutput?.votingEndsAt || wVotingEndsAt || undefined,
-        resultsAnnounceAt: wScheduleOutput?.resultsAnnounceAt || wResultsAnnounceAt || undefined,
+        timezone: DEFAULT_TIMEZONE,
       },
       rules: {
         allowCrossTeamMentoring: wAllowCrossTeamMentoring,
@@ -4772,7 +4716,7 @@ export function App(): JSX.Element {
       });
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventDuration, wEventIcon, wEventName, wEventTagline, wHackingStartsAt, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRegistrationClosesAt, wRegistrationOpensAt, wRequireDemoLink, wResultsAnnounceAt, wScheduleOutput, wSelectedEvents, wSelectedProblemImportIds, wStep, wSubmissionDeadlineAt, wTeamFormationEndsAt, wTeamFormationStartsAt, wTemplateMode, wThemePreference, wTimezone, wVotingEndsAt, wVotingStartsAt]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRequireDemoLink, wSelectedProblemImportIds, wStep, wTemplateMode, wThemePreference]);
 
   const exportTeamPulse = (): void => {
     const exportedAt = new Date().toISOString();
@@ -7544,12 +7488,12 @@ export function App(): JSX.Element {
             <section className="wizard-page">
               <section className="wizard-page-head">
                 <h1>Create HackDay</h1>
-                <p className="subtitle">Set up your event in 6 steps</p>
+                <p className="subtitle">Set up your event in 4 steps</p>
               </section>
 
               {/* Numbered progress stepper */}
               <div className="wizard-stepper" role="list" aria-label="Wizard progress">
-                {(['Basic Info', 'Schedule', 'Schedule Review', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
+                {(['Basic Info', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
                   const stepNum = idx + 1;
                   const isDone = wStep > stepNum;
                   const isActive = wStep === stepNum;
@@ -7563,7 +7507,7 @@ export function App(): JSX.Element {
                         <div className="ws-circle">{isDone ? '✓' : stepNum}</div>
                         <span className="ws-label">{label}</span>
                       </div>
-                      {idx < 5 && (
+                      {idx < 3 && (
                         <div className={`ws-line${isDone ? ' ws-line-done' : ''}`} aria-hidden />
                       )}
                     </div>
@@ -7574,24 +7518,19 @@ export function App(): JSX.Element {
               {/* Wizard card: head / body / foot */}
               <article className="card wizard-card">
                 <div className="wizard-card-head">
-                  <p className="wizard-card-step-eyebrow">Step {wStep} of 6</p>
+                  <p className="wizard-card-step-eyebrow">Step {wStep} of 4</p>
                   <h2 className="wizard-card-title">
                     {wStep === 1
                       ? 'Basic Info'
                       : wStep === 2
-                        ? 'Schedule'
+                        ? 'Rules'
                         : wStep === 3
-                          ? 'Schedule Review'
-                          : wStep === 4
-                            ? 'Rules'
-                            : wStep === 5
-                              ? 'Branding'
-                              : 'Review & Create'}
+                          ? 'Branding'
+                          : 'Review & Create'}
                   </h2>
-                  {wStep === 3 ? (
+                  {wStep === 4 ? (
                     <p className="wizard-card-subtitle">
-                      Review the generated timeline. If anything looks off, go back to Schedule to edit timings,
-                      enabled events, or custom events.
+                      Schedule setup now happens inside the child HackDay page while Config Mode is enabled.
                     </p>
                   ) : null}
                   {(wEventNameError || actionError) ? (
@@ -7669,47 +7608,8 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 2: Schedule ── */}
+                  {/* ── Step 2: Rules ── */}
                   {wStep === 2 ? (
-                    <div className="wizard-fields">
-                      <ScheduleBuilderV2
-                        timezone={wTimezone}
-                        initialState={wScheduleBuilderState ?? undefined}
-                        onChange={(output) => {
-                          setWScheduleOutput(output);
-                          if (output.timezone) setWTimezone(output.timezone);
-                          if (output.duration) setWEventDuration(output.duration);
-                        }}
-                        onStateChange={setWScheduleBuilderState}
-                        showInlinePreview={false}
-                      />
-                    </div>
-                  ) : null}
-
-                  {/* ── Step 3: Schedule Review ── */}
-                  {wStep === 3 ? (
-                    <div className="wizard-fields">
-                      {wScheduleBuilderState ? (
-                        <ScheduleBuilderV2Preview
-                          duration={wScheduleBuilderState.duration}
-                          anchorDate={wScheduleBuilderState.anchorDate}
-                          timezone={wScheduleBuilderState.timezone || wTimezone}
-                          eventStates={wScheduleBuilderState.eventStates}
-                          customEvents={wScheduleBuilderState.customEvents}
-                          showHeaderText={false}
-                          surfaceVariant="flat"
-                        />
-                      ) : (
-                        <p className="meta">
-                          Preview is unavailable until the Schedule step is opened in this session. Go back to
-                          Schedule to generate it.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-
-                  {/* ── Step 4: Rules ── */}
-                  {wStep === 4 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Team</p>
@@ -7764,8 +7664,8 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 5: Branding ── */}
-                  {wStep === 5 ? (
+                  {/* ── Step 3: Branding ── */}
+                  {wStep === 3 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Colours</p>
@@ -7828,8 +7728,8 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 6: Review & Create ── */}
-                  {wStep === 6 ? (
+                  {/* ── Step 4: Review & Create ── */}
+                  {wStep === 4 ? (
                     <div className="wizard-fields">
                       <div className="review-block">
                         <p className="review-block-title">Basic Info</p>
@@ -7847,28 +7747,10 @@ export function App(): JSX.Element {
                       <div className="review-block">
                         <p className="review-block-title">Schedule</p>
                         <div className="review-kv-grid">
-                          <span className="review-k">Timezone</span>
-                          <span className="review-v">{wScheduleOutput?.timezone || wTimezone}</span>
-                          {(wScheduleOutput?.hackingStartsAt || wHackingStartsAt) ? (
-                            <>
-                              <span className="review-k">Hacking starts</span>
-                              <span className="review-v">
-                                {wScheduleOutput?.hackingStartsAt
-                                  ? new Intl.DateTimeFormat('en-GB', { timeZone: wScheduleOutput.timezone || wTimezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(wScheduleOutput.hackingStartsAt))
-                                  : wHackingStartsAt}
-                              </span>
-                            </>
-                          ) : null}
-                          {(wScheduleOutput?.submissionDeadlineAt || wSubmissionDeadlineAt) ? (
-                            <>
-                              <span className="review-k">Deadline</span>
-                              <span className="review-v">
-                                {wScheduleOutput?.submissionDeadlineAt
-                                  ? new Intl.DateTimeFormat('en-GB', { timeZone: wScheduleOutput.timezone || wTimezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(wScheduleOutput.submissionDeadlineAt))
-                                  : wSubmissionDeadlineAt}
-                              </span>
-                            </>
-                          ) : null}
+                          <span className="review-k">Ownership</span>
+                          <span className="review-v">Configured later in the child HackDay page</span>
+                          <span className="review-k">Edit path</span>
+                          <span className="review-v">Child page → Schedule → Config Mode</span>
                         </div>
                       </div>
                       <div className="review-block">
@@ -8032,14 +7914,14 @@ export function App(): JSX.Element {
                 <div className="wizard-card-foot">
                   {wStep > 1 ? (
                     <button type="button" className="btn btn-ghost" onClick={() => { setActionError(''); setWStep((s) => (s - 1) as WizardStep); window.scrollTo({ top: 0, behavior: 'instant' }); }}>
-                      {wStep === 3 ? '← Back to Schedule' : '← Back'}
+                      ← Back
                     </button>
                   ) : (
                     <button type="button" className="btn btn-ghost" onClick={() => { resetWizard(); setView('hackdays'); }}>
                       Cancel
                     </button>
                   )}
-                  {wStep < 6 ? (
+                  {wStep < 4 ? (
                     <button
                       type="button"
                       className="btn btn-primary"
@@ -8051,7 +7933,7 @@ export function App(): JSX.Element {
                         window.scrollTo({ top: 0, behavior: 'instant' });
                       }}
                     >
-                      {wStep === 3 ? 'Continue to Rules →' : 'Next →'}
+                      Next →
                     </button>
                   ) : (
                     <button

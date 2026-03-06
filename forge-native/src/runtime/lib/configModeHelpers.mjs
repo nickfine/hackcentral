@@ -3,6 +3,14 @@ export const CONFIG_MODE_MOTD_TITLE_MAX_LENGTH = 80;
 export const CONFIG_MODE_MOTD_MESSAGE_MAX_LENGTH = 500;
 export const CONFIG_MODE_BANNER_MESSAGE_MAX_LENGTH = 200;
 export const CONFIG_MODE_DEFAULT_MAX_COPY_LENGTH = 220;
+export const CONFIG_MODE_SCHEDULE_EVENT_SIGNALS = new Set([
+  'start',
+  'deadline',
+  'ceremony',
+  'presentation',
+  'judging',
+  'neutral',
+]);
 const NEW_TO_HACKDAY_ALLOWED_CONTENT_OVERRIDE_KEYS = [
   ['newToHackday.hero.label', 40],
   ['newToHackday.hero.title', 120],
@@ -226,19 +234,134 @@ export function normalizeConfigModeContentOverridesPatch(value) {
   return next;
 }
 
+function normalizeConfigModeScheduleDuration(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  const rounded = Math.floor(parsed);
+  if (rounded < 1 || rounded > 3) return undefined;
+  return rounded;
+}
+
+function normalizeConfigModeScheduleTimestamp(value) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
+}
+
+function normalizeConfigModeScheduleStringList(value) {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = Array.from(
+    new Set(
+      value
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    )
+  );
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeConfigModeScheduleCustomEvents(value) {
+  if (!Array.isArray(value)) return undefined;
+
+  const normalized = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const name = typeof item.name === 'string' ? item.name.trim() : '';
+    const description = typeof item.description === 'string' ? item.description.trim() : '';
+    const timestamp = normalizeConfigModeScheduleTimestamp(item.timestamp);
+    const signal =
+      typeof item.signal === 'string' && CONFIG_MODE_SCHEDULE_EVENT_SIGNALS.has(item.signal)
+        ? item.signal
+        : null;
+    if (!name || !timestamp || !signal) continue;
+    normalized.push({
+      name: name.slice(0, 120),
+      ...(description ? { description: description.slice(0, 280) } : {}),
+      timestamp,
+      signal,
+    });
+  }
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+export function normalizeConfigModeSchedulePatch(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+
+  const next = {};
+  const duration = normalizeConfigModeScheduleDuration(value.duration);
+  if (duration !== undefined) {
+    next.duration = duration;
+  }
+
+  if (value.timezone !== undefined) {
+    const timezone = String(value.timezone ?? '').trim();
+    next.timezone = timezone || 'Europe/London';
+  }
+
+  const selectedEvents = normalizeConfigModeScheduleStringList(value.selectedEvents);
+  if (selectedEvents) {
+    next.selectedEvents = selectedEvents;
+  }
+
+  const customEvents = normalizeConfigModeScheduleCustomEvents(value.customEvents);
+  if (customEvents) {
+    next.customEvents = customEvents;
+  }
+
+  const timestampFields = [
+    'registrationOpensAt',
+    'registrationClosesAt',
+    'teamFormationStartsAt',
+    'teamFormationEndsAt',
+    'openingCeremonyAt',
+    'hackingStartsAt',
+    'lunchBreakDay1At',
+    'afternoonCheckinDay1At',
+    'dinnerBreakDay1At',
+    'eveningCheckinDay1At',
+    'lunchBreakDay2At',
+    'afternoonCheckinDay2At',
+    'dinnerBreakDay2At',
+    'eveningCheckinDay2At',
+    'lunchBreakDay3At',
+    'afternoonCheckinDay3At',
+    'dinnerBreakDay3At',
+    'submissionDeadlineAt',
+    'presentationsAt',
+    'judgingStartsAt',
+    'votingStartsAt',
+    'votingEndsAt',
+    'resultsAnnounceAt',
+  ];
+
+  for (const field of timestampFields) {
+    if (value[field] === undefined) continue;
+    const normalized = normalizeConfigModeScheduleTimestamp(value[field]);
+    if (normalized) {
+      next[field] = normalized;
+    }
+  }
+
+  return Object.keys(next).length > 0 ? next : undefined;
+}
+
 export function normalizeConfigModeDraftPatch(value, { strict = false } = {}) {
   if (!value || typeof value !== 'object') {
     return {
       branding: {},
       motdMessage: {},
       contentOverrides: {},
+      schedule: undefined,
     };
   }
 
   const sourceKeys = Object.keys(value);
   if (strict) {
     for (const key of sourceKeys) {
-      if (!['branding', 'motdMessage', 'contentOverrides'].includes(key)) {
+      if (!['branding', 'motdMessage', 'contentOverrides', 'schedule'].includes(key)) {
         throw new Error(`Unsupported draft patch section: ${key}`);
       }
     }
@@ -248,6 +371,7 @@ export function normalizeConfigModeDraftPatch(value, { strict = false } = {}) {
     branding: normalizeConfigModeBrandingPatch(value.branding),
     motdMessage: normalizeConfigModeMotdPatch(value.motdMessage),
     contentOverrides: normalizeConfigModeContentOverridesPatch(value.contentOverrides),
+    schedule: normalizeConfigModeSchedulePatch(value.schedule),
   };
 }
 
@@ -258,6 +382,7 @@ export function mergeConfigModeDraftPatches(basePatch, patchUpdates) {
     branding: { ...base.branding, ...updates.branding },
     motdMessage: { ...base.motdMessage, ...updates.motdMessage },
     contentOverrides: { ...base.contentOverrides, ...updates.contentOverrides },
+    schedule: updates.schedule !== undefined ? updates.schedule : base.schedule,
   };
 }
 

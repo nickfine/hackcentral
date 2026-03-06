@@ -2322,3 +2322,87 @@ All passed in-session.
 ### Current state
 - Backup/restore v1 has now passed both production dry-run and production apply rehearsal on a non-critical target.
 - This feature is no longer blocked on validation work.
+
+## Session Update - Runtime Hero Image Height Cap + Production Deploy (Mar 6, 2026 01:43 GMT)
+
+### Closed in this session
+- Runtime dashboard hero banner no longer stretches uploaded images edge-to-edge.
+- Render behavior now:
+  - centered
+  - aspect-ratio preserved
+  - maximum rendered height `400px`
+- Fixed an existing runtime frontend build break caused by bad cross-package import paths in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`.
+- Deployed updated Forge production bundle and confirmed Confluence site install is at the latest version on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014224Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014224Z.md`
+- Validation completed:
+  - `npm run typecheck --prefix forge-native/static/frontend`
+  - `npm run typecheck --prefix forge-native`
+  - `npm run test:backend --prefix forge-native`
+  - `npm run runtime:build --prefix forge-native`
+  - `npm run custom-ui:build --prefix forge-native`
+- Production rollout completed:
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence runtime now contains the hero image height-cap fix.
+- Backup/restore guardrail was executed immediately before deploy.
+- Remaining known platform warning is still the accepted Supabase item:
+  - `auth_leaked_password_protection`
+
+## Session Update - Runtime Hero Upload Routed To Logo Slot (Mar 6, 2026 01:50 GMT)
+
+### Closed in this session
+- Uploaded dashboard hero branding now replaces the left logo image instead of rendering as a centered background inside the hero card.
+- Upload affordance and status copy now correctly refer to a “hero logo”.
+- Follow-up production rollout completed on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- Runtime build:
+  - `npm run runtime:build --prefix forge-native`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014926Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014926Z.md`
+- Production rollout:
+  - `npm run custom-ui:build --prefix forge-native`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production dashboard hero now uses uploaded branding in the logo slot.
+- The previous centered background render path for uploaded branding is no longer active.
+
+## Session Update - Schedule Ownership Shift Prepared For Release (Mar 6, 2026 02:02 GMT)
+
+### Closed in this session
+- Removed schedule setup from HackCentral event creation.
+- Moved schedule editing to the child HackDay `Schedule` page under Config Mode draft/publish.
+- Publishing schedule changes now updates published `event_schedule` and rebuilds derived milestones.
+- Participant runtime no longer renders the hardcoded demo schedule when no real schedule exists.
+- Fixed raw localhost runtime preview for the `Schedule` page so it no longer depends on Forge bridge availability.
+
+### Evidence
+- Validation:
+  - `npm run test:backend --prefix forge-native`
+  - `npm run build --prefix forge-native/static/runtime-frontend`
+  - `npm run build --prefix forge-native/static/frontend`
+- Browser-tested with Playwright MCP on raw localhost runtime page:
+  - unpublished placeholder
+  - Config Mode inline builder
+  - save draft without participant-visible change
+  - draft rehydration on re-entry
+  - publish to live participant schedule
+- Chrome DevTools MCP confirmed no raw-preview `BridgeAPIError` on fresh `/schedule` load.
+
+### Current state
+- Code is ready on git for `v0.3.30` packaging.
+- No deployment has been performed yet for this release.
+
+### Suggested First Task In Next Chat
+1. Run the production guardrail path from `DEPLOY.md` for `v0.3.30`.
+2. Verify the child HackDay schedule edit/publish flow in the hosted Confluence environment.
+3. Optionally run a full create-flow smoke test in hosted Confluence to confirm the schedule step is fully removed from HackCentral creation.

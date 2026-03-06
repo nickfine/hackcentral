@@ -4323,3 +4323,97 @@ Use this template at the end of every work session:
 - Verified state was restored:
   - `Event.tagline` returned to `null`
   - post-apply dry-run `1774da8d-7231-481d-8d7d-d5e3365d8ba9` returned `toCreate=0`, `toUpdate=0`, `toDelete=0`, warnings `[]`
+
+## Session Update - Runtime Hero Image Height Cap + Production Deploy (Mar 6, 2026 01:43 GMT)
+
+### What Changed
+- Updated runtime dashboard hero banner presentation in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/index.css`:
+  - uploaded hero images no longer stretch to fill the entire hero card.
+  - hero image now stays centered, preserves aspect ratio, and is capped at `400px` high.
+- Fixed existing runtime build break in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`:
+  - corrected cross-package imports to `frontend/src/components/schedule-builder-v2`
+  - corrected cross-package import to `frontend/src/schedule-builder-v2/scheduleEvents`
+- Built and deployed updated Forge production bundle to `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- `npm run typecheck --prefix forge-native/static/frontend` ✅
+- `npm run typecheck --prefix forge-native` ✅
+- `npm run test:backend --prefix forge-native` ✅ (`49/49`)
+- `npm run runtime:build --prefix forge-native` ✅
+- `npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net` ✅
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014224Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014224Z.md`
+- `npm run custom-ui:build --prefix forge-native` ✅
+- `forge deploy --environment production --no-verify` ✅
+- `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported site already at latest installed version after deploy.
+
+### Operational Notes
+- Forge CLI emitted the recurring local warnings during deploy/install:
+  - deprecation warning for `punycode`
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - unsupported Node warning text despite local `node -v` reporting `v22.22.0`
+- Forge deploy also emitted a non-blocking packaging warning about resolving `utf-8-validate` from Convex browser output; deployment still completed successfully.
+
+## Session Update - Runtime Hero Upload Routed To Logo Slot (Mar 6, 2026 01:50 GMT)
+
+### What Changed
+- Updated `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Dashboard.jsx` so uploaded branding now replaces the left-side dashboard hero logo instead of rendering as a hero background layer.
+- Removed the dashboard hero background-image render path for `branding.bannerImageUrl`.
+- Added uploaded-logo-specific styling in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/index.css`:
+  - preserve aspect ratio
+  - fit within the existing logo slot
+  - disable the default Adaptavist/HackDay logo opacity/filter treatment for uploaded assets
+- Updated upload button and status copy from “hero image” to “hero logo” to match actual behavior.
+
+### Validation / Evidence
+- `npm run runtime:build --prefix forge-native` ✅
+- `npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net` ✅
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014926Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-014926Z.md`
+- `npm run custom-ui:build --prefix forge-native` ✅
+- `forge deploy --environment production --no-verify` ✅
+- `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+
+### Operational Notes
+- Forge again emitted the same non-blocking local warnings during deploy:
+  - `punycode` deprecation warning
+  - Forge CLI update available
+  - unsupported Node warning text despite local `node -v` reporting `v22.22.0`
+  - non-blocking `utf-8-validate` packaging warning from Convex browser dependency
+
+## Session Update - Schedule Ownership Moved To Child HackDay Config Mode (Mar 6, 2026 02:02 GMT)
+
+### What Changed
+- Removed schedule setup from the HackCentral create flow in `/Users/nickster/Downloads/HackCentral/forge-native/static/frontend/src/App.tsx`.
+- Made the child HackDay `Schedule` page the canonical schedule editor in Config Mode:
+  - schedule draft is now part of the existing Config Mode draft envelope
+  - published `event_schedule` is exposed to the runtime frontend
+  - draft save / publish flows now cover schedule changes
+- Publishing schedule changes now persists `event_schedule` and rebuilds schedule-derived milestones from that published data in `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js`.
+- Participant schedule behavior now distinguishes unpublished vs published state:
+  - no more hardcoded fallback timeline
+  - unpublished events show `Schedule not published yet`
+- Localhost runtime preview for `/schedule` no longer crashes when Forge bridge is unavailable:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx` now uses local preview storage instead of calling `@forge/bridge` directly outside the Forge host.
+
+### Validation / Evidence
+- Local validation:
+  - `node -v` ✅ `v22.22.0`
+  - `npm run test:backend --prefix forge-native` ✅
+  - `npm run build --prefix forge-native/static/runtime-frontend` ✅
+  - `npm run build --prefix forge-native/static/frontend` ✅
+- Browser validation with Playwright MCP on raw localhost runtime page:
+  - unpublished participant state rendered correctly
+  - Config Mode opened inline schedule builder
+  - `Save Draft` persisted schedule draft without changing participant view
+  - re-entering Config Mode rehydrated the draft
+  - `Publish` promoted schedule live
+  - participant view rendered published schedule cards after publish
+- Chrome DevTools MCP validation on fresh raw localhost runtime page:
+  - no `BridgeAPIError`
+  - no runtime console errors beyond normal app log output
+
+### Release Notes
+- Version bumped locally to `v0.3.30`.
+- This session committed and pushed the change only; no Forge deploy/install was run in this session.

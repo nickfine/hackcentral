@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "crypto";
 import { getSupabaseClient } from "./lib/supabase";
 import {
   CONFIG_MODE_ALLOWED_CONTENT_OVERRIDE_KEYS,
+  CONFIG_MODE_SCHEDULE_EVENT_SIGNALS,
   normalizeConfigModeContentOverridesEnvelope as normalizeConfigModeContentOverridesEnvelopeHelper,
   normalizeConfigModeDraftPatch as normalizeConfigModeDraftPatchHelper,
   normalizeConfigModeDraftEnvelope as normalizeConfigModeDraftEnvelopeHelper,
@@ -2402,6 +2403,353 @@ async function setStoredEventContentOverrides(eventId, envelope) {
   if (!eventId) return;
   const normalized = normalizeConfigModeContentOverridesEnvelope(envelope);
   await storage.set(getEventContentOverridesStorageKey(eventId), normalized);
+}
+
+function normalizeOptionalScheduleString(value) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function normalizeScheduleDuration(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  const rounded = Math.floor(parsed);
+  if (rounded < 1 || rounded > 3) return undefined;
+  return rounded;
+}
+
+function normalizeScheduleTimestamp(value) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
+}
+
+function normalizeScheduleStringList(value) {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = Array.from(
+    new Set(
+      value
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean)
+    )
+  );
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeScheduleCustomEvents(value) {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const name = normalizeOptionalScheduleString(item.name);
+    const description = normalizeOptionalScheduleString(item.description);
+    const timestamp = normalizeScheduleTimestamp(item.timestamp);
+    const signal = typeof item.signal === "string" ? item.signal.trim() : "";
+    if (!name || !timestamp || !CONFIG_MODE_SCHEDULE_EVENT_SIGNALS.has(signal)) continue;
+    normalized.push({
+      name,
+      ...(description ? { description } : {}),
+      timestamp,
+      signal,
+    });
+  }
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeRuntimeEventSchedule(input, fallback = {}) {
+  const schedule = input && typeof input === "object" ? input : {};
+  const normalized = {
+    timezone:
+      normalizeOptionalScheduleString(schedule.timezone) ||
+      normalizeOptionalScheduleString(fallback.timezone) ||
+      "Europe/London",
+  };
+
+  const duration = normalizeScheduleDuration(schedule.duration);
+  if (duration !== undefined) {
+    normalized.duration = duration;
+  }
+
+  const selectedEvents = normalizeScheduleStringList(schedule.selectedEvents);
+  if (selectedEvents) {
+    normalized.selectedEvents = selectedEvents;
+  }
+
+  const customEvents = normalizeScheduleCustomEvents(schedule.customEvents);
+  if (customEvents) {
+    normalized.customEvents = customEvents;
+  }
+
+  const fieldMappings = [
+    ["registrationOpensAt", schedule.registrationOpensAt],
+    ["registrationClosesAt", schedule.registrationClosesAt],
+    ["teamFormationStartsAt", schedule.teamFormationStartsAt],
+    ["teamFormationEndsAt", schedule.teamFormationEndsAt],
+    ["openingCeremonyAt", schedule.openingCeremonyAt],
+    ["hackingStartsAt", schedule.hackingStartsAt || fallback.hackingStartsAt],
+    ["lunchBreakDay1At", schedule.lunchBreakDay1At],
+    ["afternoonCheckinDay1At", schedule.afternoonCheckinDay1At],
+    ["dinnerBreakDay1At", schedule.dinnerBreakDay1At],
+    ["eveningCheckinDay1At", schedule.eveningCheckinDay1At],
+    ["lunchBreakDay2At", schedule.lunchBreakDay2At],
+    ["afternoonCheckinDay2At", schedule.afternoonCheckinDay2At],
+    ["dinnerBreakDay2At", schedule.dinnerBreakDay2At],
+    ["eveningCheckinDay2At", schedule.eveningCheckinDay2At],
+    ["lunchBreakDay3At", schedule.lunchBreakDay3At],
+    ["afternoonCheckinDay3At", schedule.afternoonCheckinDay3At],
+    ["dinnerBreakDay3At", schedule.dinnerBreakDay3At],
+    ["submissionDeadlineAt", schedule.submissionDeadlineAt || fallback.submissionDeadlineAt],
+    ["presentationsAt", schedule.presentationsAt],
+    ["judgingStartsAt", schedule.judgingStartsAt],
+    ["votingStartsAt", schedule.votingStartsAt],
+    ["votingEndsAt", schedule.votingEndsAt],
+    ["resultsAnnounceAt", schedule.resultsAnnounceAt],
+  ];
+
+  for (const [field, rawValue] of fieldMappings) {
+    const normalizedTimestamp = normalizeScheduleTimestamp(rawValue);
+    if (normalizedTimestamp) {
+      normalized[field] = normalizedTimestamp;
+    }
+  }
+
+  return normalized;
+}
+
+function hasPublishedEventSchedule(schedule) {
+  if (!schedule || typeof schedule !== "object") return false;
+  if (Array.isArray(schedule.customEvents) && schedule.customEvents.length > 0) return true;
+
+  return [
+    "registrationOpensAt",
+    "registrationClosesAt",
+    "teamFormationStartsAt",
+    "teamFormationEndsAt",
+    "openingCeremonyAt",
+    "hackingStartsAt",
+    "lunchBreakDay1At",
+    "afternoonCheckinDay1At",
+    "dinnerBreakDay1At",
+    "eveningCheckinDay1At",
+    "lunchBreakDay2At",
+    "afternoonCheckinDay2At",
+    "dinnerBreakDay2At",
+    "eveningCheckinDay2At",
+    "lunchBreakDay3At",
+    "afternoonCheckinDay3At",
+    "dinnerBreakDay3At",
+    "submissionDeadlineAt",
+    "presentationsAt",
+    "judgingStartsAt",
+    "votingStartsAt",
+    "votingEndsAt",
+    "resultsAnnounceAt",
+  ].some((field) => typeof schedule[field] === "string" && schedule[field].trim());
+}
+
+function ensureScheduleDateOrder(start, end, message) {
+  if (start && end && start > end) {
+    throw new Error(message);
+  }
+}
+
+function validateEventSchedule(schedule) {
+  ensureScheduleDateOrder(
+    schedule.registrationOpensAt,
+    schedule.registrationClosesAt,
+    "Registration close must be after registration open."
+  );
+  ensureScheduleDateOrder(
+    schedule.teamFormationStartsAt,
+    schedule.teamFormationEndsAt,
+    "Team formation end must be after team formation start."
+  );
+  ensureScheduleDateOrder(
+    schedule.hackingStartsAt,
+    schedule.submissionDeadlineAt,
+    "Submission deadline must be after the hacking start time."
+  );
+  ensureScheduleDateOrder(
+    schedule.votingStartsAt,
+    schedule.votingEndsAt,
+    "Voting end must be after voting start."
+  );
+}
+
+function parseScheduleTimestampMs(value) {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function mapScheduleSignalToPhase(signal) {
+  switch (signal) {
+    case "deadline":
+      return "SUBMISSION";
+    case "presentation":
+      return "SUBMISSION";
+    case "judging":
+      return "JUDGING";
+    case "start":
+    case "neutral":
+    case "ceremony":
+    default:
+      return "HACKING";
+  }
+}
+
+function buildScheduleMilestonesFromEventSchedule(eventId, schedule) {
+  const milestones = [];
+
+  const pushMilestone = (field, phase, title, description, signal) => {
+    if (!schedule[field]) return;
+    milestones.push({
+      eventId,
+      title,
+      description,
+      phase,
+      signal: signal || null,
+      startTime: schedule[field],
+      endTime: null,
+      location: null,
+    });
+  };
+
+  pushMilestone("registrationOpensAt", "REGISTRATION", "Registration Opens", "Portal opens for sign-ups", "start");
+  pushMilestone("registrationClosesAt", "REGISTRATION", "Registration Closes", "Final deadline to register", "deadline");
+  pushMilestone("teamFormationStartsAt", "TEAM_FORMATION", "Team Formation Opens", "Marketplace opens for team building", "start");
+  pushMilestone("teamFormationEndsAt", "TEAM_FORMATION", "Team Formation Closes", "Final deadline to join a team", "deadline");
+  pushMilestone("openingCeremonyAt", "HACKING", "Opening Ceremony", "Kickoff and announcements", "ceremony");
+  pushMilestone("hackingStartsAt", "HACKING", "Hacking Begins", "Teams start building", "start");
+
+  const legacyHackDayEvents = [
+    ["lunchBreakDay1At", "Lunch Break (Day 1)", "Scheduled lunch break", "neutral"],
+    ["afternoonCheckinDay1At", "Afternoon Check-in (Day 1)", "Mid-day standup or Q&A", "neutral"],
+    ["dinnerBreakDay1At", "Dinner Break (Day 1)", "Scheduled dinner break", "neutral"],
+    ["eveningCheckinDay1At", "Evening Check-in (Day 1)", "End of day updates", "neutral"],
+    ["lunchBreakDay2At", "Lunch Break (Day 2)", "Scheduled lunch break", "neutral"],
+    ["afternoonCheckinDay2At", "Afternoon Check-in (Day 2)", "Mid-day standup or Q&A", "neutral"],
+    ["dinnerBreakDay2At", "Dinner Break (Day 2)", "Scheduled dinner break", "neutral"],
+    ["eveningCheckinDay2At", "Evening Check-in (Day 2)", "End of day updates", "neutral"],
+    ["lunchBreakDay3At", "Lunch Break (Day 3)", "Scheduled lunch break", "neutral"],
+    ["afternoonCheckinDay3At", "Afternoon Check-in (Day 3)", "Mid-day standup or Q&A", "neutral"],
+    ["dinnerBreakDay3At", "Dinner Break (Day 3)", "Scheduled dinner break", "neutral"],
+  ];
+  for (const [field, title, description, signal] of legacyHackDayEvents) {
+    pushMilestone(field, "HACKING", title, description, signal);
+  }
+
+  if (schedule.hackingStartsAt && (schedule.duration || 1) > 1) {
+    const duration = schedule.duration || 1;
+    const hackStartDate = new Date(schedule.hackingStartsAt);
+    const hackStartTime = schedule.hackingStartsAt.includes("T")
+      ? schedule.hackingStartsAt.split("T")[1]
+      : "09:00:00.000Z";
+
+    for (let dayIndex = 1; dayIndex < duration - 1; dayIndex += 1) {
+      const intermediateDate = new Date(hackStartDate);
+      intermediateDate.setDate(intermediateDate.getDate() + dayIndex);
+      const dateStr = intermediateDate.toISOString().split("T")[0];
+      milestones.push({
+        eventId,
+        title: `Day ${dayIndex + 1} - Hacking Continues`,
+        description: "Teams continue building their projects",
+        phase: "HACKING",
+        signal: "neutral",
+        startTime: `${dateStr}T${hackStartTime}`,
+        endTime: null,
+        location: null,
+      });
+    }
+  }
+
+  pushMilestone("submissionDeadlineAt", "SUBMISSION", "Code Freeze", "Final submissions due", "deadline");
+  pushMilestone("presentationsAt", "SUBMISSION", "Presentations", "Teams present their projects", "presentation");
+  pushMilestone("judgingStartsAt", "JUDGING", "Judging Period", "Judges evaluate submissions", "judging");
+  pushMilestone("votingStartsAt", "VOTING", "Voting Opens", "Community voting begins", "start");
+  pushMilestone("votingEndsAt", "VOTING", "Voting Closes", "Community voting ends", "deadline");
+  pushMilestone("resultsAnnounceAt", "RESULTS", "Results Announced", "Winners announced and celebrated", "ceremony");
+
+  const hackingStartMs = parseScheduleTimestampMs(schedule.hackingStartsAt);
+  for (const customEvent of schedule.customEvents || []) {
+    const eventTimestampMs = parseScheduleTimestampMs(customEvent.timestamp);
+    if (eventTimestampMs === null) continue;
+    const isPreEvent = hackingStartMs !== null && eventTimestampMs < hackingStartMs;
+    milestones.push({
+      eventId,
+      title: customEvent.name,
+      description: customEvent.description || null,
+      phase: isPreEvent ? "REGISTRATION" : mapScheduleSignalToPhase(customEvent.signal),
+      signal: customEvent.signal,
+      startTime: customEvent.timestamp,
+      endTime: null,
+      location: null,
+    });
+  }
+
+  milestones.sort((left, right) => {
+    const leftMs = Date.parse(left.startTime);
+    const rightMs = Date.parse(right.startTime);
+    if (leftMs !== rightMs) {
+      return leftMs - rightMs;
+    }
+    return String(left.title).localeCompare(String(right.title));
+  });
+
+  return milestones;
+}
+
+function getScheduleRangeStart(schedule, fallbackValue = null) {
+  return (
+    schedule?.registrationOpensAt ||
+    schedule?.teamFormationStartsAt ||
+    schedule?.openingCeremonyAt ||
+    schedule?.hackingStartsAt ||
+    schedule?.submissionDeadlineAt ||
+    fallbackValue ||
+    null
+  );
+}
+
+function getScheduleRangeEnd(schedule, fallbackValue = null) {
+  return (
+    schedule?.resultsAnnounceAt ||
+    schedule?.votingEndsAt ||
+    schedule?.judgingStartsAt ||
+    schedule?.presentationsAt ||
+    schedule?.submissionDeadlineAt ||
+    schedule?.hackingStartsAt ||
+    fallbackValue ||
+    null
+  );
+}
+
+async function replaceEventMilestonesForSchedule(supabase, eventId, milestones) {
+  const { error: deleteError } = await supabase
+    .from("Milestone")
+    .delete()
+    .eq("eventId", eventId);
+  if (deleteError) {
+    throw new Error(`Failed to clear existing milestones: ${deleteError.message}`);
+  }
+
+  if (milestones.length === 0) {
+    return { deleted: true, createdCount: 0 };
+  }
+
+  const { error: insertError } = await supabase
+    .from("Milestone")
+    .insert(milestones);
+  if (insertError) {
+    throw new Error(`Failed to create schedule milestones: ${insertError.message}`);
+  }
+
+  return { deleted: true, createdCount: milestones.length };
 }
 
 function normalizeNotViableIdeasMap(value) {
@@ -5950,9 +6298,11 @@ resolver.define("getEventPhase", async (req) => {
     (typeof event.end_date === "string" && event.end_date) ||
     null;
   const eventSchedule =
-    event.event_schedule && typeof event.event_schedule === "object"
-      ? event.event_schedule
-      : null;
+    normalizeRuntimeEventSchedule(event.event_schedule, {
+      timezone: eventTimezone,
+      hackingStartsAt: event.hacking_starts_at || event.startDate || event.start_date,
+      submissionDeadlineAt: event.submission_deadline_at || event.endDate || event.end_date,
+    });
 
   const eventBranding =
     event.event_branding && typeof event.event_branding === "object"
@@ -6039,7 +6389,7 @@ resolver.define("getEventPhase", async (req) => {
       timezone: eventTimezone,
       startAt: eventStartAt,
       endAt: eventEndAt,
-      schedule: eventSchedule,
+      schedule: hasPublishedEventSchedule(eventSchedule) ? eventSchedule : null,
     },
     branding,
     isCreatedHackDay,
@@ -6087,6 +6437,11 @@ async function buildConfigModeStateResponse(supabase, req, access) {
     event?.event_config_draft || event?.eventConfigDraft || null
   );
   const draft = storedDraft || eventDraft;
+  const publishedSchedule = normalizeRuntimeEventSchedule(event?.event_schedule, {
+    timezone: event?.timezone,
+    hackingStartsAt: event?.hacking_starts_at || event?.startDate || event?.start_date,
+    submissionDeadlineAt: event?.submission_deadline_at || event?.endDate || event?.end_date,
+  });
   let backupCoverageStatus = null;
   try {
     backupCoverageStatus = await getEventBackupCoverageStatus({
@@ -6104,6 +6459,7 @@ async function buildConfigModeStateResponse(supabase, req, access) {
     motd: effectiveMotd?.message || "",
     motdMessage: effectiveMotd,
     publishedContentOverrides,
+    publishedSchedule: hasPublishedEventSchedule(publishedSchedule) ? publishedSchedule : null,
     draft,
     configModeCapabilities: {
       enabled: true,
@@ -6457,10 +6813,73 @@ resolver.define("publishEventConfigDraft", async (req) => {
         await setStoredEventContentOverrides(access.event.id, nextPublishedContentOverrides);
         return nextPublishedContentOverrides;
       },
+      applySchedule: async ({ patchSchedule, access, nowIso }) => {
+        const previousSchedule = normalizeRuntimeEventSchedule(access.event.event_schedule, {
+          timezone: access.event.timezone,
+          hackingStartsAt: access.event.hacking_starts_at || access.event.startDate || access.event.start_date,
+          submissionDeadlineAt: access.event.submission_deadline_at || access.event.endDate || access.event.end_date,
+        });
+        const nextPublishedSchedule = normalizeRuntimeEventSchedule(patchSchedule, {
+          timezone: patchSchedule?.timezone || previousSchedule.timezone || access.event.timezone,
+          hackingStartsAt: access.event.hacking_starts_at || access.event.startDate || access.event.start_date,
+          submissionDeadlineAt: access.event.submission_deadline_at || access.event.endDate || access.event.end_date,
+        });
+        validateEventSchedule(nextPublishedSchedule);
+
+        const eventUpdatePayload = {
+          event_schedule: nextPublishedSchedule,
+          timezone: nextPublishedSchedule.timezone || access.event.timezone || "Europe/London",
+          startDate: getScheduleRangeStart(nextPublishedSchedule, access.event.startDate || access.event.start_date || nowIso),
+          start_date: getScheduleRangeStart(nextPublishedSchedule, access.event.startDate || access.event.start_date || nowIso),
+          endDate: getScheduleRangeEnd(nextPublishedSchedule, access.event.endDate || access.event.end_date || nowIso),
+          end_date: getScheduleRangeEnd(nextPublishedSchedule, access.event.endDate || access.event.end_date || nowIso),
+          hacking_starts_at: nextPublishedSchedule.hackingStartsAt || null,
+          submission_deadline_at: nextPublishedSchedule.submissionDeadlineAt || null,
+          updatedAt: nowIso,
+          updated_at: nowIso,
+        };
+
+        const { error: eventScheduleError } = await supabase
+          .from("Event")
+          .update(eventUpdatePayload)
+          .eq("id", access.event.id);
+        if (eventScheduleError) {
+          throw new Error(`Failed to update event schedule: ${eventScheduleError.message}`);
+        }
+
+        if (access.seed) {
+          const existingSeedPayload = normalizeSeedPayload(access.seed);
+          const nextSeedPayload = { ...existingSeedPayload, schedule: nextPublishedSchedule };
+          const { error: seedScheduleError } = await supabase
+            .from("HackdayTemplateSeed")
+            .update({ seed_payload: nextSeedPayload, updated_at: nowIso })
+            .eq("confluence_page_id", access.pageId);
+          if (seedScheduleError) {
+            throw new Error(`Failed to update seed schedule: ${seedScheduleError.message}`);
+          }
+        }
+
+        const milestones = hasPublishedEventSchedule(nextPublishedSchedule)
+          ? buildScheduleMilestonesFromEventSchedule(access.event.id, nextPublishedSchedule)
+          : [];
+        await replaceEventMilestonesForSchedule(supabase, access.event.id, milestones);
+        access.event = {
+          ...access.event,
+          event_schedule: nextPublishedSchedule,
+          timezone: nextPublishedSchedule.timezone || access.event.timezone,
+          startDate: eventUpdatePayload.startDate,
+          start_date: eventUpdatePayload.start_date,
+          endDate: eventUpdatePayload.endDate,
+          end_date: eventUpdatePayload.end_date,
+          hacking_starts_at: eventUpdatePayload.hacking_starts_at,
+          submission_deadline_at: eventUpdatePayload.submission_deadline_at,
+        };
+        return nextPublishedSchedule;
+      },
       clearDraft: async ({ access }) => {
         await clearStoredEventConfigDraft(access.event.id);
       },
-      syncEventColumns: async ({ access, nowIso, nextPublishedContentOverrides }) => {
+      syncEventColumns: async ({ access, nowIso, nextPublishedContentOverrides, nextPublishedSchedule }) => {
         const updatePayload = {
           event_config_draft: null,
           updatedAt: nowIso,
@@ -6468,6 +6887,16 @@ resolver.define("publishEventConfigDraft", async (req) => {
         };
         if (nextPublishedContentOverrides) {
           updatePayload.event_content_overrides = nextPublishedContentOverrides;
+        }
+        if (nextPublishedSchedule) {
+          updatePayload.event_schedule = nextPublishedSchedule;
+          updatePayload.timezone = nextPublishedSchedule.timezone || access.event.timezone || "Europe/London";
+          updatePayload.startDate = getScheduleRangeStart(nextPublishedSchedule, access.event.startDate || access.event.start_date || nowIso);
+          updatePayload.start_date = updatePayload.startDate;
+          updatePayload.endDate = getScheduleRangeEnd(nextPublishedSchedule, access.event.endDate || access.event.end_date || nowIso);
+          updatePayload.end_date = updatePayload.endDate;
+          updatePayload.hacking_starts_at = nextPublishedSchedule.hackingStartsAt || null;
+          updatePayload.submission_deadline_at = nextPublishedSchedule.submissionDeadlineAt || null;
         }
         const { error: eventUpdateError } = await supabase
           .from("Event")
@@ -7677,7 +8106,7 @@ resolver.define("getSchedule", async (req) => {
     const runtimeSource = context?.runtimeSource;
 
     if (!event) {
-      return { milestones: [], error: "No current event found", isCreatedHackDay: false };
+      return { milestones: [], error: "No current event found", isCreatedHackDay: false, hasPublishedSchedule: false };
     }
 
     // Determine if this is a created HackDay (from template seed) or original HackDay
@@ -7689,8 +8118,15 @@ resolver.define("getSchedule", async (req) => {
 
     // Only fetch milestones for created HackDays
     if (!isCreatedHackDay) {
-      return { milestones: [], isCreatedHackDay: false };
+      return { milestones: [], isCreatedHackDay: false, hasPublishedSchedule: false };
     }
+
+    const normalizedSchedule = normalizeRuntimeEventSchedule(event.event_schedule, {
+      timezone: event.timezone,
+      hackingStartsAt: event.hacking_starts_at || event.startDate || event.start_date,
+      submissionDeadlineAt: event.submission_deadline_at || event.endDate || event.end_date,
+    });
+    const hasPublishedSchedule = hasPublishedEventSchedule(normalizedSchedule);
 
     const { data, error } = await supabase
       .from("Milestone")
@@ -7700,7 +8136,7 @@ resolver.define("getSchedule", async (req) => {
 
     if (error) {
       console.error("getSchedule error:", error);
-      return { milestones: [], error: error.message, isCreatedHackDay };
+      return { milestones: [], error: error.message, isCreatedHackDay, hasPublishedSchedule };
     }
 
     // Transform to app format
@@ -7715,10 +8151,10 @@ resolver.define("getSchedule", async (req) => {
       location: m.location,
     }));
 
-    return { milestones, isCreatedHackDay };
+    return { milestones, isCreatedHackDay, hasPublishedSchedule };
   } catch (error) {
     console.error("getSchedule error:", error);
-    return { milestones: [], error: error.message };
+    return { milestones: [], error: error.message, hasPublishedSchedule: false };
   }
 });
 

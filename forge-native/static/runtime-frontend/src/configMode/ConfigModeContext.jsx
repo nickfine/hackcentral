@@ -20,6 +20,7 @@ const EMPTY_DRAFT_PATCH = Object.freeze({
   branding: {},
   motdMessage: {},
   contentOverrides: {},
+  schedule: undefined,
 });
 
 const EMPTY_PUBLISHED_OVERRIDES = Object.freeze({
@@ -39,7 +40,22 @@ function clonePatch(patch) {
     branding: { ...(patch?.branding || {}) },
     motdMessage: { ...(patch?.motdMessage || {}) },
     contentOverrides: { ...(patch?.contentOverrides || {}) },
+    ...(patch?.schedule && typeof patch.schedule === 'object'
+      ? { schedule: JSON.parse(JSON.stringify(patch.schedule)) }
+      : {}),
   };
+}
+
+function normalizeSchedulePatch(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return undefined;
+  }
 }
 
 function normalizePublishedOverridesEnvelope(value) {
@@ -89,6 +105,10 @@ function normalizeDraftPatch(value) {
       if (typeof raw !== 'string') continue;
       patch.contentOverrides[key] = raw;
     }
+  }
+
+  if (value.schedule && typeof value.schedule === 'object') {
+    patch.schedule = normalizeSchedulePatch(value.schedule);
   }
 
   return patch;
@@ -198,7 +218,8 @@ function hasAnyPatchValue(patch) {
   return (
     Object.keys(patch.branding || {}).length > 0 ||
     Object.keys(patch.motdMessage || {}).length > 0 ||
-    Object.keys(patch.contentOverrides || {}).length > 0
+    Object.keys(patch.contentOverrides || {}).length > 0 ||
+    Boolean(patch.schedule && Object.keys(patch.schedule).length > 0)
   );
 }
 
@@ -223,6 +244,11 @@ function sanitizePatch(patch) {
     } else if (field.sourceKind === CONFIG_SOURCE_KINDS.CONTENT_OVERRIDE) {
       next.contentOverrides[fieldKey] = normalized;
     }
+  }
+
+  const normalizedSchedule = normalizeSchedulePatch(patch.schedule);
+  if (normalizedSchedule) {
+    next.schedule = normalizedSchedule;
   }
 
   return next;
@@ -299,6 +325,7 @@ export function ConfigModeProvider({
   const [workingPatch, setWorkingPatch] = useState(clonePatch(EMPTY_DRAFT_PATCH));
   const [publishedOverrides, setPublishedOverrides] = useState({ ...EMPTY_PUBLISHED_OVERRIDES, values: {} });
   const [publishedBranding, setPublishedBranding] = useState(eventBranding || {});
+  const [publishedSchedule, setPublishedSchedule] = useState(null);
   const [publishedMotdMessage, setPublishedMotdMessage] = useState(
     normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || '') || null
   );
@@ -332,6 +359,7 @@ export function ConfigModeProvider({
       setDraftEnvelope(normalized.draftEnvelope);
       setWorkingPatch(normalized.draftEnvelope?.patch ? clonePatch(normalized.draftEnvelope.patch) : clonePatch(EMPTY_DRAFT_PATCH));
       setPublishedBranding(normalized.publishedBranding || (eventBranding || {}));
+      setPublishedSchedule(normalizeSchedulePatch(response?.publishedSchedule || null) || null);
       setPublishedMotdMessage(normalized.publishedMotdMessage || normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || ''));
       setBackupCoverageStatus(normalized.backupCoverageStatus || null);
       setBackupError(null);
@@ -361,6 +389,7 @@ export function ConfigModeProvider({
       setDraftEnvelope(null);
       setWorkingPatch(clonePatch(EMPTY_DRAFT_PATCH));
       setPublishedOverrides({ ...EMPTY_PUBLISHED_OVERRIDES, values: {} });
+      setPublishedSchedule(null);
       setBackupCoverageStatus(null);
       setBackupSnapshots([]);
       setRestorePreview(null);
@@ -386,6 +415,13 @@ export function ConfigModeProvider({
     () => mergeMotdPreview(publishedMotdMessage || eventAdminMessage || null, workingPatch.motdMessage, isEnabled && canEdit),
     [publishedMotdMessage, eventAdminMessage, workingPatch.motdMessage, isEnabled, canEdit]
   );
+
+  const effectiveSchedule = useMemo(() => {
+    if (isEnabled && canEdit && workingPatch.schedule && typeof workingPatch.schedule === 'object') {
+      return workingPatch.schedule;
+    }
+    return publishedSchedule;
+  }, [isEnabled, canEdit, workingPatch.schedule, publishedSchedule]);
 
   const contentDraftValues = workingPatch.contentOverrides || {};
   const contentPublishedValues = publishedOverrides.values || {};
@@ -432,6 +468,38 @@ export function ConfigModeProvider({
     });
     setHasUnsavedChanges(true);
   }, [canEdit]);
+
+  const setScheduleDraft = useCallback((schedule) => {
+    if (!canEdit) return;
+    const normalizedNextSchedule = normalizeSchedulePatch(schedule);
+    const publishedScheduleSerialized = JSON.stringify(normalizeSchedulePatch(publishedSchedule) || null);
+    const nextScheduleSerialized = JSON.stringify(normalizedNextSchedule || null);
+    setSaveError(null);
+    setConflict(false);
+    setPublishSuccess(null);
+    let didChange = false;
+    setWorkingPatch((prev) => {
+      const next = clonePatch(prev);
+      const previousSerialized = JSON.stringify(normalizeSchedulePatch(prev.schedule) || null);
+      if (nextScheduleSerialized === publishedScheduleSerialized) {
+        if (next.schedule === undefined) {
+          return prev;
+        }
+        delete next.schedule;
+        didChange = previousSerialized !== JSON.stringify(null);
+        return next;
+      }
+      if (previousSerialized === nextScheduleSerialized) {
+        return prev;
+      }
+      next.schedule = normalizedNextSchedule;
+      didChange = true;
+      return next;
+    });
+    if (didChange) {
+      setHasUnsavedChanges(true);
+    }
+  }, [canEdit, publishedSchedule]);
 
   const persistLocalState = useCallback((nextState) => {
     writeLocalConfigState(eventId, nextState);
@@ -481,6 +549,7 @@ export function ConfigModeProvider({
         draft: nextDraft,
         publishedContentOverrides: localState.publishedOverrides,
         branding: localState.publishedBranding || publishedBranding || {},
+        publishedSchedule: localState.publishedSchedule || publishedSchedule || null,
         motdMessage: localState.publishedMotdMessage || publishedMotdMessage || null,
       });
 
@@ -507,6 +576,7 @@ export function ConfigModeProvider({
     persistLocalState,
     user,
     publishedBranding,
+    publishedSchedule,
     publishedMotdMessage,
   ]);
 
@@ -538,6 +608,7 @@ export function ConfigModeProvider({
         const normalized = normalizeConfigModeStateResponse(result, eventBranding, eventAdminMessage);
         setPublishedOverrides(normalized.publishedOverrides);
         setPublishedBranding(normalized.publishedBranding || eventBranding || {});
+        setPublishedSchedule(normalizeSchedulePatch(result?.publishedSchedule || null) || null);
         setPublishedMotdMessage(normalized.publishedMotdMessage || null);
         setDraftEnvelope(null);
         setWorkingPatch(clonePatch(EMPTY_DRAFT_PATCH));
@@ -572,6 +643,7 @@ export function ConfigModeProvider({
         ...(localState.publishedBranding || publishedBranding || {}),
         ...(currentDraft.patch?.branding || {}),
       };
+      const nextPublishedSchedule = normalizeSchedulePatch(currentDraft.patch?.schedule || localState.publishedSchedule || publishedSchedule || null) || null;
       const nextPublishedMotd = normalizeAdminMessage({
         ...(localState.publishedMotdMessage || publishedMotdMessage || {}),
         ...(currentDraft.patch?.motdMessage || {}),
@@ -584,11 +656,13 @@ export function ConfigModeProvider({
         draft: null,
         publishedContentOverrides: nextPublishedOverrides,
         branding: nextPublishedBranding,
+        publishedSchedule: nextPublishedSchedule,
         motdMessage: nextPublishedMotd,
       });
 
       setPublishedOverrides(nextPublishedOverrides);
       setPublishedBranding(nextPublishedBranding);
+      setPublishedSchedule(nextPublishedSchedule);
       setPublishedMotdMessage(nextPublishedMotd?.message ? nextPublishedMotd : nextPublishedMotd);
       setDraftEnvelope(null);
       setWorkingPatch(clonePatch(EMPTY_DRAFT_PATCH));
@@ -620,6 +694,7 @@ export function ConfigModeProvider({
     eventAdminMessage,
     onRefreshEventPhase,
     publishedBranding,
+    publishedSchedule,
     publishedMotdMessage,
     persistLocalState,
     user,
@@ -643,6 +718,7 @@ export function ConfigModeProvider({
           draft: null,
           publishedContentOverrides: localState.publishedOverrides,
           branding: localState.publishedBranding || publishedBranding || {},
+          publishedSchedule: localState.publishedSchedule || publishedSchedule || null,
           motdMessage: localState.publishedMotdMessage || publishedMotdMessage || null,
         });
         setDraftEnvelope(null);
@@ -655,7 +731,7 @@ export function ConfigModeProvider({
       console.error('[ConfigMode] discardDraft failed:', err);
       setSaveError(err?.message || 'Failed to discard draft');
     }
-  }, [canEdit, eventId, isForgeHost, persistLocalState, publishedBranding, publishedMotdMessage]);
+  }, [canEdit, eventId, isForgeHost, persistLocalState, publishedBranding, publishedSchedule, publishedMotdMessage]);
 
   const refreshBackupSnapshots = useCallback(async () => {
     if (!canEdit || !eventId) return { snapshots: [], coverage: null };
@@ -856,6 +932,7 @@ export function ConfigModeProvider({
     const brandingCount = Object.keys(workingPatch.branding || {}).length;
     const motdCount = Object.keys(workingPatch.motdMessage || {}).length;
     const contentCount = Object.keys(workingPatch.contentOverrides || {}).length;
+    const scheduleCount = workingPatch.schedule && Object.keys(workingPatch.schedule).length > 0 ? 1 : 0;
 
     if (brandingCount > 0) {
       sections.push({ id: 'branding', label: 'Branding', count: brandingCount });
@@ -866,10 +943,13 @@ export function ConfigModeProvider({
     if (contentCount > 0) {
       sections.push({ id: 'content-copy', label: 'Participant copy', count: contentCount });
     }
+    if (scheduleCount > 0) {
+      sections.push({ id: 'schedule', label: 'Schedule', count: scheduleCount });
+    }
 
     return {
       sections,
-      totalFields: brandingCount + motdCount + contentCount,
+      totalFields: brandingCount + motdCount + contentCount + scheduleCount,
     };
   }, [workingPatch]);
 
@@ -1006,7 +1086,9 @@ export function ConfigModeProvider({
       draftVersion: draftEnvelope?.draftVersion ?? null,
       effectiveBranding,
       effectiveMotdMessage,
+      effectiveSchedule,
       publishedContentOverrides: publishedOverrides,
+      publishedSchedule,
       configModeCapabilities: capabilities,
       isDrawerOpen,
       isLoading,
@@ -1034,7 +1116,9 @@ export function ConfigModeProvider({
     draftEnvelope,
     effectiveBranding,
     effectiveMotdMessage,
+    effectiveSchedule,
     publishedOverrides,
+    publishedSchedule,
     capabilities,
     isDrawerOpen,
     isLoading,
@@ -1079,11 +1163,14 @@ export function ConfigModeProvider({
     isApplyingRestore,
     capabilities,
     publishedOverrides,
+    publishedSchedule,
     effectiveBranding,
     effectiveMotdMessage,
+    effectiveSchedule,
     getFieldValue,
     resolveEditableValue,
     setFieldValue,
+    setScheduleDraft,
     isFieldEditable: (key) => Boolean(canEdit && getRegistryField(key)),
     beginEdit,
     endEdit,
@@ -1136,11 +1223,14 @@ export function ConfigModeProvider({
     isApplyingRestore,
     capabilities,
     publishedOverrides,
+    publishedSchedule,
     effectiveBranding,
     effectiveMotdMessage,
+    effectiveSchedule,
     getFieldValue,
     resolveEditableValue,
     setFieldValue,
+    setScheduleDraft,
     beginEdit,
     endEdit,
     enterConfigMode,
@@ -1203,11 +1293,14 @@ export function useConfigMode() {
       isApplyingRestore: false,
       capabilities: { enabled: false, canUseConfigMode: false },
       publishedOverrides: EMPTY_PUBLISHED_OVERRIDES,
+      publishedSchedule: null,
       effectiveBranding: {},
       effectiveMotdMessage: null,
+      effectiveSchedule: null,
       getFieldValue: (_key, fallback = '') => fallback,
       resolveEditableValue: (_key, fallback = '') => fallback,
       setFieldValue: () => {},
+      setScheduleDraft: () => {},
       isFieldEditable: () => false,
       beginEdit: () => {},
       endEdit: () => {},
