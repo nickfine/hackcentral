@@ -2406,3 +2406,30 @@ All passed in-session.
 1. Run the production guardrail path from `DEPLOY.md` for `v0.3.30`.
 2. Verify the child HackDay schedule edit/publish flow in the hosted Confluence environment.
 3. Optionally run a full create-flow smoke test in hosted Confluence to confirm the schedule step is fully removed from HackCentral creation.
+
+## Session Update - v0.3.30 Production Rollout Completed (Mar 6, 2026 02:13 GMT)
+
+### Closed in this session
+- Deployed `main` commit `afc3267` to Forge production.
+- Upgraded Confluence production install on `hackdaytemp.atlassian.net`.
+- Included the follow-up Schedule empty-state copy cleanup:
+  - no admin note box
+  - unpublished guidance moved into the main subtext
+
+### Evidence
+- Predeploy backup artifacts:
+  - `/private/tmp/hackcentral-merge-main-03062026/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-020919Z.json`
+  - `/private/tmp/hackcentral-merge-main-03062026/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260306-020919Z.md`
+- Build/install path completed:
+  - `npm run custom-ui:build --prefix forge-native`
+  - `forge deploy --environment production --no-verify`
+  - `forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence now contains the child-HackDay-owned schedule flow and the cleaned unpublished empty state copy.
+- `main` is the deployed source of truth at `afc3267`.
+
+### Suggested First Task In Next Chat
+1. Browser-verify the hosted Confluence schedule flow end to end on production.
+2. Confirm the HackCentral create flow no longer exposes schedule setup.
+3. Delete `codex/schedule-config-mode-v03030` if no longer needed.
