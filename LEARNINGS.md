@@ -4538,3 +4538,19 @@ Use this template at the end of every work session:
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - v0.3.33 Published Schedule Card Contrast Fix Prepared (Mar 6, 2026 02:42 GMT)
+
+### What Changed
+- Fixed the actual dark-mode readability bug in the published child HackDay schedule view in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`.
+- The issue was not the unpublished empty state. It was the published event cards using pastel signal backgrounds while still rendering title and description with theme text tokens that washed out in dark mode.
+- Signal cards now use explicit high-contrast dark text for:
+  - event title
+  - event description
+
+### Validation / Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend` ✅
+
+### Release Notes
+- Version bumped locally to `v0.3.33`.
+- This session is packaging and deploying the published schedule contrast fix.

@@ -486,6 +486,8 @@ function PublishedScheduleView({ dayColumns }) {
     const signalIconWrapStyle = signalColors ? { backgroundColor: signalColors.iconBg } : undefined;
     const signalIconStyle = signalColors ? { color: signalColors.text } : undefined;
     const signalTextStyle = signalColors ? { color: signalColors.text } : undefined;
+    const signalTitleStyle = signalColors ? { color: '#0f172a' } : undefined;
+    const signalDescriptionStyle = signalColors ? { color: '#475569' } : undefined;
     const signalBadgeStyle = signalColors
       ? {
           backgroundColor: signalColors.iconBg,
@@ -522,9 +524,16 @@ function PublishedScheduleView({ dayColumns }) {
               {event.category}
             </Badge>
           </div>
-          <h4 className="font-bold text-text-primary">{event.title}</h4>
+          <h4 className={cn('font-bold', !signalColors && 'text-text-primary')} style={signalTitleStyle}>
+            {event.title}
+          </h4>
           {event.description ? (
-            <p className="mt-1 text-sm text-text-secondary">{event.description}</p>
+            <p
+              className={cn('mt-1 text-sm', !signalColors && 'text-text-secondary')}
+              style={signalDescriptionStyle}
+            >
+              {event.description}
+            </p>
           ) : null}
         </div>
       </div>

@@ -2520,3 +2520,19 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Manually verify the hosted child `Schedule` page in dark mode.
 2. Confirm the CTA is now visible and readable in production.
+
+## Session Update - v0.3.33 Published Schedule Card Contrast Fix Prepared (Mar 6, 2026 02:42 GMT)
+
+### Closed in this session
+- Fixed the real dark-mode regression in the published child `Schedule` view.
+- Signal-colored event cards now render title and description text with explicit dark high-contrast colors instead of theme tokens that became illegible on pastel card backgrounds.
+
+### Evidence
+- `npm run build --prefix forge-native/static/runtime-frontend`
+
+### Current state
+- `main` contains the `v0.3.33` published schedule contrast fix locally and is ready to ship.
+
+### Suggested First Task In Next Chat
+1. Deploy `v0.3.33`.
+2. Recheck the hosted published schedule cards in dark mode.
