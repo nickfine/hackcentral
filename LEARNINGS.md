@@ -4446,6 +4446,36 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## 2026-03-07 15:41 GMT
+
+- Cleaned up the runtime Config Mode drawer chrome in `forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx`:
+  - removed the duplicated `Current status` section
+  - removed the Admin Panel backup/restore explanatory note
+  - moved `Open Admin Panel` into the header beside `Close`
+  - removed the `ACTIONS` subtitle above the footer controls
+- Updated the drawer surface contract in `tests/forge-native-config-mode-backup-surface.spec.ts` so it now asserts the trimmed drawer chrome instead of the removed backup note.
+- Bumped release markers for this rollout:
+  - repo `0.6.58`
+  - forge-native `0.3.36`
+  - runtime bundle `1.2.71`
+- Validation completed successfully:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-backup-surface.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+  - predeploy artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-153808Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-153808Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Authenticated hosted Confluence verification on `Shona's IT Hack` using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime iframe hydrated successfully
+  - drawer header shows `Open Admin Panel` and `Close`
+  - `Current status` no longer renders
+  - the backup/restore note no longer renders
+  - the footer `ACTIONS` subtitle no longer renders
+  - `How this works`, `Save Draft`, `Publish`, `Discard`, and `Exit` still render in place
+
 ## Session Update - Config Publish Footer Confirmation Deployed (Mar 7, 2026 12:59 GMT)
 
 ### What Changed

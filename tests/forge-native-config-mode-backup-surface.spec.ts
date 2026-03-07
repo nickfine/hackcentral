@@ -15,7 +15,10 @@ describe('config-mode backup surface contract', () => {
 
     expect(sidePanelSource).not.toContain('Backup Safety');
     expect(sidePanelSource).not.toContain('Restore (Platform Admin)');
-    expect(sidePanelSource).toContain('Backup and restore controls now live in the Admin Panel');
+    expect(sidePanelSource).not.toContain('Current status');
+    expect(sidePanelSource).not.toContain('Backup and restore controls now live in the Admin Panel');
+    expect(sidePanelSource).not.toContain('>Actions<');
+    expect(sidePanelSource).toContain('Open Admin Panel');
 
     expect(adminPanelSource).toContain('Backup & Restore');
     expect(adminPanelSource).toContain('Backup Safety');

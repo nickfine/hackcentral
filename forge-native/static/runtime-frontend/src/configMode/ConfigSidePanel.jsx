@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, PanelRightClose, Save, Shield, TriangleAlert, Undo2, Upload, X } from 'lucide-react';
+import { Loader2, PanelRightClose, Save, Shield, TriangleAlert, Undo2, Upload, X } from 'lucide-react';
 import { Badge, Button } from '../components/ui';
 import { cn } from '../lib/design-system';
 import { useConfigMode } from './ConfigModeContext';
@@ -7,7 +7,6 @@ function ConfigSidePanel({ isMacroHost = false }) {
   const {
     canEdit,
     isEnabled,
-    status,
     isDrawerOpen,
     closeDrawer,
     saveDraft,
@@ -20,7 +19,6 @@ function ConfigSidePanel({ isMacroHost = false }) {
     hasUnsavedChanges,
     hasDraft,
     saveError,
-    publishSuccess,
     publishFooterState,
     isPublishFooterActive,
     publishSummary,
@@ -52,15 +50,26 @@ function ConfigSidePanel({ isMacroHost = false }) {
               Edit content inline on the page, then save or publish from here.
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={closeDrawer}
-            disabled={isFooterLocked}
-            leftIcon={<PanelRightClose className="h-4 w-4" />}
-          >
-            Close
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={navigateToAdminPanel}
+              disabled={isFooterLocked}
+              leftIcon={<Shield className="h-4 w-4" />}
+            >
+              Open Admin Panel
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={closeDrawer}
+              disabled={isFooterLocked}
+              leftIcon={<PanelRightClose className="h-4 w-4" />}
+            >
+              Close
+            </Button>
+          </div>
         </header>
 
         <div
@@ -69,31 +78,6 @@ function ConfigSidePanel({ isMacroHost = false }) {
             isFooterLocked && 'pointer-events-none opacity-60'
           )}
         >
-          <div className="rounded-xl border border-arena-border bg-arena-elevated px-3 py-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Current status</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge variant="default">Config Mode On</Badge>
-              {status === 'on_unsaved' && <Badge variant="warning">Unsaved changes</Badge>}
-              {status === 'on_draft' && <Badge variant="success">Draft saved</Badge>}
-              {status === 'on_clean' && <Badge variant="default">Live</Badge>}
-              {status === 'conflict' && <Badge variant="error">Draft conflict</Badge>}
-              {status === 'saving' && <Badge variant="default">Saving</Badge>}
-              {status === 'publishing' && <Badge variant="default">Publishing</Badge>}
-            </div>
-          </div>
-
-          {publishSuccess && (
-            <div className="rounded-xl border border-success/35 bg-success/8 px-3 py-2">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                <div>
-                  <p className="text-sm font-semibold text-success">Publish successful</p>
-                  <p className="text-xs text-text-secondary">{publishSuccess.message}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="rounded-xl border border-arena-border bg-arena-card px-3 py-3">
             <p className="text-sm font-semibold text-text-primary">How this works</p>
             <ul className="mt-2 space-y-1 text-xs text-text-secondary">
@@ -101,26 +85,10 @@ function ConfigSidePanel({ isMacroHost = false }) {
               <li>2. Save Draft to persist work without changing participant view.</li>
               <li>3. Publish when ready to make changes live.</li>
             </ul>
-            <p className="mt-3 rounded-lg border border-arena-border bg-arena-elevated px-3 py-2 text-xs text-text-secondary">
-              Backup and restore controls now live in the Admin Panel to keep this drawer focused on draft and publish work.
-            </p>
-            <div className="mt-3 border-t border-arena-border pt-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={navigateToAdminPanel}
-                leftIcon={<Shield className="h-4 w-4" />}
-                className="w-full justify-center"
-              >
-                Open Admin Panel
-              </Button>
-            </div>
           </div>
         </div>
 
         <footer className="border-t border-arena-border bg-arena-card/95 px-4 py-3">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-muted">Actions</p>
-
           {publishFooterState === 'default' ? (
             <div className="grid grid-cols-2 gap-2">
               <Button
