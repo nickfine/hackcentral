@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 5, 2026
+**Last Updated:** March 7, 2026
 
 ## Project Overview
 
@@ -20,10 +20,10 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.53 (root app)
+**Version:** 0.6.60 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.59`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.27
+**Forge Native Package:** 0.3.38
 
 ## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
 
@@ -4445,6 +4445,11 @@ Use this template at the end of every work session:
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+### Current state
+- Production is updated to the regression-fix release.
+- `main` now matches the deployed bundle at commit `89c6d94`.
+- Worktree is clean and ready for the next chat.
 
 ## Session Update - Config Drawer Regression Remediation Deployed (Mar 7, 2026 16:30 GMT)
 

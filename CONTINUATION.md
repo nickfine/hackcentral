@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-07 16:10 GMT
+Last updated: 2026-03-07 16:35 GMT
 
 ## Current Snapshot
 
@@ -9,9 +9,9 @@ Last updated: 2026-03-07 16:10 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.59`
-  - Forge native package version: `0.3.37`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.57`
+  - Root app version: `0.6.60`
+  - Forge native package version: `0.3.38`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.59`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
@@ -2856,4 +2856,5 @@ All passed in-session.
 
 ### Current state
 - Production is updated to the regression-fix release.
-- The remaining repo-closure task is to commit and push the local versioned changes so `main` exactly matches the deployed bundle.
+- `main` now matches the deployed production bundle at commit `89c6d94`.
+- Worktree is clean and ready for the next chat.

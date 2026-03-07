@@ -40,7 +40,7 @@ Planning references are optional and only used if explicitly requested:
 4. Keep docs synchronized in the same session as meaningful process changes.
 5. Do not open `ROADMAP.md` or `HDC-PRODUCT-EXECUTION-PLAN.md` unless planning/rescoping is explicitly requested.
 
-## Current Operational Notes (2026-03-06 02:45 GMT)
+## Current Operational Notes (2026-03-07 16:35 GMT)
 
 - Atlassian MCP target remains:
   - site: `https://hackdaytemp.atlassian.net`
@@ -49,15 +49,18 @@ Planning references are optional and only used if explicitly requested:
   - draft preview updates immediately when uploaded
   - Supabase-hosted hero images are allowed via manifest `external.images` policy.
 - Event backup/restore v1 is live in production:
-  - manual backup creation works from HackDay runtime Config Mode
+  - backup/restore controls now live under Admin Panel -> Settings
+  - Config Mode no longer carries backup/restore controls in the draft-actions drawer
   - predeploy backup sweep works in production
   - restore dry-run and restore apply have both been rehearsed successfully on a non-critical event
   - latest production rehearsal ended with zero warnings and zero post-restore drift
 - Runtime Config Mode now includes:
-  - `Backup Safety` status
-  - `Create Backup Now`
-  - platform-admin restore preview/apply controls
-  - restore warning display in the side panel
+  - inline publish confirmation in the drawer footer instead of the old centered publish modal
+  - shortened drawer chrome focused on draft/publish work
+  - help disclosure + action hierarchy with `Publish` dominant, `Save Draft` secondary, and `Discard` / `Exit` separated
+  - drawer anchoring beneath the `Show Actions` trigger on desktop
+  - internal drawer scrolling so expanded help never strands lower actions
+  - help disclosure resets to collapsed whenever the drawer closes
 - Hacks showcase list now renders only hacks with valid page linkage.
 - `Open` for showcase hacks opens in a new tab and validates linkage before opening.
 - HackDay app-route access (`/hackday-app`) is no longer restricted to site admins; non-site-admin users can open HackDays via `Open`.
@@ -66,7 +69,7 @@ Planning references are optional and only used if explicitly requested:
 - For Supabase access, keep MCP-first checks; if MCP project listing is empty in this workspace, use the documented service-role SQL fallback and record evidence in `LEARNINGS.md`.
 - Child HackDay schedule ownership is now in the runtime `Schedule` page under Config Mode; HackCentral creation no longer owns schedule setup.
 - The latest production follow-up fixed published schedule card contrast in dark mode.
-- Forge production is currently deployed from git tag `v0.3.33` / commit `624f062`.
+- Forge production is currently deployed from repo `0.6.60` / forge-native `0.3.38` / runtime `1.2.73` at commit `89c6d94`.
 - Hosted Confluence browser validation guardrail:
   - before claiming Playwright/Chrome-hosted validation is blocked, first try the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
   - use frame-aware selectors because the HackDay runtime UI is rendered inside a Confluence iframe
