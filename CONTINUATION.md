@@ -2679,3 +2679,33 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. In your normal signed-in browser session, open `Shona's IT Hack` and confirm the participant schedule now renders instead of `Schedule not published yet`.
 2. Make one more config edit and publish it to verify the new success flow closes the modal and turns Config Mode off.
+
+## Session Update - Authenticated Playwright Confirmation Added To Startup Guardrails (Mar 7, 2026 12:23 GMT)
+
+### Closed in this session
+- Proved the stored authenticated Playwright state works for hosted `hackdaytemp` validation in this repo.
+- Verified `Shona's IT Hack` live schedule renders after the milestone repair.
+- Executed the hosted publish flow in the authenticated iframe and observed the runtime return to `CONFIG OFF`.
+- Updated `.claude/instructions.md` and `STARTUP.md` so future sessions must try the saved auth state before treating hosted validation as blocked.
+
+### Evidence
+- Auth state used:
+  - `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+- Hosted verification artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-playwright-debug.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-schedule-before-publish.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-schedule-config-on.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-after-live-publish.png`
+- Confirmed hosted outcomes:
+  - live schedule renders in the Confluence iframe
+  - `Morning Kickoff` and day-2 `Hacking Begins` are visible
+  - publish interaction returns the page to `CONFIG OFF`
+  - fresh schedule load no longer shows `Draft`
+
+### Current state
+- The `Shona's IT Hack` schedule issue is fixed in production and verified in an authenticated hosted browser run.
+- The startup instructions now explicitly require stored-auth Playwright + frame-aware selectors for Confluence-hosted runtime checks.
+
+### Suggested First Task In Next Chat
+1. Reuse `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` for any further hosted Confluence validation before trying bare MCP browser flows.
+2. If another schedule/config regression appears, start from the `Shona` artifact set as the known-good hosted baseline.

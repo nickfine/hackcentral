@@ -4499,6 +4499,39 @@ Use this template at the end of every work session:
 ### Operational Caveat
 - Hosted browser automation is still blocked by Atlassian authentication in both Playwright MCP and Chrome DevTools from this environment, so I could not click through the real Confluence page end-to-end after the repair.
 
+## Session Update - Authenticated Playwright Verified Shona Schedule And Publish Flow (Mar 7, 2026 12:23 GMT)
+
+### What Changed
+- Verified the hosted `Shona's IT Hack` Confluence page using the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`.
+- Confirmed the production `Schedule` page now renders the repaired milestone set in the live iframe, including:
+  - `Morning Kickoff`
+  - day-2 `Hacking Begins`
+  - restored `Code Freeze`, `Presentations`, `Judging Period`, and `Results Announced`
+- Executed the live publish flow in the authenticated hosted page:
+  - entered `Config Mode`
+  - opened the actions drawer
+  - confirmed the publish modal
+  - publish completed and returned the runtime to `CONFIG OFF`
+- Updated startup instructions so future sessions must try the saved authenticated Playwright state before declaring hosted browser validation blocked.
+
+### Validation / Evidence
+- Authenticated hosted page artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-playwright-debug.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-schedule-before-publish.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-schedule-config-on.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-after-live-publish.png`
+- Live browser outcomes from the authenticated run:
+  - page loaded on `https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/24510466/Shona+s+IT+Hack`
+  - runtime iframe detected and hydrated
+  - `Schedule` route rendered restored live milestones
+  - post-publish state showed `CONFIG OFF`
+  - subsequent fresh schedule load no longer showed `Draft`
+
+### Process Guardrail
+- Future hosted Confluence checks in this repo should start with the stored auth file and frame-aware selectors:
+  - auth file: `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - runtime UI is inside a Confluence iframe, so top-level selector checks are not authoritative
+
 ## Session Update - App View Handoff Stops Opening New Tabs (Mar 7, 2026 10:05 GMT)
 
 ### What Changed

@@ -67,6 +67,12 @@ Planning references are optional and only used if explicitly requested:
 - Child HackDay schedule ownership is now in the runtime `Schedule` page under Config Mode; HackCentral creation no longer owns schedule setup.
 - The latest production follow-up fixed published schedule card contrast in dark mode.
 - Forge production is currently deployed from git tag `v0.3.33` / commit `624f062`.
+- Hosted Confluence browser validation guardrail:
+  - before claiming Playwright/Chrome-hosted validation is blocked, first try the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - use frame-aware selectors because the HackDay runtime UI is rendered inside a Confluence iframe
+  - authoritative prior auth/frame-aware smoke evidence lives in:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.md`
 
 ## Deployment Guardrail
 
