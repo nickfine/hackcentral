@@ -2448,6 +2448,8 @@ function normalizeScheduleCustomEvents(value) {
     const name = normalizeOptionalScheduleString(item.name);
     const description = normalizeOptionalScheduleString(item.description);
     const timestamp = normalizeScheduleTimestamp(item.timestamp);
+    const sourceEventId = normalizeOptionalScheduleString(item.sourceEventId);
+    const sourcePhaseKey = normalizeOptionalScheduleString(item.sourcePhaseKey);
     const signal = typeof item.signal === "string" ? item.signal.trim() : "";
     if (!name || !timestamp || !CONFIG_MODE_SCHEDULE_EVENT_SIGNALS.has(signal)) continue;
     normalized.push({
@@ -2455,6 +2457,8 @@ function normalizeScheduleCustomEvents(value) {
       ...(description ? { description } : {}),
       timestamp,
       signal,
+      ...(sourceEventId ? { sourceEventId } : {}),
+      ...(sourcePhaseKey ? { sourcePhaseKey } : {}),
     });
   }
 

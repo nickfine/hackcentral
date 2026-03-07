@@ -967,6 +967,8 @@ export interface ScheduleCustomEvent {
   description?: string;
   timestamp: string;
   signal: ScheduleEventSignal;
+  sourceEventId?: string;
+  sourcePhaseKey?: string;
 }
 
 export interface EventRules {

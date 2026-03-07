@@ -49,6 +49,23 @@ function parseHackPhaseDayIndex(phaseKey: PhaseKey): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getHackDayEventPresentation(
+  event: (typeof HACK_DAY_EVENTS)[number],
+  dayIndex: number
+): { name: string; description: string } {
+  if (event.id === 'opening' && dayIndex > 0) {
+    return {
+      name: 'Morning Kickoff',
+      description: 'Daily standup and updates',
+    };
+  }
+
+  return {
+    name: event.name,
+    description: event.description,
+  };
+}
+
 function isPhaseKeyWithinDuration(phaseKey: PhaseKey, duration: EventDuration): boolean {
   if (phaseKey === 'pre') {
     return true;
@@ -69,7 +86,7 @@ function createCustomEventId(): string {
 /**
  * Build the output payload from the current state.
  */
-function buildOutputPayload(
+export function buildOutputPayload(
   duration: EventDuration,
   anchorDate: string,
   anchorTime: string,
@@ -90,8 +107,9 @@ function buildOutputPayload(
   };
 
   // Build output with dynamic fields
-  const selectedEvents: string[] = [];
+  const selectedEvents = new Set<string>();
   const timestamps: Record<string, string> = {};
+  const syntheticCustomEvents: NonNullable<ScheduleBuilderOutput['customEvents']> = [];
 
   // Process pre-event milestones
   PRE_EVENT_MILESTONES.forEach((event) => {
@@ -102,7 +120,7 @@ function buildOutputPayload(
         const eventDate = calculateDateFromOffset(state.offsetDays);
         // Pre-event milestones use 09:00 as default time
         timestamps[outputField] = toISOTimestamp(eventDate, '09:00');
-        selectedEvents.push(event.id);
+        selectedEvents.add(event.id);
       }
     }
   });
@@ -135,9 +153,19 @@ function buildOutputPayload(
           if (event.lastDayOnly || dayIndex === 0) {
             // For first day (or lastDayOnly on last day), use standard field
             timestamps[outputField] = toISOTimestamp(eventDate, time);
+          } else {
+            const presentation = getHackDayEventPresentation(event, dayIndex);
+            syntheticCustomEvents.push({
+              name: presentation.name,
+              description: presentation.description,
+              timestamp: toISOTimestamp(eventDate, time),
+              signal: event.signal,
+              sourceEventId: event.id,
+              sourcePhaseKey: phaseKey,
+            });
           }
           // Note: For multi-day, we could add Day2/Day3 specific fields later if needed
-          selectedEvents.push(event.id);
+          selectedEvents.add(event.id);
         }
       }
     });
@@ -146,8 +174,9 @@ function buildOutputPayload(
   // Process custom events
   let customEventOutput: ScheduleBuilderOutput['customEvents'];
   const activeCustomEvents = customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration));
-  if (activeCustomEvents.length > 0) {
-    customEventOutput = activeCustomEvents.map((ce) => {
+  if (activeCustomEvents.length > 0 || syntheticCustomEvents.length > 0) {
+    customEventOutput = [
+      ...activeCustomEvents.map((ce) => {
       let timestamp: string;
       if (ce.phase === 'pre' && ce.offsetDays !== undefined) {
         const eventDate = calculateDateFromOffset(ce.offsetDays);
@@ -167,14 +196,16 @@ function buildOutputPayload(
         timestamp,
         signal: ce.signal,
       };
-    });
+      }),
+      ...syntheticCustomEvents,
+    ];
   }
 
   // Combine into final output
   return {
     timezone,
     duration,
-    selectedEvents,
+    selectedEvents: Array.from(selectedEvents),
     ...timestamps,
     ...(customEventOutput && { customEvents: customEventOutput }),
   } as ScheduleBuilderOutput;

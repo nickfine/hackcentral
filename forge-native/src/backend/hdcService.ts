@@ -93,6 +93,8 @@ function normalizeScheduleCustomEvents(value: unknown): ScheduleCustomEvent[] | 
     const candidate = item as Partial<ScheduleCustomEvent>;
     const name = normalizeOptionalString(candidate.name);
     const timestamp = normalizeOptionalString(candidate.timestamp);
+    const sourceEventId = normalizeOptionalString(candidate.sourceEventId);
+    const sourcePhaseKey = normalizeOptionalString(candidate.sourcePhaseKey);
     const signal =
       typeof candidate.signal === 'string' && SCHEDULE_EVENT_SIGNALS.has(candidate.signal as ScheduleEventSignal)
         ? (candidate.signal as ScheduleEventSignal)
@@ -104,6 +106,8 @@ function normalizeScheduleCustomEvents(value: unknown): ScheduleCustomEvent[] | 
       timestamp,
       signal,
       ...(description ? { description } : {}),
+      ...(sourceEventId ? { sourceEventId } : {}),
+      ...(sourcePhaseKey ? { sourcePhaseKey } : {}),
     });
   }
   return normalized.length > 0 ? normalized : undefined;

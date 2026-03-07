@@ -4446,6 +4446,44 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - Schedule Builder Later-Day Publish Fix Deployed (Mar 7, 2026 09:58 GMT)
+
+### What Changed
+- Fixed the Schedule Builder publish gap where later-day standard events shown in Config Mode preview were not persisted into `event_schedule` or `Milestone` rows on publish.
+- Root cause confirmed against live production data for `Shona's IT Hack`:
+  - `event_schedule.selectedEvents` contained duplicated day-2 `opening` / `hacking-begins`
+  - production milestones still only contained the first-day core events plus final-day milestones
+- Updated the builder to persist later-day standard events as schedule `customEvents` with source metadata so publish regenerates them as participant-facing milestones.
+- Updated runtime schedule hydration so those persisted builder-backed events map back onto the standard day tabs instead of reappearing as duplicate custom events in Config Mode.
+- Extended schedule custom-event normalization in shared/backend/runtime config-mode paths to preserve the builder source metadata safely.
+
+### Validation / Evidence
+- Live production inspection (`Shona's IT Hack`, event id `d3f7bb14-7d8f-4e92-8740-23b02994b4d4`) showed:
+  - `event_schedule.duration = 2`
+  - `selectedEvents` included `opening`, `hacking-begins`, `opening`, `hacking-begins`, `code-freeze`, `presentations`, `judging`, `results`
+  - milestone count remained `9`, confirming day-2 events were not being materialized
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/schedule-builder-v2.spec.tsx` ✅
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend` ✅
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/frontend` ✅
+  - `./scripts/with-node22.sh npm run test:backend --prefix forge-native` ✅
+- Production rollout:
+  - predeploy backup sweep:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-095613Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-095613Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build` in `forge-native` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+
+### Operational Notes
+- Existing events that were already published before this fix keep their old milestone set until they are published again from Config Mode.
+- For `Shona's IT Hack`, one more Schedule publish in Config Mode is required to materialize the missing later-day events using the fixed payload path.
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
 ## Session Update - Repo-Local Node 22 Wrapper Added (Mar 6, 2026 10:21 GMT)
 
 ### What Changed

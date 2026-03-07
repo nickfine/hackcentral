@@ -164,7 +164,38 @@ function inferDuration(schedule) {
   return Math.max(1, Math.min(3, days));
 }
 
-function buildBuilderInitialState(schedule) {
+function hydrateBuilderBackedHackDayEvent(eventStates, duration, customEvent) {
+  const sourceEventId = typeof customEvent?.sourceEventId === 'string' ? customEvent.sourceEventId.trim() : '';
+  const sourcePhaseKey = typeof customEvent?.sourcePhaseKey === 'string' ? customEvent.sourcePhaseKey.trim() : '';
+  if (!sourceEventId || !sourcePhaseKey.startsWith('hack-')) {
+    return false;
+  }
+
+  const dayIndex = Number.parseInt(sourcePhaseKey.split('-')[1] ?? '', 10);
+  if (!Number.isFinite(dayIndex) || dayIndex < 0 || dayIndex >= duration) {
+    return false;
+  }
+
+  const timestamp = typeof customEvent?.timestamp === 'string' ? customEvent.timestamp : null;
+  if (!timestamp) {
+    return false;
+  }
+
+  const stateKey = getEventStateKey(sourcePhaseKey, sourceEventId);
+  if (!eventStates[stateKey]) {
+    return false;
+  }
+
+  eventStates[stateKey] = {
+    ...eventStates[stateKey],
+    enabled: true,
+    time: formatIsoTime(timestamp),
+  };
+
+  return true;
+}
+
+export function buildBuilderInitialState(schedule) {
   if (!schedule || typeof schedule !== 'object') {
     return undefined;
   }
@@ -222,6 +253,10 @@ function buildBuilderInitialState(schedule) {
   const customEvents = Array.isArray(schedule.customEvents)
     ? schedule.customEvents
         .map((event, index) => {
+          if (hydrateBuilderBackedHackDayEvent(eventStates, duration, event)) {
+            return null;
+          }
+
           const timestamp = typeof event?.timestamp === 'string' ? new Date(event.timestamp) : null;
           if (!timestamp || Number.isNaN(timestamp.getTime())) return null;
           const eventDate = formatIsoDate(timestamp);

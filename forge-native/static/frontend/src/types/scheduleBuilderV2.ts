@@ -167,6 +167,8 @@ export interface ScheduleBuilderOutput {
     description?: string;
     timestamp: string;
     signal: EventSignal;
+    sourceEventId?: string;
+    sourcePhaseKey?: string;
   }>;
 }
 

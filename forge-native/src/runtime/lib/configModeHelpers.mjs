@@ -271,6 +271,8 @@ function normalizeConfigModeScheduleCustomEvents(value) {
     const name = typeof item.name === 'string' ? item.name.trim() : '';
     const description = typeof item.description === 'string' ? item.description.trim() : '';
     const timestamp = normalizeConfigModeScheduleTimestamp(item.timestamp);
+    const sourceEventId = typeof item.sourceEventId === 'string' ? item.sourceEventId.trim() : '';
+    const sourcePhaseKey = typeof item.sourcePhaseKey === 'string' ? item.sourcePhaseKey.trim() : '';
     const signal =
       typeof item.signal === 'string' && CONFIG_MODE_SCHEDULE_EVENT_SIGNALS.has(item.signal)
         ? item.signal
@@ -281,6 +283,8 @@ function normalizeConfigModeScheduleCustomEvents(value) {
       ...(description ? { description: description.slice(0, 280) } : {}),
       timestamp,
       signal,
+      ...(sourceEventId ? { sourceEventId: sourceEventId.slice(0, 120) } : {}),
+      ...(sourcePhaseKey ? { sourcePhaseKey: sourcePhaseKey.slice(0, 120) } : {}),
     });
   }
 

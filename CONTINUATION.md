@@ -2560,3 +2560,33 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Recheck the hosted published `Schedule` page in dark mode.
 2. Confirm event titles and descriptions are readable on the pastel signal cards.
+
+## Session Update - Schedule Builder Later-Day Publish Fix Deployed (Mar 7, 2026 09:58 GMT)
+
+### Closed in this session
+- Fixed the runtime Schedule Builder publish bug where later-day standard events visible in Config Mode preview were dropped on publish.
+- Confirmed the live failure mode on `Shona's IT Hack`: production stored duplicated day-2 `selectedEvents` but only `9` milestones, so those events never materialized for participants.
+- Shipped the fix to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- Focused regression:
+  - `./scripts/with-node22.sh npm run test:run -- tests/schedule-builder-v2.spec.tsx`
+- Validation suite:
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run test:backend --prefix forge-native`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-095613Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-095613Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production now contains the later-day schedule publish fix.
+- Existing already-published schedules will only pick up the missing later-day events after one more Config Mode publish.
+
+### Suggested First Task In Next Chat
+1. Open `Shona's IT Hack` → `Schedule` → Config Mode and publish once.
+2. Verify the published schedule now includes the previously missing day-2 events.
