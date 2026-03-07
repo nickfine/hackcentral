@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-07 15:37 GMT
+Last updated: 2026-03-07 16:10 GMT
 
 ## Current Snapshot
 
@@ -9,8 +9,8 @@ Last updated: 2026-03-07 15:37 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.58`
-  - Forge native package version: `0.3.36`
+  - Root app version: `0.6.59`
+  - Forge native package version: `0.3.37`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.57`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
@@ -2812,3 +2812,25 @@ All passed in-session.
 ### Current state
 - Production Confluence now has the shortened Config Mode drawer chrome.
 - The remaining step is source-control closure: commit and push this release so `main` matches the deployed production bundle again.
+
+## Session Update - Config Drawer Hierarchy And Trigger Anchoring Deployed (Mar 7, 2026 16:10 GMT)
+
+### Closed in this session
+- Reworked the runtime Config drawer hierarchy so `Publish` is the dominant action, `Save Draft` is secondary, and `Discard` / `Exit` are separated into an escape row.
+- Collapsed `How this works` into a disclosure so guidance no longer dominates the drawer by default.
+- Anchored the desktop drawer beneath the `Show Actions` trigger instead of pinning it to the viewport edge.
+- Bumped version markers to repo `0.6.59`, forge-native `0.3.37`, and runtime bundle `1.2.72`.
+- Deployed the updated runtime bundle to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-backup-surface.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-side-panel-layout.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-160925Z.json`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-160925Z.md`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production Confluence is updated to the versioned drawer hierarchy and trigger-anchor positioning.
+- I attempted a fresh authenticated hosted iframe check on `Shona's IT Hack`, but the Atlassian load path did not complete within the scripted timeout, so there is no new hosted screenshot/metric artifact for this specific anchor change.

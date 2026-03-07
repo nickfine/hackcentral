@@ -428,6 +428,7 @@ const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
               type="button"
               onClick={isDrawerOpen ? closeDrawer : openDrawer}
               disabled={isPublishFooterActive}
+              data-config-actions-trigger="true"
               className={cn(
                 'inline-flex items-center rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-55',
                 'border-arena-border bg-arena-card text-text-secondary hover:text-text-primary hover:bg-arena-elevated',

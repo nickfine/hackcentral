@@ -4476,6 +4476,34 @@ Use this template at the end of every work session:
   - the footer `ACTIONS` subtitle no longer renders
   - `How this works`, `Save Draft`, `Publish`, `Discard`, and `Exit` still render in place
 
+## 2026-03-07 16:10 GMT
+
+- Refined the runtime Config Mode drawer hierarchy and anchoring:
+  - collapsed `How this works` into a compact disclosure above the action stack
+  - made `Publish` the dominant full-width primary action
+  - moved `Save Draft` into a separate secondary row
+  - separated `Discard` and `Exit` into a lower escape row
+  - centered the desktop drawer beneath the `Show Actions` trigger with a small gap instead of pinning it to the viewport edge
+- Updated validation coverage:
+  - adjusted `tests/forge-native-config-mode-publish-footer.spec.ts`
+  - added `tests/forge-native-config-side-panel-layout.spec.ts`
+- Bumped release markers for this rollout:
+  - repo `0.6.59`
+  - forge-native `0.3.37`
+  - runtime bundle `1.2.72`
+- Validation completed successfully:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-backup-surface.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-side-panel-layout.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+  - predeploy artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-160925Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-160925Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Hosted verification note:
+  - I attempted one more authenticated Playwright iframe check against `Shona's IT Hack` using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`, but the Atlassian load path did not complete within the scripted timeout, so this release relies on successful deploy/install plus local validation rather than a fresh hosted positioning proof.
+
 ## Session Update - Config Publish Footer Confirmation Deployed (Mar 7, 2026 12:59 GMT)
 
 ### What Changed

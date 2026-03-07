@@ -21,11 +21,11 @@ describe('config-mode publish footer contract', () => {
     expect(contextSource).toContain('cancelPublishDraftRequest');
     expect(contextSource).toContain('publishSummary');
 
-    expect(sidePanelSource).toContain('pointer-events-none opacity-60');
     expect(sidePanelSource).toContain("publishFooterState === 'publishing'");
     expect(sidePanelSource).toContain("publishFooterState === 'error'");
     expect(sidePanelSource).toContain('Updating the live participant view now.');
     expect(sidePanelSource).toContain('Keep this drawer open until publishing finishes.');
     expect(sidePanelSource).toContain('Publishing...');
+    expect(sidePanelSource).toContain('cancelPublishDraftRequest');
   });
 });
