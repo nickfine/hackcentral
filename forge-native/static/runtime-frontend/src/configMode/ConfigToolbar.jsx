@@ -1,4 +1,4 @@
-import { CircleDot, Loader2, PanelRightClose, PanelRightOpen, Settings2, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, CircleDot, Loader2, PanelRightClose, PanelRightOpen, Settings2, TriangleAlert } from 'lucide-react';
 import { Badge, Button } from '../components/ui';
 import { cn } from '../lib/design-system';
 import { useConfigMode } from './ConfigModeContext';
@@ -21,6 +21,7 @@ function ConfigToolbar({ isMacroHost = false }) {
     isDrawerOpen,
     status,
     saveError,
+    publishSuccess,
     toggleConfigMode,
     toggleDrawer,
   } = useConfigMode();
@@ -86,6 +87,13 @@ function ConfigToolbar({ isMacroHost = false }) {
           <span className="hidden max-w-[260px] items-center gap-1 truncate text-xs text-error sm:inline-flex">
             <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
             {saveError}
+          </span>
+        )}
+
+        {publishSuccess && (
+          <span className="hidden max-w-[320px] items-center gap-1 truncate text-xs text-success sm:inline-flex">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            {publishSuccess.message}
           </span>
         )}
       </div>

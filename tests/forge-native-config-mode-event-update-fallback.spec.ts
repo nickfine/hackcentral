@@ -16,4 +16,15 @@ describe('config-mode Event update fallback contract', () => {
     expect(source).toContain('await updateEventWithSchemaFallback(supabase, event.id, {');
     expect(source).not.toContain('.update({ event_branding: mergedBranding, updatedAt: nowIso, updated_at: nowIso })');
   });
+
+  it('generates milestone ids before runtime schedule inserts', async () => {
+    const source = await fs.readFile(
+      path.resolve(process.cwd(), 'forge-native/src/runtime/index.js'),
+      'utf8'
+    );
+
+    expect(source).toContain('function extractMissingMilestoneColumn(error) {');
+    expect(source).toContain('id: typeof milestone.id === "string" && milestone.id ? milestone.id : randomUUID(),');
+    expect(source).toContain('Retrying Milestone insert without missing column "signal"');
+  });
 });

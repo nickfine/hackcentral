@@ -4472,6 +4472,33 @@ Use this template at the end of every work session:
 - Forge production logs showed `Failed to update event branding: Could not find the 'updated_at' column of 'Event' in the schema cache`, which left the publish modal spinning and the new schedule entries unapplied.
 - The UI also did not render `saveError` inside the publish modal, so users saw a stuck dialog without a clear failure explanation.
 
+## Session Update - Schedule Publish Milestone Insert Fix And Live Repair (Mar 7, 2026 10:31 GMT)
+
+### What Changed
+- Fixed the second publish blocker in [forge-native/src/runtime/index.js](/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js): runtime schedule milestone replacement now generates `Milestone.id` values before insert and retries without `signal` only if that column is missing.
+- Updated Config Mode post-publish UX so success is explicit and final:
+  - [forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx) now turns Config Mode off after a successful publish and keeps a short-lived success notice.
+  - [forge-native/static/runtime-frontend/src/configMode/ConfigToolbar.jsx](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigToolbar.jsx) now shows the success message after the modal closes.
+- Repaired `Shona's IT Hack` directly in production by rebuilding the missing `Milestone` rows from the already-written `event_schedule`.
+
+### Validation / Evidence
+- Focused regression:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-event-update-fallback.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/schedule-builder-v2.spec.tsx tests/runtime-app-view-gating.spec.ts` ✅
+- Build/typecheck:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native` ✅
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-102843Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-102843Z.md`
+  - `../scripts/with-node22.sh forge deploy -e production` ✅
+  - `../scripts/with-node22.sh forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive` ✅
+- Live data repair verification:
+  - `Shona's IT Hack` `event_schedule` already includes day-2 builder-backed custom events.
+  - `Milestone` rows for event `d3f7bb14-7d8f-4e92-8740-23b02994b4d4` now total `14` after repair.
+
+### Operational Caveat
+- Hosted browser automation is still blocked by Atlassian authentication in both Playwright MCP and Chrome DevTools from this environment, so I could not click through the real Confluence page end-to-end after the repair.
+
 ## Session Update - App View Handoff Stops Opening New Tabs (Mar 7, 2026 10:05 GMT)
 
 ### What Changed

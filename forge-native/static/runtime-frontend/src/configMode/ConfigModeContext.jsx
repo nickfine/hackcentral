@@ -378,6 +378,14 @@ export function ConfigModeProvider({
   }, [eventBranding]);
 
   useEffect(() => {
+    if (!publishSuccess) return undefined;
+    const timerId = window.setTimeout(() => {
+      setPublishSuccess(null);
+    }, 6000);
+    return () => window.clearTimeout(timerId);
+  }, [publishSuccess]);
+
+  useEffect(() => {
     setPublishedMotdMessage(normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || '') || null);
   }, [eventAdminMessage]);
 
@@ -616,13 +624,17 @@ export function ConfigModeProvider({
         setEditingKey(null);
         setPublishSuccess({
           at: result?.publishedAt || new Date().toISOString(),
-          message: 'Published successfully. Participant view is now updated.',
+          message: 'Published successfully. Participant view is now updated and Config Mode is now off.',
         });
         try {
           await onRefreshEventPhase?.();
         } catch (refreshErr) {
           console.warn('[ConfigMode] refresh after publish failed:', refreshErr);
         }
+        setIsEnabled(false);
+        setIsDrawerOpen(false);
+        setEditingKey(null);
+        setPendingConfirmType(null);
         return { success: true, result };
       }
 
@@ -670,8 +682,12 @@ export function ConfigModeProvider({
       setEditingKey(null);
       setPublishSuccess({
         at: new Date().toISOString(),
-        message: 'Published successfully. Participant view is now updated.',
+        message: 'Published successfully. Participant view is now updated and Config Mode is now off.',
       });
+      setIsEnabled(false);
+      setIsDrawerOpen(false);
+      setEditingKey(null);
+      setPendingConfirmType(null);
       return { success: true };
     } catch (err) {
       console.error('[ConfigMode] publishDraft failed:', err);

@@ -1326,6 +1326,17 @@ function extractEventNotNullColumn(error) {
   return match ? match[1] : null;
 }
 
+function extractMissingMilestoneColumn(error) {
+  const message = normalizeSupabaseErrorMessage(error);
+  const quoted = message.match(/column\s+"Milestone"\."([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (quoted) return quoted[1];
+  const plain = message.match(/column\s+Milestone\.([a-zA-Z0-9_]+)\s+does not exist/i);
+  if (plain) return plain[1];
+  const pgrst = message.match(/Could not find the '([a-zA-Z0-9_]+)' column of 'Milestone' in the schema cache/i);
+  if (pgrst) return pgrst[1];
+  return null;
+}
+
 function normalizeEventUpdatePayload(updatePayload) {
   const next = {};
   for (const [key, value] of Object.entries(updatePayload || {})) {
@@ -2803,9 +2814,39 @@ async function replaceEventMilestonesForSchedule(supabase, eventId, milestones) 
     return { deleted: true, createdCount: 0 };
   }
 
-  const { error: insertError } = await supabase
-    .from("Milestone")
-    .insert(milestones);
+  const buildPayload = (omitSignalColumn = false) => milestones.map((milestone) => {
+    const payload = {
+      id: typeof milestone.id === "string" && milestone.id ? milestone.id : randomUUID(),
+      eventId: milestone.eventId,
+      title: milestone.title,
+      description: milestone.description ?? null,
+      phase: milestone.phase,
+      signal: milestone.signal ?? null,
+      startTime: milestone.startTime,
+      endTime: milestone.endTime ?? null,
+      location: milestone.location ?? null,
+    };
+    if (omitSignalColumn) {
+      delete payload.signal;
+    }
+    return payload;
+  });
+
+  const attemptInsert = async (omitSignalColumn = false) => {
+    const { error } = await supabase
+      .from("Milestone")
+      .insert(buildPayload(omitSignalColumn));
+    return error || null;
+  };
+
+  let insertError = await attemptInsert(false);
+  if (insertError) {
+    const missingColumn = extractMissingMilestoneColumn(insertError);
+    if (missingColumn?.toLowerCase() === "signal") {
+      console.warn('Retrying Milestone insert without missing column "signal"');
+      insertError = await attemptInsert(true);
+    }
+  }
   if (insertError) {
     throw new Error(`Failed to create schedule milestones: ${insertError.message}`);
   }

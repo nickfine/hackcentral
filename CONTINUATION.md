@@ -2646,3 +2646,36 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Open `Shona's IT Hack` in Confluence, go to `Schedule`, and click `Publish changes` once more.
 2. Confirm the modal closes successfully and the missing schedule entries now appear in the published schedule.
+
+## Session Update - Schedule Publish Milestone Fix Deployed And Shona Event Repaired (Mar 7, 2026 10:31 GMT)
+
+### Closed in this session
+- Fixed the remaining live publish failure after the `Event.updated_at` fallback patch.
+- Root cause was the runtime `replaceEventMilestonesForSchedule` path inserting `Milestone` rows without an `id`, while the production `Milestone` table requires `id text not null`.
+- Deployed the fix to Forge production and repaired `Shona's IT Hack` by restoring its milestone rows directly from the published schedule payload.
+- Improved successful publish UX so the modal closes, Config Mode turns off, and the toolbar shows a visible success notice.
+
+### Evidence
+- Production logs before fix:
+  - `Failed to create schedule milestones: null value in column "id" of relation "Milestone" violates not-null constraint`
+- Regression checks:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-event-update-fallback.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/schedule-builder-v2.spec.tsx tests/runtime-app-view-gating.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-102843Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-102843Z.md`
+  - `../scripts/with-node22.sh forge deploy -e production`
+  - `../scripts/with-node22.sh forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive`
+- Live data:
+  - `Shona's IT Hack` milestone count is now `14`
+  - restored rows include `Morning Kickoff` and the day-2 `Hacking Begins`
+
+### Current state
+- The live event data for `Shona's IT Hack` is no longer empty on the schedule side; the milestone table has been rebuilt.
+- Future publishes should no longer fail on missing `Event.updated_at` or missing `Milestone.id`.
+- Hosted browser automation remains blocked by Atlassian login, so manual UI confirmation in a signed-in session is still required for final end-to-end proof.
+
+### Suggested First Task In Next Chat
+1. In your normal signed-in browser session, open `Shona's IT Hack` and confirm the participant schedule now renders instead of `Schedule not published yet`.
+2. Make one more config edit and publish it to verify the new success flow closes the modal and turns Config Mode off.
