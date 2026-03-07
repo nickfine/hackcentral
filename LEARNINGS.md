@@ -4481,6 +4481,53 @@ Use this template at the end of every work session:
 - I intentionally stopped short of clicking the live `Publish now` CTA on `Shona's IT Hack` because that page already had a saved draft and publishing it would have made participant-facing changes.
 - The hosted proof therefore covers the new confirm surface end-to-end up to the final irreversible click; success close-out remains covered by local regression tests.
 
+## Session Update - Backup And Restore Moved To Admin Panel (Mar 7, 2026 15:16 GMT)
+
+### What Changed
+- Removed backup and restore controls from `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx` so the Config Mode drawer stays focused on draft and publish actions.
+- Added a dedicated `Backup & Restore` section to the Admin Panel Settings tab in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/AdminPanel.jsx`.
+- Kept backup creation, refresh, restore preview, and restore apply wired to the existing Config Mode context operations; this is a surface move only, not a backend change.
+
+### Validation / Evidence
+- Focused regressions:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-mode-backup-surface.spec.ts`
+- Local runtime build:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-151440Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-151440Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Operational Notes
+- This change was deployed on top of repo base commit `18e98f1`; the working tree still contains the local source/test/doc updates until they are committed.
+
+## Session Update - Backup And Restore Versioned And Re-Deployed (Mar 7, 2026 15:24 GMT)
+
+### What Changed
+- Bumped version markers to:
+  - repo `0.6.57`
+  - forge-native `0.3.35`
+  - runtime bundle `1.2.70`
+- Rebuilt and re-deployed the Admin Panel backup/restore move so production Confluence now matches the final versioned source.
+
+### Validation / Evidence
+- Focused regressions:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-mode-backup-surface.spec.ts`
+- Local runtime build:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-152329Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-152329Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Operational Notes
+- This rollout supersedes the earlier unversioned 15:16 deploy notes for the same UI move.
+- Repo base is still `18e98f1` until the follow-up commit is created and pushed.
+
 ## Session Update - Config Publish Schema Fallback And Modal Error Feedback (Mar 7, 2026 10:22 GMT)
 
 ### What Changed

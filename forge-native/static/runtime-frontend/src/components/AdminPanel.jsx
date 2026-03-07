@@ -146,11 +146,25 @@ function AdminPanel({
   const [deleteUserConfirmText, setDeleteUserConfirmText] = useState('');
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [deleteUserStatus, setDeleteUserStatus] = useState(null);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
 
   // Check if user is admin (role or event creator/co-admin from seed)
   const isAdmin = user?.role === 'admin' || isEventAdmin;
   const forgeHost = isForgeHost();
   const configModeActive = Boolean(configMode.isEnabled && configMode.canEdit);
+  const backupSnapshots = Array.isArray(configMode.backupSnapshots) ? configMode.backupSnapshots : [];
+  const backupCoverageStatus = configMode.backupCoverageStatus || null;
+  const restorePreview = configMode.restorePreview || null;
+  const isPlatformAdmin = Boolean(configMode.capabilities?.isPlatformAdmin);
+  const latestSnapshotLabel = useMemo(() => {
+    const latest = backupCoverageStatus?.latestSnapshot || null;
+    if (!latest?.createdAt) return 'No snapshots yet';
+    try {
+      return new Date(latest.createdAt).toLocaleString();
+    } catch {
+      return latest.createdAt;
+    }
+  }, [backupCoverageStatus]);
 
   // Calculate stats including voting
   const stats = useMemo(() => {
@@ -365,6 +379,16 @@ function AdminPanel({
       isMounted = false;
     };
   }, [isAdmin, activeSection, forgeHost, configModeActive, configMode.getFieldValue]);
+
+  useEffect(() => {
+    if (backupSnapshots.length === 0) {
+      setSelectedSnapshotId('');
+      return;
+    }
+    if (!selectedSnapshotId || !backupSnapshots.some((snapshot) => snapshot.snapshotId === selectedSnapshotId)) {
+      setSelectedSnapshotId(backupSnapshots[0].snapshotId);
+    }
+  }, [backupSnapshots, selectedSnapshotId]);
 
   const telemetrySummary = telemetry?.summary || {};
   const signupStepMetrics = telemetry?.signupStepMetrics || [];
@@ -1835,6 +1859,130 @@ function AdminPanel({
               >
                 {isSavingSettings ? 'Saving...' : 'Save Settings'}
               </Button>
+
+              <div className="mt-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="mb-4">
+                  <p className={ADMIN_SECTION_LABEL}>Backup & Restore</p>
+                  <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Backup safety and restore controls live here so Config Mode stays focused on draft and publish work.
+                  </p>
+                </div>
+
+                {configMode.backupError && (
+                  <Alert variant="error" className="mb-4">
+                    {configMode.backupError}
+                  </Alert>
+                )}
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div className={ADMIN_INNER_BLOCK}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">Backup Safety</p>
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          Latest snapshot: {latestSnapshotLabel}
+                        </p>
+                      </div>
+                      {backupCoverageStatus?.coverageHealthy ? (
+                        <Badge variant="success">Active</Badge>
+                      ) : (
+                        <Badge variant="warning">Needs refresh</Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => configMode.createBackupSnapshotNow()}
+                        loading={configMode.isCreatingBackup}
+                        disabled={configMode.isApplyingRestore || configMode.isPreviewingRestore}
+                      >
+                        Create Backup Now
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => configMode.refreshBackupSnapshots()}
+                        loading={configMode.isLoadingBackups}
+                        disabled={configMode.isCreatingBackup || configMode.isApplyingRestore || configMode.isPreviewingRestore}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+
+                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                      Snapshots available: {backupSnapshots.length}
+                    </p>
+                  </div>
+
+                  {isPlatformAdmin && (
+                    <div className={ADMIN_INNER_BLOCK}>
+                      <p className="text-base font-semibold text-gray-900 dark:text-white">Restore (Platform Admin)</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        Dry-run preview is required before apply.
+                      </p>
+
+                      <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Snapshot
+                      </label>
+                      <select
+                        className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        value={selectedSnapshotId}
+                        onChange={(event) => setSelectedSnapshotId(event.target.value)}
+                      >
+                        {backupSnapshots.map((snapshot) => (
+                          <option key={snapshot.snapshotId} value={snapshot.snapshotId}>
+                            {snapshot.source} • {new Date(snapshot.createdAt).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => configMode.previewBackupRestore(selectedSnapshotId)}
+                          loading={configMode.isPreviewingRestore}
+                          disabled={!selectedSnapshotId || configMode.isApplyingRestore}
+                        >
+                          Preview Restore
+                        </Button>
+                        <Button
+                          onClick={() => configMode.applyBackupRestore({})}
+                          loading={configMode.isApplyingRestore}
+                          disabled={
+                            !restorePreview ||
+                            restorePreview.snapshotId !== selectedSnapshotId ||
+                            configMode.isPreviewingRestore
+                          }
+                        >
+                          Apply Restore
+                        </Button>
+                      </div>
+
+                      {restorePreview && (
+                        <div className="mt-4 rounded-xl border border-warning/35 bg-warning/8 px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                          <p className="font-semibold text-gray-900 dark:text-white">Dry-run Summary</p>
+                          <p className="mt-1">
+                            Create: {restorePreview?.diffSummary?.totals?.toCreate || 0} • Update: {restorePreview?.diffSummary?.totals?.toUpdate || 0} • Delete: {restorePreview?.diffSummary?.totals?.toDelete || 0}
+                          </p>
+                          <p className="mt-1">
+                            Impacted pages: {restorePreview?.diffSummary?.pages?.impactedPageIds?.length || 0}
+                          </p>
+                          {Array.isArray(restorePreview?.warnings) && restorePreview.warnings.length > 0 && (
+                            <div className="mt-3 border-t border-warning/30 pt-3">
+                              <p className="font-semibold text-gray-900 dark:text-white">Warnings</p>
+                              <ul className="mt-2 space-y-1">
+                                {restorePreview.warnings.map((warning, index) => (
+                                  <li key={`${index}-${warning}`}>{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="mt-4 pt-6 border-t border-error/30">
                 <div className="p-4 rounded-xl border border-error/40 bg-error/10">
