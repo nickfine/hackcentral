@@ -2709,3 +2709,34 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Reuse `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` for any further hosted Confluence validation before trying bare MCP browser flows.
 2. If another schedule/config regression appears, start from the `Shona` artifact set as the known-good hosted baseline.
+
+## Session Update - Config Publish Footer Confirmation Deployed (Mar 7, 2026 12:59 GMT)
+
+### Closed in this session
+- Replaced the centered Config Mode publish modal with an inline footer confirmation flow in the runtime Config drawer.
+- Kept discard/exit on the modal path.
+- Made success feedback remain visible near the surviving Config control after the drawer closes.
+- Bumped version markers to repo `0.6.56`, forge-native `0.3.34`, and runtime bundle `1.2.69`.
+- Deployed the final versioned runtime change to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-143536Z.json`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-143536Z.md`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Authenticated hosted iframe check on [Shona's IT Hack](https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/24510466/Shona+s+IT+Hack) using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` verified:
+  - `Draft Actions` drawer renders live
+  - `Publish` no longer opens the old centered `Publish config changes?` modal
+  - the drawer now shows `Ready to publish` + `Publish now`
+
+### Current state
+- Production now has the lighter publish-confirm UX in Config Mode.
+- I did not click the final live `Publish now` action on `Shona's IT Hack` because that page already had a saved draft and publishing it would have changed participant-facing content.
+- The risky final step is still available for a deliberate follow-up validation if needed.
+
+### Suggested First Task In Next Chat
+1. If you want final live publish proof, use a clearly disposable test event or make a reversible low-risk draft edit before clicking `Publish now`.
+2. Otherwise treat the hosted validation as sufficient proof that the modal removal and inline footer confirmation are live.

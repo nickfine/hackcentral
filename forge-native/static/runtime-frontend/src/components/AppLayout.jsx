@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef, memo, useCallback, useMemo, useContext } from 'react';
 import {
+  CheckCircle2,
   Clock,
   Users,
   User,
@@ -26,6 +27,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  TriangleAlert,
 } from 'lucide-react';
 import NavItem from './shared/NavItem';
 import { NotificationCenter } from './shared';
@@ -381,6 +383,9 @@ const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
     isEnabled,
     isDrawerOpen,
     isLoading,
+    isPublishFooterActive,
+    publishSuccess,
+    saveError,
     status,
     toggleConfigMode,
     openDrawer,
@@ -390,47 +395,71 @@ const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
   if (!canEdit) return null;
 
   const statusLabel = CONFIG_STATUS_LABELS[status] || 'On';
+  const activeMessage = publishSuccess?.message || saveError || null;
+  const isSuccessMessage = Boolean(publishSuccess?.message);
 
   return (
-    <div className="flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={toggleConfigMode}
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-all',
-          'focus-ring-control',
-          isEnabled
-            ? 'border-teal-300/80 bg-[linear-gradient(135deg,#14b8a6_0%,#0d9488_100%)] text-white shadow-[0_10px_24px_rgba(20,184,166,0.35)] hover:brightness-105'
-            : 'border-orange-400/70 bg-[linear-gradient(135deg,#fb923c_0%,#f97316_100%)] text-[#291406] shadow-[0_10px_22px_rgba(249,115,22,0.34)] hover:brightness-105'
-        )}
-        aria-label="Config Mode"
-        title="Toggle Config Mode"
-      >
-        <Wrench className="h-3.5 w-3.5" />
-        <span>{isEnabled ? 'Config On' : 'Config Off'}</span>
-        {isLoading && (
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-        )}
-      </button>
+    <div className="flex flex-col items-start gap-1.5 sm:items-end">
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={toggleConfigMode}
+          disabled={isPublishFooterActive}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-55',
+            'focus-ring-control',
+            isEnabled
+              ? 'border-teal-300/80 bg-[linear-gradient(135deg,#14b8a6_0%,#0d9488_100%)] text-white shadow-[0_10px_24px_rgba(20,184,166,0.35)] hover:brightness-105'
+              : 'border-orange-400/70 bg-[linear-gradient(135deg,#fb923c_0%,#f97316_100%)] text-[#291406] shadow-[0_10px_22px_rgba(249,115,22,0.34)] hover:brightness-105'
+          )}
+          aria-label="Config Mode"
+          title="Toggle Config Mode"
+        >
+          <Wrench className="h-3.5 w-3.5" />
+          <span>{isEnabled ? 'Config On' : 'Config Off'}</span>
+          {isLoading && (
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          )}
+        </button>
 
-      {isEnabled && (
-        <>
-          <button
-            type="button"
-            onClick={isDrawerOpen ? closeDrawer : openDrawer}
-            className={cn(
-              'inline-flex items-center rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all',
-              'border-arena-border bg-arena-card text-text-secondary hover:text-text-primary hover:bg-arena-elevated',
-              'focus-ring-control'
-            )}
-            aria-label={isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
-          >
-            {isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
-          </button>
-          <span className="hidden rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-semibold text-teal-500 sm:inline-flex">
-            {statusLabel}
-          </span>
-        </>
+        {isEnabled && (
+          <>
+            <button
+              type="button"
+              onClick={isDrawerOpen ? closeDrawer : openDrawer}
+              disabled={isPublishFooterActive}
+              className={cn(
+                'inline-flex items-center rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-55',
+                'border-arena-border bg-arena-card text-text-secondary hover:text-text-primary hover:bg-arena-elevated',
+                'focus-ring-control'
+              )}
+              aria-label={isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
+            >
+              {isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
+            </button>
+            <span className="hidden rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-semibold text-teal-500 sm:inline-flex">
+              {statusLabel}
+            </span>
+          </>
+        )}
+      </div>
+
+      {activeMessage && (
+        <div
+          className={cn(
+            'flex max-w-[320px] items-start gap-2 rounded-lg border px-2.5 py-2 text-[11px] font-semibold shadow-sm',
+            isSuccessMessage
+              ? 'border-success/35 bg-success/10 text-success'
+              : 'border-error/35 bg-error/10 text-error'
+          )}
+        >
+          {isSuccessMessage ? (
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          )}
+          <span className="leading-snug">{activeMessage}</span>
+        </div>
       )}
     </div>
   );

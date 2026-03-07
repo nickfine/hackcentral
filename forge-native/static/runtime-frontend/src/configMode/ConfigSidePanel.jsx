@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, PanelRightClose, Save, Upload, Undo2, X, Shield } from 'lucide-react';
+import { CheckCircle2, Loader2, PanelRightClose, Save, Shield, TriangleAlert, Undo2, Upload, X } from 'lucide-react';
 import { Badge, Button } from '../components/ui';
 import { cn } from '../lib/design-system';
 import { useConfigMode } from './ConfigModeContext';
@@ -20,7 +20,11 @@ function ConfigSidePanel({ isMacroHost = false }) {
     isPublishing,
     hasUnsavedChanges,
     hasDraft,
+    saveError,
     publishSuccess,
+    publishFooterState,
+    isPublishFooterActive,
+    publishSummary,
     backupError,
     backupCoverageStatus,
     backupSnapshots,
@@ -34,10 +38,13 @@ function ConfigSidePanel({ isMacroHost = false }) {
     previewBackupRestore,
     applyBackupRestore,
     capabilities,
+    publishDraft,
+    cancelPublishDraftRequest,
   } = useConfigMode();
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
   const canDiscard = hasDraft || hasUnsavedChanges;
   const canPublish = hasDraft || hasUnsavedChanges;
+  const isFooterLocked = isPublishFooterActive;
   const isPlatformAdmin = Boolean(capabilities?.isPlatformAdmin);
   const latestSnapshotLabel = useMemo(() => {
     const latest = backupCoverageStatus?.latestSnapshot || null;
@@ -84,13 +91,19 @@ function ConfigSidePanel({ isMacroHost = false }) {
             variant="ghost"
             size="sm"
             onClick={closeDrawer}
+            disabled={isFooterLocked}
             leftIcon={<PanelRightClose className="h-4 w-4" />}
           >
             Close
           </Button>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div
+          className={cn(
+            'flex-1 space-y-4 overflow-y-auto px-4 py-4 transition-opacity',
+            isFooterLocked && 'pointer-events-none opacity-60'
+          )}
+        >
           <div className="rounded-xl border border-arena-border bg-arena-elevated px-3 py-2">
             <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Current status</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -250,45 +263,109 @@ function ConfigSidePanel({ isMacroHost = false }) {
 
         <footer className="border-t border-arena-border bg-arena-card/95 px-4 py-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text-muted">Actions</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={saveDraft}
-              loading={isSavingDraft}
-              disabled={isPublishing}
-              leftIcon={<Save className="h-4 w-4" />}
-            >
-              Save Draft
-            </Button>
-            <Button
-              size="sm"
-              onClick={requestPublishDraft}
-              loading={isPublishing}
-              disabled={isSavingDraft || !canPublish}
-              leftIcon={<Upload className="h-4 w-4" />}
-            >
-              Publish
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={requestDiscardDraft}
-              disabled={isSavingDraft || isPublishing || !canDiscard}
-              leftIcon={<Undo2 className="h-4 w-4" />}
-            >
-              Discard
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={requestExitConfigMode}
-              disabled={isSavingDraft || isPublishing}
-              leftIcon={<X className="h-4 w-4" />}
-            >
-              Exit
-            </Button>
-          </div>
+
+          {publishFooterState === 'default' ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={saveDraft}
+                loading={isSavingDraft}
+                disabled={isPublishing}
+                leftIcon={<Save className="h-4 w-4" />}
+              >
+                Save Draft
+              </Button>
+              <Button
+                size="sm"
+                onClick={requestPublishDraft}
+                loading={isPublishing}
+                disabled={isSavingDraft || !canPublish}
+                leftIcon={<Upload className="h-4 w-4" />}
+              >
+                Publish
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={requestDiscardDraft}
+                disabled={isSavingDraft || isPublishing || !canDiscard}
+                leftIcon={<Undo2 className="h-4 w-4" />}
+              >
+                Discard
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={requestExitConfigMode}
+                disabled={isSavingDraft || isPublishing}
+                leftIcon={<X className="h-4 w-4" />}
+              >
+                Exit
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-teal-500/25 bg-arena-elevated px-3 py-3">
+              <div className="flex items-start gap-2">
+                {publishFooterState === 'error' ? (
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
+                ) : publishFooterState === 'publishing' ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-500" />
+                ) : (
+                  <Upload className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-text-primary">
+                    {publishFooterState === 'publishing'
+                      ? 'Publishing changes'
+                      : publishFooterState === 'error'
+                        ? 'Publish failed'
+                        : 'Ready to publish'}
+                  </p>
+                  <p className="mt-1 text-xs text-text-secondary">
+                    {publishFooterState === 'publishing'
+                      ? 'Updating the live participant view now. Keep this drawer open until publishing finishes.'
+                      : publishFooterState === 'error'
+                        ? `${saveError}. No new changes were published.`
+                        : publishSummary.summaryText}
+                  </p>
+                </div>
+              </div>
+
+              {publishFooterState !== 'publishing' && publishSummary.sections.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {publishSummary.sections.map((section) => (
+                    <Badge key={section.id} variant="default">
+                      {section.label} {section.count}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelPublishDraftRequest}
+                  disabled={publishFooterState === 'publishing'}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={publishDraft}
+                  loading={publishFooterState === 'publishing'}
+                  leftIcon={publishFooterState === 'error' ? <Upload className="h-4 w-4" /> : undefined}
+                >
+                  {publishFooterState === 'publishing'
+                    ? 'Publishing...'
+                    : publishFooterState === 'error'
+                      ? 'Retry publish'
+                      : 'Publish now'}
+                </Button>
+              </div>
+            </div>
+          )}
         </footer>
     </aside>
   );
@@ -299,13 +376,21 @@ function ConfigSidePanel({ isMacroHost = false }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="fixed inset-0 bg-black/25 sm:hidden"
-        style={{ zIndex: 'calc(var(--z-config-drawer) - 1)' }}
-        onClick={closeDrawer}
-        aria-label="Close config actions"
-      />
+      {isFooterLocked ? (
+        <div
+          className="fixed inset-0 bg-black/25 sm:hidden"
+          style={{ zIndex: 'calc(var(--z-config-drawer) - 1)' }}
+          aria-hidden="true"
+        />
+      ) : (
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/25 sm:hidden"
+          style={{ zIndex: 'calc(var(--z-config-drawer) - 1)' }}
+          onClick={closeDrawer}
+          aria-label="Close config actions"
+        />
+      )}
       {panel}
     </>
   );

@@ -4446,6 +4446,41 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - Config Publish Footer Confirmation Deployed (Mar 7, 2026 12:59 GMT)
+
+### What Changed
+- Replaced the heavy centered Config Mode publish modal with an inline footer confirmation flow in the runtime Config drawer.
+- Publish confirmation, progress, and failure feedback now stay attached to the publish controls in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx`.
+- Discard and exit still use the modal path.
+- Strengthened post-publish feedback near the live Config control in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/AppLayout.jsx` and `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigToolbar.jsx`.
+- Version markers were bumped to:
+  - repo `0.6.56`
+  - forge-native `0.3.34`
+  - runtime bundle `1.2.69`
+- Deployed the final versioned change set to Forge production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Focused regressions:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts`
+- Local runtime build:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-143536Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-143536Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Authenticated hosted iframe verification using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed on `Shona's IT Hack`:
+  - runtime loads inside the Confluence iframe
+  - `Schedule` opens with `CONFIG ON`
+  - `Draft Actions`, `Save Draft`, `Publish`, `Discard`, and `Exit` render in the live drawer
+  - activating `Publish` no longer shows `Publish config changes?`
+  - the live drawer instead shows `Ready to publish` and `Publish now`
+
+### Operational Notes
+- I intentionally stopped short of clicking the live `Publish now` CTA on `Shona's IT Hack` because that page already had a saved draft and publishing it would have made participant-facing changes.
+- The hosted proof therefore covers the new confirm surface end-to-end up to the final irreversible click; success close-out remains covered by local regression tests.
+
 ## Session Update - Config Publish Schema Fallback And Modal Error Feedback (Mar 7, 2026 10:22 GMT)
 
 ### What Changed

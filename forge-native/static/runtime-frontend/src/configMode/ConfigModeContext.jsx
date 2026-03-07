@@ -969,6 +969,36 @@ export function ConfigModeProvider({
     };
   }, [workingPatch]);
 
+  const publishSummary = useMemo(() => {
+    const labels = changeSummary.sections.map((section) => section.label.toLowerCase());
+
+    let summaryText = 'No draft changes ready to publish.';
+    if (changeSummary.totalFields > 0) {
+      if (labels.length === 1) {
+        summaryText = `Ready to publish ${labels[0]}.`;
+      } else if (labels.length === 2) {
+        summaryText = `Ready to publish ${labels[0]} and ${labels[1]}.`;
+      } else {
+        const remainingCount = Math.max(0, changeSummary.totalFields - 1);
+        summaryText = `Ready to publish ${labels[0]} + ${remainingCount} other change${remainingCount === 1 ? '' : 's'}.`;
+      }
+    }
+
+    return {
+      ...changeSummary,
+      summaryText,
+    };
+  }, [changeSummary]);
+
+  const publishFooterState = useMemo(() => {
+    if (isPublishing) return 'publishing';
+    if (pendingConfirmType !== 'publish') return 'default';
+    if (saveError) return 'error';
+    return 'confirm';
+  }, [isPublishing, pendingConfirmType, saveError]);
+
+  const isPublishFooterActive = publishFooterState !== 'default';
+
   const requestPublishDraft = useCallback(() => {
     if (!canEdit || !isEnabled) return;
     if (!hasDraft && !hasUnsavedChanges) {
@@ -980,6 +1010,13 @@ export function ConfigModeProvider({
     setPublishSuccess(null);
     setPendingConfirmType('publish');
   }, [canEdit, isEnabled, hasDraft, hasUnsavedChanges]);
+
+  const cancelPublishDraftRequest = useCallback(() => {
+    if (isPublishing) return;
+    setPendingConfirmType(null);
+    setSaveError(null);
+    setConflict(false);
+  }, [isPublishing]);
 
   const requestDiscardDraft = useCallback(() => {
     if (!canEdit || !isEnabled) return;
@@ -997,14 +1034,6 @@ export function ConfigModeProvider({
   }, [canEdit, isEnabled, hasUnsavedChanges, forceExitConfigMode]);
 
   const confirmDialogAction = useCallback(async () => {
-    if (pendingConfirmType === 'publish') {
-      const result = await publishDraft();
-      if (result?.success) {
-        closeConfirmDialog();
-      }
-      return result;
-    }
-
     if (pendingConfirmType === 'discard') {
       await discardDraft();
       closeConfirmDialog();
@@ -1017,10 +1046,10 @@ export function ConfigModeProvider({
     }
 
     return { success: false, skipped: true };
-  }, [pendingConfirmType, publishDraft, discardDraft, closeConfirmDialog, forceExitConfigMode]);
+  }, [pendingConfirmType, discardDraft, closeConfirmDialog, forceExitConfigMode]);
 
   const confirmDialog = useMemo(() => {
-    if (!pendingConfirmType) {
+    if (!pendingConfirmType || pendingConfirmType === 'publish') {
       return {
         isOpen: false,
         type: null,
@@ -1030,19 +1059,6 @@ export function ConfigModeProvider({
         confirmVariant: 'primary',
         sections: [],
         totalFields: 0,
-      };
-    }
-
-    if (pendingConfirmType === 'publish') {
-      return {
-        isOpen: true,
-        type: 'publish',
-        title: 'Publish config changes?',
-        description: 'This will make the latest config draft visible to participants.',
-        confirmLabel: 'Publish changes',
-        confirmVariant: 'primary',
-        sections: changeSummary.sections,
-        totalFields: changeSummary.totalFields,
       };
     }
 
@@ -1069,7 +1085,7 @@ export function ConfigModeProvider({
       sections: [],
       totalFields: 0,
     };
-  }, [pendingConfirmType, changeSummary]);
+  }, [pendingConfirmType]);
 
   const toggleConfigMode = useCallback(() => {
     if (!canEdit) return;
@@ -1116,6 +1132,9 @@ export function ConfigModeProvider({
       saveError,
       conflict,
       publishSuccess,
+      publishFooterState,
+      isPublishFooterActive,
+      publishSummary,
       backupCoverageStatus,
       backupSnapshots,
       backupError,
@@ -1146,6 +1165,9 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    publishFooterState,
+    isPublishFooterActive,
+    publishSummary,
     backupCoverageStatus,
     backupSnapshots,
     backupError,
@@ -1172,6 +1194,9 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    publishFooterState,
+    isPublishFooterActive,
+    publishSummary,
     backupError,
     backupCoverageStatus,
     backupSnapshots,
@@ -1205,6 +1230,7 @@ export function ConfigModeProvider({
     previewBackupRestore,
     applyBackupRestore,
     requestPublishDraft,
+    cancelPublishDraftRequest,
     requestDiscardDraft,
     requestExitConfigMode,
     confirmDialog,
@@ -1232,6 +1258,9 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    publishFooterState,
+    isPublishFooterActive,
+    publishSummary,
     backupError,
     backupCoverageStatus,
     backupSnapshots,
@@ -1264,6 +1293,7 @@ export function ConfigModeProvider({
     previewBackupRestore,
     applyBackupRestore,
     requestPublishDraft,
+    cancelPublishDraftRequest,
     confirmDialog,
     confirmDialogAction,
     closeConfirmDialog,
@@ -1302,6 +1332,13 @@ export function useConfigMode() {
       saveError: null,
       conflict: false,
       publishSuccess: null,
+      publishFooterState: 'default',
+      isPublishFooterActive: false,
+      publishSummary: {
+        sections: [],
+        totalFields: 0,
+        summaryText: 'No draft changes ready to publish.',
+      },
       backupError: null,
       backupCoverageStatus: null,
       backupSnapshots: [],
@@ -1335,6 +1372,7 @@ export function useConfigMode() {
       previewBackupRestore: async () => ({ success: false, skipped: true }),
       applyBackupRestore: async () => ({ success: false, skipped: true }),
       requestPublishDraft: () => {},
+      cancelPublishDraftRequest: () => {},
       requestDiscardDraft: () => {},
       requestExitConfigMode: () => {},
       confirmDialog: {
