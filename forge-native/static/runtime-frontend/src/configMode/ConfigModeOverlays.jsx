@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Badge, Button, Modal } from '../components/ui';
+import { Alert, Badge, Button, Modal } from '../components/ui';
 import { useConfigMode } from './ConfigModeContext';
 import ConfigSidePanel from './ConfigSidePanel';
 
@@ -13,6 +13,7 @@ function ConfigModeOverlays() {
     closeConfirmDialog,
     isSavingDraft,
     isPublishing,
+    saveError,
   } = useConfigMode();
 
   useEffect(() => {
@@ -31,6 +32,9 @@ function ConfigModeOverlays() {
       title={confirmDialog.title}
       description={confirmDialog.description}
       size="md"
+      closeOnBackdrop={!confirmBusy}
+      closeOnEscape={!confirmBusy}
+      showCloseButton={!confirmBusy}
     >
       {confirmDialog.type === 'publish' && (
         <div className="space-y-3">
@@ -52,6 +56,16 @@ function ConfigModeOverlays() {
           ) : (
             <p className="text-sm text-text-secondary">No changes were detected in the current draft.</p>
           )}
+          {isPublishing && (
+            <Alert variant="info" title="Publishing changes">
+              Saving the draft and updating the live participant view now.
+            </Alert>
+          )}
+          {!isPublishing && saveError && (
+            <Alert variant="error" title="Publish failed">
+              {saveError}. No new changes were published.
+            </Alert>
+          )}
         </div>
       )}
 
@@ -68,7 +82,9 @@ function ConfigModeOverlays() {
           onClick={confirmDialogAction}
           loading={confirmBusy}
         >
-          {confirmDialog.confirmLabel || 'Confirm'}
+          {confirmBusy && confirmDialog.type === 'publish'
+            ? 'Publishing...'
+            : (confirmDialog.confirmLabel || 'Confirm')}
         </Button>
       </Modal.Footer>
     </Modal>

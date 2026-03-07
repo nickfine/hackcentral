@@ -2614,3 +2614,35 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Verify from a Confluence page that opening `Schedule` no longer spawns a new browser tab.
 2. If needed, decide whether the `Open App View` CTA should remain visible in macro context or be removed entirely.
+
+## Session Update - Config Publish Failures Fixed And Deployed (Mar 7, 2026 10:22 GMT)
+
+### Closed in this session
+- Fixed the live Config Mode publish failure affecting `Shona's IT Hack`.
+- Root cause was runtime `Event` updates still sending `updated_at` into a live schema that only exposes `updatedAt`, causing `publishEventConfigDraft` to fail before schedule changes were written.
+- Improved the publish modal so it now shows explicit in-modal progress and failure feedback instead of only surfacing the error in the toolbar.
+- Deployed the fix to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- Production error signature before fix:
+  - `publishEventConfigDraft error: Error: Failed to update event branding: Could not find the 'updated_at' column of 'Event' in the schema cache`
+- Regression checks:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-event-update-fallback.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/schedule-builder-v2.spec.tsx tests/runtime-app-view-gating.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run test:backend --prefix forge-native`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-101851Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-101851Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy -e production`
+  - `../scripts/with-node22.sh forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive`
+
+### Current state
+- Production now has schema-fallback `Event` updates for Config Mode publish paths.
+- The publish modal now reports publish failures inline and no longer leaves the result ambiguous.
+- `Shona's IT Hack` still needs one fresh Config Mode publish after this deploy for the fixed publish path to write the updated schedule.
+
+### Suggested First Task In Next Chat
+1. Open `Shona's IT Hack` in Confluence, go to `Schedule`, and click `Publish changes` once more.
+2. Confirm the modal closes successfully and the missing schedule entries now appear in the published schedule.

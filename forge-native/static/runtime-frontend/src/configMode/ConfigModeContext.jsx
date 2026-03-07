@@ -959,6 +959,9 @@ export function ConfigModeProvider({
       setSaveError('No draft changes to publish');
       return;
     }
+    setSaveError(null);
+    setConflict(false);
+    setPublishSuccess(null);
     setPendingConfirmType('publish');
   }, [canEdit, isEnabled, hasDraft, hasUnsavedChanges]);
 

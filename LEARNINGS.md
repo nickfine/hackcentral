@@ -4446,6 +4446,32 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - Config Publish Schema Fallback And Modal Error Feedback (Mar 7, 2026 10:22 GMT)
+
+### What Changed
+- Fixed Config Mode publish failures caused by runtime `Event` updates sending both `updatedAt` and `updated_at` into mixed live schemas.
+- Added `updateEventWithSchemaFallback` in [forge-native/src/runtime/index.js](/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js) so Config Mode draft save/discard, publish schedule sync, and branding writes retry after removing any missing `Event` column.
+- Updated the Schedule Config publish modal in [forge-native/static/runtime-frontend/src/configMode/ConfigModeOverlays.jsx](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigModeOverlays.jsx) to show inline publishing and publish-failed alerts instead of leaving the failure hidden in the toolbar.
+- Cleared stale publish errors before reopening the publish confirm dialog in [forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx).
+
+### Validation / Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-event-update-fallback.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/schedule-builder-v2.spec.tsx tests/runtime-app-view-gating.spec.ts` ✅
+- `./scripts/with-node22.sh npm run typecheck --prefix forge-native` ✅
+- `./scripts/with-node22.sh npm run test:backend --prefix forge-native` ✅
+- `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend` ✅
+- `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --environment production` ✅
+- `../scripts/with-node22.sh npm run custom-ui:build` ✅
+- `../scripts/with-node22.sh forge deploy -e production` ✅
+- `../scripts/with-node22.sh forge install --site hackdaytemp.atlassian.net --product confluence --environment production --upgrade --non-interactive` ✅
+- New predeploy artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-101851Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-101851Z.md`
+
+### Root Cause
+- Live publish attempts for `Shona's IT Hack` were failing inside `publishEventConfigDraft` before schedule changes applied.
+- Forge production logs showed `Failed to update event branding: Could not find the 'updated_at' column of 'Event' in the schema cache`, which left the publish modal spinning and the new schedule entries unapplied.
+- The UI also did not render `saveError` inside the publish modal, so users saw a stuck dialog without a clear failure explanation.
+
 ## Session Update - App View Handoff Stops Opening New Tabs (Mar 7, 2026 10:05 GMT)
 
 ### What Changed

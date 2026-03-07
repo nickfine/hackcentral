@@ -1326,6 +1326,63 @@ function extractEventNotNullColumn(error) {
   return match ? match[1] : null;
 }
 
+function normalizeEventUpdatePayload(updatePayload) {
+  const next = {};
+  for (const [key, value] of Object.entries(updatePayload || {})) {
+    if (value !== undefined) {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
+async function updateEventWithSchemaFallback(supabase, eventId, updatePayload) {
+  const initialCandidate = normalizeEventUpdatePayload(updatePayload);
+  if (!eventId || Object.keys(initialCandidate).length === 0) {
+    return { appliedPayload: initialCandidate };
+  }
+
+  const queue = [initialCandidate];
+  const seen = new Set();
+  let lastError = null;
+
+  while (queue.length > 0) {
+    const candidate = queue.shift();
+    const signature = JSON.stringify(
+      Object.entries(candidate)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => [key, value ?? null])
+    );
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+
+    const { error } = await supabase
+      .from("Event")
+      .update(candidate)
+      .eq("id", eventId);
+
+    if (!error) {
+      return { appliedPayload: candidate };
+    }
+
+    lastError = error;
+    const missingColumn = extractMissingEventColumn(error);
+    if (missingColumn && Object.prototype.hasOwnProperty.call(candidate, missingColumn)) {
+      const withoutMissing = { ...candidate };
+      delete withoutMissing[missingColumn];
+      if (Object.keys(withoutMissing).length > 0) {
+        console.warn(`Retrying Event update without missing column "${missingColumn}"`);
+        queue.push(withoutMissing);
+        continue;
+      }
+    }
+
+    break;
+  }
+
+  throw lastError;
+}
+
 function normalizeSeedPayload(seed) {
   const payload = seed?.seed_payload;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return {};
@@ -6679,11 +6736,13 @@ resolver.define("saveEventConfigDraft", async (req) => {
         await setStoredEventConfigDraft(access.event.id, nextDraft);
       },
       syncEventDraftColumn: async ({ access, nextDraft, nowIso }) => {
-        const { error } = await supabase
-          .from("Event")
-          .update({ event_config_draft: nextDraft, updatedAt: nowIso, updated_at: nowIso })
-          .eq("id", access.event.id);
-        if (error) {
+        try {
+          await updateEventWithSchemaFallback(supabase, access.event.id, {
+            event_config_draft: nextDraft,
+            updatedAt: nowIso,
+            updated_at: nowIso,
+          });
+        } catch (error) {
           throw new Error(error.message);
         }
       },
@@ -6702,13 +6761,11 @@ resolver.define("discardEventConfigDraft", async (req) => {
   await clearStoredEventConfigDraft(access.event.id);
   try {
     const nowIso = new Date().toISOString();
-    const { error } = await supabase
-      .from("Event")
-      .update({ event_config_draft: null, updatedAt: nowIso, updated_at: nowIso })
-      .eq("id", access.event.id);
-    if (error) {
-      console.warn("discardEventConfigDraft: Event.event_config_draft clear failed:", error.message);
-    }
+    await updateEventWithSchemaFallback(supabase, access.event.id, {
+      event_config_draft: null,
+      updatedAt: nowIso,
+      updated_at: nowIso,
+    });
   } catch (err) {
     console.warn("discardEventConfigDraft: Event.event_config_draft clear exception:", err.message);
   }
@@ -6779,11 +6836,13 @@ resolver.define("publishEventConfigDraft", async (req) => {
           mergedBranding = { ...existingEventBranding, ...patchBranding };
         }
 
-        const { error: eventBrandingError } = await supabase
-          .from("Event")
-          .update({ event_branding: mergedBranding, updatedAt: nowIso, updated_at: nowIso })
-          .eq("id", access.event.id);
-        if (eventBrandingError) {
+        try {
+          await updateEventWithSchemaFallback(supabase, access.event.id, {
+            event_branding: mergedBranding,
+            updatedAt: nowIso,
+            updated_at: nowIso,
+          });
+        } catch (eventBrandingError) {
           throw new Error(`Failed to update event branding: ${eventBrandingError.message}`);
         }
       },
@@ -6843,11 +6902,9 @@ resolver.define("publishEventConfigDraft", async (req) => {
           updated_at: nowIso,
         };
 
-        const { error: eventScheduleError } = await supabase
-          .from("Event")
-          .update(eventUpdatePayload)
-          .eq("id", access.event.id);
-        if (eventScheduleError) {
+        try {
+          await updateEventWithSchemaFallback(supabase, access.event.id, eventUpdatePayload);
+        } catch (eventScheduleError) {
           throw new Error(`Failed to update event schedule: ${eventScheduleError.message}`);
         }
 
@@ -6902,11 +6959,9 @@ resolver.define("publishEventConfigDraft", async (req) => {
           updatePayload.hacking_starts_at = nextPublishedSchedule.hackingStartsAt || null;
           updatePayload.submission_deadline_at = nextPublishedSchedule.submissionDeadlineAt || null;
         }
-        const { error: eventUpdateError } = await supabase
-          .from("Event")
-          .update(updatePayload)
-          .eq("id", access.event.id);
-        if (eventUpdateError) {
+        try {
+          await updateEventWithSchemaFallback(supabase, access.event.id, updatePayload);
+        } catch (eventUpdateError) {
           throw new Error(eventUpdateError.message);
         }
       },
@@ -7010,12 +7065,13 @@ resolver.define("updateEventBranding", async (req) => {
 
   if (seedError) throw new Error(`Failed to update seed branding: ${seedError.message}`);
 
-  const { error: eventError } = await supabase
-    .from("Event")
-    .update({ event_branding: mergedBranding, updatedAt: nowIso, updated_at: nowIso })
-    .eq("id", event.id);
-
-  if (eventError) {
+  try {
+    await updateEventWithSchemaFallback(supabase, event.id, {
+      event_branding: mergedBranding,
+      updatedAt: nowIso,
+      updated_at: nowIso,
+    });
+  } catch (eventError) {
     console.warn("Event.event_branding update failed (seed was updated):", eventError.message);
   }
 
