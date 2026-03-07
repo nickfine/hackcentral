@@ -2590,3 +2590,27 @@ All passed in-session.
 ### Suggested First Task In Next Chat
 1. Open `Shona's IT Hack` → `Schedule` → Config Mode and publish once.
 2. Verify the published schedule now includes the previously missing day-2 events.
+
+## Session Update - App View Handoff Stops Opening New Tabs (Mar 7, 2026 10:05 GMT)
+
+### Closed in this session
+- Removed the macro-host auto-open behavior for HackDay App View.
+- Removed popup/new-tab fallback from the explicit `Open App View` handoff path.
+- Deployed the same-tab navigation behavior to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/runtime-app-view-gating.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-100356Z.json`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-100356Z.md`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- The runtime no longer auto-jumps from macro context into App View.
+- Explicit App View launch stays in the current tab instead of using popup/new-tab fallback.
+
+### Suggested First Task In Next Chat
+1. Verify from a Confluence page that opening `Schedule` no longer spawns a new browser tab.
+2. If needed, decide whether the `Open App View` CTA should remain visible in macro context or be removed entirely.

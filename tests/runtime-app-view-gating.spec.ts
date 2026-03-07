@@ -11,7 +11,7 @@ describe('runtime app-view gating', () => {
     expect(shouldShowOpenAppViewCta({ isMacroHost: true, eventPageId: null })).toBe(false);
   });
 
-  it('auto-opens only when page-context requirements are met', () => {
+  it('does not auto-open app view from macro context', () => {
     expect(
       shouldAutoOpenAppView({
         devMode: false,
@@ -21,7 +21,7 @@ describe('runtime app-view gating', () => {
         openingAppView: false,
         alreadyAttempted: false,
       })
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       shouldAutoOpenAppView({

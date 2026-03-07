@@ -126,7 +126,6 @@ const resolvePageIdFromUrlLike = (value) => {
   return match?.[1] || null;
 };
 
-const APP_VIEW_NAV_TIMEOUT_MS = 2500;
 const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = String(import.meta.env.VITE_HDC_PERF_RUNTIME_BOOTSTRAP_V2 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
 
@@ -144,24 +143,6 @@ const navigateTopWindow = (targetUrl, { allowLocalFallback = true } = {}) => {
   if (!allowLocalFallback) return false;
   window.location.assign(targetUrl);
   return true;
-};
-
-const openWithRouterTimeout = async (router, target) => {
-  if (!router?.open) return false;
-  let timeoutId;
-  try {
-    const outcome = await Promise.race([
-      router.open(target).then(() => 'opened'),
-      new Promise((resolve) => {
-        timeoutId = setTimeout(() => resolve('timeout'), APP_VIEW_NAV_TIMEOUT_MS);
-      }),
-    ]);
-    return outcome === 'opened';
-  } catch {
-    return false;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
 };
 
 const normalizeConfluencePageId = (value) => {
@@ -826,12 +807,6 @@ function App() {
         if (navigateTopWindow(launchUrl, { allowLocalFallback: false })) {
           return;
         }
-        if (typeof window !== 'undefined') {
-          const popup = window.open(launchUrl, '_blank', 'noopener,noreferrer');
-          if (popup) return;
-        }
-        // Best-effort only; if URL-open is a no-op we'll continue to module fallback below.
-        await openWithRouterTimeout(bridge.router, launchUrl);
       }
 
       const moduleLocation = {
@@ -839,9 +814,7 @@ function App() {
         moduleKey: 'hackday-runtime-global-page',
       };
 
-      if (await openWithRouterTimeout(bridge.router, moduleLocation)) {
-        return;
-      } else if (bridge.router?.navigate) {
+      if (bridge.router?.navigate) {
         await bridge.router.navigate(moduleLocation);
       } else {
         throw new Error('Forge navigation API unavailable.');

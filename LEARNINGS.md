@@ -4446,6 +4446,32 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - App View Handoff Stops Opening New Tabs (Mar 7, 2026 10:05 GMT)
+
+### What Changed
+- Removed the macro-host auto-open behavior for HackDay App View so loading embedded runtime surfaces no longer jumps the user into a separate app view automatically.
+- Removed popup/new-tab fallback from the explicit `Open App View` handoff path in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/App.jsx`.
+- The handoff now stays in the current browser tab by using same-tab navigation only.
+- Updated the gating test in `/Users/nickster/Downloads/HackCentral/tests/runtime-app-view-gating.spec.ts` to lock the new no-auto-open behavior.
+
+### Validation / Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/runtime-app-view-gating.spec.ts` ✅
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+- Production guardrail path:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-100356Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-100356Z.md`
+  - `../scripts/with-node22.sh npm run custom-ui:build` in `forge-native` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+
+### Operational Notes
+- This change targets the macro/app-view transition path, not the internal `Schedule` route itself.
+- Users can still explicitly open App View, but the runtime no longer attempts popup/new-tab fallback during that handoff.
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
 ## Session Update - Schedule Builder Later-Day Publish Fix Deployed (Mar 7, 2026 09:58 GMT)
 
 ### What Changed
