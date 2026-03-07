@@ -4446,6 +4446,35 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - Config Drawer Regression Remediation Deployed (Mar 7, 2026 16:30 GMT)
+
+### What Changed
+- Fixed the Config drawer regression where expanded help could clip lower actions with no internal scroll path.
+- Fixed the disclosure-state regression so `How this works` collapses again every time the drawer is closed and reopened.
+- Preserved the current publish footer hierarchy and the desktop anchor beneath `Show Actions`.
+- Bumped version markers to repo `0.6.60`, forge-native `0.3.38`, and runtime bundle `1.2.73`.
+- Deployed the updated Forge app to production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Runtime guardrail:
+  - `./scripts/with-node22.sh node -v` ✅ `v22.22.0`
+- Focused validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-backup-surface.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-side-panel-layout.spec.ts` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+- Predeploy backup sweep:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-162942Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-162942Z.md`
+- Build/install path completed:
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+
+### Operational Notes
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
 ## 2026-03-07 15:41 GMT
 
 - Cleaned up the runtime Config Mode drawer chrome in `forge-native/static/runtime-frontend/src/configMode/ConfigSidePanel.jsx`:

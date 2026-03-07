@@ -75,6 +75,12 @@ function ConfigSidePanel({ isMacroHost = false }) {
     };
   }, [isDrawerOpen, isMacroHost]);
 
+  useEffect(() => {
+    if (!isDrawerOpen) {
+      setIsHelpOpen(false);
+    }
+  }, [isDrawerOpen]);
+
   if (!canEdit || !isEnabled || !isDrawerOpen) return null;
 
   const panel = (
@@ -118,145 +124,147 @@ function ConfigSidePanel({ isMacroHost = false }) {
           </div>
         </header>
 
-        <footer className="border-t border-arena-border bg-arena-card/95 px-4 py-3">
-          {publishFooterState === 'default' ? (
-            <div className="space-y-3">
-              <div className="rounded-xl border border-arena-border bg-arena-card">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
-                  onClick={() => setIsHelpOpen((open) => !open)}
-                  aria-expanded={isHelpOpen}
-                  aria-controls="config-how-this-works"
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <footer className="border-t border-arena-border bg-arena-card/95 px-4 py-3">
+            {publishFooterState === 'default' ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-arena-border bg-arena-card">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+                    onClick={() => setIsHelpOpen((open) => !open)}
+                    aria-expanded={isHelpOpen}
+                    aria-controls="config-how-this-works"
+                  >
+                    <span className="text-sm font-semibold text-text-primary">How this works</span>
+                    <span className="text-xs text-text-muted">{isHelpOpen ? 'Hide' : 'Show'}</span>
+                  </button>
+                  {isHelpOpen && (
+                    <div id="config-how-this-works" className="border-t border-arena-border px-3 py-3">
+                      <ul className="space-y-1 text-xs text-text-secondary">
+                        <li>1. Edit highlighted fields directly on the page.</li>
+                        <li>2. Save Draft to persist work without changing participant view.</li>
+                        <li>3. Publish when ready to make changes live.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div role="group" aria-label="Primary draft actions" className="space-y-2">
+                  <Button
+                    size="sm"
+                    fullWidth
+                    onClick={requestPublishDraft}
+                    loading={isPublishing}
+                    disabled={isSavingDraft || !canPublish}
+                    leftIcon={<Upload className="h-4 w-4" />}
+                  >
+                    Publish
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={saveDraft}
+                    loading={isSavingDraft}
+                    disabled={isPublishing}
+                    leftIcon={<Save className="h-4 w-4" />}
+                  >
+                    Save Draft
+                  </Button>
+                </div>
+
+                <div
+                  role="group"
+                  aria-label="Escape draft actions"
+                  className="grid grid-cols-2 gap-2 border-t border-arena-border pt-2"
                 >
-                  <span className="text-sm font-semibold text-text-primary">How this works</span>
-                  <span className="text-xs text-text-muted">{isHelpOpen ? 'Hide' : 'Show'}</span>
-                </button>
-                {isHelpOpen && (
-                  <div id="config-how-this-works" className="border-t border-arena-border px-3 py-3">
-                    <ul className="space-y-1 text-xs text-text-secondary">
-                      <li>1. Edit highlighted fields directly on the page.</li>
-                      <li>2. Save Draft to persist work without changing participant view.</li>
-                      <li>3. Publish when ready to make changes live.</li>
-                    </ul>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={requestDiscardDraft}
+                    disabled={isSavingDraft || isPublishing || !canDiscard}
+                    leftIcon={<Undo2 className="h-4 w-4" />}
+                  >
+                    Discard
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    fullWidth
+                    onClick={requestExitConfigMode}
+                    disabled={isSavingDraft || isPublishing}
+                    leftIcon={<X className="h-4 w-4" />}
+                  >
+                    Exit
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-teal-500/25 bg-arena-elevated px-3 py-3">
+                <div className="flex items-start gap-2">
+                  {publishFooterState === 'error' ? (
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
+                  ) : publishFooterState === 'publishing' ? (
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-500" />
+                  ) : (
+                    <Upload className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
+                      {publishFooterState === 'publishing'
+                        ? 'Publishing changes'
+                        : publishFooterState === 'error'
+                          ? 'Publish failed'
+                          : 'Ready to publish'}
+                    </p>
+                    <p className="mt-1 text-xs text-text-secondary">
+                      {publishFooterState === 'publishing'
+                        ? 'Updating the live participant view now. Keep this drawer open until publishing finishes.'
+                        : publishFooterState === 'error'
+                          ? `${saveError}. No new changes were published.`
+                          : publishSummary.summaryText}
+                    </p>
+                  </div>
+                </div>
+
+                {publishFooterState !== 'publishing' && publishSummary.sections.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {publishSummary.sections.map((section) => (
+                      <Badge key={section.id} variant="default">
+                        {section.label} {section.count}
+                      </Badge>
+                    ))}
                   </div>
                 )}
-              </div>
 
-              <div role="group" aria-label="Primary draft actions" className="space-y-2">
-                <Button
-                  size="sm"
-                  fullWidth
-                  onClick={requestPublishDraft}
-                  loading={isPublishing}
-                  disabled={isSavingDraft || !canPublish}
-                  leftIcon={<Upload className="h-4 w-4" />}
-                >
-                  Publish
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  fullWidth
-                  onClick={saveDraft}
-                  loading={isSavingDraft}
-                  disabled={isPublishing}
-                  leftIcon={<Save className="h-4 w-4" />}
-                >
-                  Save Draft
-                </Button>
-              </div>
-
-              <div
-                role="group"
-                aria-label="Escape draft actions"
-                className="grid grid-cols-2 gap-2 border-t border-arena-border pt-2"
-              >
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  fullWidth
-                  onClick={requestDiscardDraft}
-                  disabled={isSavingDraft || isPublishing || !canDiscard}
-                  leftIcon={<Undo2 className="h-4 w-4" />}
-                >
-                  Discard
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  fullWidth
-                  onClick={requestExitConfigMode}
-                  disabled={isSavingDraft || isPublishing}
-                  leftIcon={<X className="h-4 w-4" />}
-                >
-                  Exit
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-teal-500/25 bg-arena-elevated px-3 py-3">
-              <div className="flex items-start gap-2">
-                {publishFooterState === 'error' ? (
-                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
-                ) : publishFooterState === 'publishing' ? (
-                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-500" />
-                ) : (
-                  <Upload className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-text-primary">
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={cancelPublishDraftRequest}
+                    disabled={publishFooterState === 'publishing'}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={publishDraft}
+                    loading={publishFooterState === 'publishing'}
+                    leftIcon={publishFooterState === 'error' ? <Upload className="h-4 w-4" /> : undefined}
+                  >
                     {publishFooterState === 'publishing'
-                      ? 'Publishing changes'
+                      ? 'Publishing...'
                       : publishFooterState === 'error'
-                        ? 'Publish failed'
-                        : 'Ready to publish'}
-                  </p>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    {publishFooterState === 'publishing'
-                      ? 'Updating the live participant view now. Keep this drawer open until publishing finishes.'
-                      : publishFooterState === 'error'
-                        ? `${saveError}. No new changes were published.`
-                        : publishSummary.summaryText}
-                  </p>
+                        ? 'Retry publish'
+                        : 'Publish now'}
+                  </Button>
                 </div>
               </div>
-
-              {publishFooterState !== 'publishing' && publishSummary.sections.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {publishSummary.sections.map((section) => (
-                    <Badge key={section.id} variant="default">
-                      {section.label} {section.count}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={cancelPublishDraftRequest}
-                  disabled={publishFooterState === 'publishing'}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={publishDraft}
-                  loading={publishFooterState === 'publishing'}
-                  leftIcon={publishFooterState === 'error' ? <Upload className="h-4 w-4" /> : undefined}
-                >
-                  {publishFooterState === 'publishing'
-                    ? 'Publishing...'
-                    : publishFooterState === 'error'
-                      ? 'Retry publish'
-                      : 'Publish now'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </footer>
+            )}
+          </footer>
+        </div>
     </aside>
   );
 

@@ -1,6 +1,6 @@
 {
   "name": "hackday-central-forge-native",
-  "version": "0.3.37",
+  "version": "0.3.38",
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",

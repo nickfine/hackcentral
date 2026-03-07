@@ -2834,3 +2834,26 @@ All passed in-session.
 ### Current state
 - Production Confluence is updated to the versioned drawer hierarchy and trigger-anchor positioning.
 - I attempted a fresh authenticated hosted iframe check on `Shona's IT Hack`, but the Atlassian load path did not complete within the scripted timeout, so there is no new hosted screenshot/metric artifact for this specific anchor change.
+
+## Session Update - Config Drawer Regression Remediation Deployed (Mar 7, 2026 16:30 GMT)
+
+### Closed in this session
+- Fixed the Config drawer regression where expanded help could clip lower actions with no way to scroll to them.
+- Fixed the disclosure-state regression so `How this works` resets to collapsed whenever the drawer closes.
+- Preserved the current publish hierarchy, inline publish flow, and desktop trigger anchoring.
+- Bumped version markers to repo `0.6.60`, forge-native `0.3.38`, and runtime bundle `1.2.73`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh node -v` → `v22.22.0`
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-config-mode-backup-surface.spec.ts tests/forge-native-config-mode-publish-feedback.spec.ts tests/forge-native-config-mode-publish-footer.spec.ts tests/forge-native-config-side-panel-layout.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-162942Z.json`
+- `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260307-162942Z.md`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+
+### Current state
+- Production is updated to the regression-fix release.
+- The remaining repo-closure task is to commit and push the local versioned changes so `main` exactly matches the deployed bundle.

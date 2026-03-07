@@ -10,6 +10,8 @@ describe('ConfigSidePanel layout contract', () => {
     );
 
     expect(sidePanelSource).toContain('const [isHelpOpen, setIsHelpOpen] = useState(false);');
+    expect(sidePanelSource).toContain('if (!isDrawerOpen) {');
+    expect(sidePanelSource).toContain('setIsHelpOpen(false);');
     expect(sidePanelSource).toContain('aria-expanded={isHelpOpen}');
     expect(sidePanelSource).toContain('aria-controls="config-how-this-works"');
     expect(sidePanelSource).toContain('{isHelpOpen && (');
@@ -17,6 +19,7 @@ describe('ConfigSidePanel layout contract', () => {
     expect(sidePanelSource).toContain('role="group"');
     expect(sidePanelSource).toContain('aria-label="Primary draft actions"');
     expect(sidePanelSource).toContain('aria-label="Escape draft actions"');
+    expect(sidePanelSource).toContain('className="min-h-0 flex-1 overflow-y-auto"');
 
     const primaryActionsIndex = sidePanelSource.indexOf('aria-label="Primary draft actions"');
     const escapeActionsIndex = sidePanelSource.indexOf('aria-label="Escape draft actions"');
