@@ -1,6 +1,6 @@
 # Creating a Child HackDay App from HackCentral
 
-**Purpose:** End-to-end flow for creating a child HackDay instance from the master HackCentral (HDC) app. The child runs the HD26Forge macro and is page-scoped.
+**Purpose:** End-to-end flow for creating a child HackDay instance from the master HackCentral (HDC) app. The child runtime is page-scoped and the child page owns its schedule and branding configuration after creation.
 
 ---
 
@@ -31,13 +31,11 @@
    Navigate to the Confluence page that will act as “HackDay Central” for this space (e.g. “HackDay Central” or “Our HackDays”). Ensure the **HackDay Central** macro is on the page.
 
 2. **Confirm parent mode**  
-   The HDC macro should show “Parent page mode” and the section **“Create HackDay template instance”** with the 4-step wizard (Basic → Schedule → Rules → Review). If you see “Instance page mode” and an event name instead, this page is already an event instance; use a different page as parent or create a new Confluence page and add the HDC macro.
+   The HDC macro should show “Parent page mode” and the section **“Create HackDay template instance”** with the 2-step wizard (Setup Information → Review). If you see “Instance page mode” and an event name instead, this page is already an event instance; use a different page as parent or create a new Confluence page and add the HDC macro.
 
 3. **Fill the wizard**
-   - **Step 1 – Basic:** Event name (required), icon, primary admin email, co-admins, tagline.
-   - **Step 2 – Schedule:** Confirms that schedule setup now happens in the child HackDay page under **Schedule → Config Mode** after creation.
-   - **Step 3 – Rules:** Team size, mentoring, submission requirements, judging model, categories, prizes.
-   - **Step 4 – Review:** Confirm and click **Create Instance**. Branding is configured after creation in the child page under **Admin Panel → Branding**.
+   - **Step 1 – Setup Information:** Event name (required), icon, primary admin email, co-admins, tagline, and maximum team size.
+   - **Step 2 – Review:** Confirm and click **Create Instance**.
 
 4. **Create the instance**  
    Click **Create Instance**. The backend:

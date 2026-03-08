@@ -33,7 +33,7 @@ import {
 import { getInstanceAdminActionState } from './instanceAdminActions';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_MACRO_VERSION = '0.6.46';
+const HACKCENTRAL_MACRO_VERSION = '0.6.66';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Macro UI] loaded', HACKCENTRAL_MACRO_VERSION);
 }
@@ -192,14 +192,8 @@ interface WizardDraftState {
   votingStartsAt: string;
   votingEndsAt: string;
   resultsAnnounceAt: string;
-  allowCrossTeamMentoring: boolean;
-  minTeamSize: string;
   maxTeamSize: string;
-  requireDemoLink: boolean;
   submissionRequirements: SubmissionRequirement[];
-  judgingModel: 'panel' | 'popular_vote' | 'hybrid';
-  categoriesInput: string;
-  prizesText: string;
   bannerMessage: string;
   accentColor: string;
   bannerImageUrl: string;
@@ -355,14 +349,8 @@ export function App(): JSX.Element {
   const [votingStartsAt, setVotingStartsAt] = useState('');
   const [votingEndsAt, setVotingEndsAt] = useState('');
   const [resultsAnnounceAt, setResultsAnnounceAt] = useState('');
-  const [allowCrossTeamMentoring, setAllowCrossTeamMentoring] = useState(true);
-  const [minTeamSize, setMinTeamSize] = useState('1');
   const [maxTeamSize, setMaxTeamSize] = useState('6');
-  const [requireDemoLink, setRequireDemoLink] = useState(false);
   const [submissionRequirements, setSubmissionRequirements] = useState<SubmissionRequirement[]>([]);
-  const [judgingModel, setJudgingModel] = useState<'panel' | 'popular_vote' | 'hybrid'>('hybrid');
-  const [categoriesInput, setCategoriesInput] = useState('');
-  const [prizesText, setPrizesText] = useState('');
   const [bannerMessage, setBannerMessage] = useState('');
   const [accentColor, setAccentColor] = useState('#0f766e');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
@@ -542,14 +530,8 @@ export function App(): JSX.Element {
       votingStartsAt,
       votingEndsAt,
       resultsAnnounceAt,
-      allowCrossTeamMentoring,
-      minTeamSize,
       maxTeamSize,
-      requireDemoLink,
       submissionRequirements,
-      judgingModel,
-      categoriesInput,
-      prizesText,
       bannerMessage,
       accentColor,
       bannerImageUrl,
@@ -558,23 +540,17 @@ export function App(): JSX.Element {
     }),
     [
       accentColor,
-      allowCrossTeamMentoring,
       bannerImageUrl,
       bannerMessage,
-      categoriesInput,
       coAdminsInput,
       eventIcon,
       eventName,
       eventTagline,
       hackingStartsAt,
-      judgingModel,
       maxTeamSize,
-      minTeamSize,
-      prizesText,
       primaryAdminEmail,
       registrationClosesAt,
       registrationOpensAt,
-      requireDemoLink,
       resultsAnnounceAt,
       submissionDeadlineAt,
       submissionRequirements,
@@ -608,14 +584,8 @@ export function App(): JSX.Element {
       setVotingStartsAt('');
       setVotingEndsAt('');
       setResultsAnnounceAt('');
-      setAllowCrossTeamMentoring(true);
-      setMinTeamSize('1');
       setMaxTeamSize('6');
-      setRequireDemoLink(false);
       setSubmissionRequirements([]);
-      setJudgingModel('hybrid');
-      setCategoriesInput('');
-      setPrizesText('');
       setBannerMessage('');
       setAccentColor('#0f766e');
       setBannerImageUrl('');
@@ -663,12 +633,7 @@ export function App(): JSX.Element {
       if (typeof parsed.votingStartsAt === 'string') setVotingStartsAt(parsed.votingStartsAt);
       if (typeof parsed.votingEndsAt === 'string') setVotingEndsAt(parsed.votingEndsAt);
       if (typeof parsed.resultsAnnounceAt === 'string') setResultsAnnounceAt(parsed.resultsAnnounceAt);
-      if (typeof parsed.allowCrossTeamMentoring === 'boolean') {
-        setAllowCrossTeamMentoring(parsed.allowCrossTeamMentoring);
-      }
-      if (typeof parsed.minTeamSize === 'string') setMinTeamSize(parsed.minTeamSize);
       if (typeof parsed.maxTeamSize === 'string') setMaxTeamSize(parsed.maxTeamSize);
-      if (typeof parsed.requireDemoLink === 'boolean') setRequireDemoLink(parsed.requireDemoLink);
       if (Array.isArray(parsed.submissionRequirements)) {
         setSubmissionRequirements(
           parsed.submissionRequirements.filter(
@@ -677,11 +642,6 @@ export function App(): JSX.Element {
           )
         );
       }
-      if (parsed.judgingModel === 'panel' || parsed.judgingModel === 'popular_vote' || parsed.judgingModel === 'hybrid') {
-        setJudgingModel(parsed.judgingModel);
-      }
-      if (typeof parsed.categoriesInput === 'string') setCategoriesInput(parsed.categoriesInput);
-      if (typeof parsed.prizesText === 'string') setPrizesText(parsed.prizesText);
       if (typeof parsed.bannerMessage === 'string') setBannerMessage(parsed.bannerMessage);
       if (typeof parsed.accentColor === 'string' && parsed.accentColor.trim()) setAccentColor(parsed.accentColor);
       if (typeof parsed.bannerImageUrl === 'string') setBannerImageUrl(parsed.bannerImageUrl);
@@ -742,10 +702,12 @@ export function App(): JSX.Element {
       }
 
       if (step >= 4) {
-        const minTeam = Math.max(1, Math.floor(Number(minTeamSize) || 1));
         const maxTeam = Math.max(1, Math.floor(Number(maxTeamSize) || 1));
-        if (minTeam > maxTeam) {
-          return 'Minimum team size must be less than or equal to maximum team size.';
+        if (maxTeam < 1) {
+          return 'Maximum team size must be at least 1.';
+        }
+        if (maxTeam > 999) {
+          return 'Maximum team size cannot exceed 999.';
         }
       }
 
@@ -756,7 +718,6 @@ export function App(): JSX.Element {
       eventName,
       hackingStartsAt,
       maxTeamSize,
-      minTeamSize,
       primaryAdminEmail,
       registrationClosesAt,
       registrationOpensAt,
@@ -852,12 +813,7 @@ export function App(): JSX.Element {
         .split(',')
         .map((value) => value.trim().toLowerCase())
         .filter((value) => value.length > 0);
-      const minTeam = Math.max(1, Math.floor(Number(minTeamSize) || 1));
-      const maxTeam = Math.max(minTeam, Math.floor(Number(maxTeamSize) || 1));
-      const categories = categoriesInput
-        .split(',')
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0);
+      const maxTeam = Math.min(999, Math.max(1, Math.floor(Number(maxTeamSize) || 1)));
 
       const payload: CreateInstanceDraftInput = {
         parentPageId: context.pageId,
@@ -890,14 +846,8 @@ export function App(): JSX.Element {
           resultsAnnounceAt: scheduleOutput?.resultsAnnounceAt || resultsAnnounceAt || undefined,
         },
         rules: {
-          allowCrossTeamMentoring,
-          minTeamSize: minTeam,
           maxTeamSize: maxTeam,
-          requireDemoLink,
-          judgingModel,
           submissionRequirements: submissionRequirements.length > 0 ? submissionRequirements : undefined,
-          categories: categories.length > 0 ? categories : undefined,
-          prizesText: prizesText.trim() || undefined,
         },
         branding: {
           bannerMessage: bannerMessage.trim() || undefined,
@@ -1073,20 +1023,14 @@ export function App(): JSX.Element {
     eventIcon,
     eventName,
     eventTagline,
-    allowCrossTeamMentoring,
-    requireDemoLink,
     eventDuration,
-    judgingModel,
     bannerMessage,
     accentColor,
     bannerImageUrl,
-    categoriesInput,
     hackingStartsAt,
     loadContext,
     maxTeamSize,
-    minTeamSize,
     pendingCreateRequestId,
-    prizesText,
     primaryAdminEmail,
     registrationClosesAt,
     registrationOpensAt,
@@ -1571,28 +1515,16 @@ export function App(): JSX.Element {
 
             {wizardStep === 4 ? (
               <div className="wizard-fields">
-                <label htmlFor="m-min-team">Min team size</label>
-                <input id="m-min-team" type="number" min="1" value={minTeamSize} onChange={(e) => setMinTeamSize(e.target.value)} />
                 <label htmlFor="m-max-team">Max team size</label>
-                <input id="m-max-team" type="number" min="1" value={maxTeamSize} onChange={(e) => setMaxTeamSize(e.target.value)} />
-                <label htmlFor="m-judging">Judging model</label>
-                <select id="m-judging" value={judgingModel} onChange={(e) => setJudgingModel(e.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="panel">Panel</option>
-                  <option value="popular_vote">Popular vote</option>
-                </select>
-                <div className="checkbox-row">
-                  <input id="m-cross" type="checkbox" checked={allowCrossTeamMentoring} onChange={(e) => setAllowCrossTeamMentoring(e.target.checked)} />
-                  <label htmlFor="m-cross">Allow cross-team mentoring</label>
-                </div>
-                <div className="checkbox-row">
-                  <input id="m-demo" type="checkbox" checked={requireDemoLink} onChange={(e) => setRequireDemoLink(e.target.checked)} />
-                  <label htmlFor="m-demo">Require demo link</label>
-                </div>
-                <label htmlFor="m-cats">Categories (comma-separated)</label>
-                <input id="m-cats" value={categoriesInput} onChange={(e) => setCategoriesInput(e.target.value)} placeholder="e.g. AI, Productivity" />
-                <label htmlFor="m-prizes">Prizes</label>
-                <textarea id="m-prizes" value={prizesText} onChange={(e) => setPrizesText(e.target.value)} rows={3} placeholder="Describe prizes..." />
+                <input
+                  id="m-max-team"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={3}
+                  value={maxTeamSize}
+                  onChange={(e) => setMaxTeamSize(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                />
               </div>
             ) : null}
 
@@ -1633,7 +1565,7 @@ export function App(): JSX.Element {
                     ? new Intl.DateTimeFormat('en-GB', { timeZone: scheduleOutput.timezone || timezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(scheduleOutput.submissionDeadlineAt))
                     : submissionDeadlineAt}</p>
                 ) : null}
-                <p><strong>Team size:</strong> {minTeamSize}–{maxTeamSize} · Judging: {judgingModel}</p>
+                <p><strong>Max team size:</strong> Up to {maxTeamSize}</p>
                 <p><strong>Accent:</strong> <span style={{ background: accentColor, padding: '2px 8px', borderRadius: '4px', color: '#fff', fontSize: '0.85em' }}>{accentColor}</span></p>
                 <p className="meta">Will be created as a draft child page under this parent page. From the child page header, click "Open App View" for full runtime.</p>
                 {createDraftTimedOut ? <p className="note error">Creation timed out. Click &quot;Create HackDay&quot; to retry with the same request ID.</p> : null}

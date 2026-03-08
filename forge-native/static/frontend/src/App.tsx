@@ -101,7 +101,7 @@ import {
 import { PipelineHero } from './components/pipeline';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.65';
+const HACKCENTRAL_UI_VERSION = '0.6.66';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -374,6 +374,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
     siteUrl: 'localhost',
     timezone: 'America/Los_Angeles',
   },
+  parentPageId: 'local-preview-parent-page',
   source: {
     provider: 'supabase',
     deploymentUrl: 'local-preview',
@@ -1505,13 +1506,7 @@ export function App(): JSX.Element {
   const [wCoAdminsInput, setWCoAdminsInput] = useState('');
   const [wEventNameError, setWEventNameError] = useState('');
   const [wPendingRequestId, setWPendingRequestId] = useState<string | null>(null);
-  const [wAllowCrossTeamMentoring, setWAllowCrossTeamMentoring] = useState(true);
-  const [wMinTeamSize, setWMinTeamSize] = useState('1');
   const [wMaxTeamSize, setWMaxTeamSize] = useState('6');
-  const [wRequireDemoLink, setWRequireDemoLink] = useState(false);
-  const [wJudgingModel, setWJudgingModel] = useState<'panel' | 'popular_vote' | 'hybrid'>('hybrid');
-  const [wCategoriesInput, setWCategoriesInput] = useState('');
-  const [wPrizesText, setWPrizesText] = useState('');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
   const [wTemplateMode, setWTemplateMode] = useState<'default' | 'customized'>('default');
   const [wAutoPublishToShowcaseDrafts, setWAutoPublishToShowcaseDrafts] = useState(true);
@@ -4351,13 +4346,7 @@ export function App(): JSX.Element {
     setWCoAdminsInput('');
     setWEventNameError('');
     setWPendingRequestId(null);
-    setWAllowCrossTeamMentoring(true);
-    setWMinTeamSize('1');
     setWMaxTeamSize('6');
-    setWRequireDemoLink(false);
-    setWJudgingModel('hybrid');
-    setWCategoriesInput('');
-    setWPrizesText('');
     setWLaunchMode('draft');
     setWTemplateMode('default');
     setWAutoPublishToShowcaseDrafts(true);
@@ -4385,13 +4374,13 @@ export function App(): JSX.Element {
         .some((email) => !isAdaptavistEmail(email));
       if (badCoAdmin) return `All co-admin emails must be ${ALLOWED_EMAIL_DOMAIN} addresses.`;
     }
-    if (step >= 3) {
-      const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
+    if (step >= 1) {
       const maxT = Math.max(1, Math.floor(Number(wMaxTeamSize) || 1));
-      if (minT > maxT) return 'Minimum team size must be ≤ maximum team size.';
+      if (maxT < 1) return 'Maximum team size must be at least 1.';
+      if (maxT > 999) return 'Maximum team size cannot exceed 999.';
     }
     return null;
-  }, [wCoAdminsInput, wEventName, wMaxTeamSize, wMinTeamSize, wPrimaryAdminEmail]);
+  }, [wCoAdminsInput, wEventName, wMaxTeamSize, wPrimaryAdminEmail]);
 
   const resolveAppViewUrlForPage = useCallback(async (targetPageId: string): Promise<string | null> => {
     if (previewMode || !targetPageId) return null;
@@ -4459,7 +4448,7 @@ export function App(): JSX.Element {
   }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]);
 
   useEffect(() => {
-    if (view !== 'create_hackday' || wStep !== 4) return;
+    if (view !== 'create_hackday' || wStep !== 2) return;
     if (wProblemImportLoaded || wProblemImportLoading) return;
     void loadProblemImportCandidates();
   }, [loadProblemImportCandidates, view, wProblemImportLoaded, wProblemImportLoading, wStep]);
@@ -4500,9 +4489,7 @@ export function App(): JSX.Element {
     let handoffEventId: string | null = null;
     let handoffChildPageId: string | null = null;
 
-    const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
-    const maxT = Math.max(minT, Math.floor(Number(wMaxTeamSize) || 1));
-    const categories = wCategoriesInput.split(',').map((v) => v.trim()).filter(Boolean);
+    const maxT = Math.min(999, Math.max(1, Math.floor(Number(wMaxTeamSize) || 1)));
     const coAdminEmails = wCoAdminsInput.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
 
     const payload: CreateInstanceDraftInput = {
@@ -4524,13 +4511,7 @@ export function App(): JSX.Element {
         timezone: DEFAULT_TIMEZONE,
       },
       rules: {
-        allowCrossTeamMentoring: wAllowCrossTeamMentoring,
-        minTeamSize: minT,
         maxTeamSize: maxT,
-        requireDemoLink: wRequireDemoLink,
-        judgingModel: wJudgingModel,
-        categories: categories.length > 0 ? categories : undefined,
-        prizesText: wPrizesText.trim() || undefined,
       },
       childIntegration: {
         importProblemIds: wSelectedProblemImportIds.length > 0 ? wSelectedProblemImportIds : undefined,
@@ -4551,7 +4532,7 @@ export function App(): JSX.Element {
       markHandoffStage('create_resolver', createResolverStartedAt);
       clearTimeout(timeoutId);
       setActionMessage(
-        `HackDay created! Child page: ${result.childPageId}. Open that page, then click "Open App View" for the full HackDay runtime.`
+        `HackDay created! Page: ${result.childPageId}. Open the HackDay page, then click "Open App View" for the full HackDay runtime.`
       );
       setWPendingRequestId(null);
       resetWizard();
@@ -4606,7 +4587,7 @@ export function App(): JSX.Element {
           setActionMessage('HackDay created. App view opened.');
           return;
         }
-        setActionMessage('HackDay created. App view launch was blocked, opening child page instead.');
+        setActionMessage('HackDay created. App view launch was blocked, opening the HackDay page instead.');
       }
 
       const childPagePath = childPageId ? buildConfluencePagePath(childPageId) : '';
@@ -4616,7 +4597,7 @@ export function App(): JSX.Element {
           : childPagePath;
 
       if (childPagePath) {
-        setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        setActionMessage('HackDay created. Opening the HackDay page now. Once there, use "Open App View" in the page header.');
         const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(childPagePath);
@@ -4645,7 +4626,7 @@ export function App(): JSX.Element {
       }
 
       if (result.childPageUrl) {
-        setActionMessage('HackDay created. Opening child page now. Once there, use "Open App View" in the page header.');
+        setActionMessage('HackDay created. Opening the HackDay page now. Once there, use "Open App View" in the page header.');
         const childNavigateStartedAt = Date.now();
         try {
           await router.navigate(result.childPageUrl);
@@ -4701,7 +4682,7 @@ export function App(): JSX.Element {
       });
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRequireDemoLink, wSelectedProblemImportIds, wStep, wTemplateMode]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAutoPublishToShowcaseDrafts, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wLaunchMode, wMaxTeamSize, wPendingRequestId, wPrimaryAdminEmail, wSelectedProblemImportIds, wStep, wTemplateMode]);
 
   const exportTeamPulse = (): void => {
     const exportedAt = new Date().toISOString();
@@ -7135,7 +7116,7 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>HackDays</h1>
-                  <p className="subtitle">Create HackDays from here, then use "Open App View" on the child page for the app-shell experience.</p>
+                  <p className="subtitle">Create HackDays from here, then use "Open App View" on the HackDay page for the app-shell experience.</p>
                 </div>
               </section>
 
@@ -7143,7 +7124,7 @@ export function App(): JSX.Element {
                 <div className="hackdays-hero-row">
                   <div className="hackdays-hero-copy">
                     <h2>Manage HackDay events</h2>
-                    <p>Create new HackDays, open the child page, then click "Open App View" to run in app shell.</p>
+                    <p>Create new HackDays, open the HackDay page, then click "Open App View" to run in app shell.</p>
                   </div>
                   {bootstrap?.parentPageId ? (
                     <button
@@ -7473,51 +7454,17 @@ export function App(): JSX.Element {
             <section className="wizard-page">
               <section className="wizard-page-head">
                 <h1>Create HackDay</h1>
-                <p className="subtitle">Set up your event in 4 steps</p>
+                <p className="subtitle">Complete the setup details, then review and create your HackDay.</p>
               </section>
-
-              {/* Numbered progress stepper */}
-              <div className="wizard-stepper" role="list" aria-label="Wizard progress">
-                {(['Basic Info', 'Schedule', 'Rules', 'Review'] as const).map((label, idx) => {
-                  const stepNum = idx + 1;
-                  const isDone = wStep > stepNum;
-                  const isActive = wStep === stepNum;
-                  return (
-                    <div key={label} className="ws-step-wrap">
-                      <div
-                        className={`ws-step${isActive ? ' ws-active' : ''}${isDone ? ' ws-done' : ''}`}
-                        role="listitem"
-                        aria-current={isActive ? 'step' : undefined}
-                      >
-                        <div className="ws-circle">{isDone ? '✓' : stepNum}</div>
-                        <span className="ws-label">{label}</span>
-                      </div>
-                      {idx < 3 && (
-                        <div className={`ws-line${isDone ? ' ws-line-done' : ''}`} aria-hidden />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
 
               {/* Wizard card: head / body / foot */}
               <article className="card wizard-card">
                 <div className="wizard-card-head">
-                  <p className="wizard-card-step-eyebrow">Step {wStep} of 4</p>
                   <h2 className="wizard-card-title">
                     {wStep === 1
-                      ? 'Basic Info'
-                      : wStep === 2
-                        ? 'Schedule'
-                        : wStep === 3
-                          ? 'Rules'
-                          : 'Review & Create'}
+                      ? 'Setup Information'
+                      : 'Review & Create'}
                   </h2>
-                  {wStep === 4 ? (
-                    <p className="wizard-card-subtitle">
-                      Schedule and branding setup now happen inside the child HackDay page while Config Mode is enabled.
-                    </p>
-                  ) : null}
                   {(wEventNameError || actionError) ? (
                     <p className="wizard-error" role="alert">{wEventNameError || actionError}</p>
                   ) : null}
@@ -7525,7 +7472,7 @@ export function App(): JSX.Element {
 
                 <div className="wizard-card-body">
 
-                  {/* ── Step 1: Basic Info ── */}
+                  {/* ── Step 1: Setup Information ── */}
                   {wStep === 1 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
@@ -7590,95 +7537,30 @@ export function App(): JSX.Element {
                           <span className="field-hint">Comma-separated</span>
                         </div>
                       </div>
-                    </div>
-                  ) : null}
-
-                  {/* ── Step 2: Schedule ── */}
-                  {wStep === 2 ? (
-                    <div className="wizard-fields">
-                      <div className="field-group">
-                        <p className="field-group-label">Schedule ownership</p>
-                        <div className="review-block">
-                          <div className="review-kv-grid">
-                            <span className="review-k">When to configure</span>
-                            <span className="review-v">Immediately after creation in the child HackDay page</span>
-                            <span className="review-k">Where</span>
-                            <span className="review-v">Child page → Schedule → Config Mode</span>
-                            <span className="review-k">What you can edit</span>
-                            <span className="review-v">Milestones, dates, deadlines, and participant-facing schedule copy</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="field-group">
-                        <p className="field-group-label">Branding ownership</p>
-                        <p className="subtitle">
-                          Branding is now owned by the child HackDay runtime. After creation, use Admin Panel → Branding to choose the accent colour, hero banner, and theme.
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* ── Step 3: Rules ── */}
-                  {wStep === 3 ? (
-                    <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Team</p>
-                        <div className="field-pair">
-                          <div className="field-row">
-                            <label htmlFor="w-min-team" className="field-label">Min size</label>
-                            <input id="w-min-team" className="field-input" type="number" min="1" value={wMinTeamSize} onChange={(e) => setWMinTeamSize(e.target.value)} />
-                          </div>
-                          <div className="field-row">
-                            <label htmlFor="w-max-team" className="field-label">Max size</label>
-                            <input id="w-max-team" className="field-input" type="number" min="1" value={wMaxTeamSize} onChange={(e) => setWMaxTeamSize(e.target.value)} />
-                          </div>
-                        </div>
                         <div className="field-row">
-                          <label htmlFor="w-judging" className="field-label">Judging model</label>
-                          <select id="w-judging" className="field-input" value={wJudgingModel} onChange={(e) => setWJudgingModel(e.target.value as 'panel' | 'popular_vote' | 'hybrid')}>
-                            <option value="hybrid">Hybrid — panel + community vote</option>
-                            <option value="panel">Panel only</option>
-                            <option value="popular_vote">Popular vote</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="field-group">
-                        <p className="field-group-label">Permissions</p>
-                        <label className="toggle-row">
-                          <input type="checkbox" checked={wAllowCrossTeamMentoring} onChange={(e) => setWAllowCrossTeamMentoring(e.target.checked)} />
-                          <span className="toggle-text">
-                            <span className="toggle-title">Allow cross-team mentoring</span>
-                            <span className="toggle-desc">Mentors can advise teams they're not a member of</span>
-                          </span>
-                        </label>
-                        <label className="toggle-row">
-                          <input type="checkbox" checked={wRequireDemoLink} onChange={(e) => setWRequireDemoLink(e.target.checked)} />
-                          <span className="toggle-text">
-                            <span className="toggle-title">Require demo link</span>
-                            <span className="toggle-desc">Teams must submit a demo URL to qualify for judging</span>
-                          </span>
-                        </label>
-                      </div>
-                      <div className="field-group">
-                        <p className="field-group-label">Content</p>
-                        <div className="field-row">
-                          <label htmlFor="w-categories" className="field-label">Categories</label>
-                          <input id="w-categories" className="field-input" value={wCategoriesInput} onChange={(e) => setWCategoriesInput(e.target.value)} placeholder="e.g. AI, Productivity, Tooling" />
-                          <span className="field-hint">Comma-separated</span>
-                        </div>
-                        <div className="field-row">
-                          <label htmlFor="w-prizes" className="field-label">Prizes</label>
-                          <textarea id="w-prizes" className="field-input field-textarea" value={wPrizesText} onChange={(e) => setWPrizesText(e.target.value)} placeholder="Describe prizes and recognition..." rows={3} />
+                          <label htmlFor="w-max-team" className="field-label">Max size</label>
+                          <input
+                            id="w-max-team"
+                            className="field-input field-input-short"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={3}
+                            value={wMaxTeamSize}
+                            onChange={(e) => setWMaxTeamSize(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                          />
                         </div>
                       </div>
                     </div>
                   ) : null}
 
-                  {/* ── Step 4: Review & Create ── */}
-                  {wStep === 4 ? (
+                  {/* ── Step 2: Review & Create ── */}
+                  {wStep === 2 ? (
                     <div className="wizard-fields">
                       <div className="review-block">
-                        <p className="review-block-title">Basic Info</p>
+                        <p className="review-block-title">Setup Information</p>
                         <div className="review-kv-grid">
                           <span className="review-k">Name</span>
                           <span className="review-v">{wEventIcon} {wEventName || <em>Not set</em>}</span>
@@ -7688,39 +7570,12 @@ export function App(): JSX.Element {
                           {wPrimaryAdminEmail ? (
                             <><span className="review-k">Admin</span><span className="review-v">{wPrimaryAdminEmail}</span></>
                           ) : null}
+                          <span className="review-k">Max team size</span>
+                          <span className="review-v">Up to {wMaxTeamSize} people</span>
                         </div>
                       </div>
                       <div className="review-block">
-                        <p className="review-block-title">Schedule</p>
-                        <div className="review-kv-grid">
-                          <span className="review-k">Ownership</span>
-                          <span className="review-v">Configured later in the child HackDay page</span>
-                          <span className="review-k">Edit path</span>
-                          <span className="review-v">Child page → Schedule → Config Mode</span>
-                        </div>
-                      </div>
-                      <div className="review-block">
-                        <p className="review-block-title">Rules</p>
-                        <div className="review-kv-grid">
-                          <span className="review-k">Team size</span>
-                          <span className="review-v">{wMinTeamSize}–{wMaxTeamSize} people</span>
-                          <span className="review-k">Judging</span>
-                          <span className="review-v">
-                            {wJudgingModel === 'popular_vote' ? 'Popular vote' : wJudgingModel === 'panel' ? 'Panel' : 'Hybrid'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="review-block">
-                        <p className="review-block-title">Branding</p>
-                        <div className="review-kv-grid">
-                          <span className="review-k">Ownership</span>
-                          <span className="review-v">Configured after creation in the child HackDay runtime</span>
-                          <span className="review-k">Edit path</span>
-                          <span className="review-v">Child page → Admin Panel → Branding</span>
-                        </div>
-                      </div>
-                      <div className="review-block">
-                        <p className="review-block-title">Child Integrations</p>
+                        <p className="review-block-title">HackDay Setup</p>
                         <div className="review-kv-grid">
                           <span className="review-k">Template preset</span>
                           <span className="review-v">
@@ -7763,60 +7618,68 @@ export function App(): JSX.Element {
                             </label>
                           </span>
                         </div>
-                        <div className="problem-title-actions">
-                          <p className="meta">
-                            Import high-voted pains as official challenges (vote threshold: {CHILD_IMPORT_MIN_VOTES_DEFAULT}+).
-                          </p>
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-sm"
-                            onClick={() => {
-                              void loadProblemImportCandidates();
-                            }}
-                            disabled={wProblemImportLoading}
-                          >
-                            {wProblemImportLoading ? 'Refreshing...' : 'Refresh candidates'}
-                          </button>
-                        </div>
-                        {wProblemImportError ? <p className="error-text">{wProblemImportError}</p> : null}
-                        {wProblemImportLoading ? <p className="meta">Loading pain candidates…</p> : null}
-                        {!wProblemImportLoading && wProblemImportLoaded ? (
-                          wProblemImportCandidateItems.length > 0 ? (
-                            <div className="wizard-fields">
-                              {wProblemImportCandidateItems.map((problem) => {
-                                const isSelected = wSelectedProblemImportIds.includes(problem.problemId);
-                                return (
-                                  <label key={problem.problemId} className="toggle-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={(event) =>
-                                        setWSelectedProblemImportIds((current) => {
-                                          if (event.target.checked) {
-                                            return current.includes(problem.problemId)
-                                              ? current
-                                              : [...current, problem.problemId];
-                                          }
-                                          return current.filter((id) => id !== problem.problemId);
-                                        })
-                                      }
-                                    />
-                                    <span className="toggle-text">
-                                      <span className="toggle-title">
-                                        {problem.title}
-                                      </span>
-                                      <span className="toggle-desc">
-                                        {problem.voteCount} votes · {problem.team} / {problem.domain} · {formatLabel(problem.status)}
-                                      </span>
-                                    </span>
-                                  </label>
-                                );
-                              })}
+                        <div className="review-subsection">
+                          <div className="review-subsection-head">
+                            <div>
+                              <p className="review-subsection-title">Pain Import</p>
+                              <p className="review-subsection-copy">
+                                Add high-voted pains as official HackDay challenges for this event.
+                              </p>
                             </div>
-                          ) : (
-                            <p className="meta">No import candidates match the current threshold yet.</p>
-                          )
-                        ) : null}
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                void loadProblemImportCandidates();
+                              }}
+                              disabled={wProblemImportLoading}
+                            >
+                              {wProblemImportLoading ? 'Refreshing...' : 'Refresh candidates'}
+                            </button>
+                          </div>
+                          <p className="meta">
+                            Vote threshold: {CHILD_IMPORT_MIN_VOTES_DEFAULT}+.
+                          </p>
+                          {wProblemImportError ? <p className="error-text">{wProblemImportError}</p> : null}
+                          {wProblemImportLoading ? <p className="meta">Loading pain candidates…</p> : null}
+                          {!wProblemImportLoading && wProblemImportLoaded ? (
+                            wProblemImportCandidateItems.length > 0 ? (
+                              <div className="review-subsection-body">
+                                {wProblemImportCandidateItems.map((problem) => {
+                                  const isSelected = wSelectedProblemImportIds.includes(problem.problemId);
+                                  return (
+                                    <label key={problem.problemId} className="toggle-row">
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={(event) =>
+                                          setWSelectedProblemImportIds((current) => {
+                                            if (event.target.checked) {
+                                              return current.includes(problem.problemId)
+                                                ? current
+                                                : [...current, problem.problemId];
+                                            }
+                                            return current.filter((id) => id !== problem.problemId);
+                                          })
+                                        }
+                                      />
+                                      <span className="toggle-text">
+                                        <span className="toggle-title">
+                                          {problem.title}
+                                        </span>
+                                        <span className="toggle-desc">
+                                          {problem.voteCount} votes · {problem.team} / {problem.domain} · {formatLabel(problem.status)}
+                                        </span>
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="meta">No import candidates match the current threshold yet.</p>
+                            )
+                          ) : null}
+                        </div>
                       </div>
                       <div className="launch-mode-toggle" role="group" aria-label="Launch mode">
                         <label className={`launch-mode-option${wLaunchMode === 'draft' ? ' launch-mode-selected' : ''}`}>
@@ -7843,8 +7706,8 @@ export function App(): JSX.Element {
                           />
                           <span className="launch-mode-icon">🚀</span>
                           <span className="launch-mode-text">
-                            <span className="launch-mode-title">Go live immediately</span>
-                            <span className="launch-mode-desc">Open for registration as soon as it's created</span>
+                            <span className="launch-mode-title">Open registration immediately</span>
+                            <span className="launch-mode-desc">Start in registration now and finish schedule setup in the HackDay page</span>
                           </span>
                         </label>
                       </div>
@@ -7864,7 +7727,7 @@ export function App(): JSX.Element {
                       Cancel
                     </button>
                   )}
-                  {wStep < 4 ? (
+                  {wStep < 2 ? (
                     <button
                       type="button"
                       className="btn btn-primary"

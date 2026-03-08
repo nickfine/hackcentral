@@ -1282,10 +1282,6 @@ export class HdcService {
     const eventSchedule = normalizeEventSchedule(input.schedule);
     validateSchedule(eventSchedule);
 
-    if (launchMode === 'go_live' && (!eventSchedule.hackingStartsAt || !eventSchedule.submissionDeadlineAt)) {
-      throw new Error('Go live requires hacking start and submission deadline.');
-    }
-
     const existingLookupStartedAt = Date.now();
     const existingByRequest = await this.repository.getEventByCreationRequestId(input.creationRequestId);
     markStage('existing_lookup', existingLookupStartedAt);

@@ -252,7 +252,7 @@ describe('HdcService hardening behavior', () => {
     const service = new ServiceClass(repo as never);
     await service.createInstanceDraft(viewer, {
       ...baseCreateInput,
-      completedStep: 5,
+      completedStep: 3,
       launchMode: 'go_live',
       schedule: {
         timezone: 'Europe/London',
@@ -284,6 +284,45 @@ describe('HdcService hardening behavior', () => {
         }),
       })
     );
+  });
+
+  it('allows go_live launch mode without hacking or submission dates', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-live-lite',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-live-lite',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-live-lite',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-live-lite',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-live-lite',
+    });
+
+    const service = new ServiceClass(repo as never);
+    await service.createInstanceDraft(viewer, {
+      ...baseCreateInput,
+      completedStep: 3,
+      launchMode: 'go_live',
+      schedule: {
+        timezone: 'Europe/London',
+      },
+    });
+
+    expect(repo.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lifecycleStatus: 'registration',
+        eventSchedule: { timezone: 'Europe/London' },
+      })
+    );
+    expect(createChildPageUnderParentMock).toHaveBeenCalledTimes(1);
   });
 
   it('creates custom-event milestones for hdc_native instances while preserving schedule metadata', async () => {
@@ -806,24 +845,6 @@ describe('HdcService hardening behavior', () => {
         },
       })
     ).rejects.toThrow('Registration close must be after registration open.');
-
-    expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
-    expect(repo.getEventByCreationRequestId).not.toHaveBeenCalled();
-  });
-
-  it('rejects go_live launch mode when hacking/submission dates are missing', async () => {
-    const repo = createRepoMock();
-    const service = new ServiceClass(repo as never);
-
-    await expect(
-      service.createInstanceDraft(viewer, {
-        ...baseCreateInput,
-        launchMode: 'go_live',
-        schedule: {
-          timezone: 'Europe/London',
-        },
-      })
-    ).rejects.toThrow('Go live requires hacking start and submission deadline.');
 
     expect(createChildPageUnderParentMock).not.toHaveBeenCalled();
     expect(repo.getEventByCreationRequestId).not.toHaveBeenCalled();
