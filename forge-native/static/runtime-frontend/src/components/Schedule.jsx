@@ -637,7 +637,7 @@ function UnpublishedScheduleState({ canEdit, isConfigEnabled, onToggleConfigMode
   );
 }
 
-function Schedule({ onNavigate }) {
+function Schedule({ onNavigate, eventPageId = null }) {
   const configMode = useConfigMode();
   const [milestones, setMilestones] = useState([]);
   const [hasPublishedSchedule, setHasPublishedSchedule] = useState(false);
@@ -650,6 +650,10 @@ function Schedule({ onNavigate }) {
   const effectiveSchedule = configMode.effectiveSchedule;
   const canEditSchedule = Boolean(configMode.canEdit);
   const showEditor = Boolean(configMode.isEnabled && canEditSchedule);
+  const resolverPayload =
+    typeof eventPageId === 'string' && eventPageId.trim()
+      ? { appMode: true, pageId: eventPageId.trim() }
+      : null;
 
   const fetchSchedule = useCallback(async () => {
     setIsLoading(true);
@@ -662,7 +666,9 @@ function Schedule({ onNavigate }) {
       }
 
       const { invoke } = await import('@forge/bridge');
-      const response = await invoke('getSchedule');
+      const response = resolverPayload
+        ? await invoke('getSchedule', resolverPayload)
+        : await invoke('getSchedule');
       setMilestones(Array.isArray(response?.milestones) ? response.milestones : []);
       setHasPublishedSchedule(Boolean(response?.hasPublishedSchedule));
     } catch (error) {
@@ -672,7 +678,7 @@ function Schedule({ onNavigate }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [resolverPayload]);
 
   useEffect(() => {
     let active = true;
@@ -688,7 +694,9 @@ function Schedule({ onNavigate }) {
         }
 
         const { invoke } = await import('@forge/bridge');
-        const response = await invoke('getSchedule');
+        const response = resolverPayload
+          ? await invoke('getSchedule', resolverPayload)
+          : await invoke('getSchedule');
         if (!active) return;
         setMilestones(Array.isArray(response?.milestones) ? response.milestones : []);
         setHasPublishedSchedule(Boolean(response?.hasPublishedSchedule));
@@ -707,7 +715,7 @@ function Schedule({ onNavigate }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [resolverPayload]);
 
   useEffect(() => {
     if (!configMode.publishSuccess?.at) {

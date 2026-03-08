@@ -477,6 +477,7 @@ function Dashboard({
   devRoleOverride,
   useAdaptavistLogo = false,
   eventMeta = null,
+  eventPageId = null,
 }) {
   const configMode = useConfigMode();
   const [loading, setLoading] = useState(true);
@@ -488,6 +489,10 @@ function Dashboard({
   const [heroImageUploadError, setHeroImageUploadError] = useState('');
   const [heroImageUploadSuccess, setHeroImageUploadSuccess] = useState('');
   const heroImageFileInputRef = useRef(null);
+  const resolverPayload =
+    typeof eventPageId === 'string' && eventPageId.trim()
+      ? { appMode: true, pageId: eventPageId.trim() }
+      : null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -515,7 +520,12 @@ function Dashboard({
         const resolverCalls = [
           { key: 'registrations', promise: invoke('getRegistrations') },
           { key: 'activity', promise: invoke('getActivityFeed', { limit: 20 }) },
-          { key: 'schedule', promise: invoke('getSchedule') },
+          {
+            key: 'schedule',
+            promise: resolverPayload
+              ? invoke('getSchedule', resolverPayload)
+              : invoke('getSchedule'),
+          },
         ];
 
         const settled = await Promise.allSettled(resolverCalls.map((entry) => entry.promise));
@@ -557,7 +567,7 @@ function Dashboard({
     };
 
     loadData();
-  }, [user?.role]);
+  }, [resolverPayload, user?.role]);
 
   // Track if reminder check has been done this session
   const reminderCheckDone = useRef(false);

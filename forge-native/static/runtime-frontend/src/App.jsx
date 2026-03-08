@@ -1501,6 +1501,7 @@ function App() {
       eventMotd,
       eventAdminMessage: effectiveEventAdminMessage,
       eventMeta,
+      eventPageId,
       eventBranding: effectiveEventBranding,
       isEventAdmin,
       onRefreshEventPhase: refreshEventPhase,
@@ -1712,6 +1713,7 @@ function App() {
       user={effectiveUser}
       isEventAdmin={isEventAdmin}
       eventId={eventId}
+      eventPageId={eventPageId}
       eventBranding={eventBranding}
       eventAdminMessage={eventAdminMessage}
       isForgeHost={isForgeEnvironment()}

@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-07 16:35 GMT
+Last updated: 2026-03-08 12:07 GMT
 
 ## Current Snapshot
 
@@ -9,10 +9,11 @@ Last updated: 2026-03-07 16:35 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.60`
-  - Forge native package version: `0.3.38`
+  - Root app version: `0.6.61`
+  - Forge native package version: `0.3.39`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.59`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
+  - Runtime bundle version: `1.2.74`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -2858,3 +2859,34 @@ All passed in-session.
 - Production is updated to the regression-fix release.
 - `main` now matches the deployed production bundle at commit `89c6d94`.
 - Worktree is clean and ready for the next chat.
+
+## Session Update - App View Schedule Context Fix Deployed (Mar 8, 2026 12:07 GMT)
+
+### Closed in this session
+- Fixed the production app-shell schedule regression where `hackday-app?pageId=24510466` could show `Schedule not published yet` for `Shona's IT Hack` even though the page-macro schedule and stored data were present.
+- Root cause: the runtime frontend bootstrapped `getEventPhase` with `{ appMode: true, pageId }`, but later app-view schedule and Config Mode resolver calls omitted the page-scoped payload and could fall back to non-page/global context.
+- Updated the runtime frontend to pass the active page id into:
+  - `getSchedule` calls in the dashboard and schedule views
+  - Config Mode state, draft, publish, discard, and backup/restore resolver calls
+- Bumped version markers to repo `0.6.61`, forge-native `0.3.39`, and runtime bundle `1.2.74`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh node -v` → `v22.22.0`
+- `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-120517Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-120517Z.md`
+- Authenticated hosted app-shell verification on [Shona's IT Hack](https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466) using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime bundle `1.2.74` loaded
+  - telemetry resolved `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - the `Schedule` route now renders the published timeline instead of the unpublished empty state
+  - screenshot: `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-app-shell-schedule-postdeploy-20260308.png`
+
+### Current state
+- Production Confluence is updated to the app-view schedule context fix.
+- `Shona's IT Hack` now renders the published schedule in both the page macro and the full app-shell route.
+- Source-control closure is still pending in this workspace; the deploy is live but the changes are not committed yet.

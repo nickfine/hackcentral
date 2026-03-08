@@ -4446,6 +4446,46 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - App View Schedule Context Fix Deployed (Mar 8, 2026 12:07 GMT)
+
+### What Changed
+- Investigated the fresh production report that `Shona's IT Hack` still showed `Schedule not published yet` after a no-op publish from a clean browser session.
+- Confirmed production data was intact before code changes:
+  - `Event.event_schedule` existed for `d3f7bb14-7d8f-4e92-8740-23b02994b4d4`
+  - `Milestone` rows still existed for the same event
+  - the page-macro route rendered the published schedule correctly
+- Reproduced the actual failure on the full app-shell route:
+  - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
+  - the runtime loaded but the `Schedule` page showed `Schedule not published yet`
+  - runtime telemetry still reported the correct event context (`eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`)
+- Root cause: the runtime frontend bootstrapped app view with `{ appMode: true, pageId }` for `getEventPhase`, but later app-shell schedule and Config Mode resolver calls omitted that page-scoped payload, letting those calls drift to non-page/global resolution.
+- Fixed the runtime frontend to pass the active page id into:
+  - `getSchedule` in `Dashboard.jsx`
+  - `getSchedule` in `Schedule.jsx`
+  - Config Mode state, draft, publish, discard, and backup/restore actions in `ConfigModeContext.jsx`
+- Bumped version markers to repo `0.6.61`, forge-native `0.3.39`, and runtime bundle `1.2.74`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Runtime guardrail:
+  - `./scripts/with-node22.sh node -v` ✅ `v22.22.0`
+- Predeploy backup sweep:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-120517Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-120517Z.md`
+- Build/install path completed:
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+- Authenticated hosted app-shell check using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - console logged `[HackCentral Runtime v2] Module loaded - 1.2.74`
+  - `hackday-app?pageId=24510466` `Schedule` now renders published milestones instead of the unpublished empty state
+  - screenshot: `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-app-shell-schedule-postdeploy-20260308.png`
+
+### Operational Notes
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
 ### Current state
 - Production is updated to the regression-fix release.
 - `main` now matches the deployed bundle at commit `89c6d94`.

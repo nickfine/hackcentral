@@ -287,6 +287,7 @@ export function ConfigModeProvider({
   user,
   isEventAdmin = false,
   eventId = null,
+  eventPageId = null,
   eventBranding = {},
   eventAdminMessage = null,
   isForgeHost = false,
@@ -329,6 +330,15 @@ export function ConfigModeProvider({
   const [publishedMotdMessage, setPublishedMotdMessage] = useState(
     normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || '') || null
   );
+  const appModePayload = useMemo(() => {
+    if (typeof eventPageId !== 'string' || !eventPageId.trim()) {
+      return {};
+    }
+    return {
+      appMode: true,
+      pageId: eventPageId.trim(),
+    };
+  }, [eventPageId]);
 
   const loadedEventIdRef = useRef(null);
 
@@ -348,7 +358,7 @@ export function ConfigModeProvider({
     try {
       let response;
       if (isForgeHost) {
-        response = await invokeForgeResolver('getEventConfigModeState', {});
+        response = await invokeForgeResolver('getEventConfigModeState', appModePayload);
       } else {
         response = readLocalConfigState({ eventId, fallbackBranding: eventBranding, fallbackMotd: eventAdminMessage });
       }
@@ -371,7 +381,7 @@ export function ConfigModeProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [baseCanEdit, eventId, isForgeHost, eventBranding, eventAdminMessage]);
+  }, [appModePayload, baseCanEdit, eventId, isForgeHost, eventBranding, eventAdminMessage]);
 
   useEffect(() => {
     setPublishedBranding(eventBranding || {});
@@ -528,6 +538,7 @@ export function ConfigModeProvider({
 
       if (isForgeHost) {
         const result = await invokeForgeResolver('saveEventConfigDraft', {
+          ...appModePayload,
           expectedDraftVersion,
           patch: sanitizedPatch,
         });
@@ -581,6 +592,7 @@ export function ConfigModeProvider({
     workingPatch,
     draftEnvelope,
     isForgeHost,
+    appModePayload,
     persistLocalState,
     user,
     publishedBranding,
@@ -611,6 +623,7 @@ export function ConfigModeProvider({
 
       if (isForgeHost) {
         const result = await invokeForgeResolver('publishEventConfigDraft', {
+          ...appModePayload,
           expectedDraftVersion: currentDraft.draftVersion,
         });
         const normalized = normalizeConfigModeStateResponse(result, eventBranding, eventAdminMessage);
@@ -706,6 +719,7 @@ export function ConfigModeProvider({
     hasUnsavedChanges,
     saveDraft,
     isForgeHost,
+    appModePayload,
     eventBranding,
     eventAdminMessage,
     onRefreshEventPhase,
@@ -724,7 +738,7 @@ export function ConfigModeProvider({
 
     try {
       if (isForgeHost) {
-        const result = await invokeForgeResolver('discardEventConfigDraft', {});
+        const result = await invokeForgeResolver('discardEventConfigDraft', appModePayload);
         const nextDraft = normalizeDraftEnvelope(result?.draft || null);
         setDraftEnvelope(nextDraft);
       } else {
@@ -747,7 +761,7 @@ export function ConfigModeProvider({
       console.error('[ConfigMode] discardDraft failed:', err);
       setSaveError(err?.message || 'Failed to discard draft');
     }
-  }, [canEdit, eventId, isForgeHost, persistLocalState, publishedBranding, publishedSchedule, publishedMotdMessage]);
+  }, [appModePayload, canEdit, eventId, isForgeHost, persistLocalState, publishedBranding, publishedSchedule, publishedMotdMessage]);
 
   const refreshBackupSnapshots = useCallback(async () => {
     if (!canEdit || !eventId) return { snapshots: [], coverage: null };
@@ -759,8 +773,8 @@ export function ConfigModeProvider({
     setBackupError(null);
     try {
       const [listResponse, coverageResponse] = await Promise.all([
-        invokeForgeResolver('listEventBackupSnapshots', {}),
-        invokeForgeResolver('getEventBackupCoverageStatus', {}),
+        invokeForgeResolver('listEventBackupSnapshots', appModePayload),
+        invokeForgeResolver('getEventBackupCoverageStatus', appModePayload),
       ]);
       const snapshots = Array.isArray(listResponse?.snapshots) ? listResponse.snapshots : [];
       const coverage = coverageResponse?.coverage || listResponse?.backupCoverageStatus || null;
@@ -774,7 +788,7 @@ export function ConfigModeProvider({
     } finally {
       setIsLoadingBackups(false);
     }
-  }, [canEdit, eventId, isForgeHost]);
+  }, [appModePayload, canEdit, eventId, isForgeHost]);
 
   const createBackupSnapshotNow = useCallback(async () => {
     if (!canEdit || !eventId) return { success: false, skipped: true };
@@ -786,7 +800,7 @@ export function ConfigModeProvider({
     setIsCreatingBackup(true);
     setBackupError(null);
     try {
-      const result = await invokeForgeResolver('createEventBackupSnapshot', {});
+      const result = await invokeForgeResolver('createEventBackupSnapshot', appModePayload);
       if (result?.backupCoverageStatus) {
         setBackupCoverageStatus(result.backupCoverageStatus);
       }
@@ -799,7 +813,7 @@ export function ConfigModeProvider({
     } finally {
       setIsCreatingBackup(false);
     }
-  }, [canEdit, eventId, isForgeHost, refreshBackupSnapshots]);
+  }, [appModePayload, canEdit, eventId, isForgeHost, refreshBackupSnapshots]);
 
   const previewBackupRestore = useCallback(async (snapshotId) => {
     if (!canEdit || !eventId) return { success: false, skipped: true };
@@ -815,7 +829,7 @@ export function ConfigModeProvider({
     setIsPreviewingRestore(true);
     setBackupError(null);
     try {
-      const result = await invokeForgeResolver('previewEventBackupRestore', { snapshotId });
+      const result = await invokeForgeResolver('previewEventBackupRestore', { ...appModePayload, snapshotId });
       const dryRun = result?.dryRun || null;
       setRestorePreview(
         dryRun
@@ -837,7 +851,7 @@ export function ConfigModeProvider({
     } finally {
       setIsPreviewingRestore(false);
     }
-  }, [canEdit, eventId, isForgeHost]);
+  }, [appModePayload, canEdit, eventId, isForgeHost]);
 
   const applyBackupRestore = useCallback(async ({ snapshotId, restoreRunId, confirmationToken } = {}) => {
     if (!canEdit || !eventId) return { success: false, skipped: true };
@@ -859,6 +873,7 @@ export function ConfigModeProvider({
     setBackupError(null);
     try {
       const result = await invokeForgeResolver('applyEventBackupRestore', {
+        ...appModePayload,
         snapshotId: effectiveSnapshotId,
         restoreRunId: effectiveRestoreRunId,
         confirmationToken: effectiveConfirmationToken,
@@ -881,7 +896,7 @@ export function ConfigModeProvider({
     } finally {
       setIsApplyingRestore(false);
     }
-  }, [canEdit, eventId, isForgeHost, restorePreview, refreshBackupSnapshots, onRefreshEventPhase]);
+  }, [appModePayload, canEdit, eventId, isForgeHost, restorePreview, refreshBackupSnapshots, onRefreshEventPhase]);
 
   useEffect(() => {
     if (!baseCanEdit || !eventId || !isForgeHost) return;
