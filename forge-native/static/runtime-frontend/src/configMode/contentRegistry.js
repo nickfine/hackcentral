@@ -228,6 +228,17 @@ export const CONTENT_REGISTRY = [
     helpText: 'Second line under the hero title.',
   },
   {
+    key: 'rules.header.title',
+    page: 'rules',
+    section: 'header',
+    fieldType: CONFIG_FIELD_TYPES.TEXT,
+    sourceKind: CONFIG_SOURCE_KINDS.CONTENT_OVERRIDE,
+    editablePhase: 1,
+    maxLength: 80,
+    label: 'Rules Header Title',
+    helpText: 'Main title shown at the top of the Rules page.',
+  },
+  {
     key: 'rules.header.subtitle',
     page: 'rules',
     section: 'header',

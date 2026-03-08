@@ -207,9 +207,13 @@ function Rules({ onNavigate, maxTeamSize = 6 }) {
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-2">
             Guidelines
           </p>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2">
-            HackDay Rules
-          </h1>
+          <EditableText
+            contentKey="rules.header.title"
+            fallback="HackDay Rules"
+            as="h1"
+            frameClassName="max-w-3xl"
+            displayClassName="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2"
+          />
           <EditableTextArea
             contentKey="rules.header.subtitle"
             fallback="Guidelines and expectations for all participants"
