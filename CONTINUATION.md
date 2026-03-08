@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 17:12 GMT
+Last updated: 2026-03-08 20:58 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-08 17:12 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.66`
-  - Forge native package version: `0.3.44`
+  - Root app version: `0.6.67`
+  - Forge native package version: `0.3.45`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.78`
+  - Runtime bundle version: `1.2.79`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -160,6 +160,38 @@ Last updated: 2026-03-08 17:12 GMT
   - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts tests/forge-native-macro-create-wizard-rules-removal.spec.ts`
   - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
   - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/macro-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+
+## Session Update - v0.6.67 Runtime Branding Preview Fix Released (Mar 8, 2026 20:58 GMT)
+
+- Released commit `6e07170` to `main` and pushed to `origin/main`.
+- Version markers now deployed in production:
+  - root app `0.6.67`
+  - forge-native `0.3.45`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.79`
+- Runtime Admin Branding fixes are now live:
+  - uploaded banner preview is constrained to `400px` height with aspect ratio preserved (`object-fit: contain`)
+  - saved draft branding now restores banner image state when revisiting Admin Branding before publish
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy backup snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.md)
+  - Forge CLI result: `forge deploy --environment production --no-verify` -> `✔ Deployed`
+  - Forge install result: production site already at latest version after upgrade
+- Hosted runtime validation passed with the saved authenticated Playwright state:
+  - runtime app-shell logged `[HackCentral Runtime v2] Module loaded - 1.2.79`
+  - admin branding preview CSS reported `max-height: 400px` and `object-fit: contain`
+  - draft banner URL persisted after leaving and returning to Branding before publish
+  - artifacts:
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.json)
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.md)
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.png)
+- Local validation executed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
   - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
   - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
     - `[hdc-performance-telemetry]`

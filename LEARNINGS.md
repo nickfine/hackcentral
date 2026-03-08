@@ -20,11 +20,52 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.66 (root app)
+**Version:** 0.6.67 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.44
-**Runtime Bundle Version:** 1.2.78
+**Forge Native Package:** 0.3.45
+**Runtime Bundle Version:** 1.2.79
+
+## Session Update - v0.6.67 Runtime Branding Preview Fix Deployed To Production (Mar 8, 2026 20:58 GMT)
+
+### Completed
+
+- Released runtime branding follow-up to production from commit `6e07170`.
+- Bumped version markers to:
+  - root app `0.6.67`
+  - forge-native `0.3.45`
+  - runtime bundle `1.2.79`
+- Left the unchanged global and macro cache-buster markers at `0.6.66`.
+- Runtime Admin Branding fixes now live:
+  - banner preview uses contained rendering with a `400px` height cap
+  - config-mode draft branding rehydrates banner image state when revisiting Branding before publish
+
+### Validation
+
+- Local release validation passed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-205258Z.md)
+  - Forge deploy returned `✔ Deployed`
+  - Forge install confirmed production was at latest version after upgrade
+- Hosted runtime validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.79`
+  - admin branding preview CSS reported `max-height: 400px` and `object-fit: contain`
+  - saved draft banner URL persisted after leaving and returning to the Branding tab before publish
+  - artifacts:
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.json)
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.md)
+    - [`runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-draft-postdeploy-2026-03-08T20-56-55-546Z.png)
+
+### Learned
+
+- The runtime branding editor must hydrate from config-mode draft state even when the published event branding has not changed yet; otherwise upload/save-draft flows look like they failed when users return to Admin.
+- For large uploaded assets, the admin preview should use explicit containment constraints rather than inheriting hero-like full-bleed behavior.
 
 ## Session Update - v0.6.66 Create Flow Cleanup Deployed To Production (Mar 8, 2026 17:12 GMT)
 
