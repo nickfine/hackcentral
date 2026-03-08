@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-03-08T15:28:44.991Z",
+  "storageStatePath": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "releaseMarkers": {
+    "root": "0.6.65",
+    "forgeNative": "0.3.43",
+    "ui": "0.6.65",
+    "macro": "0.6.46",
+    "runtime": "1.2.78"
+  },
+  "runtime": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/260a3b8b-3187-4c3a-ad00-e95a3697f77c/runtime-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "runtimeLog": "[HackCentral Runtime v2] Module loaded - 1.2.78",
+    "uiLog": null,
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/release-runtime-version-check-2026-03-08T15-28-44-296Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-c913801104fd47da8ecdd177d98104e9' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-c913801104fd47da8ecdd177d98104e9' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Deprecated API for given entry type.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "[HackCentral Runtime v2] Module loaded - 1.2.78",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "[hdc-performance-telemetry] {\"metric\":\"runtime_first_load\",\"source\":\"runtime_frontend\",\"mode\":\"legacy\",\"durationMs\":5153,\"stageMs\":{\"get_context\":1,\"activate_context\":1503,\"legacy_parallel_resolvers\":2338},\"outcome\":\"success\",\"warning\":null,\"eventId\":\"d3f7bb14-7d8f-4e92-8740-23b02994b4d4\",\"pageId\":\"24510466\",\"runtimeSource\":\"seed_mapping\"}"
+    ]
+  },
+  "global": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/260a3b8b-3187-4c3a-ad00-e95a3697f77c/custom-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "runtimeLog": null,
+    "uiLog": "[HackCentral Confluence UI] loaded 0.6.65",
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-version-check-2026-03-08T15-28-44-296Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-12dd2ffaffa944f7822fd37fd3f9602a' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-12dd2ffaffa944f7822fd37fd3f9602a' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "Deprecated API for given entry type.",
+      "[HackCentral Confluence UI] loaded 0.6.65",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "[hdc-switcher-telemetry] {\"source\":\"global.bootstrap.live\",\"total\":2,\"nonNavigable\":0,\"withMissingPageId\":0}"
+    ]
+  }
+}

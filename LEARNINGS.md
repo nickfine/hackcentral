@@ -20,11 +20,11 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.64 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.59`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.65 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.65`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.42
-**Runtime Bundle Version:** 1.2.77
+**Forge Native Package:** 0.3.43
+**Runtime Bundle Version:** 1.2.78
 
 ## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
 
@@ -4446,6 +4446,77 @@ Use this template at the end of every work session:
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - Branding Runtime Hosted Hotfix And Validation Closure (Mar 8, 2026 15:17 GMT)
+
+### What Changed
+- While closing the pending hosted validation for the branding ownership/runtime refresh work, the first production browser pass surfaced a real runtime-only regression:
+  - the deployed `Dashboard.jsx` bundle used `useCallback` without importing it
+  - Confluence-hosted runtime crashed with `ReferenceError: useCallback is not defined`
+  - local build/test gates had not caught it because the file is plain `.jsx`
+- Fixed the missing hook import in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Dashboard.jsx`.
+- Added a focused source-contract test in `/Users/nickster/Downloads/HackCentral/tests/forge-native-runtime-hook-imports.spec.ts`.
+- Rebuilt and redeployed Forge production without changing version markers, per the current user constraint.
+- Completed the previously undone hosted validation items using the saved authenticated Playwright state:
+  - runtime Admin Branding tab
+  - runtime dashboard hero banner
+  - HackCentral create wizard
+
+### Validation / Evidence
+- Targeted local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-hook-imports.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Production deploy sequence:
+  - `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-151000Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-151000Z.md`
+- Hosted validation artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-ownership-postdeploy-validation-2026-03-08T15-17-31-952Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-ownership-postdeploy-validation-2026-03-08T15-17-31-952Z.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-admin-postdeploy-2026-03-08T15-17-31-952Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-dashboard-postdeploy-2026-03-08T15-17-31-952Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/create-wizard-branding-postdeploy-2026-03-08T15-17-31-952Z.png`
+
+### Key Learnings
+- For runtime `.jsx` surfaces, a successful Vite build is not enough protection against missing React hook imports; add source-contract coverage when a file uses hooks without type-checked imports.
+- Hosted Confluence validation should happen immediately after deploy for runtime-heavy changes. This regression was invisible in local validation but obvious in the authenticated iframe run.
+- When live branding already has a banner asset, it is safer to validate the save path by changing accent only in Config Mode, confirming dashboard banner render, then restoring the draft. That proves draft persistence and runtime consumption without publishing or disturbing participant-facing branding.
+
+## Session Update - Versioned Production Snapshot Created (Mar 8, 2026 15:29 GMT)
+
+### What Changed
+- Converted the branding/runtime refresh work into a versioned production snapshot so future development can continue locally without ambiguity about the live baseline.
+- Bumped release markers to:
+  - root app `0.6.65`
+  - forge-native `0.3.43`
+  - HackCentral UI marker `0.6.65`
+  - runtime package and bundle `1.2.78`
+- Left the macro marker at `0.6.46` because the macro frontend was unchanged in this release.
+- Rebuilt and redeployed production after the version bump.
+
+### Validation / Evidence
+- Targeted validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-runtime-event-scoping.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts tests/forge-native-runtime-hook-imports.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Deploy sequence:
+  - `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Final hosted version smoke artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-08T15-28-44-296Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-runtime-version-check-2026-03-08T15-28-44-296Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-version-check-2026-03-08T15-28-44-296Z.png`
+
+### Key Learnings
+- If you want a stable production checkpoint before more iteration, version the live bundle markers and verify those exact console markers in hosted Confluence immediately after deploy.
+- For this repo, the right split is now clear: production is the `0.6.65 / 0.3.43 / 1.2.78` snapshot; further feature work should be developed and tested locally first, then promoted in a later deliberate release.
 
 ## Session Update - App View Event Scoping Consistency Deployed (Mar 8, 2026 12:36 GMT)
 

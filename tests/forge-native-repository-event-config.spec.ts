@@ -32,7 +32,6 @@ const baseCreateEventInput = {
     prizesText: 'Top 3 awards',
   },
   eventBranding: {
-    bannerMessage: 'Build boldly',
     accentColor: '#123abc',
     bannerImageUrl: 'https://cdn.example.com/banner.png',
     themePreference: 'light',

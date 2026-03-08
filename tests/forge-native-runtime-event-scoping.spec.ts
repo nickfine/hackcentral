@@ -47,6 +47,8 @@ describe('runtime app-view event scoping contract', () => {
     expect(adminSource).toContain("invokeEventScopedResolver(invoke, 'updateEventSettings', appModeResolverPayload, {");
     expect(adminSource).toContain("invokeEventScopedResolver(invoke, 'adminResetEventData', appModeResolverPayload, {");
     expect(adminSource).toContain("invokeEventScopedResolver(invoke, 'updateEventBranding', appModeResolverPayload, {");
+    expect(adminSource).toContain("uploadHeroImageInline({");
+    expect(adminSource).toContain("invokeEventScopedResolver(invoke, resolverName, appModeResolverPayload, payload)");
 
     expect(votingSource).toContain("invokeEventScopedResolver(invoke, 'castVote', appModeResolverPayload, { teamId })");
 

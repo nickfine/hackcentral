@@ -179,7 +179,6 @@ describe('HdcService hardening behavior', () => {
         prizesText: '  First place: innovation budget  ',
       },
       branding: {
-        bannerMessage: '  Build boldly  ',
         accentColor: '  #123abc  ',
         bannerImageUrl: '  https://cdn.example.com/banner.png  ',
         themePreference: 'dark',
@@ -208,7 +207,6 @@ describe('HdcService hardening behavior', () => {
           prizesText: 'First place: innovation budget',
         },
         eventBranding: {
-          bannerMessage: 'Build boldly',
           accentColor: '#123abc',
           bannerImageUrl: 'https://cdn.example.com/banner.png',
           themePreference: 'dark',

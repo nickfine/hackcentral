@@ -14,7 +14,7 @@ const SIZE_MAP = {
 
 const VARIANT_STYLES = {
   default: { color: 'bg-brand' },
-  teal: { color: 'bg-teal-500' },
+  teal: { color: 'bg-[var(--event-accent-base)]' },
   success: { color: 'bg-success' },
   warning: { color: 'bg-warning' },
   error: { color: 'bg-error' },

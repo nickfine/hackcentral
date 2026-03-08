@@ -2,8 +2,8 @@
  * Dashboard Page - participant-first mission control view.
  */
 
-import { useState, useEffect, memo, useMemo, useCallback, useRef } from 'react';
-import { ArrowRight, Upload } from 'lucide-react';
+import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Badge, Modal } from './ui';
 import {
   EVENT_PHASE_ORDER,
@@ -18,7 +18,6 @@ import { cn, BUTTON_VARIANTS } from '../lib/design-system';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
 import { useConfigMode } from '../configMode/ConfigModeContext';
-import { uploadHeroImageInline } from '../lib/heroImageUpload';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 
 // ============================================================================
@@ -486,10 +485,6 @@ function Dashboard({
   const [error, setError] = useState(null);
   const [showOwnerWelcome, setShowOwnerWelcome] = useState(false);
   const [dataLoadedAt, setDataLoadedAt] = useState(() => new Date().toISOString());
-  const [isHeroImageUploading, setIsHeroImageUploading] = useState(false);
-  const [heroImageUploadError, setHeroImageUploadError] = useState('');
-  const [heroImageUploadSuccess, setHeroImageUploadSuccess] = useState('');
-  const heroImageFileInputRef = useRef(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -578,44 +573,8 @@ function Dashboard({
     const next = configMode?.getFieldValue?.('branding.bannerImageUrl', fallback);
     return typeof next === 'string' ? next.trim() : '';
   }, [configMode, eventBranding?.bannerImageUrl]);
-  const heroLogoSrc = heroBannerImageUrl || (useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png');
-  const heroLogoAlt = heroBannerImageUrl
-    ? 'Uploaded event logo'
-    : (useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo');
-
-  const canEditHeroBanner = Boolean(
-    configMode?.isEnabled &&
-    configMode?.canEdit
-  );
-
-  const handleOpenHeroImagePicker = useCallback(() => {
-    if (!canEditHeroBanner || isHeroImageUploading) return;
-    heroImageFileInputRef.current?.click();
-  }, [canEditHeroBanner, isHeroImageUploading]);
-
-  const handleHeroImageFilePicked = useCallback(async (event) => {
-    const file = event.target?.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    setHeroImageUploadError('');
-    setHeroImageUploadSuccess('');
-    setIsHeroImageUploading(true);
-
-    try {
-      const { invoke } = await import('@forge/bridge');
-      const uploaded = await uploadHeroImageInline({
-        file,
-        invokeResolver: (resolverName, payload) => invoke(resolverName, payload),
-      });
-      configMode?.setFieldValue?.('branding.bannerImageUrl', uploaded.publicUrl);
-      setHeroImageUploadSuccess('Hero logo updated in draft preview.');
-    } catch (error) {
-      setHeroImageUploadError(error?.message || 'Failed to upload hero logo.');
-    } finally {
-      setIsHeroImageUploading(false);
-    }
-  }, [configMode]);
+  const heroLogoSrc = useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png';
+  const heroLogoAlt = useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo';
 
   // Check for free agent reminders when dashboard loads
   useEffect(() => {
@@ -1081,45 +1040,30 @@ function Dashboard({
       <section data-testid="dashboard-row1-status-card">
         <div
           data-testid="dashboard-hero-card"
-          className="dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border border-l-2 border-l-teal-500 px-5 py-6 sm:py-8 shadow-sm"
+          className={cn(
+            'dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border px-5 py-6 sm:py-8 shadow-sm',
+            heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
+          )}
         >
-          <input
-            ref={heroImageFileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleHeroImageFilePicked}
-          />
+          {heroBannerImageUrl ? (
+            <>
+              <img
+                src={heroBannerImageUrl}
+                alt=""
+                className="dashboard-hero-banner-image"
+              />
+              <div className="dashboard-hero-banner-overlay" aria-hidden="true" />
+            </>
+          ) : null}
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0 flex items-center gap-4">
-              <div
-                className={cn(
-                  'dashboard-hero-logo-wrap shrink-0',
-                  heroBannerImageUrl ? 'dashboard-hero-logo-wrap--uploaded' : null
-                )}
-              >
+              <div className="dashboard-hero-logo-wrap shrink-0">
                 <img
                   src={heroLogoSrc}
                   alt={heroLogoAlt}
                   data-testid="dashboard-hero-logo"
-                  className={cn('dashboard-hero-logo', heroBannerImageUrl ? 'dashboard-hero-logo--uploaded' : null)}
-                  onError={() => {
-                    setHeroImageUploadError('Unable to load uploaded logo preview. Please upload again.');
-                  }}
+                  className="dashboard-hero-logo"
                 />
-                {canEditHeroBanner ? (
-                  <button
-                    type="button"
-                    className="dashboard-hero-image-overlay-btn"
-                    onClick={handleOpenHeroImagePicker}
-                    disabled={isHeroImageUploading}
-                    aria-label={heroBannerImageUrl ? 'Change hero logo' : 'Upload hero logo'}
-                    title={heroBannerImageUrl ? 'Change hero logo' : 'Upload hero logo'}
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    <span>{isHeroImageUploading ? 'Uploading…' : 'Upload hero logo'}</span>
-                  </button>
-                ) : null}
               </div>
               <div className="min-w-0 space-y-3">
                 <div className="space-y-1">
@@ -1150,7 +1094,7 @@ function Dashboard({
                 </div>
 
                 <div data-testid="dashboard-hero-next-action" className="flex items-start gap-3">
-                  <span className="mt-1 inline-block h-4 w-1 rounded-full bg-teal-300" />
+                  <span className="dashboard-hero-accent-rail mt-1 inline-block h-4 w-1 rounded-full" />
                   <div className="space-y-1">
                     <p className="dashboard-hero-callout text-lg font-semibold">
                       Next action: {nextAction.label}
@@ -1198,12 +1142,6 @@ function Dashboard({
               </button>
             </div>
           </div>
-          {heroImageUploadError ? (
-            <p className="dashboard-hero-upload-status dashboard-hero-upload-status-error">{heroImageUploadError}</p>
-          ) : null}
-          {heroImageUploadSuccess ? (
-            <p className="dashboard-hero-upload-status dashboard-hero-upload-status-success">{heroImageUploadSuccess}</p>
-          ) : null}
         </div>
       </section>
 

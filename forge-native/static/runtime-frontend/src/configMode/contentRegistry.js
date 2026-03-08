@@ -151,17 +151,6 @@ export const CONTENT_REGISTRY = [
     helpText: 'Optional hero/banner image URL.',
   },
   {
-    key: 'branding.bannerMessage',
-    page: 'admin',
-    section: 'branding',
-    fieldType: CONFIG_FIELD_TYPES.TEXTAREA,
-    sourceKind: CONFIG_SOURCE_KINDS.BRANDING,
-    editablePhase: 1,
-    maxLength: 200,
-    label: 'Banner Message',
-    helpText: 'Optional short banner message.',
-  },
-  {
     key: 'dashboard.motd.title',
     page: 'dashboard',
     section: 'motd',

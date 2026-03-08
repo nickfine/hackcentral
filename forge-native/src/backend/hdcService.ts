@@ -916,9 +916,6 @@ function normalizeEventBranding(
   const branding: EventBranding = {
     accentColor: input?.accentColor?.trim() || '#0f766e',
   };
-  if (input?.bannerMessage?.trim()) {
-    branding.bannerMessage = input.bannerMessage.trim();
-  }
   if (input?.bannerImageUrl?.trim()) {
     branding.bannerImageUrl = input.bannerImageUrl.trim();
   }

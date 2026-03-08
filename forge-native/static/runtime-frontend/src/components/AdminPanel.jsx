@@ -3,7 +3,7 @@
  * Admin controls for event management
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Shield,
   Settings,
@@ -21,6 +21,9 @@ import {
   Palette,
   Download,
   Trash2,
+  Upload,
+  ImagePlus,
+  X,
 } from 'lucide-react';
 import { cn } from '../lib/design-system';
 import { Card, Button, Badge, Input, TextArea, SearchInput, Select, Alert, Tabs, Progress, Modal } from './ui';
@@ -30,6 +33,7 @@ import { EmptyState } from './ui/ErrorState';
 import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../data/constants';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
+import { uploadHeroImageInline } from '../lib/heroImageUpload';
 
 // ============================================================================
 // ROLE CONFIGURATION
@@ -59,9 +63,9 @@ const ADMIN_CARD_CLASS =
 const ADMIN_INNER_BLOCK =
   'p-5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl';
 /** Doc: primary button — teal only, rounded-lg */
-const ADMIN_PRIMARY_BUTTON = '!bg-teal-500 hover:!bg-teal-600 !text-white !rounded-lg';
+const ADMIN_PRIMARY_BUTTON = 'admin-brand-button !rounded-lg';
 /** Doc: current phase / accent highlight */
-const ADMIN_ACCENT_BLOCK = 'p-5 bg-teal-500/10 border border-teal-500/30 rounded-xl';
+const ADMIN_ACCENT_BLOCK = 'admin-accent-block p-5 rounded-xl';
 /** Doc: metric label/number (Event Pulse pattern) */
 const ADMIN_METRIC_LABEL = 'text-sm font-normal text-gray-600 dark:text-gray-300';
 const ADMIN_METRIC_NUMBER = 'text-sm font-semibold text-gray-900 dark:text-white';
@@ -76,6 +80,34 @@ const isForgeHost = () => {
     return false;
   }
 };
+
+const DEFAULT_BRANDING_ACCENT = '#0f766e';
+const BRANDING_PRESET_COLORS = ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#8b5cf6', '#ec4899'];
+
+function rgbComponentToHex(value) {
+  return Number(value).toString(16).padStart(2, '0');
+}
+
+function normalizeAccentColor(value, fallback = DEFAULT_BRANDING_ACCENT) {
+  const candidate = String(value || '').trim();
+  if (!candidate) return fallback;
+  if (typeof document === 'undefined' || !document.body) return fallback;
+
+  const probe = document.createElement('span');
+  probe.style.display = 'none';
+  probe.style.color = '';
+  probe.style.color = candidate;
+  if (!probe.style.color) return fallback;
+
+  document.body.appendChild(probe);
+  const computed = window.getComputedStyle(probe).color;
+  document.body.removeChild(probe);
+
+  const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (!match) return fallback;
+
+  return `#${rgbComponentToHex(match[1])}${rgbComponentToHex(match[2])}${rgbComponentToHex(match[3])}`;
+}
 
 // ============================================================================
 // COMPONENT
@@ -139,16 +171,18 @@ function AdminPanel({
     accentColor: '',
     bannerImageUrl: '',
     themePreference: 'system',
-    bannerMessage: '',
   });
   const [brandingSaveStatus, setBrandingSaveStatus] = useState(null);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [isUploadingBrandingImage, setIsUploadingBrandingImage] = useState(false);
+  const [showBannerImageAdvancedField, setShowBannerImageAdvancedField] = useState(false);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleteUserConfirmText, setDeleteUserConfirmText] = useState('');
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [deleteUserStatus, setDeleteUserStatus] = useState(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
+  const brandingImageInputRef = useRef(null);
 
   // Check if user is admin (role or event creator/co-admin from seed)
   const isAdmin = user?.role === 'admin' || isEventAdmin;
@@ -324,17 +358,25 @@ function AdminPanel({
             accentColor: configMode.getFieldValue('branding.accentColor', eventBranding?.accentColor || ''),
             bannerImageUrl: configMode.getFieldValue('branding.bannerImageUrl', eventBranding?.bannerImageUrl || ''),
             themePreference: configMode.getFieldValue('branding.themePreference', eventBranding?.themePreference || 'system') || 'system',
-            bannerMessage: configMode.getFieldValue('branding.bannerMessage', eventBranding?.bannerMessage || ''),
           }
         : (eventBranding || {});
       setBrandingForm((prev) => ({
-        accentColor: b.accentColor ?? prev.accentColor ?? '',
+        accentColor: normalizeAccentColor(b.accentColor, prev.accentColor || DEFAULT_BRANDING_ACCENT),
         bannerImageUrl: b.bannerImageUrl ?? prev.bannerImageUrl ?? '',
         themePreference: ['light', 'dark', 'system'].includes(b.themePreference) ? b.themePreference : (prev.themePreference || 'system'),
-        bannerMessage: b.bannerMessage ?? prev.bannerMessage ?? '',
       }));
     }
   }, [activeSection, eventBranding, configModeActive, configMode.getFieldValue]);
+
+  const brandingPreviewAccent = useMemo(
+    () => normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT),
+    [brandingForm.accentColor]
+  );
+
+  const brandingPreviewBannerImage = useMemo(() => {
+    const value = typeof brandingForm.bannerImageUrl === 'string' ? brandingForm.bannerImageUrl.trim() : '';
+    return value;
+  }, [brandingForm.bannerImageUrl]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -828,11 +870,12 @@ function AdminPanel({
     setIsSavingBranding(true);
     setBrandingSaveStatus(null);
     try {
+      const accentColor = normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT);
+      const bannerImageUrl = brandingForm.bannerImageUrl.trim();
       if (configModeActive) {
-        configMode.setFieldValue('branding.accentColor', brandingForm.accentColor || '');
-        configMode.setFieldValue('branding.bannerImageUrl', brandingForm.bannerImageUrl || '');
+        configMode.setFieldValue('branding.accentColor', accentColor);
+        configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
         configMode.setFieldValue('branding.themePreference', brandingForm.themePreference || 'system');
-        configMode.setFieldValue('branding.bannerMessage', brandingForm.bannerMessage || '');
         const result = await configMode.saveDraft();
         if (!result?.success) {
           throw result?.error || new Error('Failed to save branding draft');
@@ -844,10 +887,9 @@ function AdminPanel({
       if (!forgeHost || !onRefreshEventPhase) return;
       const { invoke } = await import('@forge/bridge');
       await invokeEventScopedResolver(invoke, 'updateEventBranding', appModeResolverPayload, {
-        accentColor: brandingForm.accentColor || undefined,
-        bannerImageUrl: brandingForm.bannerImageUrl || undefined,
+        accentColor,
+        bannerImageUrl,
         themePreference: brandingForm.themePreference || undefined,
-        bannerMessage: brandingForm.bannerMessage || undefined,
       });
       setBrandingSaveStatus({ type: 'success', message: 'Branding saved. Theme and banner will update on next load.' });
       onRefreshEventPhase();
@@ -857,6 +899,42 @@ function AdminPanel({
       setIsSavingBranding(false);
     }
   }, [appModeResolverPayload, forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode]);
+
+  const handleOpenBrandingImagePicker = useCallback(() => {
+    if (!isEventAdmin || isUploadingBrandingImage || isSavingBranding) return;
+    brandingImageInputRef.current?.click();
+  }, [isEventAdmin, isSavingBranding, isUploadingBrandingImage]);
+
+  const handleBrandingImagePicked = useCallback(async (event) => {
+    const file = event.target?.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setBrandingSaveStatus(null);
+    setIsUploadingBrandingImage(true);
+    try {
+      if (!forgeHost) {
+        throw new Error('Image upload is only available inside Confluence.');
+      }
+      const { invoke } = await import('@forge/bridge');
+      const uploaded = await uploadHeroImageInline({
+        file,
+        invokeResolver: (resolverName, payload) =>
+          invokeEventScopedResolver(invoke, resolverName, appModeResolverPayload, payload),
+      });
+      setBrandingForm((prev) => ({ ...prev, bannerImageUrl: uploaded.publicUrl }));
+      setBrandingSaveStatus({ type: 'success', message: 'Banner image uploaded. Save branding to apply it.' });
+    } catch (error) {
+      setBrandingSaveStatus({ type: 'error', message: error?.message || 'Failed to upload banner image.' });
+    } finally {
+      setIsUploadingBrandingImage(false);
+    }
+  }, [appModeResolverPayload, forgeHost]);
+
+  const handleClearBrandingImage = useCallback(() => {
+    setBrandingSaveStatus(null);
+    setBrandingForm((prev) => ({ ...prev, bannerImageUrl: '' }));
+  }, []);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
 
@@ -2042,7 +2120,7 @@ function AdminPanel({
               Branding &amp; Theme
             </Card.Title>
             <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-              Customize accent color, banner, and theme for this HackDay. Changes apply after save and refresh.
+              Customize accent color, hero banner, and theme for this HackDay. Participant-facing messaging is now handled through inline hero editing and Admin Update.
               {!isEventAdmin && (
                 <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
                   Only the event creator or co-admins can save changes.
@@ -2057,24 +2135,118 @@ function AdminPanel({
               )}
 
               <VStack gap="5">
-                <Input
-                  label="Accent color"
-                  type="text"
-                  value={brandingForm.accentColor}
-                  onChange={(e) => setBrandingForm((prev) => ({ ...prev, accentColor: e.target.value }))}
-                  placeholder="e.g. #f97316 or orange"
-                  helperText="CSS color value for buttons and highlights"
-                  disabled={isSavingBranding}
-                />
-                <Input
-                  label="Banner image URL"
-                  type="url"
-                  value={brandingForm.bannerImageUrl}
-                  onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerImageUrl: e.target.value }))}
-                  placeholder="https://..."
-                  helperText="Optional header/banner image"
-                  disabled={isSavingBranding}
-                />
+                <div className="branding-field-group">
+                  <div className="branding-field-header">
+                    <label htmlFor="branding-accent-color" className="field-label">Accent color</label>
+                    <span className="field-hint">Primary actions, focus states, and runtime highlights.</span>
+                  </div>
+                  <div className="branding-color-row">
+                    <input
+                      id="branding-accent-color"
+                      type="color"
+                      className="branding-color-swatch"
+                      value={brandingPreviewAccent}
+                      onChange={(event) => setBrandingForm((prev) => ({ ...prev, accentColor: event.target.value }))}
+                      disabled={isSavingBranding}
+                    />
+                    <input
+                      type="text"
+                      className="field-input branding-color-hex"
+                      value={brandingForm.accentColor}
+                      onChange={(event) => setBrandingForm((prev) => ({ ...prev, accentColor: event.target.value }))}
+                      placeholder="#0f766e"
+                      disabled={isSavingBranding}
+                    />
+                    <span className="branding-color-preview-chip" style={{ background: brandingPreviewAccent }} aria-hidden />
+                  </div>
+                  <div className="branding-preset-row" role="group" aria-label="Accent color presets">
+                    {BRANDING_PRESET_COLORS.map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        className={cn(
+                          'branding-preset-button',
+                          brandingPreviewAccent.toLowerCase() === hex.toLowerCase() && 'branding-preset-button-active'
+                        )}
+                        style={{ background: hex }}
+                        onClick={() => setBrandingForm((prev) => ({ ...prev, accentColor: hex }))}
+                        disabled={isSavingBranding}
+                        aria-label={`Use accent ${hex}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="branding-field-group">
+                  <div className="branding-field-header">
+                    <span className="field-label">Hero banner image</span>
+                    <span className="field-hint">Uploads are normalized to the runtime hero banner format.</span>
+                  </div>
+                  <input
+                    ref={brandingImageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleBrandingImagePicked}
+                  />
+                  <div className="branding-banner-preview-card">
+                    <div className="branding-banner-preview-media">
+                      {brandingPreviewBannerImage ? (
+                        <img
+                          src={brandingPreviewBannerImage}
+                          alt="Current hero banner"
+                          className="branding-banner-preview-image"
+                        />
+                      ) : (
+                        <div className="branding-banner-preview-empty">
+                          <ImagePlus className="h-5 w-5" />
+                          <span>No banner uploaded</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="branding-banner-preview-actions">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<Upload className="w-4 h-4" />}
+                        onClick={handleOpenBrandingImagePicker}
+                        disabled={!isEventAdmin || isSavingBranding}
+                        loading={isUploadingBrandingImage}
+                      >
+                        {brandingPreviewBannerImage ? 'Replace banner' : 'Upload banner'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        leftIcon={<X className="w-4 h-4" />}
+                        onClick={handleClearBrandingImage}
+                        disabled={!isEventAdmin || isSavingBranding || !brandingPreviewBannerImage}
+                      >
+                        Remove
+                      </Button>
+                      <button
+                        type="button"
+                        className="branding-advanced-toggle"
+                        onClick={() => setShowBannerImageAdvancedField((current) => !current)}
+                        disabled={isSavingBranding}
+                      >
+                        {showBannerImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                      </button>
+                    </div>
+                  </div>
+                  {showBannerImageAdvancedField ? (
+                    <Input
+                      label="Manual banner image URL"
+                      type="url"
+                      value={brandingForm.bannerImageUrl}
+                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerImageUrl: e.target.value }))}
+                      placeholder="https://..."
+                      helperText="Advanced override if you need to point at an externally hosted image."
+                      disabled={isSavingBranding}
+                    />
+                  ) : null}
+                </div>
+
                 <Select
                   label="Theme"
                   value={brandingForm.themePreference}
@@ -2086,19 +2258,39 @@ function AdminPanel({
                   ]}
                   disabled={isSavingBranding}
                 />
-                <TextArea
-                  label="Banner message"
-                  value={brandingForm.bannerMessage}
-                  onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerMessage: e.target.value }))}
-                  placeholder="Optional short message shown in the banner"
-                  rows={2}
-                  disabled={isSavingBranding}
-                />
+                <div className="branding-live-preview" data-color-mode={brandingForm.themePreference === 'system' ? undefined : brandingForm.themePreference}>
+                  {brandingPreviewBannerImage ? (
+                    <img
+                      src={brandingPreviewBannerImage}
+                      alt=""
+                      className="branding-live-preview-banner"
+                    />
+                  ) : null}
+                  <div className="branding-live-preview-overlay" />
+                  <div className="branding-live-preview-content">
+                    <div className="branding-live-preview-tag">Dashboard preview</div>
+                    <div className="branding-live-preview-title-row">
+                      <div className="branding-live-preview-mark" style={{ background: brandingPreviewAccent }} aria-hidden />
+                      <div>
+                        <p className="branding-live-preview-title">HackDay hero</p>
+                        <p className="branding-live-preview-copy">Inline hero copy and Admin Update remain the messaging surfaces.</p>
+                      </div>
+                    </div>
+                    <div className="branding-live-preview-actions">
+                      <button type="button" className="branding-live-preview-button" style={{ background: brandingPreviewAccent }}>
+                        Primary action
+                      </button>
+                      <span className="branding-live-preview-badge" style={{ color: brandingPreviewAccent, borderColor: `${brandingPreviewAccent}33`, background: `${brandingPreviewAccent}14` }}>
+                        {brandingForm.themePreference === 'system' ? 'System theme' : `${brandingForm.themePreference} theme`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <Button
                   className={ADMIN_PRIMARY_BUTTON}
                   onClick={handleSaveBranding}
                   loading={isSavingBranding}
-                  disabled={isSavingBranding || !isEventAdmin}
+                  disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin}
                 >
                   {isSavingBranding ? 'Saving...' : isEventAdmin ? 'Save branding' : 'Save (creator/co-admin only)'}
                 </Button>

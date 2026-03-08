@@ -983,7 +983,6 @@ export interface EventRules {
 }
 
 export interface EventBranding {
-  bannerMessage?: string;
   accentColor: string;
   bannerImageUrl?: string;
   themePreference?: ThemePreference;

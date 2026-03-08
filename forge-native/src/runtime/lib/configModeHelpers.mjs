@@ -196,9 +196,6 @@ export function normalizeConfigModeBrandingPatch(value) {
     const pref = String(value.themePreference).trim();
     next.themePreference = ['light', 'dark', 'system'].includes(pref) ? pref : 'system';
   }
-  if (value.bannerMessage !== undefined) {
-    next.bannerMessage = String(value.bannerMessage).trim().slice(0, CONFIG_MODE_BANNER_MESSAGE_MAX_LENGTH);
-  }
 
   return next;
 }

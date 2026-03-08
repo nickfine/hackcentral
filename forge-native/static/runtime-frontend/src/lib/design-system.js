@@ -69,8 +69,8 @@ export const SIZE_CLASSES = {
 
 export const BUTTON_VARIANTS = {
   primary: {
-    base: 'bg-[linear-gradient(135deg,#FF8A26_0%,#F97316_48%,#EA580C_100%)] text-[#1F1309] border border-[#FDBA74]/40 shadow-[0_10px_24px_rgba(249,115,22,0.3)]',
-    hover: 'hover:translate-y-[-1px] hover:brightness-105 hover:shadow-[0_14px_28px_rgba(249,115,22,0.32)]',
+    base: 'bg-[var(--event-accent-base)] text-[var(--event-accent-contrast)] border border-[color-mix(in_srgb,var(--event-accent-base)_35%,transparent)] shadow-[0_10px_24px_color-mix(in_srgb,var(--event-accent-base)_30%,transparent)]',
+    hover: 'hover:translate-y-[-1px] hover:bg-[var(--event-accent-hover)] hover:shadow-[0_14px_28px_color-mix(in_srgb,var(--event-accent-base)_34%,transparent)]',
     active: 'active:translate-y-0 active:brightness-95',
     focus: 'focus-ring-control',
   },

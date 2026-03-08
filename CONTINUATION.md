@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 13:22 GMT
+Last updated: 2026-03-08 15:29 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-08 13:22 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.64`
-  - Forge native package version: `0.3.42`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.59`
-  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
-  - Runtime bundle version: `1.2.77`
+  - Root app version: `0.6.65`
+  - Forge native package version: `0.3.43`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.65`
+  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.46`
+  - Runtime bundle version: `1.2.78`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -3004,3 +3004,97 @@ All passed in-session.
 - Production Confluence is updated to the Rules-title publish hotfix.
 - Rules title edits in Config Mode now publish successfully on the hosted Shona event.
 - This hotfix closes the contract gap between editable registry keys and backend publish allowlists for the Rules header title.
+
+## Session Update - Branding Runtime Hook Hotfix Deployed And Hosted Validation Closed (Mar 8, 2026 15:17 GMT)
+
+### Closed in this session
+- Completed the pending deploy follow-up for the branding ownership/runtime refresh work.
+- Initial hosted Confluence validation on the first production deploy exposed a real runtime regression:
+  - `Dashboard.jsx` used `useCallback` without importing it
+  - live app-shell runtime threw `ReferenceError: useCallback is not defined`
+  - branding validation could not proceed until that runtime crash was fixed
+- Patched the runtime import in `forge-native/static/runtime-frontend/src/components/Dashboard.jsx`.
+- Added a source-contract regression test in `tests/forge-native-runtime-hook-imports.spec.ts` so Dashboard hook usage cannot ship again without the matching React import.
+- Rebuilt and redeployed Forge production on `hackdaytemp.atlassian.net` following `DEPLOY.md` exactly.
+- Completed authenticated hosted validation using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` with frame-aware selectors against both:
+  - runtime app-shell route for page `24510466`
+  - HackCentral global page create wizard
+- Verified live runtime branding behavior after the hotfix:
+  - `Branding & Theme` renders upload-first controls (`Replace banner`, `Use manual URL`)
+  - native accent color picker is visible
+  - branding-level `Banner message` is absent
+  - saving branding in Config Mode succeeds and updates draft state
+  - dashboard renders the stored hero banner via `.dashboard-hero-banner-image`
+  - legacy `Upload hero logo` control is absent
+- Verified live HackCentral create flow behavior:
+  - wizard steps are `Basic Info`, `Schedule`, `Rules`, `Review`
+  - no Branding step is present
+  - step 2 explains branding ownership moved to `Admin Panel → Branding`
+  - review step repeats the child-runtime branding ownership path
+- Restored the draft accent value after the hosted save-path validation; no publish action was triggered.
+- Version markers were intentionally left unchanged in this session per user instruction:
+  - root `0.6.64`
+  - forge-native `0.3.42`
+  - runtime marker `1.2.77`
+
+### Evidence
+- Targeted validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-hook-imports.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-151000Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-151000Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Hosted validation artifact set:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-ownership-postdeploy-validation-2026-03-08T15-17-31-952Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-ownership-postdeploy-validation-2026-03-08T15-17-31-952Z.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-admin-postdeploy-2026-03-08T15-17-31-952Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-dashboard-postdeploy-2026-03-08T15-17-31-952Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/create-wizard-branding-postdeploy-2026-03-08T15-17-31-952Z.png`
+
+### Current state
+- Production Confluence is updated with the runtime hook hotfix on top of the branding ownership/runtime refresh release.
+- Hosted validation is now closed for the branding and create-flow items that were previously still open.
+- Source control is still open in this workspace; no commit or push was performed.
+
+## Session Update - Versioned Branding Release Pushed To Production (Mar 8, 2026 15:29 GMT)
+
+### Closed in this session
+- Finalized the currently deployed branding/runtime refresh work as a versioned release snapshot.
+- Bumped release markers to:
+  - root app `0.6.65`
+  - forge-native `0.3.43`
+  - HackCentral UI marker `0.6.65`
+  - HackCentral macro marker unchanged at `0.6.46`
+  - runtime package + bundle `1.2.78`
+- Re-ran the targeted branding/create-flow validation suite on the versioned state.
+- Rebuilt and redeployed production following `DEPLOY.md` exactly.
+- Ran a final authenticated hosted version smoke using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` with frame-aware detection:
+  - runtime app-shell route loaded `[HackCentral Runtime v2] Module loaded - 1.2.78`
+  - HackCentral global page loaded `[HackCentral Confluence UI] loaded 0.6.65`
+- This is the production release baseline to keep while any further fixes move to local-first development and local testing before the next deploy.
+
+### Evidence
+- Targeted validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-runtime-event-scoping.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts tests/forge-native-runtime-hook-imports.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-152750Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-152750Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Hosted version-check artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-08T15-28-44-296Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-runtime-version-check-2026-03-08T15-28-44-296Z.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-version-check-2026-03-08T15-28-44-296Z.png`
+
+### Current state
+- Production Confluence is now running the versioned branding/runtime refresh release with markers `0.6.65 / 0.3.43 / 1.2.78`.
+- Hosted validation is closed for both the feature behavior and the final version markers.
+- Next development should stay local-first until a deliberate release is requested.

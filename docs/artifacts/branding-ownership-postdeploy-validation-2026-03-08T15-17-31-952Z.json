@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-03-08T15:17:32.410Z",
+  "storageStatePath": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "runtimeValidation": {
+    "pageId": "24510466",
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/5a6f974c-aa82-4895-872a-cf9a2a83f9b1/runtime-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "runtimeVersionLog": "[HackCentral Runtime v2] Module loaded - 1.2.77",
+    "useCallbackErrorPresent": false,
+    "configLabelBefore": "Enter Config Mode",
+    "colorPickerVisible": true,
+    "uploadButtonLabel": "Replace banner",
+    "manualUrlToggleLabel": "Use manual URL",
+    "heroBannerPreviewVisible": true,
+    "originalBannerUrl": "https://ssafugtobsqxmqtphwch.supabase.co/storage/v1/object/public/event-branding-images/events/d3f7bb14-7d8f-4e92-8740-23b02994b4d4/branding/hero-20260305171817-960a3e33-0f13-4344-9a56-072084f1e5bc.webp",
+    "bannerMessageAbsent": true,
+    "saveAlertText": "Branding saved to draft. Publish from the Config drawer to apply to participants.",
+    "heroBannerRendered": true,
+    "heroBannerSrc": "https://ssafugtobsqxmqtphwch.supabase.co/storage/v1/object/public/event-branding-images/events/d3f7bb14-7d8f-4e92-8740-23b02994b4d4/branding/hero-20260305171817-960a3e33-0f13-4344-9a56-072084f1e5bc.webp",
+    "uploadHeroLogoAbsent": true,
+    "brandingScreenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-admin-postdeploy-2026-03-08T15-17-31-952Z.png",
+    "dashboardScreenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/branding-dashboard-postdeploy-2026-03-08T15-17-31-952Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "[HackCentral Runtime v2] Module loaded - 1.2.77",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-5b703c61c3324bacaf1efc16d59d88c2' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-5b703c61c3324bacaf1efc16d59d88c2' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "Deprecated API for given entry type.",
+      "[hdc-performance-telemetry] {\"metric\":\"runtime_first_load\",\"source\":\"runtime_frontend\",\"mode\":\"legacy\",\"durationMs\":2996,\"stageMs\":{\"get_context\":1,\"activate_context\":1687,\"legacy_parallel_resolvers\":1297},\"outcome\":\"success\",\"warning\":null,\"eventId\":\"d3f7bb14-7d8f-4e92-8740-23b02994b4d4\",\"pageId\":\"24510466\",\"runtimeSource\":\"seed_mapping\"}"
+    ]
+  },
+  "createWizardValidation": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/5a6f974c-aa82-4895-872a-cf9a2a83f9b1/custom-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "uiVersionLog": "[HackCentral Confluence UI] loaded 0.6.59",
+    "stepLabels": [
+      "Basic Info",
+      "Schedule",
+      "Rules",
+      "Review"
+    ],
+    "hasBrandingStep": false,
+    "step2MentionsBrandingOwnership": true,
+    "reviewMentionsChildBranding": true,
+    "createScreenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/create-wizard-branding-postdeploy-2026-03-08T15-17-31-952Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "[HackCentral Confluence UI] loaded 0.6.59",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-ae47d1c5bfe3473796105aeff7a0d214' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-ae47d1c5bfe3473796105aeff7a0d214' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "Deprecated API for given entry type.",
+      "[hdc-switcher-telemetry] {\"source\":\"global.bootstrap.live\",\"total\":2,\"nonNavigable\":0,\"withMissingPageId\":0}"
+    ]
+  }
+}

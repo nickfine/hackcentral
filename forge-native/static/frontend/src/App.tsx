@@ -44,7 +44,6 @@ import type {
   RoiDashboardSnapshot,
   RoiTimeWindow,
   ShowcaseHackListItem,
-  ThemePreference,
   TrackRoiExportInput,
   TrackTeamPulseExportInput,
   TriggerPostHackdayExtractionPromptResult,
@@ -102,7 +101,7 @@ import {
 import { PipelineHero } from './components/pipeline';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.59';
+const HACKCENTRAL_UI_VERSION = '0.6.65';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -1513,10 +1512,6 @@ export function App(): JSX.Element {
   const [wJudgingModel, setWJudgingModel] = useState<'panel' | 'popular_vote' | 'hybrid'>('hybrid');
   const [wCategoriesInput, setWCategoriesInput] = useState('');
   const [wPrizesText, setWPrizesText] = useState('');
-  const [wBannerMessage, setWBannerMessage] = useState('');
-  const [wAccentColor, setWAccentColor] = useState('#0f766e');
-  const [wBannerImageUrl, setWBannerImageUrl] = useState('');
-  const [wThemePreference, setWThemePreference] = useState<ThemePreference>('system');
   const [wLaunchMode, setWLaunchMode] = useState<'draft' | 'go_live'>('draft');
   const [wTemplateMode, setWTemplateMode] = useState<'default' | 'customized'>('default');
   const [wAutoPublishToShowcaseDrafts, setWAutoPublishToShowcaseDrafts] = useState(true);
@@ -4363,10 +4358,6 @@ export function App(): JSX.Element {
     setWJudgingModel('hybrid');
     setWCategoriesInput('');
     setWPrizesText('');
-    setWBannerMessage('');
-    setWAccentColor('#0f766e');
-    setWBannerImageUrl('');
-    setWThemePreference('system');
     setWLaunchMode('draft');
     setWTemplateMode('default');
     setWAutoPublishToShowcaseDrafts(true);
@@ -4394,7 +4385,7 @@ export function App(): JSX.Element {
         .some((email) => !isAdaptavistEmail(email));
       if (badCoAdmin) return `All co-admin emails must be ${ALLOWED_EMAIL_DOMAIN} addresses.`;
     }
-    if (step >= 2) {
+    if (step >= 3) {
       const minT = Math.max(1, Math.floor(Number(wMinTeamSize) || 1));
       const maxT = Math.max(1, Math.floor(Number(wMaxTeamSize) || 1));
       if (minT > maxT) return 'Minimum team size must be ≤ maximum team size.';
@@ -4540,12 +4531,6 @@ export function App(): JSX.Element {
         judgingModel: wJudgingModel,
         categories: categories.length > 0 ? categories : undefined,
         prizesText: wPrizesText.trim() || undefined,
-      },
-      branding: {
-        bannerMessage: wBannerMessage.trim() || undefined,
-        accentColor: wAccentColor.trim() || undefined,
-        bannerImageUrl: wBannerImageUrl.trim() || undefined,
-        themePreference: wThemePreference,
       },
       childIntegration: {
         importProblemIds: wSelectedProblemImportIds.length > 0 ? wSelectedProblemImportIds : undefined,
@@ -4716,7 +4701,7 @@ export function App(): JSX.Element {
       });
       setSaving(false);
     }
-  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAccentColor, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wBannerImageUrl, wBannerMessage, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRequireDemoLink, wSelectedProblemImportIds, wStep, wTemplateMode, wThemePreference]);
+  }, [bootstrap?.parentPageId, getWizardValidationError, loadBootstrap, previewMode, resetWizard, resolveAppViewUrlForPage, wAllowCrossTeamMentoring, wAutoPublishToShowcaseDrafts, wCategoriesInput, wCoAdminsInput, wEventIcon, wEventName, wEventTagline, wJudgingModel, wLaunchMode, wMaxTeamSize, wMinTeamSize, wPendingRequestId, wPrimaryAdminEmail, wPrizesText, wRequireDemoLink, wSelectedProblemImportIds, wStep, wTemplateMode]);
 
   const exportTeamPulse = (): void => {
     const exportedAt = new Date().toISOString();
@@ -7493,7 +7478,7 @@ export function App(): JSX.Element {
 
               {/* Numbered progress stepper */}
               <div className="wizard-stepper" role="list" aria-label="Wizard progress">
-                {(['Basic Info', 'Rules', 'Branding', 'Review'] as const).map((label, idx) => {
+                {(['Basic Info', 'Schedule', 'Rules', 'Review'] as const).map((label, idx) => {
                   const stepNum = idx + 1;
                   const isDone = wStep > stepNum;
                   const isActive = wStep === stepNum;
@@ -7523,14 +7508,14 @@ export function App(): JSX.Element {
                     {wStep === 1
                       ? 'Basic Info'
                       : wStep === 2
-                        ? 'Rules'
+                        ? 'Schedule'
                         : wStep === 3
-                          ? 'Branding'
+                          ? 'Rules'
                           : 'Review & Create'}
                   </h2>
                   {wStep === 4 ? (
                     <p className="wizard-card-subtitle">
-                      Schedule setup now happens inside the child HackDay page while Config Mode is enabled.
+                      Schedule and branding setup now happen inside the child HackDay page while Config Mode is enabled.
                     </p>
                   ) : null}
                   {(wEventNameError || actionError) ? (
@@ -7608,8 +7593,33 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 2: Rules ── */}
+                  {/* ── Step 2: Schedule ── */}
                   {wStep === 2 ? (
+                    <div className="wizard-fields">
+                      <div className="field-group">
+                        <p className="field-group-label">Schedule ownership</p>
+                        <div className="review-block">
+                          <div className="review-kv-grid">
+                            <span className="review-k">When to configure</span>
+                            <span className="review-v">Immediately after creation in the child HackDay page</span>
+                            <span className="review-k">Where</span>
+                            <span className="review-v">Child page → Schedule → Config Mode</span>
+                            <span className="review-k">What you can edit</span>
+                            <span className="review-v">Milestones, dates, deadlines, and participant-facing schedule copy</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="field-group">
+                        <p className="field-group-label">Branding ownership</p>
+                        <p className="subtitle">
+                          Branding is now owned by the child HackDay runtime. After creation, use Admin Panel → Branding to choose the accent colour, hero banner, and theme.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* ── Step 3: Rules ── */}
+                  {wStep === 3 ? (
                     <div className="wizard-fields">
                       <div className="field-group">
                         <p className="field-group-label">Team</p>
@@ -7664,70 +7674,6 @@ export function App(): JSX.Element {
                     </div>
                   ) : null}
 
-                  {/* ── Step 3: Branding ── */}
-                  {wStep === 3 ? (
-                    <div className="wizard-fields">
-                      <div className="field-group">
-                        <p className="field-group-label">Colours</p>
-                        <div className="field-row">
-                          <label htmlFor="w-accent" className="field-label">Accent colour</label>
-                          <div className="color-picker-row">
-                            <input
-                              id="w-accent"
-                              type="color"
-                              className="color-swatch-input"
-                              value={wAccentColor}
-                              onChange={(e) => setWAccentColor(e.target.value)}
-                              aria-label="Pick accent colour"
-                            />
-                            <input
-                              type="text"
-                              className="field-input color-hex-input"
-                              value={wAccentColor}
-                              onChange={(e) => setWAccentColor(e.target.value)}
-                              placeholder="#0f766e"
-                            />
-                            <span className="color-live-preview" style={{ background: wAccentColor }} aria-hidden />
-                          </div>
-                          <div className="color-presets" role="group" aria-label="Preset colours">
-                            {['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#8b5cf6', '#ec4899'].map((hex) => (
-                              <button
-                                key={hex}
-                                type="button"
-                                className={`color-preset-btn${wAccentColor === hex ? ' color-preset-active' : ''}`}
-                                style={{ background: hex }}
-                                onClick={() => setWAccentColor(hex)}
-                                aria-label={`Set colour to ${hex}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="field-group">
-                        <p className="field-group-label">Messaging</p>
-                        <div className="field-row">
-                          <label htmlFor="w-banner-msg" className="field-label">Banner message</label>
-                          <input id="w-banner-msg" className="field-input" value={wBannerMessage} onChange={(e) => setWBannerMessage(e.target.value)} placeholder="Optional announcement banner" />
-                        </div>
-                        <div className="field-row">
-                          <label htmlFor="w-banner-img" className="field-label">Banner image URL</label>
-                          <input id="w-banner-img" className="field-input" value={wBannerImageUrl} onChange={(e) => setWBannerImageUrl(e.target.value)} placeholder="https://..." />
-                        </div>
-                      </div>
-                      <div className="field-group">
-                        <p className="field-group-label">Appearance</p>
-                        <div className="field-row">
-                          <label htmlFor="w-theme" className="field-label">Theme preference</label>
-                          <select id="w-theme" className="field-input" value={wThemePreference} onChange={(e) => setWThemePreference(e.target.value as ThemePreference)}>
-                            <option value="system">System default</option>
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
                   {/* ── Step 4: Review & Create ── */}
                   {wStep === 4 ? (
                     <div className="wizard-fields">
@@ -7767,13 +7713,10 @@ export function App(): JSX.Element {
                       <div className="review-block">
                         <p className="review-block-title">Branding</p>
                         <div className="review-kv-grid">
-                          <span className="review-k">Accent</span>
-                          <span className="review-v review-v-color">
-                            <span className="review-color-chip" style={{ background: wAccentColor }} aria-hidden />
-                            {wAccentColor}
-                          </span>
-                          <span className="review-k">Theme</span>
-                          <span className="review-v">{wThemePreference}</span>
+                          <span className="review-k">Ownership</span>
+                          <span className="review-v">Configured after creation in the child HackDay runtime</span>
+                          <span className="review-k">Edit path</span>
+                          <span className="review-v">Child page → Admin Panel → Branding</span>
                         </div>
                       </div>
                       <div className="review-block">

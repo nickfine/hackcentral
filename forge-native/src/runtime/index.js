@@ -2414,6 +2414,28 @@ function normalizeConfigModeBrandingPatch(value) {
   return normalizeConfigModeDraftPatchHelper({ branding: value }).branding;
 }
 
+function sanitizeManagedBrandingValue(value) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const next = {};
+  if (value.accentColor !== undefined && value.accentColor !== null) {
+    next.accentColor = String(value.accentColor).trim();
+  }
+  if (value.bannerImageUrl !== undefined && value.bannerImageUrl !== null) {
+    next.bannerImageUrl = String(value.bannerImageUrl).trim();
+  }
+  if (value.themePreference !== undefined && value.themePreference !== null) {
+    const pref = String(value.themePreference).trim();
+    if (["light", "dark", "system"].includes(pref)) {
+      next.themePreference = pref;
+    }
+  }
+
+  return next;
+}
+
 function normalizeConfigModeMotdPatch(value) {
   return normalizeConfigModeDraftPatchHelper({ motdMessage: value }).motdMessage;
 }
@@ -6855,11 +6877,8 @@ resolver.define("publishEventConfigDraft", async (req) => {
 
         if (access.seed) {
           const existingSeedPayload = normalizeSeedPayload(access.seed);
-          const existingBranding =
-            existingSeedPayload.branding && typeof existingSeedPayload.branding === "object"
-              ? existingSeedPayload.branding
-              : {};
-          mergedBranding = { ...existingBranding, ...patchBranding };
+          const existingBranding = sanitizeManagedBrandingValue(existingSeedPayload.branding);
+          mergedBranding = sanitizeManagedBrandingValue({ ...existingBranding, ...patchBranding });
 
           const nextSeedPayload = { ...existingSeedPayload, branding: mergedBranding };
           const { error: seedError } = await supabase
@@ -6870,11 +6889,8 @@ resolver.define("publishEventConfigDraft", async (req) => {
             throw new Error(`Failed to update seed branding: ${seedError.message}`);
           }
         } else {
-          const existingEventBranding =
-            access.event.event_branding && typeof access.event.event_branding === "object"
-              ? access.event.event_branding
-              : {};
-          mergedBranding = { ...existingEventBranding, ...patchBranding };
+          const existingEventBranding = sanitizeManagedBrandingValue(access.event.event_branding);
+          mergedBranding = sanitizeManagedBrandingValue({ ...existingEventBranding, ...patchBranding });
         }
 
         try {
@@ -7087,14 +7103,12 @@ resolver.define("updateEventBranding", async (req) => {
   const { supabase, event, pageId, seed } = await resolveEventBrandingAdminContext(req);
 
   const existingPayload = normalizeSeedPayload(seed);
-  const existingBranding = existingPayload.branding && typeof existingPayload.branding === "object" ? existingPayload.branding : {};
-  const allowed = ["accentColor", "bannerImageUrl", "themePreference", "bannerMessage"];
+  const existingBranding = sanitizeManagedBrandingValue(existingPayload.branding);
   const updates = {};
   if (payload.accentColor !== undefined) updates.accentColor = String(payload.accentColor).trim() || existingBranding.accentColor;
   if (payload.bannerImageUrl !== undefined) updates.bannerImageUrl = String(payload.bannerImageUrl).trim();
   if (payload.themePreference !== undefined) updates.themePreference = ["light", "dark", "system"].includes(payload.themePreference) ? payload.themePreference : existingBranding.themePreference;
-  if (payload.bannerMessage !== undefined) updates.bannerMessage = String(payload.bannerMessage).trim();
-  const mergedBranding = { ...existingBranding, ...updates };
+  const mergedBranding = sanitizeManagedBrandingValue({ ...existingBranding, ...updates });
 
   const newSeedPayload = { ...existingPayload, branding: mergedBranding };
   const nowIso = new Date().toISOString();

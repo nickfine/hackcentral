@@ -129,6 +129,28 @@ const resolvePageIdFromUrlLike = (value) => {
 
 const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = String(import.meta.env.VITE_HDC_PERF_RUNTIME_BOOTSTRAP_V2 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
+const DEFAULT_EVENT_ACCENT = '#0f766e';
+
+const normalizeEventAccentColor = (value) => {
+  const candidate = String(value || '').trim();
+  if (/^#[0-9a-f]{6}$/i.test(candidate)) {
+    return candidate.toLowerCase();
+  }
+  if (/^#[0-9a-f]{3}$/i.test(candidate)) {
+    const [r, g, b] = candidate.slice(1).split('');
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return DEFAULT_EVENT_ACCENT;
+};
+
+const getEventAccentContrast = (hexColor) => {
+  const normalized = normalizeEventAccentColor(hexColor).slice(1);
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  const luminance = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
+  return luminance > 0.62 ? '#0f172a' : '#ffffff';
+};
 
 const navigateTopWindow = (targetUrl, { allowLocalFallback = true } = {}) => {
   if (typeof window === 'undefined') return false;
@@ -1501,6 +1523,13 @@ function App() {
   const effectiveEventAdminMessage = configModeSnapshot?.effectiveMotdMessage !== undefined
     ? configModeSnapshot.effectiveMotdMessage
     : eventAdminMessage;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const accent = normalizeEventAccentColor(effectiveEventBranding?.accentColor);
+    root.style.setProperty('--event-accent-base', accent);
+    root.style.setProperty('--event-accent-contrast', getEventAccentContrast(accent));
+  }, [effectiveEventBranding]);
 
   const renderView = () => {
     const commonProps = {
