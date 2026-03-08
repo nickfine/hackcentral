@@ -350,10 +350,14 @@ function AdminPanel({
     };
   }, [isAdmin, forgeHost]);
 
-  // Sync branding form from eventBranding when opening Branding tab or when eventBranding updates
+  const hasBrandingDraftPreview = Boolean(
+    configMode.canEdit && (configModeActive || configMode.hasDraft || configMode.hasUnsavedChanges)
+  );
+
+  // Sync branding form from published or draft branding when opening Branding tab or when branding state updates
   useEffect(() => {
-    if (activeSection === 'branding' || Object.keys(eventBranding || {}).length > 0) {
-      const b = configModeActive
+    if (activeSection === 'branding' || Object.keys(eventBranding || {}).length > 0 || hasBrandingDraftPreview) {
+      const b = hasBrandingDraftPreview
         ? {
             accentColor: configMode.getFieldValue('branding.accentColor', eventBranding?.accentColor || ''),
             bannerImageUrl: configMode.getFieldValue('branding.bannerImageUrl', eventBranding?.bannerImageUrl || ''),
@@ -366,7 +370,7 @@ function AdminPanel({
         themePreference: ['light', 'dark', 'system'].includes(b.themePreference) ? b.themePreference : (prev.themePreference || 'system'),
       }));
     }
-  }, [activeSection, eventBranding, configModeActive, configMode.getFieldValue]);
+  }, [activeSection, eventBranding, hasBrandingDraftPreview, configMode.getFieldValue]);
 
   const brandingPreviewAccent = useMemo(
     () => normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT),
@@ -922,6 +926,9 @@ function AdminPanel({
         invokeResolver: (resolverName, payload) =>
           invokeEventScopedResolver(invoke, resolverName, appModeResolverPayload, payload),
       });
+      if (configModeActive) {
+        configMode.setFieldValue('branding.bannerImageUrl', uploaded.publicUrl);
+      }
       setBrandingForm((prev) => ({ ...prev, bannerImageUrl: uploaded.publicUrl }));
       setBrandingSaveStatus({ type: 'success', message: 'Banner image uploaded. Save branding to apply it.' });
     } catch (error) {
@@ -933,8 +940,11 @@ function AdminPanel({
 
   const handleClearBrandingImage = useCallback(() => {
     setBrandingSaveStatus(null);
+    if (configModeActive) {
+      configMode.setFieldValue('branding.bannerImageUrl', '');
+    }
     setBrandingForm((prev) => ({ ...prev, bannerImageUrl: '' }));
-  }, []);
+  }, [configMode, configModeActive]);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
 

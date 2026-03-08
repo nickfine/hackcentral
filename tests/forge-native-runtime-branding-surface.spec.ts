@@ -11,16 +11,22 @@ describe('runtime branding surface contract', () => {
     const adminSource = await readSource('forge-native/static/runtime-frontend/src/components/AdminPanel.jsx');
     const dashboardSource = await readSource('forge-native/static/runtime-frontend/src/components/Dashboard.jsx');
     const contentRegistrySource = await readSource('forge-native/static/runtime-frontend/src/configMode/contentRegistry.js');
+    const cssSource = await readSource('forge-native/static/runtime-frontend/src/index.css');
 
     expect(adminSource).toContain('type="color"');
     expect(adminSource).toContain('Upload banner');
     expect(adminSource).toContain('Manual banner image URL');
     expect(adminSource).toContain('Dashboard preview');
+    expect(adminSource).toContain("configMode.setFieldValue('branding.bannerImageUrl', uploaded.publicUrl);");
+    expect(adminSource).toContain('configMode.hasDraft || configMode.hasUnsavedChanges');
     expect(adminSource).not.toContain('label="Banner message"');
 
     expect(dashboardSource).toContain('dashboard-hero-banner-image');
     expect(dashboardSource).not.toContain('Upload hero logo');
 
     expect(contentRegistrySource).not.toContain("key: 'branding.bannerMessage'");
+    expect(cssSource).toContain('.branding-banner-preview-image');
+    expect(cssSource).toContain('max-height: 400px;');
+    expect(cssSource).toContain('object-fit: contain;');
   });
 });
