@@ -18,10 +18,12 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain('Manual banner image URL');
     expect(adminSource).toContain('Dashboard preview');
     expect(adminSource).toContain("configMode.setFieldValue('branding.bannerImageUrl', uploaded.publicUrl);");
+    expect(adminSource).toContain('}, [appModeResolverPayload, configMode, configModeActive, forgeHost]);');
     expect(adminSource).toContain('configMode.hasDraft || configMode.hasUnsavedChanges');
     expect(adminSource).not.toContain('label="Banner message"');
 
     expect(dashboardSource).toContain('dashboard-hero-banner-image');
+    expect(dashboardSource).toContain("configMode?.getFieldValue?.('branding.bannerImageUrl', fallback)");
     expect(dashboardSource).not.toContain('Upload hero logo');
 
     expect(contentRegistrySource).not.toContain("key: 'branding.bannerMessage'");

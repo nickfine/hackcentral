@@ -936,7 +936,7 @@ function AdminPanel({
     } finally {
       setIsUploadingBrandingImage(false);
     }
-  }, [appModeResolverPayload, forgeHost]);
+  }, [appModeResolverPayload, configMode, configModeActive, forgeHost]);
 
   const handleClearBrandingImage = useCallback(() => {
     setBrandingSaveStatus(null);

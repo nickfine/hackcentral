@@ -568,11 +568,11 @@ function Dashboard({
   // Track if reminder check has been done this session
   const reminderCheckDone = useRef(false);
 
-  const heroBannerImageUrl = useMemo(() => {
+  const heroBannerImageUrl = (() => {
     const fallback = typeof eventBranding?.bannerImageUrl === 'string' ? eventBranding.bannerImageUrl : '';
     const next = configMode?.getFieldValue?.('branding.bannerImageUrl', fallback);
     return typeof next === 'string' ? next.trim() : '';
-  }, [configMode, eventBranding?.bannerImageUrl]);
+  })();
   const heroLogoSrc = useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png';
   const heroLogoAlt = useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo';
 
