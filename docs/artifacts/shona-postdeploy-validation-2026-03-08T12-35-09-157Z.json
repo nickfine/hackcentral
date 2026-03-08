@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-03-08T12:35:30.496Z",
+  "storageStatePath": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "macroResult": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/spaces/IS/pages/24510466/Shona+s+IT+Hack",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/1db97f6a-d9ce-4771-822a-26f10df10984/runtime-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "clickedSchedule": true,
+    "notPublished": false,
+    "foundTexts": [
+      "Registration Opens",
+      "Opening Ceremony",
+      "Code Freeze",
+      "Results Announced"
+    ],
+    "bodySnippet": "Skip to main content\n293h 24m 39s\n⚡ EVENT LIVE ⚡\nOPEN APP VIEW\nDEV\nCONFIG OFF\nN\n\nNickTestMonday\n\nAdmin · TestyMcTestBro\n\nDashboard\nNew to HackDay?\nHack Ideas & Teams\nSchedule\nRules\nAdmin Panel\nResults\nRegistration\nTeam Formation\nHacking\nSubmission\nVoting\nJudging\nResults\nDashboard\n\nEVENT SCHEDULE\n\nSchedule\n\nPlan around key sessions, deadlines, and judging windows across the event.\n\nTimes shown in your local timezone (GMT) • Event base timezone: Europe/London\nPre-Event\n\nMar 5 - Mar 18, 2026\n\nThu, Mar 5\nLogistics\nRegistration Opens\n\nPortal opens for sign-ups\n\nThu, Mar 12\nSocial\nTeam Formation Opens\n\nMarketplace opens for team building\n\nMon, Mar 16\nLogistics\nCustom Event 2\nMon, Mar 16\nLogistics\nNIck Test Event\nWed, Mar 18\nLogistics\nRegistration Closes\n\nFinal deadline to register\n\nDay 1\n\nThursday, March 19, 2026\n\n09:00 AM\nHacking\nOpening Ceremony\n\nKickoff and announcements\n\n09:30 AM\nHacking\nHacking Begins\n\nTeams start building\n\n12:00 PM\nHacking\nNick Test Event 2\nDay 2\n\nFriday, March 20, 2026\n\n09:00 AM\nHacking\nMorning Kickoff\n\nDaily standup and updates\n\n09:30 AM\nHacking\nHacking Begins\n\nTeams start building\n\n12:00 PM\nHacking\nNick Test Event 3\n02:00 PM\nDeadline\nCode Freeze\n\nFinal submissio",
+    "consoleLogs": [
+      "[HackCentral Runtime v2] Module loaded - 1.2.75",
+      "[hdc-performance-telemetry] {\"metric\":\"runtime_first_load\",\"source\":\"runtime_frontend\",\"mode\":\"legacy\",\"durationMs\":2526,\"stageMs\":{\"get_context\":1,\"activate_context\":1334,\"legacy_parallel_resolvers\":1170},\"outcome\":\"success\",\"warning\":null,\"eventId\":\"d3f7bb14-7d8f-4e92-8740-23b02994b4d4\",\"pageId\":\"24510466\",\"runtimeSource\":\"seed_mapping\"}"
+    ],
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-page-macro-postdeploy-2026-03-08T12-35-09-157Z.png"
+  },
+  "appResult": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/1db97f6a-d9ce-4771-822a-26f10df10984/runtime-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "clickedSchedule": true,
+    "notPublished": false,
+    "foundTexts": [
+      "Registration Opens",
+      "Opening Ceremony",
+      "Code Freeze",
+      "Results Announced"
+    ],
+    "bodySnippet": "Skip to main content\n293h 24m 30s\n⚡ EVENT LIVE ⚡\nDEV\nCONFIG OFF\nN\n\nNickTestMonday\n\nAdmin · TestyMcTestBro\n\nDashboard\nNew to HackDay?\nHack Ideas & Teams\nSchedule\nRules\nAdmin Panel\nResults\nRegistration\nTeam Formation\nHacking\nSubmission\nVoting\nJudging\nResults\nDashboard\n\nEVENT SCHEDULE\n\nSchedule\n\nPlan around key sessions, deadlines, and judging windows across the event.\n\nTimes shown in your local timezone (GMT) • Event base timezone: Europe/London\nPre-Event\n\nMar 5 - Mar 18, 2026\n\nThu, Mar 5\nLogistics\nRegistration Opens\n\nPortal opens for sign-ups\n\nThu, Mar 12\nSocial\nTeam Formation Opens\n\nMarketplace opens for team building\n\nMon, Mar 16\nLogistics\nCustom Event 2\nMon, Mar 16\nLogistics\nNIck Test Event\nWed, Mar 18\nLogistics\nRegistration Closes\n\nFinal deadline to register\n\nDay 1\n\nThursday, March 19, 2026\n\n09:00 AM\nHacking\nOpening Ceremony\n\nKickoff and announcements\n\n09:30 AM\nHacking\nHacking Begins\n\nTeams start building\n\n12:00 PM\nHacking\nNick Test Event 2\nDay 2\n\nFriday, March 20, 2026\n\n09:00 AM\nHacking\nMorning Kickoff\n\nDaily standup and updates\n\n09:30 AM\nHacking\nHacking Begins\n\nTeams start building\n\n12:00 PM\nHacking\nNick Test Event 3\n02:00 PM\nDeadline\nCode Freeze\n\nFinal submissions due\n\n03:00 ",
+    "consoleLogs": [
+      "[HackCentral Runtime v2] Module loaded - 1.2.75",
+      "[hdc-performance-telemetry] {\"metric\":\"runtime_first_load\",\"source\":\"runtime_frontend\",\"mode\":\"legacy\",\"durationMs\":2217,\"stageMs\":{\"get_context\":3,\"activate_context\":1128,\"legacy_parallel_resolvers\":1071},\"outcome\":\"success\",\"warning\":null,\"eventId\":\"d3f7bb14-7d8f-4e92-8740-23b02994b4d4\",\"pageId\":\"24510466\",\"runtimeSource\":\"seed_mapping\"}"
+    ],
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-app-shell-postdeploy-2026-03-08T12-35-09-157Z.png"
+  }
+}

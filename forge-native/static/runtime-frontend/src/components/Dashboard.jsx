@@ -19,6 +19,7 @@ import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { uploadHeroImageInline } from '../lib/heroImageUpload';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 
 // ============================================================================
 // MOCK DATA (fallback when resolver data is unavailable)
@@ -477,7 +478,7 @@ function Dashboard({
   devRoleOverride,
   useAdaptavistLogo = false,
   eventMeta = null,
-  eventPageId = null,
+  appModeResolverPayload = null,
 }) {
   const configMode = useConfigMode();
   const [loading, setLoading] = useState(true);
@@ -489,10 +490,6 @@ function Dashboard({
   const [heroImageUploadError, setHeroImageUploadError] = useState('');
   const [heroImageUploadSuccess, setHeroImageUploadSuccess] = useState('');
   const heroImageFileInputRef = useRef(null);
-  const resolverPayload =
-    typeof eventPageId === 'string' && eventPageId.trim()
-      ? { appMode: true, pageId: eventPageId.trim() }
-      : null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -518,13 +515,17 @@ function Dashboard({
         const { invoke } = await import('@forge/bridge');
 
         const resolverCalls = [
-          { key: 'registrations', promise: invoke('getRegistrations') },
-          { key: 'activity', promise: invoke('getActivityFeed', { limit: 20 }) },
+          {
+            key: 'registrations',
+            promise: invokeEventScopedResolver(invoke, 'getRegistrations', appModeResolverPayload),
+          },
+          {
+            key: 'activity',
+            promise: invokeEventScopedResolver(invoke, 'getActivityFeed', appModeResolverPayload, { limit: 20 }),
+          },
           {
             key: 'schedule',
-            promise: resolverPayload
-              ? invoke('getSchedule', resolverPayload)
-              : invoke('getSchedule'),
+            promise: invokeEventScopedResolver(invoke, 'getSchedule', appModeResolverPayload),
           },
         ];
 
@@ -567,7 +568,7 @@ function Dashboard({
     };
 
     loadData();
-  }, [resolverPayload, user?.role]);
+  }, [appModeResolverPayload, user?.role]);
 
   // Track if reminder check has been done this session
   const reminderCheckDone = useRef(false);
@@ -630,7 +631,12 @@ function Dashboard({
       try {
         reminderCheckDone.current = true;
         const { invoke } = await import('@forge/bridge');
-        const result = await invoke('checkFreeAgentReminders', {});
+        const result = await invokeEventScopedResolver(
+          invoke,
+          'checkFreeAgentReminders',
+          appModeResolverPayload,
+          {}
+        );
         if (result.notified > 0) {
           console.log(`[Dashboard] Created ${result.notified} reminder notifications`);
         }
@@ -640,7 +646,7 @@ function Dashboard({
     };
 
     checkReminders();
-  }, [user, teams, eventPhase]);
+  }, [appModeResolverPayload, user, teams, eventPhase]);
 
   const stats = useMemo(() => {
     const registrations = data?.registrations || [];

@@ -29,6 +29,7 @@ import { HStack, VStack } from './layout';
 import { EmptyState } from './ui/ErrorState';
 import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../data/constants';
 import { useConfigMode } from '../configMode/ConfigModeContext';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 
 // ============================================================================
 // ROLE CONFIGURATION
@@ -94,6 +95,7 @@ function AdminPanel({
   eventBranding = {},
   isEventAdmin = false,
   onRefreshEventPhase,
+  appModeResolverPayload = null,
 }) {
   const configMode = useConfigMode();
   const [activeSection, setActiveSection] = useState('overview');
@@ -355,7 +357,7 @@ function AdminPanel({
 
       try {
         const { invoke } = await import('@forge/bridge');
-        const result = await invoke('getEventSettings');
+        const result = await invokeEventScopedResolver(invoke, 'getEventSettings', appModeResolverPayload);
         if (!isMounted) return;
 
         setSettings({
@@ -378,7 +380,7 @@ function AdminPanel({
     return () => {
       isMounted = false;
     };
-  }, [isAdmin, activeSection, forgeHost, configModeActive, configMode.getFieldValue]);
+  }, [appModeResolverPayload, isAdmin, activeSection, forgeHost, configModeActive, configMode.getFieldValue]);
 
   useEffect(() => {
     if (backupSnapshots.length === 0) {
@@ -436,7 +438,7 @@ function AdminPanel({
       }
 
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('getIdeaSummary');
+      const result = await invokeEventScopedResolver(invoke, 'getIdeaSummary', appModeResolverPayload);
       setIdeaSummary(result?.ideas || []);
     } catch (err) {
       setIdeaSummaryError(err?.message || 'Failed to load idea summary.');
@@ -444,7 +446,7 @@ function AdminPanel({
     } finally {
       setIdeaSummaryLoading(false);
     }
-  }, [isAdmin, forgeHost, teams]);
+  }, [appModeResolverPayload, isAdmin, forgeHost, teams]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -473,7 +475,12 @@ function AdminPanel({
       try {
         if (forgeHost) {
           const { invoke } = await import('@forge/bridge');
-          await invoke('markIdeaNotViable', { teamId: idea.id });
+          await invokeEventScopedResolver(
+            invoke,
+            'markIdeaNotViable',
+            appModeResolverPayload,
+            { teamId: idea.id }
+          );
         } else {
           setIdeaSummary((prev) =>
             prev.map((entry) =>
@@ -502,7 +509,7 @@ function AdminPanel({
         setMarkingIdeaId(null);
       }
     },
-    [forgeHost, loadIdeaSummary, onIdeaSummaryChange, user?.id]
+    [appModeResolverPayload, forgeHost, loadIdeaSummary, onIdeaSummaryChange, user?.id]
   );
 
   const handleSaveSettings = async () => {
@@ -525,7 +532,7 @@ function AdminPanel({
     try {
       if (forgeHost) {
         const { invoke } = await import('@forge/bridge');
-        await invoke('updateEventSettings', {
+        await invokeEventScopedResolver(invoke, 'updateEventSettings', appModeResolverPayload, {
           settings: {
             maxTeamSize: parsedMaxTeamSize,
             maxVotesPerUser: parsedMaxVotesPerUser,
@@ -557,7 +564,7 @@ function AdminPanel({
     setIsResettingData(true);
     try {
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('adminResetEventData', {
+      const result = await invokeEventScopedResolver(invoke, 'adminResetEventData', appModeResolverPayload, {
         confirmText: 'RESET',
         seedProfile: 'balanced_v1',
       });
@@ -631,7 +638,7 @@ function AdminPanel({
           updatedBy: user?.name || user?.displayName || 'Admin',
         };
 
-        await invoke('updateEventSettings', {
+        await invokeEventScopedResolver(invoke, 'updateEventSettings', appModeResolverPayload, {
           settings: {
             motdMessage: nextMessage,
             motd: trimmedMessage,
@@ -836,7 +843,7 @@ function AdminPanel({
 
       if (!forgeHost || !onRefreshEventPhase) return;
       const { invoke } = await import('@forge/bridge');
-      await invoke('updateEventBranding', {
+      await invokeEventScopedResolver(invoke, 'updateEventBranding', appModeResolverPayload, {
         accentColor: brandingForm.accentColor || undefined,
         bannerImageUrl: brandingForm.bannerImageUrl || undefined,
         themePreference: brandingForm.themePreference || undefined,
@@ -849,7 +856,7 @@ function AdminPanel({
     } finally {
       setIsSavingBranding(false);
     }
-  }, [forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode]);
+  }, [appModeResolverPayload, forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode]);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
 

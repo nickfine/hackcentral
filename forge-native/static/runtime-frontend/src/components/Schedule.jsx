@@ -5,6 +5,7 @@ import { Card, Badge, Button } from './ui';
 import { BackButton } from './shared';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { getUserLocale, getUserTimezone, getTimezoneAbbr, EVENT_TIMEZONE } from '../data/constants';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { ScheduleBuilderV2 } from '../../../frontend/src/components/schedule-builder-v2';
 import {
   EVENT_TO_OUTPUT_FIELD,
@@ -637,7 +638,7 @@ function UnpublishedScheduleState({ canEdit, isConfigEnabled, onToggleConfigMode
   );
 }
 
-function Schedule({ onNavigate, eventPageId = null }) {
+function Schedule({ onNavigate, appModeResolverPayload = null }) {
   const configMode = useConfigMode();
   const [milestones, setMilestones] = useState([]);
   const [hasPublishedSchedule, setHasPublishedSchedule] = useState(false);
@@ -650,10 +651,6 @@ function Schedule({ onNavigate, eventPageId = null }) {
   const effectiveSchedule = configMode.effectiveSchedule;
   const canEditSchedule = Boolean(configMode.canEdit);
   const showEditor = Boolean(configMode.isEnabled && canEditSchedule);
-  const resolverPayload =
-    typeof eventPageId === 'string' && eventPageId.trim()
-      ? { appMode: true, pageId: eventPageId.trim() }
-      : null;
 
   const fetchSchedule = useCallback(async () => {
     setIsLoading(true);
@@ -666,9 +663,7 @@ function Schedule({ onNavigate, eventPageId = null }) {
       }
 
       const { invoke } = await import('@forge/bridge');
-      const response = resolverPayload
-        ? await invoke('getSchedule', resolverPayload)
-        : await invoke('getSchedule');
+      const response = await invokeEventScopedResolver(invoke, 'getSchedule', appModeResolverPayload);
       setMilestones(Array.isArray(response?.milestones) ? response.milestones : []);
       setHasPublishedSchedule(Boolean(response?.hasPublishedSchedule));
     } catch (error) {
@@ -678,7 +673,7 @@ function Schedule({ onNavigate, eventPageId = null }) {
     } finally {
       setIsLoading(false);
     }
-  }, [resolverPayload]);
+  }, [appModeResolverPayload]);
 
   useEffect(() => {
     let active = true;
@@ -694,9 +689,7 @@ function Schedule({ onNavigate, eventPageId = null }) {
         }
 
         const { invoke } = await import('@forge/bridge');
-        const response = resolverPayload
-          ? await invoke('getSchedule', resolverPayload)
-          : await invoke('getSchedule');
+        const response = await invokeEventScopedResolver(invoke, 'getSchedule', appModeResolverPayload);
         if (!active) return;
         setMilestones(Array.isArray(response?.milestones) ? response.milestones : []);
         setHasPublishedSchedule(Boolean(response?.hasPublishedSchedule));
@@ -715,7 +708,7 @@ function Schedule({ onNavigate, eventPageId = null }) {
     return () => {
       active = false;
     };
-  }, [resolverPayload]);
+  }, [appModeResolverPayload]);
 
   useEffect(() => {
     if (!configMode.publishSuccess?.at) {

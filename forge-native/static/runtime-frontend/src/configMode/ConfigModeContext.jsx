@@ -13,6 +13,7 @@ import {
   mergeMotdPreview,
   resolveContentOverrideValue,
 } from './resolveContent';
+import { buildAppModeResolverPayload } from '../lib/appModeResolverPayload';
 
 const ConfigModeContext = createContext(null);
 
@@ -288,6 +289,7 @@ export function ConfigModeProvider({
   isEventAdmin = false,
   eventId = null,
   eventPageId = null,
+  appModeResolverPayload = null,
   eventBranding = {},
   eventAdminMessage = null,
   isForgeHost = false,
@@ -331,14 +333,11 @@ export function ConfigModeProvider({
     normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || '') || null
   );
   const appModePayload = useMemo(() => {
-    if (typeof eventPageId !== 'string' || !eventPageId.trim()) {
-      return {};
+    if (appModeResolverPayload && typeof appModeResolverPayload === 'object') {
+      return appModeResolverPayload;
     }
-    return {
-      appMode: true,
-      pageId: eventPageId.trim(),
-    };
-  }, [eventPageId]);
+    return buildAppModeResolverPayload(eventPageId) || {};
+  }, [appModeResolverPayload, eventPageId]);
 
   const loadedEventIdRef = useRef(null);
 

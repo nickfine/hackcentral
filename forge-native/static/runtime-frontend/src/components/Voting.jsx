@@ -15,6 +15,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { cn } from '../lib/design-system';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { Card, Button, SearchInput, Alert } from './ui';
 import { BackButton } from './shared';
 import { HStack, VStack } from './layout';
@@ -134,7 +135,7 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
 // COMPONENT
 // ============================================================================
 
-function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 3 }) {
+function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 3, appModeResolverPayload = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [votes, setVotes] = useState([]);
@@ -181,7 +182,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 3 
         await invoke('removeVote', { teamId });
         setVotes((prev) => prev.filter((id) => id !== teamId));
       } else if (votes.length < MAX_VOTES) {
-        await invoke('castVote', { teamId });
+        await invokeEventScopedResolver(invoke, 'castVote', appModeResolverPayload, { teamId });
         setVotes((prev) => [...prev, teamId]);
       }
     } catch (err) {
@@ -191,7 +192,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 3 
     } finally {
       setVotingTeamId(null);
     }
-  }, [votes, votingTeamId, MAX_VOTES]);
+  }, [votes, votingTeamId, MAX_VOTES, appModeResolverPayload]);
 
   const canVoteMore = votes.length < MAX_VOTES;
 

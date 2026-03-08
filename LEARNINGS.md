@@ -4446,6 +4446,55 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - App View Event Scoping Consistency Deployed (Mar 8, 2026 12:36 GMT)
+
+### What Changed
+- Closed the remaining app-view integrity gaps after the first Shona schedule hotfix.
+- Added a small shared runtime helper at `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/lib/appModeResolverPayload.js` to build and merge stable page-scoped app-mode resolver payloads.
+- Removed inline per-render resolver payload objects from:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Dashboard.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Schedule.jsx`
+- Propagated the shared page-scoped payload across remaining event-derived app-view resolver calls in:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/App.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/AdminPanel.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Voting.jsx`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/ConfigModeContext.jsx`
+- Added targeted regression coverage:
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-runtime-app-mode-resolver-payload.spec.ts`
+  - `/Users/nickster/Downloads/HackCentral/tests/forge-native-runtime-event-scoping.spec.ts`
+- Bumped version markers to repo `0.6.62`, forge-native `0.3.40`, and runtime bundle `1.2.75`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Local validation completed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/runtime-app-view-gating.spec.ts tests/forge-native-runtime-context-precedence.spec.ts tests/forge-native-runtime-app-mode-resolver-payload.spec.ts tests/forge-native-runtime-event-scoping.spec.ts` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native` ✅
+- Predeploy backup sweep:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-123016Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-123016Z.md`
+- Deploy/install path completed:
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+- Hosted Confluence validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed on `Shona's IT Hack`:
+  - page macro route console logged `[HackCentral Runtime v2] Module loaded - 1.2.75`
+  - app-shell route console logged `[HackCentral Runtime v2] Module loaded - 1.2.75`
+  - both routes logged `[hdc-performance-telemetry]` with `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - both routes rendered the published schedule and did not show `Schedule not published yet`
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-page-macro-postdeploy-2026-03-08T12-35-09-157Z.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-app-shell-postdeploy-2026-03-08T12-35-09-157Z.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-postdeploy-validation-2026-03-08T12-35-09-157Z.json`
+
+### Operational Notes
+- The shared app-mode payload helper is a safer pattern for this split runtime because it decouples page-scoped resolver correctness from object identity in React hooks.
+- In this Confluence runtime, frame detection for hosted browser checks must include Atlassian CDN iframe URLs (`*.cdn.prod.atlassian-dev.net/.../runtime-ui-frontend/...`), not just `/wiki/apps/` paths.
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
 ## Session Update - App View Schedule Context Fix Deployed (Mar 8, 2026 12:07 GMT)
 
 ### What Changed

@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 12:07 GMT
+Last updated: 2026-03-08 12:36 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-08 12:07 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.61`
-  - Forge native package version: `0.3.39`
+  - Root app version: `0.6.62`
+  - Forge native package version: `0.3.40`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.59`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
-  - Runtime bundle version: `1.2.74`
+  - Runtime bundle version: `1.2.75`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -2890,3 +2890,48 @@ All passed in-session.
 - Production Confluence is updated to the app-view schedule context fix.
 - `Shona's IT Hack` now renders the published schedule in both the page macro and the full app-shell route.
 - Source-control closure is still pending in this workspace; the deploy is live but the changes are not committed yet.
+
+## Session Update - App View Event Scoping Consistency Deployed (Mar 8, 2026 12:36 GMT)
+
+### Closed in this session
+- Finished the app-view scoping remediation that remained after the first Shona schedule hotfix.
+- Added one shared runtime helper for page-scoped app-mode resolver payloads so app-view event reads use a stable `{ appMode: true, pageId }` contract instead of recreating inline objects per render.
+- Removed unstable inline resolver payload objects from the runtime `Dashboard` and `Schedule` views so their effects and callbacks no longer re-fire from object identity churn.
+- Applied the shared page-scoped payload across the remaining event-derived app-shell calls:
+  - bootstrap and refresh reads in `App.jsx` (`getCurrentUser`, `getTeams`, `getFreeAgents`, `getRegistrations`, `getEventPhase`, `getRuntimeBootstrap`)
+  - dashboard reads and reminder check (`getRegistrations`, `getActivityFeed`, `getSchedule`, `checkFreeAgentReminders`)
+  - admin/config event reads and mutations (`getEventSettings`, `getIdeaSummary`, `markIdeaNotViable`, `updateEventSettings`, `adminResetEventData`, `updateEventBranding`)
+  - vote casting in app view and event-derived team refreshes after create/submit/delete/leave flows
+- Kept Config Mode aligned with the same payload contract by allowing `ConfigModeProvider` to consume the shared stable app-mode resolver payload from `App.jsx`.
+- Added targeted regression coverage for:
+  - pure app-mode payload construction/merge behavior
+  - runtime source contract checks that app-shell event-derived invokes stay routed through the shared helper
+- Bumped version markers to repo `0.6.62`, forge-native `0.3.40`, and runtime bundle `1.2.75`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/runtime-app-view-gating.spec.ts tests/forge-native-runtime-context-precedence.spec.ts tests/forge-native-runtime-app-mode-resolver-payload.spec.ts tests/forge-native-runtime-event-scoping.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-123016Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-123016Z.md`
+- Authenticated hosted Confluence validation on `Shona's IT Hack` using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - page macro route loaded runtime bundle `1.2.75`
+  - full app-shell route loaded runtime bundle `1.2.75`
+  - both routes resolved `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - both routes rendered the published schedule and no longer showed `Schedule not published yet`
+  - screenshots:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-page-macro-postdeploy-2026-03-08T12-35-09-157Z.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-app-shell-postdeploy-2026-03-08T12-35-09-157Z.png`
+  - validation summary:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-postdeploy-validation-2026-03-08T12-35-09-157Z.json`
+
+### Current state
+- Production Confluence now has the stable app-view event-scoping release.
+- The Shona schedule renders correctly in both the page macro and full app-shell route after the follow-on integrity fix.
+- Source control is still open in this workspace; the deployed release has not been committed or pushed yet.

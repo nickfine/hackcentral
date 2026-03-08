@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/shared';
 import { APP_VERSION, EVENT_PHASES, EVENT_TIMEZONE } from './data/constants';
 import { ConfigModeProvider } from './configMode/ConfigModeContext';
 import ConfigModeOverlays from './configMode/ConfigModeOverlays';
+import { buildAppModeResolverPayload, invokeEventScopedResolver } from './lib/appModeResolverPayload';
 
 // Log once so you can verify in console that the deployed bundle is current (helps with CDN cache)
 if (typeof console !== 'undefined' && console.log) {
@@ -421,21 +422,19 @@ function App() {
         markStage('get_context', contextLookupStartedAt);
         setContext(ctx);
 
-        const appModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
-        if (appModePageId) {
+        const bootstrapAppModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
+        if (bootstrapAppModePageId) {
           setLoadingStage('Preparing page context...');
           const activationStartedAt = Date.now();
           try {
-            await invoke('activateAppModeContext', { pageId: appModePageId });
+            await invoke('activateAppModeContext', { pageId: bootstrapAppModePageId });
           } catch (activationError) {
             console.warn('Failed to activate app-mode context:', activationError);
           }
           markStage('activate_context', activationStartedAt);
         }
 
-        const eventPhasePayload = appModePageId
-          ? { appMode: true, pageId: appModePageId }
-          : { appMode: true };
+        const bootstrapAppModeResolverPayload = buildAppModeResolverPayload(bootstrapAppModePageId);
         const toFulfilled = (value) => ({ status: 'fulfilled', value });
         const toRejected = (reason) => ({ status: 'rejected', reason });
         const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
@@ -449,7 +448,11 @@ function App() {
           setLoadingStage('Bootstrapping runtime context...');
           const runtimeBootstrapStartedAt = Date.now();
           try {
-            const runtimeBootstrap = await invoke('getRuntimeBootstrap', eventPhasePayload);
+            const runtimeBootstrap = await invokeEventScopedResolver(
+              invoke,
+              'getRuntimeBootstrap',
+              bootstrapAppModeResolverPayload
+            );
             markStage('get_runtime_bootstrap', runtimeBootstrapStartedAt);
 
             userResult = hasOwn(runtimeBootstrap, 'user')
@@ -473,11 +476,11 @@ function App() {
             setLoadingStage('Retrying with compatibility startup...');
             const legacyResolversStartedAt = Date.now();
             [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
-              invoke('getCurrentUser'),
-              invoke('getTeams'),
-              invoke('getEventPhase', eventPhasePayload),
-              invoke('getFreeAgents'),
-              invoke('getRegistrations'),
+              invokeEventScopedResolver(invoke, 'getCurrentUser', bootstrapAppModeResolverPayload),
+              invokeEventScopedResolver(invoke, 'getTeams', bootstrapAppModeResolverPayload),
+              invokeEventScopedResolver(invoke, 'getEventPhase', bootstrapAppModeResolverPayload),
+              invokeEventScopedResolver(invoke, 'getFreeAgents', bootstrapAppModeResolverPayload),
+              invokeEventScopedResolver(invoke, 'getRegistrations', bootstrapAppModeResolverPayload),
             ]);
             markStage('legacy_parallel_resolvers', legacyResolversStartedAt);
           }
@@ -485,11 +488,11 @@ function App() {
           setLoadingStage('Loading event, teams, and registrations...');
           const legacyResolversStartedAt = Date.now();
           [userResult, teamsResult, eventResult, freeAgentsResult, registrationsResult] = await Promise.allSettled([
-            invoke('getCurrentUser'),
-            invoke('getTeams'),
-            invoke('getEventPhase', eventPhasePayload),
-            invoke('getFreeAgents'),
-            invoke('getRegistrations'),
+            invokeEventScopedResolver(invoke, 'getCurrentUser', bootstrapAppModeResolverPayload),
+            invokeEventScopedResolver(invoke, 'getTeams', bootstrapAppModeResolverPayload),
+            invokeEventScopedResolver(invoke, 'getEventPhase', bootstrapAppModeResolverPayload),
+            invokeEventScopedResolver(invoke, 'getFreeAgents', bootstrapAppModeResolverPayload),
+            invokeEventScopedResolver(invoke, 'getRegistrations', bootstrapAppModeResolverPayload),
           ]);
           markStage('legacy_parallel_resolvers', legacyResolversStartedAt);
         }
@@ -690,6 +693,19 @@ function App() {
     }
   }, []);
 
+  const appModePageId = useMemo(
+    () =>
+      normalizeConfluencePageId(eventPageId) ||
+      resolvePageIdFromContext(context) ||
+      resolvePageIdFromSearch(window.location.search),
+    [context, eventPageId]
+  );
+
+  const appModeResolverPayload = useMemo(
+    () => buildAppModeResolverPayload(appModePageId),
+    [appModePageId]
+  );
+
   const refreshTeamsAndFreeAgents = useCallback(async () => {
     if (devMode) {
       return;
@@ -698,8 +714,8 @@ function App() {
     try {
       const { invoke } = await import('@forge/bridge');
       const [teamsResult, freeAgentsResult] = await Promise.allSettled([
-        invoke('getTeams'),
-        invoke('getFreeAgents'),
+        invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
+        invokeEventScopedResolver(invoke, 'getFreeAgents', appModeResolverPayload),
       ]);
 
       if (teamsResult.status === 'fulfilled') {
@@ -718,7 +734,7 @@ function App() {
     } catch (err) {
       console.error('Failed to refresh team and free-agent data:', err);
     }
-  }, [devMode]);
+  }, [appModeResolverPayload, devMode]);
 
   const refreshRegistrations = useCallback(async () => {
     if (devMode) {
@@ -726,25 +742,18 @@ function App() {
     }
     try {
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('getRegistrations');
+      const result = await invokeEventScopedResolver(invoke, 'getRegistrations', appModeResolverPayload);
       setAllUsers(result?.registrations || []);
     } catch (err) {
       console.error('Failed to refresh registrations:', err);
     }
-  }, [devMode]);
+  }, [appModeResolverPayload, devMode]);
 
   const refreshEventPhase = useCallback(async () => {
     if (devMode) return;
     try {
       const { invoke } = await import('@forge/bridge');
-      const pageIdHint =
-        normalizeConfluencePageId(eventPageId) ||
-        resolvePageIdFromContext(context) ||
-        resolvePageIdFromSearch(window.location.search);
-      const payload = pageIdHint
-        ? { appMode: true, pageId: pageIdHint }
-        : { appMode: true };
-      const eventInfo = await invoke('getEventPhase', payload);
+      const eventInfo = await invokeEventScopedResolver(invoke, 'getEventPhase', appModeResolverPayload);
       const instanceContext = eventInfo?.instanceContext;
       if (eventInfo?.phase) setEventPhase(eventInfo.phase);
       setEventId(eventInfo?.eventId || null);
@@ -770,7 +779,7 @@ function App() {
     } catch (err) {
       console.error('Failed to refresh event phase:', err);
     }
-  }, [context, devMode, eventPageId]);
+  }, [appModeResolverPayload, devMode]);
 
   const handleOpenAppView = useCallback(async () => {
     if (devMode) {
@@ -966,11 +975,16 @@ function App() {
     }
 
     const { invoke } = await import('@forge/bridge');
-    const createResult = await invoke('createTeam', { teamData: normalizedTeam });
+    const createResult = await invokeEventScopedResolver(
+      invoke,
+      'createTeam',
+      appModeResolverPayload,
+      { teamData: normalizedTeam }
+    );
 
     const [teamsResult, freeAgentsResult] = await Promise.allSettled([
-      invoke('getTeams'),
-      invoke('getFreeAgents'),
+      invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
+      invokeEventScopedResolver(invoke, 'getFreeAgents', appModeResolverPayload),
     ]);
 
     if (teamsResult.status === 'fulfilled') {
@@ -988,7 +1002,7 @@ function App() {
     }
 
     return createResult;
-  }, [devMode, effectiveUser, user]);
+  }, [appModeResolverPayload, devMode, effectiveUser, user]);
 
   // Handle team updates (from TeamDetail)
   const handleUpdateTeam = useCallback(async (teamId, updates) => {
@@ -1083,7 +1097,7 @@ function App() {
     const submitResult = await invoke('submitProject', { teamId, submissionData });
 
     // Refresh teams to get updated submission data
-    const teamsResult = await invoke('getTeams');
+    const teamsResult = await invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload);
     const teamsData = teamsResult?.teams || teamsResult || [];
     setTeams(teamsData);
 
@@ -1101,7 +1115,7 @@ function App() {
       submissionPageUrl: submitResult?.submissionPageUrl || null,
       outputPageIds: Array.isArray(submitResult?.outputPageIds) ? submitResult.outputPageIds : [],
     };
-  }, [devMode, selectedTeam, setTeams, setSelectedTeam]);
+  }, [appModeResolverPayload, devMode, selectedTeam, setTeams, setSelectedTeam]);
 
   const handleDeleteTeam = useCallback(async (teamId) => {
     if (!teamId) {
@@ -1135,8 +1149,8 @@ function App() {
     const result = await invoke('deleteTeam', { teamId });
 
     const [teamsResult, freeAgentsResult] = await Promise.allSettled([
-      invoke('getTeams'),
-      invoke('getFreeAgents'),
+      invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
+      invokeEventScopedResolver(invoke, 'getFreeAgents', appModeResolverPayload),
     ]);
 
     if (teamsResult.status === 'fulfilled') {
@@ -1156,7 +1170,7 @@ function App() {
 
     setSelectedTeam((prev) => (prev?.id === teamId ? null : prev));
     return result;
-  }, [devMode, effectiveUser, user]);
+  }, [appModeResolverPayload, devMode, effectiveUser, user]);
 
   const handleLeaveTeam = useCallback(async (teamId) => {
     if (!teamId) {
@@ -1209,8 +1223,8 @@ function App() {
     const result = await invoke('leaveTeam', { teamId });
 
     const [teamsResult, freeAgentsResult] = await Promise.allSettled([
-      invoke('getTeams'),
-      invoke('getFreeAgents'),
+      invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
+      invokeEventScopedResolver(invoke, 'getFreeAgents', appModeResolverPayload),
     ]);
 
     if (teamsResult.status === 'fulfilled') {
@@ -1238,7 +1252,7 @@ function App() {
 
     setSelectedTeam((prev) => (prev?.id === teamId ? null : prev));
     return result;
-  }, [devMode, effectiveUser, user]);
+  }, [appModeResolverPayload, devMode, effectiveUser, user]);
 
   // Handle join request (from TeamDetail)
   const handleJoinRequest = useCallback(async (teamId, requestData) => {
@@ -1502,6 +1516,7 @@ function App() {
       eventAdminMessage: effectiveEventAdminMessage,
       eventMeta,
       eventPageId,
+      appModeResolverPayload,
       eventBranding: effectiveEventBranding,
       isEventAdmin,
       onRefreshEventPhase: refreshEventPhase,
@@ -1714,6 +1729,7 @@ function App() {
       isEventAdmin={isEventAdmin}
       eventId={eventId}
       eventPageId={eventPageId}
+      appModeResolverPayload={appModeResolverPayload}
       eventBranding={eventBranding}
       eventAdminMessage={eventAdminMessage}
       isForgeHost={isForgeEnvironment()}
