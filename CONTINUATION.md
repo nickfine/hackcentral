@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 20:58 GMT
+Last updated: 2026-03-08 21:13 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-08 20:58 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.67`
-  - Forge native package version: `0.3.45`
+  - Root app version: `0.6.68`
+  - Forge native package version: `0.3.46`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.79`
+  - Runtime bundle version: `1.2.80`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -118,6 +118,34 @@ Last updated: 2026-03-08 20:58 GMT
     - non-admin account receives `[SHOWCASE_FORBIDDEN]`
 - live telemetry sampling captured from `forge logs`:
   - `[hdc-switcher-telemetry]`
+
+## Session Update - v0.6.68 Runtime Branding Draft Upload Fix Released (Mar 8, 2026 21:13 GMT)
+
+- Released runtime branding upload follow-up to production from commit `56e658b`.
+- Bumped version markers to:
+  - root app `0.6.68`
+  - forge-native `0.3.46`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.80`
+- Runtime branding fix now live:
+  - banner upload in Config Mode now writes into draft state immediately instead of relying on a stale callback closure
+  - dashboard hero banner now resolves draft branding directly on render, so unsaved banner uploads preview immediately
+  - returning to `Admin Panel -> Branding` without publishing keeps the uploaded banner visible in the current Config Mode session
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.md)
+  - Forge deploy returned `✔ Deployed`
+  - Forge install confirmed production was already at the latest app version after upgrade
+- Hosted iframe validation passed with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` on [Shona's IT Hack](https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466):
+  - runtime app-shell logged `[HackCentral Runtime v2] Module loaded - 1.2.80`
+  - unsaved banner upload updated the dashboard hero immediately
+  - returning to `Admin Panel -> Branding` without publishing kept the uploaded preview intact
+  - artifacts:
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.json)
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.md)
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.png)
 
 ## Session Update - v0.6.66 Create Flow Cleanup Released (Mar 8, 2026 17:12 GMT)
 

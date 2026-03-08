@@ -20,11 +20,50 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.67 (root app)
+**Version:** 0.6.68 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.45
-**Runtime Bundle Version:** 1.2.79
+**Forge Native Package:** 0.3.46
+**Runtime Bundle Version:** 1.2.80
+
+## Session Update - v0.6.68 Runtime Branding Draft Upload Fix Deployed To Production (Mar 8, 2026 21:13 GMT)
+
+### Completed
+
+- Released runtime branding draft-upload follow-up to production from commit `56e658b`.
+- Bumped version markers to:
+  - root app `0.6.68`
+  - forge-native `0.3.46`
+  - runtime bundle `1.2.80`
+- Left the unchanged global and macro cache-buster markers at `0.6.66`.
+- Runtime Admin Branding upload flow now behaves correctly in active Config Mode sessions:
+  - upload writes `branding.bannerImageUrl` into draft state immediately
+  - dashboard hero updates from draft branding without requiring publish
+  - returning to Branding without publishing keeps the uploaded preview visible
+
+### Validation
+
+- Local release validation passed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-210810Z.md)
+  - Forge deploy returned `✔ Deployed`
+  - Forge install confirmed production was already at the latest app version after upgrade
+- Hosted runtime validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` and frame-aware selectors passed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.80`
+  - unsaved banner upload updated the dashboard hero immediately
+  - returning to `Admin Panel -> Branding` without publishing kept the uploaded preview intact
+  - artifacts:
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.json)
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.md)
+    - [`runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-branding-upload-unsaved-postdeploy-2026-03-08T21-11-12-117Z.png)
+
+### Learned
+
+- For Config Mode upload-driven preview, route changes inside the runtime depend on live draft state, not just saved draft envelopes. If an upload callback captures stale `configModeActive`, the UI can look successful while the actual preview pipeline never receives the new branding value.
+- Draft-backed dashboard preview values should be resolved directly from current Config Mode state rather than from a memo tied only to published branding props.
 
 ## Session Update - v0.6.67 Runtime Branding Preview Fix Deployed To Production (Mar 8, 2026 20:58 GMT)
 
