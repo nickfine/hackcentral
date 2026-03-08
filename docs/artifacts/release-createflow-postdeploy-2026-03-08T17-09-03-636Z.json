@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-03-08T17:09:12.144Z",
+  "storageStatePath": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "releaseMarkers": {
+    "root": "0.6.66",
+    "forgeNative": "0.3.44",
+    "ui": "0.6.66",
+    "macro": "0.6.66",
+    "runtime": "1.2.78"
+  },
+  "globalValidation": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/bb6dfee5-9171-49af-bc00-fe18a1d66733/custom-ui-frontend/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "uiLog": "[HackCentral Confluence UI] loaded 0.6.66",
+    "setupInformationCount": 1,
+    "minSizeCount": 0,
+    "maxSizeLabelCount": 1,
+    "maxInputInfo": {
+      "type": "text",
+      "maxLength": "3",
+      "className": "field-input field-input-short",
+      "value": "6"
+    },
+    "legacyStepperCount": 0,
+    "reviewSetupInformationCount": 1,
+    "reviewMaxTeamSizeCount": 1,
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-createflow-2026-03-08T17-09-03-636Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-b686b40c20f6422b9f90c3914a9b52dc' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-b686b40c20f6422b9f90c3914a9b52dc' 'strict-dynamic' 'unsafe-inline' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "[HackCentral Confluence UI] loaded 0.6.66",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "Deprecated API for given entry type.",
+      "[hdc-switcher-telemetry] {\"source\":\"global.bootstrap.live\",\"total\":3,\"nonNavigable\":0,\"withMissingPageId\":0}"
+    ]
+  },
+  "macroValidation": {
+    "url": "https://hackdaytemp.atlassian.net/wiki/pages/viewpage.action?pageId=5668895",
+    "frameUrl": "https://1s1hhux-1e48epltwt-267sbvieh3--1wusq1g-2j4l94a0bc-wftxvtoxs.cdn.prod.atlassian-dev.net/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/bb6dfee5-9171-49af-bc00-fe18a1d66733/custom-ui-macro/_ctx_H4sIAAAAAAACA41OvQ6CMBB-lxsN4QHYsFQlKgtshpCzrdBYWuIVIyG8u2DcNMbt7vsfQdU3RQTRaQSUcrnV8sEqpL7DM5IKhYMyAD90CiJIj_GW5zAFf-o3vGC7ih1SnhVVnib8mxW9QSKNNrTKQzAjwtm7eoTCuF6-gF_p65jteZa842e2ceQttouiQXGVOHjVdh812pJHY9BrZ5mzF13Pc8rpCaoJEg8VAQAA/?platformFeatureFlags=forge-ui-iframe-analytics",
+    "uiLog": "[HackCentral Macro UI] loaded 0.6.66",
+    "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/release-macro-version-2026-03-08T17-09-03-636Z.png",
+    "consoleLogs": [
+      "{msg: An error has occurred getting the experiment. Only the first occurrence of this error is logged., experimentName: confluence_enable_react-compiler-runtime-2, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "{msg: An error has occurred checking the feature gate. Only the first occurrence of this error is logged., gateName: shared-user-preferences, error: Error: Client must be initialized before using this method\n    at w.assertInitialized (https://cc-f…}",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-0b1e890445864e77b61992c46bd260bd' 'unsafe-inline' 'strict-dynamic' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: \"script-src 'report-sample' 'nonce-0b1e890445864e77b61992c46bd260bd' 'unsafe-inline' 'strict-dynamic' https:\".\n The policy is report-only, so the violation has been logged but no further action has been taken.",
+      "[HackCentral Macro UI] loaded 0.6.66",
+      "[iFrameSizer][Host page: iFrameResizer0] Deprecated: 'initCallback' has been renamed 'onInit'. The old method will be removed in the next major version.",
+      "Multiple versions of FeatureGateClients found on the current page.\n      The currently bound version is 0.0.0-use.local when module version 4.23.4 was loading.",
+      "Deprecated API for given entry type.",
+      "[hdc-switcher-telemetry] {\"source\":\"macro.context.live\",\"total\":3,\"nonNavigable\":0,\"withMissingPageId\":0}"
+    ]
+  }
+}

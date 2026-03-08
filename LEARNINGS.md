@@ -11,7 +11,7 @@
 ## Critical Relationship with HD26Forge
 
 When users create a HackDay in HackCentral:
-1. Wizard collects: eventName, eventTagline, schedule, rules, branding
+1. Wizard now collects only setup information that the created HackDay actually uses: event name/icon/tagline, admins, max team size, and launch/setup options
 2. Creates `HackdayTemplateSeed` record in Supabase with `seed_payload`
 3. HD26Forge macro detects seed → creates Event record
 4. HD26Forge renders with Adaptavist logo + custom name/tagline from wizard
@@ -20,11 +20,62 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.65 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.65`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.66 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.43
+**Forge Native Package:** 0.3.44
 **Runtime Bundle Version:** 1.2.78
+
+## Session Update - v0.6.66 Create Flow Cleanup Deployed To Production (Mar 8, 2026 17:12 GMT)
+
+### Completed
+
+- Released create-flow cleanup to production from commit `1cbc04b`.
+- Bumped version markers to:
+  - root app `0.6.66`
+  - forge-native `0.3.44`
+  - HackCentral UI marker `0.6.66`
+  - HackCentral macro marker `0.6.66`
+  - runtime bundle unchanged at `1.2.78`
+- Global HackDay creation flow now matches the real ownership model:
+  - `Setup Information` + `Review & Create`
+  - no progress stepper
+  - no schedule/branding ownership step content
+  - no dead rule fields
+  - only `Max size` is captured for team rules
+  - max-size field is now a compact 3-digit capture control
+- Create-time backend behavior now allows `go_live` without hacking/submission dates, so opening registration immediately no longer blocks on schedule dates that are configured later in the HackDay page.
+- Production macro bundle was refreshed to marker `0.6.66` as part of the same release.
+
+### Validation
+
+- Local release validation passed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts tests/forge-native-macro-create-wizard-rules-removal.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/macro-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.md)
+  - Forge deploy returned `✔ Deployed`
+  - Forge install confirmed production was at the latest version after upgrade
+- Hosted validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed:
+  - global page console logged `[HackCentral Confluence UI] loaded 0.6.66`
+  - macro host page console logged `[HackCentral Macro UI] loaded 0.6.66`
+  - live create flow showed `Setup Information`, no `Min size`, no legacy stepper, and a `Max size` input with `maxlength=3`
+  - review screen showed `Max team size`
+  - artifacts:
+    - [`release-createflow-postdeploy-2026-03-08T17-09-03-636Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-createflow-postdeploy-2026-03-08T17-09-03-636Z.json)
+    - [`release-createflow-postdeploy-2026-03-08T17-09-03-636Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-createflow-postdeploy-2026-03-08T17-09-03-636Z.md)
+    - [`release-global-createflow-2026-03-08T17-09-03-636Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-createflow-2026-03-08T17-09-03-636Z.png)
+    - [`release-macro-version-2026-03-08T17-09-03-636Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-macro-version-2026-03-08T17-09-03-636Z.png)
+
+### Learned
+
+- For this flow, the truthfulness rule is now clearer: only collect fields in HackCentral that the created HackDay visibly represents or enforces on day one. `Max size` met that bar; `Min size` did not.
+- The global-page and macro bundles should have their cache-buster markers advanced together whenever both bundles change, even if the macro UX shape itself is still legacy.
 
 ## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
 

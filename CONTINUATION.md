@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 15:29 GMT
+Last updated: 2026-03-08 17:12 GMT
 
 ## Current Snapshot
 
@@ -9,10 +9,10 @@ Last updated: 2026-03-08 15:29 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.65`
-  - Forge native package version: `0.3.43`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.65`
-  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.46`
+  - Root app version: `0.6.66`
+  - Forge native package version: `0.3.44`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
+  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
   - Runtime bundle version: `1.2.78`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
@@ -116,8 +116,52 @@ Last updated: 2026-03-08 15:29 GMT
   - live authority check validated featured toggle permissions:
     - admin account can set/unset featured
     - non-admin account receives `[SHOWCASE_FORBIDDEN]`
-  - live telemetry sampling captured from `forge logs`:
-    - `[hdc-switcher-telemetry]`
+- live telemetry sampling captured from `forge logs`:
+  - `[hdc-switcher-telemetry]`
+
+## Session Update - v0.6.66 Create Flow Cleanup Released (Mar 8, 2026 17:12 GMT)
+
+- Released commit `1cbc04b` to `main` and pushed to `origin/main`.
+- Version markers now deployed in production:
+  - root app `0.6.66`
+  - forge-native `0.3.44`
+  - HackCentral UI marker `0.6.66`
+  - HackCentral macro marker `0.6.66`
+  - runtime bundle unchanged at `1.2.78`
+- Global HackDay creation flow is now production-live with:
+  - 2-screen flow: `Setup Information` -> `Review & Create`
+  - no progress stepper
+  - no schedule/branding ownership screens
+  - only `Max size` collected for rules
+  - compact max-size capture with 3-digit limit
+- Backend create behavior now allows `go_live` without requiring hacking/submission dates, so `Open registration immediately` works even when schedule setup is deferred to the HackDay page.
+- Legacy macro bundle was refreshed and now logs marker `0.6.66`; its bundle is current in production even though the parent-page macro still exposes the legacy 6-step shell.
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy backup snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-170248Z.md)
+  - Forge CLI result: `forge deploy --environment production --no-verify` -> `✔ Deployed`
+  - Forge install result: production site already at the latest version after upgrade
+- Hosted postdeploy validation passed with the saved authenticated Playwright state:
+  - global page loaded `[HackCentral Confluence UI] loaded 0.6.66`
+  - macro host page loaded `[HackCentral Macro UI] loaded 0.6.66`
+  - global create flow validation confirmed:
+    - `Setup Information` visible
+    - `Min size` absent
+    - `Max size` present as `type=text`, `maxlength=3`, `class=field-input field-input-short`
+    - no legacy `Set up your event in 3 steps` stepper
+    - review screen shows `Max team size`
+  - artifacts:
+    - [`release-createflow-postdeploy-2026-03-08T17-09-03-636Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-createflow-postdeploy-2026-03-08T17-09-03-636Z.json)
+    - [`release-createflow-postdeploy-2026-03-08T17-09-03-636Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-createflow-postdeploy-2026-03-08T17-09-03-636Z.md)
+    - [`release-global-createflow-2026-03-08T17-09-03-636Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-global-createflow-2026-03-08T17-09-03-636Z.png)
+    - [`release-macro-version-2026-03-08T17-09-03-636Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-macro-version-2026-03-08T17-09-03-636Z.png)
+- Local validation executed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-create-wizard-branding-removal.spec.ts tests/forge-native-macro-create-wizard-rules-removal.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native/static/macro-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
     - `[hdc-performance-telemetry]`
 - Child integrations (`P1.CHILD.01`) are now completed (GO):
   - contract spec: `docs/HDC-P1-CHILD-INTEGRATION-CONTRACT-SPEC.md`
