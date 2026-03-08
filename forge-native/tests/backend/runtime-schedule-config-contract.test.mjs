@@ -24,6 +24,13 @@ test('config mode helpers and runtime publish flow support schedule draft state'
   assert.match(runtimeSource, /hasPublishedSchedule/);
 });
 
+test('config mode helpers allow the rules header title override key', async () => {
+  const helpersSource = await readFile('../../src/runtime/lib/configModeHelpers.mjs');
+
+  assert.match(helpersSource, /\['rules\.header\.title',\s*80\]/);
+  assert.match(helpersSource, /\['rules\.header\.subtitle',\s*CONFIG_MODE_DEFAULT_MAX_COPY_LENGTH\]/);
+});
+
 test('runtime schedule page owns config-mode editing and participant empty state', async () => {
   const source = await readFile('../../static/runtime-frontend/src/components/Schedule.jsx');
 

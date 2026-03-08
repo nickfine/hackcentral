@@ -105,6 +105,7 @@ export const CONFIG_MODE_ALLOWED_CONTENT_OVERRIDE_KEYS = new Map([
   ['dashboard.hero.title', 120],
   ['dashboard.hero.subtitlePrimary', 220],
   ['dashboard.hero.subtitleSecondary', 220],
+  ['rules.header.title', 80],
   ['rules.header.subtitle', CONFIG_MODE_DEFAULT_MAX_COPY_LENGTH],
   ['rules.general.sectionTitle', 80],
   ['rules.general.timeLimit.title', 90],

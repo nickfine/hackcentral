@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-03-08T12:58:14.335Z",
+  "consoleLogs": [
+    "[HackCentral Runtime v2] Module loaded - 1.2.76",
+    "[hdc-performance-telemetry] {\"metric\":\"runtime_first_load\",\"source\":\"runtime_frontend\",\"mode\":\"legacy\",\"durationMs\":5084,\"stageMs\":{\"get_context\":1,\"activate_context\":1635,\"legacy_parallel_resolvers\":3436},\"outcome\":\"success\",\"warning\":null,\"eventId\":\"d3f7bb14-7d8f-4e92-8740-23b02994b4d4\",\"pageId\":\"24510466\",\"runtimeSource\":\"seed_mapping\"}"
+  ],
+  "containsRulesTitle": false,
+  "containsRulesNav": true,
+  "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-retry-2026-03-08T12-58-06-592Z.png",
+  "bodySnippet": "Skip to main content\n293h 1m 45s\n⚡ EVENT LIVE ⚡\nDEV\nCONFIG OFF\nN\n\nNickTestMonday\n\nAdmin · TestyMcTestBro\n\nDashboard\nNew to HackDay?\nHack Ideas & Teams\nSchedule\nRules\nAdmin Panel\nResults\nRegistration\nTeam Formation\nHacking\nSubmission\nVoting\nJudging\nResults\n\nLoading dashboard...\n\nMISSION CONTROL v2.0 - Custom UI"
+}

@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 7, 2026
+**Last Updated:** March 8, 2026
 
 ## Project Overview
 
@@ -20,10 +20,11 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.60 (root app)
+**Version:** 0.6.64 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.59`, `HACKCENTRAL_MACRO_VERSION=0.6.46` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.38
+**Forge Native Package:** 0.3.42
+**Runtime Bundle Version:** 1.2.77
 
 ## Session Update - Pains Language + Pipeline Upstream Stage (Mar 5, 2026)
 
@@ -4491,6 +4492,89 @@ Use this template at the end of every work session:
 ### Operational Notes
 - The shared app-mode payload helper is a safer pattern for this split runtime because it decouples page-scoped resolver correctness from object identity in React hooks.
 - In this Confluence runtime, frame detection for hosted browser checks must include Atlassian CDN iframe URLs (`*.cdn.prod.atlassian-dev.net/.../runtime-ui-frontend/...`), not just `/wiki/apps/` paths.
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - Rules Title Publish Hotfix Deployed (Mar 8, 2026 13:22 GMT)
+
+### What Changed
+- Fixed the live Config Mode publish failure for edited Rules titles.
+- Root cause was a frontend/backend contract mismatch:
+  - `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/contentRegistry.js` already allowed `rules.header.title`
+  - `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/configModeHelpers.mjs` did not allow the same key during publish normalization/validation
+- Added `['rules.header.title', 80]` to `CONFIG_MODE_ALLOWED_CONTENT_OVERRIDE_KEYS` in `/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/lib/configModeHelpers.mjs`.
+- Added backend contract coverage in `/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/runtime-schedule-config-contract.test.mjs`.
+- Bumped version markers to repo `0.6.64`, forge-native `0.3.42`, and runtime bundle `1.2.77`.
+- Deployed the hotfix to Forge production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Local validation completed:
+  - `./scripts/with-node22.sh node --test forge-native/tests/backend/runtime-schedule-config-contract.test.mjs` ✅
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-rules-config-mode-header.spec.ts` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+  - `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native` ✅
+- Predeploy backup sweep:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-130237Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-130237Z.md`
+- Deploy/install path completed:
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+- Hosted validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - console logged `[HackCentral Runtime v2] Module loaded - 1.2.77`
+  - telemetry resolved `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - Config Mode and the Rules route rendered on the live app-shell
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-validation-20260308-1322Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-config-on-2026-03-08.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-rules-tab-2026-03-08.png`
+- User live retest after deploy confirmed the publish error was fixed.
+
+### Operational Notes
+- The failure signature was specific and useful:
+  - `Unsupported content override key: rules.header.title`
+- When adding new editable config-copy keys, update both sides together:
+  - runtime frontend registry
+  - backend allowlist/normalizer in `configModeHelpers.mjs`
+- Forge CLI again emitted the recurring local warnings during deploy:
+  - CLI update available (`12.14.1` -> `12.15.0`)
+  - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - Rules Title Config Mode Editability Deployed (Mar 8, 2026 12:58 GMT)
+
+### What Changed
+- Added inline Config Mode editability for the Rules page title.
+- Registered a new content key in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/configMode/contentRegistry.js`:
+  - `rules.header.title`
+- Switched the Rules header title in `/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/Rules.jsx` from a hard-coded `<h1>` to `EditableText` so it follows the same editing flow as the existing subtitle.
+- Added regression coverage in `/Users/nickster/Downloads/HackCentral/tests/forge-native-rules-config-mode-header.spec.ts`.
+- Bumped version markers to repo `0.6.63`, forge-native `0.3.41`, and runtime bundle `1.2.76`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Validation / Evidence
+- Local validation completed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-rules-config-mode-header.spec.ts` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+- Predeploy backup sweep:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-125619Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-125619Z.md`
+- Deploy/install path completed:
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+- Hosted Shona app-shell validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - console logged `[HackCentral Runtime v2] Module loaded - 1.2.76`
+  - retry pass logged `[hdc-performance-telemetry]` with `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-2026-03-08T12-57-31-515Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-2026-03-08T12-57-31-515Z.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-retry-2026-03-08T12-58-06-592Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-retry-2026-03-08T12-58-06-592Z.png`
+
+### Operational Notes
+- The deploy is live, but the hosted proof is partial: the runtime and page-scoped event context were confirmed on the live Shona app-shell, while the scripted Rules-route/title assertion did not complete because the iframe remained on the dashboard loading shell during the automated click pass.
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output

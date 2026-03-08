@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-08 12:36 GMT
+Last updated: 2026-03-08 13:22 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-08 12:36 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.62`
-  - Forge native package version: `0.3.40`
+  - Root app version: `0.6.64`
+  - Forge native package version: `0.3.42`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.59`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.44`
-  - Runtime bundle version: `1.2.75`
+  - Runtime bundle version: `1.2.77`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Showcase Confluence-native hybrid rollout (`new hacks only`) is now implemented in code and validated:
@@ -2935,3 +2935,72 @@ All passed in-session.
 - Production Confluence now has the stable app-view event-scoping release.
 - The Shona schedule renders correctly in both the page macro and full app-shell route after the follow-on integrity fix.
 - Source control is still open in this workspace; the deployed release has not been committed or pushed yet.
+
+## Session Update - Rules Title Config Mode Editability Deployed (Mar 8, 2026 12:58 GMT)
+
+### Closed in this session
+- Added in-place Config Mode editability for the Rules page title so it behaves like the existing editable subtitle and other participant-facing content.
+- Registered `rules.header.title` in the runtime content registry and switched the hard-coded Rules `<h1>` to `EditableText`.
+- Added a small regression contract test to keep the Rules header title on the Config Mode editing path.
+- Bumped version markers to repo `0.6.63`, forge-native `0.3.41`, and runtime bundle `1.2.76`.
+- Deployed the versioned build to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-rules-config-mode-header.spec.ts`
+- `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-125619Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-125619Z.md`
+- Hosted app-shell validation on `Shona's IT Hack` using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime bundle `1.2.76` loaded
+  - telemetry resolved `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-2026-03-08T12-57-31-515Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-2026-03-08T12-57-31-515Z.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-retry-2026-03-08T12-58-06-592Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-postdeploy-retry-2026-03-08T12-58-06-592Z.png`
+
+### Current state
+- Production Confluence is updated to the Rules-title editability release.
+- Automated hosted validation proved the live runtime marker and event context, but did not complete a definitive scripted assertion on the Rules title itself because the iframe remained on the dashboard loading shell during the route-click pass.
+- This release was followed immediately by the `1.2.77` hotfix to add backend publish support for `rules.header.title`.
+
+## Session Update - Rules Title Publish Hotfix Deployed (Mar 8, 2026 13:22 GMT)
+
+### Closed in this session
+- Fixed the production publish failure for the newly editable Rules title.
+- Root cause: the runtime frontend registry allowed `rules.header.title`, but the backend config-mode publish allowlist in `forge-native/src/runtime/lib/configModeHelpers.mjs` did not.
+- Added `['rules.header.title', 80]` to `CONFIG_MODE_ALLOWED_CONTENT_OVERRIDE_KEYS`.
+- Added backend contract coverage in `forge-native/tests/backend/runtime-schedule-config-contract.test.mjs` so future Rules-title edits cannot ship without matching publish support.
+- Bumped version markers to repo `0.6.64`, forge-native `0.3.42`, and runtime bundle `1.2.77`.
+- Deployed the hotfix to Forge production on `hackdaytemp.atlassian.net`.
+
+### Evidence
+- `./scripts/with-node22.sh node --test forge-native/tests/backend/runtime-schedule-config-contract.test.mjs`
+- `./scripts/with-node22.sh npm run test:run -- tests/forge-native-rules-config-mode-header.spec.ts`
+- `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- `./scripts/with-node22.sh npm run custom-ui:build --prefix forge-native`
+- `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net`
+- `../scripts/with-node22.sh npm run custom-ui:build`
+- `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+- `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-130237Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260308-130237Z.md`
+- Hosted app-shell validation on `Shona's IT Hack` using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime bundle `1.2.77` loaded
+  - telemetry resolved `eventId=d3f7bb14-7d8f-4e92-8740-23b02994b4d4`, `pageId=24510466`, `runtimeSource=seed_mapping`
+  - Config Mode and the Rules route rendered the title on the live app-shell after deploy
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-validation-20260308-1322Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-config-on-2026-03-08.png`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/shona-rules-hotfix-rules-tab-2026-03-08.png`
+- User live retest after deploy: Rules-title publish now succeeds.
+
+### Current state
+- Production Confluence is updated to the Rules-title publish hotfix.
+- Rules title edits in Config Mode now publish successfully on the hosted Shona event.
+- This hotfix closes the contract gap between editable registry keys and backend publish allowlists for the Rules header title.
