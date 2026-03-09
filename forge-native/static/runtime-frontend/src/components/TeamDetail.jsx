@@ -15,6 +15,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { cn, DESIGN_SYSTEM_CARD } from '../lib/design-system';
+import { hasCompletedRegistration } from '../lib/registrationState';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import {
   Button,
@@ -279,7 +280,7 @@ function TeamDetail({
   const hasPendingRequest = team?.joinRequests?.some((r) => r.userId === user?.id);
   const pendingRequestCount = team?.joinRequests?.length || 0;
   const isTeamFull = (team?.members?.length || 0) >= (team?.maxMembers || 5);
-  const hasCompletedSignup = user?.name && user?.skills?.length > 0;
+  const hasCompletedSignup = hasCompletedRegistration(user);
   const memberCount = team?.members?.length || 0;
   const maxMembers = team?.maxMembers || 5;
   const capacityPercent = Math.min(100, Math.round((memberCount / Math.max(maxMembers, 1)) * 100));

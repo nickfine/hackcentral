@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 11:09 GMT
+Last updated: 2026-03-09 12:47 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-09 11:09 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.74`
-  - Forge native package version: `0.3.52`
+  - Root app version: `0.6.75`
+  - Forge native package version: `0.3.53`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.86`
+  - Runtime bundle version: `1.2.87`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -31,6 +31,13 @@ Last updated: 2026-03-09 11:09 GMT
   - earlier non-destructive smoke caveat is now treated as a validation false negative, not a confirmed runtime bug
   - latest production version-check artifact:
     - `docs/artifacts/release-version-check-2026-03-09T11-08-52-143Z.json`
+- Child HackDay registration now uses per-user runtime phase promotion:
+  - during real/global `signup`, completed `participant` and `ambassador` users see a full `team_formation` experience
+  - unregistered users remain on `signup`
+  - `judge` and `admin` users stay on the real/global phase
+  - the change is runtime-only and does not mutate event lifecycle or schedule data
+  - latest production version-check artifact:
+    - `docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -53,6 +60,52 @@ Last updated: 2026-03-09 11:09 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - v0.6.75 Per-User Team Formation During Registration Released (Mar 9, 2026 12:47 GMT)
+
+### What changed
+
+- Released the per-user child HackDay phase-promotion change to production.
+- Version markers are now:
+  - root app `0.6.75`
+  - forge-native `0.3.53`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.87`
+- Runtime behavior now:
+  - promotes completed `participant` and `ambassador` users from `signup` to a full `team_formation` experience while the real event phase remains `signup`
+  - keeps unregistered users in `signup`
+  - keeps `judge` and `admin` users on the real/global phase
+  - keeps backend lifecycle, milestones, and schedule data unchanged
+- Localhost dev-mode note:
+  - the `participant_guest` simulation now transitions correctly after signup instead of forcing an empty-skills guest state forever
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-effective-phase.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Postdeploy production validation:
+  - runtime app-shell logged `[HackCentral Runtime v2] Module loaded - 1.2.87`
+  - root attributes resolved to `data-color-mode="light"` and `data-theme-preset="default"`
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.md`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.png`
+
+### Current state
+
+- Production Confluence is now running markers `0.6.75 / 0.3.53 / 1.2.87`.
+- The per-user registration-to-team-formation behavior is live in code.
+- The checked production page was not in a registration-phase scenario, so the feature-specific behavior was validated locally rather than reproduced end to end on production.
 
 ## Session Update - v0.6.74 Continuity Correction Release Deployed (Mar 9, 2026 11:09 GMT)
 

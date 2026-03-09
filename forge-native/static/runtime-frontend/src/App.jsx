@@ -12,6 +12,7 @@ import { APP_VERSION, EVENT_PHASES, EVENT_TIMEZONE } from './data/constants';
 import { ConfigModeProvider } from './configMode/ConfigModeContext';
 import ConfigModeOverlays from './configMode/ConfigModeOverlays';
 import { buildAppModeResolverPayload, invokeEventScopedResolver } from './lib/appModeResolverPayload';
+import { deriveEffectiveEventPhase, hasCompletedRegistration } from './lib/registrationState';
 import { getThemePresetAccent, normalizeThemePreset } from './lib/themePresets';
 
 // Log once so you can verify in console that the deployed bundle is current (helps with CDN cache)
@@ -921,6 +922,15 @@ function App() {
         };
       }
       if (devRoleOverride === 'participant_guest') {
+        if (hasCompletedRegistration(user)) {
+          return {
+            ...user,
+            role: 'participant',
+            id: `FREE_AGENT_${user.id}`,
+            teamId: null,
+            isFreeAgent: true,
+          };
+        }
         // Simulate an unjoined/unregistered participant in dev mode.
         return {
           ...user,
@@ -957,6 +967,11 @@ function App() {
     }
     return user;
   }, [user, devRoleOverride, teams]);
+
+  const effectiveEventPhase = useMemo(
+    () => deriveEffectiveEventPhase(eventPhase, effectiveUser),
+    [eventPhase, effectiveUser]
+  );
 
   // Handle user profile updates (from Signup or Profile)
   const handleUpdateUser = useCallback(async (updates) => {
@@ -1616,7 +1631,8 @@ function App() {
       onNavigate: handleNavigate,
       onTrackEvent: handleTrackEvent,
       onSubmitProject: handleSubmitProject,
-      eventPhase,
+      eventPhase: effectiveEventPhase,
+      realEventPhase: eventPhase,
       maxVotesPerUser,
       maxTeamSize,
       eventMotd,
@@ -1684,6 +1700,7 @@ function App() {
         return (
           <AdminPanel
             {...commonProps}
+            eventPhase={eventPhase}
             onPhaseChange={devMode ? handlePhaseChange : null}
             onEventSettingsUpdate={handleEventSettingsUpdate}
             onIdeaSummaryChange={refreshTeamsAndFreeAgents}
@@ -1716,7 +1733,8 @@ function App() {
             updateUser={handleUpdateUser}
             onNavigate={handleNavigate}
             teams={teams}
-            eventPhase={eventPhase}
+            eventPhase={effectiveEventPhase}
+            realEventPhase={eventPhase}
             onTrackEvent={handleTrackEvent}
           />
         );
@@ -1733,7 +1751,7 @@ function App() {
             onJoinRequest={handleJoinRequest}
             onRequestResponse={handleRequestResponse}
             onLeaveTeam={handleLeaveTeam}
-            eventPhase={eventPhase}
+            eventPhase={effectiveEventPhase}
           />
         );
 
@@ -1858,7 +1876,7 @@ function App() {
           realUserRole={user?.role}
           teams={teams}
           onNavigate={handleNavigate}
-          eventPhase={eventPhase}
+          eventPhase={effectiveEventPhase}
           activeNav={currentView}
           showSidebar={true}
           isDevMode={devMode}

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SKILLS, MAX_SKILLS } from '../data/constants';
 import { cn } from '../lib/design-system';
+import { hasCompletedRegistration } from '../lib/registrationState';
 import { 
   Card, 
   Button, 
@@ -42,6 +43,7 @@ function Signup({
   onNavigate, 
   teams = [],
   eventPhase,
+  realEventPhase = eventPhase,
   onTrackEvent,
 }) {
   const signupSessionIdRef = useRef(`signup-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
@@ -292,6 +294,15 @@ function Signup({
       });
     };
   }, [onTrackEvent, eventPhase]);
+
+  useEffect(() => {
+    if (showSuccess) return;
+    if (realEventPhase !== 'signup') return;
+    if (eventPhase !== 'team_formation') return;
+    if (!hasCompletedRegistration(user)) return;
+
+    onNavigate('dashboard', {}, { replace: true });
+  }, [showSuccess, realEventPhase, eventPhase, user, onNavigate]);
 
   // Click outside to close skill suggestions
   useEffect(() => {

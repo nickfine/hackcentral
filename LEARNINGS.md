@@ -20,11 +20,51 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.74 (root app)
+**Version:** 0.6.75 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.52
-**Runtime Bundle Version:** 1.2.86
+**Forge Native Package:** 0.3.53
+**Runtime Bundle Version:** 1.2.87
+
+## Session Update - v0.6.75 Per-User Team Formation During Registration Released To Production (Mar 9, 2026 12:47 GMT)
+
+### Completed
+
+- Released the runtime-only per-user phase progression change for child HackDays.
+- During the global `signup` phase, completed `participant` and `ambassador` users now resolve to a full `team_formation` experience without mutating the actual event lifecycle.
+- Unregistered users still remain in `signup`, while `judge` and `admin` users continue to follow the real/global phase.
+- Fixed the localhost-only `participant_guest` dev override so local signup testing can actually progress into the post-signup free-agent state instead of being pinned to an empty-skills guest simulation.
+- Bumped production version markers to:
+  - root app `0.6.75`
+  - forge-native `0.3.53`
+  - runtime bundle `1.2.87`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-effective-phase.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-124444Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Postdeploy production version check with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` on `NickTestMonday` (`pageId=24510466`) confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.87`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"` on the live page
+  - artifact set:
+    - [`release-version-check-2026-03-09T12-46-35-836Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.json)
+    - [`release-version-check-2026-03-09T12-46-35-836Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.md)
+    - [`release-version-check-2026-03-09T12-46-35-836Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.png)
+
+### Operational Note
+
+- The checked production child page was already in a live/event-running state, so the feature-specific registration-to-team-formation promotion was validated locally and by code-path review, not by reproducing the exact registration-phase scenario on production.
+- The runtime implementation remains presentation-only: no backend lifecycle writes, schedule mutations, or milestone changes were introduced by this release.
 
 ## Session Update - v0.6.74 Continuity Correction Release Deployed To Production (Mar 9, 2026 11:09 GMT)
 

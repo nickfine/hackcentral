@@ -37,6 +37,7 @@ import PhaseIndicator from './ui/PhaseIndicator';
 import { cn } from '../lib/design-system';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import { useConfigMode } from '../configMode/ConfigModeContext';
+import { hasCompletedRegistration } from '../lib/registrationState';
 import {
   USER_ROLES,
   EVENT_PHASES,
@@ -476,10 +477,7 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
   ];
 
   // Show Registration nav item until user has completed registration.
-  // Registration completion requires name/displayName and at least one skill.
-  const userName = user?.name || user?.displayName;
-  const hasCompletedRegistration = Boolean(user && userName && user.skills && user.skills.length > 0);
-  const showSignup = !hasCompletedRegistration;
+  const showSignup = !hasCompletedRegistration(user);
   
   if (showSignup) {
     baseItems.push({ id: 'signup', label: 'Signup', icon: UserPlus, highlight: 'signup' });

@@ -15,6 +15,7 @@ import {
   getMissionContent,
 } from '../lib/missionBriefContent';
 import { cn, BUTTON_VARIANTS } from '../lib/design-system';
+import { hasCompletedRegistration } from '../lib/registrationState';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
 import { useConfigMode } from '../configMode/ConfigModeContext';
@@ -700,9 +701,7 @@ function Dashboard({
   );
 
   const isRegisteredUser = useMemo(() => {
-    if (!user) return false;
-    const userName = user.name || user.displayName;
-    return Boolean(userName && user.skills?.length > 0);
+    return hasCompletedRegistration(user);
   }, [user]);
 
   const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation';
