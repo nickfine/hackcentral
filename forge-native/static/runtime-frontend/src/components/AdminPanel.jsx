@@ -150,21 +150,8 @@ function resolveBrandingAccentOverride(accentColor, themePreset) {
   };
 }
 
-function syncAccentToPreset(nextPreset, currentAccent) {
-  const normalizedPreset = normalizeThemePreset(nextPreset);
-  const normalizedCurrentAccent = currentAccent
-    ? normalizeAccentColor(currentAccent, getThemePresetAccent(normalizedPreset, 'light'))
-    : '';
-  const knownPresetAccents = THEME_PRESET_VALUES.flatMap((preset) => [
-    normalizeAccentColor(getThemePresetAccent(preset, 'light')),
-    normalizeAccentColor(getThemePresetAccent(preset, 'dark')),
-  ]);
-
-  if (!normalizedCurrentAccent || knownPresetAccents.includes(normalizedCurrentAccent)) {
-    return getThemePresetAccent(normalizedPreset, 'light');
-  }
-
-  return normalizedCurrentAccent;
+function syncAccentToPreset(nextPreset) {
+  return getThemePresetAccent(normalizeThemePreset(nextPreset), 'light');
 }
 
 // ============================================================================
@@ -2241,7 +2228,7 @@ function AdminPanel({
                 <div className="branding-field-group">
                   <div className="branding-field-header">
                     <span className="field-label">Theme preset</span>
-                    <span className="field-hint">Curated atmosphere presets for the runtime. Accent color below can still be used as an override.</span>
+                    <span className="field-hint">Selecting a preset resets the accent to that preset. Accent color below can then be used as a manual override.</span>
                   </div>
                   <div className="branding-theme-preset-grid" role="radiogroup" aria-label="Theme preset">
                     {THEME_PRESET_VALUES.map((presetId) => {
@@ -2261,7 +2248,7 @@ function AdminPanel({
                             setBrandingForm((prev) => ({
                               ...prev,
                               themePreset: presetId,
-                              accentColor: syncAccentToPreset(presetId, prev.accentColor),
+                              accentColor: syncAccentToPreset(presetId),
                             }))
                           }
                           disabled={isSavingBranding}
@@ -2284,7 +2271,7 @@ function AdminPanel({
                 <div className="branding-field-group">
                   <div className="branding-field-header">
                     <label htmlFor="branding-accent-color" className="field-label">Accent color</label>
-                    <span className="field-hint">Optional override for primary actions, focus states, and runtime highlights.</span>
+                    <span className="field-hint">Optional manual override for the selected preset&apos;s primary actions, focus states, and runtime highlights.</span>
                   </div>
                   <div className="branding-color-row">
                     <input

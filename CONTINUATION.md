@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 01:38 GMT
+Last updated: 2026-03-09 01:54 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-09 01:38 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.71`
-  - Forge native package version: `0.3.49`
+  - Root app version: `0.6.72`
+  - Forge native package version: `0.3.50`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.83`
+  - Runtime bundle version: `1.2.84`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -21,8 +21,9 @@ Last updated: 2026-03-09 01:38 GMT
   - presets are orthogonal to `themePreference` (`system` / `light` / `dark`)
   - runtime root now carries `data-theme-preset` alongside `data-color-mode`
   - shared runtime surfaces now consume preset tokens for page background, shared cards, nav chrome, hero surfaces, and overlays
+  - selecting a preset now resets the accent color to that preset's default, while the accent control remains available as a manual override afterward
   - latest production hosted validation artifact:
-    - `docs/artifacts/theme-preset-production-validation-2026-03-09T01-38-26-888Z.json`
+    - `docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -45,6 +46,50 @@ Last updated: 2026-03-09 01:38 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - v0.6.72 Theme Preset Accent Reset Released (Mar 9, 2026 01:54 GMT)
+
+### What changed
+
+- Released a follow-up theme preset fix to production.
+- Version markers are now:
+  - root app `0.6.72`
+  - forge-native `0.3.50`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.84`
+- Runtime Branding behavior now:
+  - resets accent color to the selected preset when `Default`, `Editorial`, `Summit`, or `Studio` is clicked
+  - still allows a manual accent override after preset selection using the existing accent input
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Hosted production validation:
+  - runtime app-shell logged `[HackCentral Runtime v2] Module loaded - 1.2.84`
+  - Branding preset selection reset accent values on the live page:
+    - `Studio` -> `#7c3aed`
+    - `Summit` -> `#b8860b`
+  - preview button background updated immediately to the matching preset accent
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.md`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.png`
+
+### Current state
+
+- Production Confluence is now running the accent-reset follow-up with markers `0.6.72 / 0.3.50 / 1.2.84`.
+- Preset selection now behaves the way operators expect in Branding: the preset click sets the preset accent first, and the accent control becomes an explicit override.
 
 ## Session Update - v0.6.71 Curated Theme Presets Released (Mar 9, 2026 01:38 GMT)
 

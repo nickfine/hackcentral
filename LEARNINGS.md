@@ -20,11 +20,46 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.71 (root app)
+**Version:** 0.6.72 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.49
-**Runtime Bundle Version:** 1.2.83
+**Forge Native Package:** 0.3.50
+**Runtime Bundle Version:** 1.2.84
+
+## Session Update - v0.6.72 Theme Preset Accent Reset Released To Production (Mar 9, 2026 01:54 GMT)
+
+### Completed
+
+- Released a follow-up fix so selecting a runtime theme preset now resets the accent color to that preset's default accent.
+- Preset selection still allows a manual accent override afterward via the existing accent color control.
+- Bumped production version markers to:
+  - root app `0.6.72`
+  - forge-native `0.3.50`
+  - runtime bundle `1.2.84`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-015256Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Hosted production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed on `Shona's IT Hack` (`pageId=24510466`):
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.84`
+  - before preset click, Branding showed accent `#f59e0b` on `Default`
+  - after clicking `Studio`, Branding reset the accent to `#7c3aed` and the preview button background changed to `rgb(124, 58, 237)`
+  - after clicking `Summit`, Branding reset the accent to `#b8860b` and the preview button background changed to `rgb(184, 134, 11)`
+  - artifact set:
+    - [`theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.json)
+    - [`theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.md)
+    - [`theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-accent-reset-production-2026-03-09T01-54-37-334Z.png)
 
 ## Session Update - v0.6.71 Curated Theme Presets Released To Production (Mar 9, 2026 01:38 GMT)
 

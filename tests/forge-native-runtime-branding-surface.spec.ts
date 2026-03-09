@@ -21,6 +21,9 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain('Manual banner image URL');
     expect(adminSource).toContain('Manual hero icon URL');
     expect(adminSource).toContain('Dashboard preview');
+    expect(adminSource).toContain('Selecting a preset resets the accent to that preset.');
+    expect(adminSource).toContain("accentColor: syncAccentToPreset(presetId),");
+    expect(adminSource).toContain("return getThemePresetAccent(normalizeThemePreset(nextPreset), 'light');");
     expect(adminSource).toContain("configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);");
     expect(adminSource).toContain("handleBrandingImagePicked('banner', event)");
     expect(adminSource).toContain("handleBrandingImagePicked('icon', event)");
