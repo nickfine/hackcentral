@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useContext } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { normalizeThemePreset } from '../lib/themePresets';
 
 const GLOBAL_THEME_KEY = 'hd26forge_theme';
 const VALID_THEMES = ['light', 'dark', 'system'];
@@ -22,8 +23,9 @@ function getStoredTheme(key) {
 }
 
 export function useTheme() {
-  const { eventDefaultTheme, pageId } = useContext(ThemeContext);
+  const { eventDefaultTheme, eventDefaultThemePreset, pageId } = useContext(ThemeContext);
   const themeKey = pageId ? `hd26forge_theme_${pageId}` : GLOBAL_THEME_KEY;
+  const themePreset = normalizeThemePreset(eventDefaultThemePreset);
 
   const [theme, setThemeState] = useState(() => {
     const stored = getStoredTheme(GLOBAL_THEME_KEY);
@@ -54,6 +56,7 @@ export function useTheme() {
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-color-mode', resolvedTheme);
+    root.setAttribute('data-theme-preset', themePreset);
     if (resolvedTheme === 'dark') {
       root.classList.add('dark');
       root.classList.remove('light');
@@ -62,7 +65,7 @@ export function useTheme() {
       root.classList.remove('dark');
     }
     root.style.colorScheme = resolvedTheme;
-  }, [resolvedTheme]);
+  }, [resolvedTheme, themePreset]);
 
   useEffect(() => {
     try {
@@ -102,6 +105,7 @@ export function useTheme() {
     setTheme,
     toggleTheme,
     resolvedTheme,
+    themePreset,
     isSystemTheme: theme === 'system',
     isDark: resolvedTheme === 'dark',
   };

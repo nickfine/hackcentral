@@ -28,6 +28,7 @@ import type {
   SubmitHackResult,
   SyncErrorCategory,
   SyncResult,
+  ThemePreset,
   ThemePreference,
   ViewerContext,
 } from '../shared/types';
@@ -909,12 +910,20 @@ function normalizeEventRules(
 function normalizeEventBranding(
   input: CreateInstanceDraftInput['branding'] | EventBranding | null | undefined
 ): EventBranding {
+  const themePreset: ThemePreset =
+    input?.themePreset === 'default' ||
+    input?.themePreset === 'editorial' ||
+    input?.themePreset === 'summit' ||
+    input?.themePreset === 'studio'
+      ? input.themePreset
+      : 'default';
   const themePreference: ThemePreference | null =
     input?.themePreference === 'system' || input?.themePreference === 'light' || input?.themePreference === 'dark'
       ? input.themePreference
       : null;
   const branding: EventBranding = {
     accentColor: input?.accentColor?.trim() || '#0f766e',
+    themePreset,
   };
   if (input?.bannerImageUrl?.trim()) {
     branding.bannerImageUrl = input.bannerImageUrl.trim();

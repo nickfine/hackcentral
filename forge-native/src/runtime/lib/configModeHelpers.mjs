@@ -11,6 +11,7 @@ export const CONFIG_MODE_SCHEDULE_EVENT_SIGNALS = new Set([
   'judging',
   'neutral',
 ]);
+export const CONFIG_MODE_THEME_PRESETS = new Set(['default', 'editorial', 'summit', 'studio']);
 const NEW_TO_HACKDAY_ALLOWED_CONTENT_OVERRIDE_KEYS = [
   ['newToHackday.hero.label', 40],
   ['newToHackday.hero.title', 120],
@@ -198,6 +199,10 @@ export function normalizeConfigModeBrandingPatch(value) {
   if (value.themePreference !== undefined) {
     const pref = String(value.themePreference).trim();
     next.themePreference = ['light', 'dark', 'system'].includes(pref) ? pref : 'system';
+  }
+  if (value.themePreset !== undefined) {
+    const preset = String(value.themePreset).trim();
+    next.themePreset = CONFIG_MODE_THEME_PRESETS.has(preset) ? preset : 'default';
   }
 
   return next;

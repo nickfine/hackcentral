@@ -26,6 +26,13 @@ export const THEME_PREFERENCE_OPTIONS = [
   { value: 'dark', label: 'Dark' },
 ];
 
+export const THEME_PRESET_OPTIONS = [
+  { value: 'default', label: 'Default' },
+  { value: 'editorial', label: 'Editorial' },
+  { value: 'summit', label: 'Summit' },
+  { value: 'studio', label: 'Studio' },
+];
+
 const NEW_TO_HACKDAY_CONTENT_FIELDS = [
   { key: 'newToHackday.hero.label', page: 'new-to-hackday', section: 'hero', fieldType: CONFIG_FIELD_TYPES.TEXT, sourceKind: CONFIG_SOURCE_KINDS.CONTENT_OVERRIDE, editablePhase: 1, maxLength: 40, label: 'Hero Label', helpText: 'Small label above New to HackDay title.' },
   { key: 'newToHackday.hero.title', page: 'new-to-hackday', section: 'hero', fieldType: CONFIG_FIELD_TYPES.TEXT, sourceKind: CONFIG_SOURCE_KINDS.CONTENT_OVERRIDE, editablePhase: 1, maxLength: 120, label: 'Hero Title', helpText: 'Primary New to HackDay page title.' },
@@ -138,6 +145,17 @@ export const CONTENT_REGISTRY = [
     label: 'Theme Preference',
     helpText: 'Default event theme behavior.',
     options: THEME_PREFERENCE_OPTIONS,
+  },
+  {
+    key: 'branding.themePreset',
+    page: 'admin',
+    section: 'branding',
+    fieldType: CONFIG_FIELD_TYPES.SELECT,
+    sourceKind: CONFIG_SOURCE_KINDS.BRANDING,
+    editablePhase: 1,
+    label: 'Theme Preset',
+    helpText: 'Curated visual atmosphere preset.',
+    options: THEME_PRESET_OPTIONS,
   },
   {
     key: 'branding.bannerImageUrl',

@@ -56,6 +56,7 @@ const EVENT_BRANDING_BANNER_REQUIRED_HEIGHT = 400;
 const EVENT_BRANDING_ICON_REQUIRED_WIDTH = 400;
 const EVENT_BRANDING_ICON_REQUIRED_HEIGHT = 400;
 const EVENT_BRANDING_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
+const EVENT_THEME_PRESETS = new Set(["default", "editorial", "summit", "studio"]);
 const APP_MODE_RUNTIME_SOURCES = Object.freeze({
   ACTIVE: "app_mode_active_context",
   REQUIRED: "app_mode_context_required",
@@ -2436,6 +2437,10 @@ function sanitizeManagedBrandingValue(value) {
     if (["light", "dark", "system"].includes(pref)) {
       next.themePreference = pref;
     }
+  }
+  if (value.themePreset !== undefined && value.themePreset !== null) {
+    const preset = String(value.themePreset).trim();
+    next.themePreset = EVENT_THEME_PRESETS.has(preset) ? preset : "default";
   }
 
   return next;
@@ -7114,6 +7119,13 @@ resolver.define("updateEventBranding", async (req) => {
   if (payload.bannerImageUrl !== undefined) updates.bannerImageUrl = String(payload.bannerImageUrl).trim();
   if (payload.heroIconImageUrl !== undefined) updates.heroIconImageUrl = String(payload.heroIconImageUrl).trim();
   if (payload.themePreference !== undefined) updates.themePreference = ["light", "dark", "system"].includes(payload.themePreference) ? payload.themePreference : existingBranding.themePreference;
+  if (payload.themePreset !== undefined) {
+    const preset = String(payload.themePreset || "").trim();
+    if (preset && !EVENT_THEME_PRESETS.has(preset)) {
+      throw new Error(`Invalid theme preset: ${preset}`);
+    }
+    updates.themePreset = preset || "default";
+  }
   const mergedBranding = sanitizeManagedBrandingValue({ ...existingBranding, ...updates });
 
   const newSeedPayload = { ...existingPayload, branding: mergedBranding };

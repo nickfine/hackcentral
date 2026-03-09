@@ -2694,6 +2694,7 @@ function defaultEventRules(): EventRules {
 function defaultEventBranding(): EventBranding {
   return {
     accentColor: '#0f766e',
+    themePreset: 'default',
   };
 }
 
@@ -2749,6 +2750,13 @@ function asEventBranding(value: unknown): EventBranding {
   const defaults = defaultEventBranding();
   if (!value || typeof value !== 'object') return defaults;
   const candidate = value as Partial<EventBranding> & { bannerMessage?: unknown };
+  const themePreset =
+    candidate.themePreset === 'default' ||
+    candidate.themePreset === 'editorial' ||
+    candidate.themePreset === 'summit' ||
+    candidate.themePreset === 'studio'
+      ? candidate.themePreset
+      : defaults.themePreset;
   const themePreference: ThemePreference | null =
     candidate.themePreference === 'system' || candidate.themePreference === 'light' || candidate.themePreference === 'dark'
       ? candidate.themePreference
@@ -2757,6 +2765,7 @@ function asEventBranding(value: unknown): EventBranding {
     accentColor: typeof candidate.accentColor === 'string' && candidate.accentColor.trim()
       ? candidate.accentColor.trim()
       : defaults.accentColor,
+    themePreset,
   };
   if (typeof candidate.bannerImageUrl === 'string' && candidate.bannerImageUrl.trim()) {
     branding.bannerImageUrl = candidate.bannerImageUrl.trim();

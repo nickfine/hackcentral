@@ -1155,7 +1155,7 @@ function Dashboard({
 
       {showAdminMessagePod && (
         <section data-testid="dashboard-admin-message">
-          <div className="dashboard-main-card rounded-xl border border-teal-500/20 bg-arena-card p-0 shadow-sm">
+          <div className="dashboard-main-card rounded-xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-arena-card p-0 shadow-sm">
             <div className="flex items-center justify-between dashboard-card-header">
               <p className="dashboard-card-label">Admin Update</p>
               <Badge
@@ -1224,7 +1224,7 @@ function Dashboard({
               <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">
                 <div
                   data-testid="dashboard-readiness-progress-fill"
-                  className="h-full rounded-full bg-teal-500 transition-[width] duration-300"
+                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
                   style={{ width: `${readinessProgressPercent}%` }}
                 />
               </div>
@@ -1354,7 +1354,7 @@ function Dashboard({
                       data-testid="dashboard-coming-up-badge"
                       className={`relative z-10 inline-flex min-w-12 items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold ${
                         index === 0
-                          ? 'border-teal-500 bg-teal-500 text-white shadow-sm shadow-teal-500/20'
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-on)] shadow-sm shadow-[color-mix(in_srgb,var(--accent)_20%,transparent)]'
                           : 'dashboard-coming-up-badge--future'
                       }`}
                     >

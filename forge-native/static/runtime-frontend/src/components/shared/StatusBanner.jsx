@@ -47,14 +47,14 @@ function StatusBanner({ user, teams = [], userInvites = [], onNavigate, eventPha
   // Free Agent Status
   if (!userTeam) {
     return (
-      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-teal-500 p-5 animate-fade-in`}>
+      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-[var(--accent)] p-5 animate-fade-in`}>
         <HStack gap="4" align="center" justify="between">
           <HStack gap="3" align="center" className="flex-1">
-            <div className="w-12 h-12 rounded-lg bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-              <User className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <div className="w-12 h-12 rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] flex items-center justify-center flex-shrink-0">
+              <User className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <VStack gap="1" align="start" className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-0">You're a Free Agent</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-0">You're a Free Agent</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white mb-0">
                 Team captains can find you in the Marketplace
               </p>
@@ -69,7 +69,7 @@ function StatusBanner({ user, teams = [], userInvites = [], onNavigate, eventPha
             <Button
               variant="primary"
               size="sm"
-              className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+              className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on)] rounded-lg"
               onClick={() => onNavigate('marketplace', { tab: 'teams' })}
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
@@ -84,13 +84,13 @@ function StatusBanner({ user, teams = [], userInvites = [], onNavigate, eventPha
   // Observer Status
   if (isObserver) {
     return (
-      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-teal-500 p-5 animate-fade-in`}>
+      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-[var(--accent)] p-5 animate-fade-in`}>
         <HStack gap="3" align="center">
-          <div className="w-12 h-12 rounded-lg bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-            <Eye className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+          <div className="w-12 h-12 rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] flex items-center justify-center flex-shrink-0">
+            <Eye className="w-6 h-6 text-[var(--accent)]" />
           </div>
           <VStack gap="1" align="start" className="flex-1 min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-0">You're on Team Observers</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-0">You're on Team Observers</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white mb-0">
               as Member
             </p>
@@ -112,14 +112,14 @@ function StatusBanner({ user, teams = [], userInvites = [], onNavigate, eventPha
   // On Team Status (only show role during teams/team_formation phase)
   if (userTeam && showTeamRole) {
     return (
-      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-teal-500 p-5 animate-fade-in`}>
+      <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-[var(--accent)] p-5 animate-fade-in`}>
         <HStack gap="3" align="center" justify="between">
           <HStack gap="3" align="center" className="flex-1">
-            <div className="w-12 h-12 rounded-lg bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-              <Users className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <div className="w-12 h-12 rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] flex items-center justify-center flex-shrink-0">
+              <Users className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <VStack gap="1" align="start" className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-0">You're on {userTeam.name}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-0">You're on {userTeam.name}</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white mb-0">
                 as {isCaptain ? 'Captain' : 'Member'}
               </p>

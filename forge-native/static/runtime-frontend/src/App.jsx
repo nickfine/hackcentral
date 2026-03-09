@@ -12,6 +12,7 @@ import { APP_VERSION, EVENT_PHASES, EVENT_TIMEZONE } from './data/constants';
 import { ConfigModeProvider } from './configMode/ConfigModeContext';
 import ConfigModeOverlays from './configMode/ConfigModeOverlays';
 import { buildAppModeResolverPayload, invokeEventScopedResolver } from './lib/appModeResolverPayload';
+import { getThemePresetAccent, normalizeThemePreset } from './lib/themePresets';
 
 // Log once so you can verify in console that the deployed bundle is current (helps with CDN cache)
 if (typeof console !== 'undefined' && console.log) {
@@ -150,6 +151,28 @@ const getEventAccentContrast = (hexColor) => {
   const blue = Number.parseInt(normalized.slice(4, 6), 16);
   const luminance = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
   return luminance > 0.62 ? '#0f172a' : '#ffffff';
+};
+
+const resolveAccentOverride = (accentColor, themePreset) => {
+  if (accentColor == null || String(accentColor).trim() === '') {
+    return null;
+  }
+
+  const normalizedAccent = normalizeEventAccentColor(accentColor);
+  const normalizedPreset = normalizeThemePreset(themePreset);
+  const presetLightAccent = normalizeEventAccentColor(getThemePresetAccent(normalizedPreset, 'light'));
+  const presetDarkAccent = normalizeEventAccentColor(getThemePresetAccent(normalizedPreset, 'dark'));
+
+  if (normalizedAccent === presetLightAccent || normalizedAccent === presetDarkAccent) {
+    return null;
+  }
+
+  return {
+    accent: normalizedAccent,
+    accentHover: `color-mix(in srgb, ${normalizedAccent} 85%, black)`,
+    accentSubtle: `color-mix(in srgb, ${normalizedAccent} 10%, transparent)`,
+    accentOn: getEventAccentContrast(normalizedAccent),
+  };
 };
 
 const navigateTopWindow = (targetUrl, { allowLocalFallback = true } = {}) => {
@@ -410,12 +433,18 @@ function App() {
         // Dev-only: simulate event theme for testing (?eventTheme=light|dark|system&eventPageId=...)
         const params = new URLSearchParams(window.location.search);
         const devTheme = params.get('eventTheme');
+        const devThemePreset = normalizeThemePreset(params.get('eventThemePreset'));
         const devPageId = params.get('eventPageId');
         const devEventId = params.get('eventId') || 'dev-local-event';
         setEventId(devEventId);
         if (devTheme && ['light', 'dark', 'system'].includes(devTheme)) {
           setEventThemePreference(devTheme);
         }
+        setEventBranding({
+          accentColor: getThemePresetAccent(devThemePreset, 'light'),
+          themePreset: devThemePreset,
+          ...(devTheme && ['light', 'dark', 'system'].includes(devTheme) ? { themePreference: devTheme } : {}),
+        });
         if (devPageId && typeof devPageId === 'string') {
           setEventPageId(devPageId.trim() || null);
         }
@@ -1526,9 +1555,23 @@ function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const accent = normalizeEventAccentColor(effectiveEventBranding?.accentColor);
-    root.style.setProperty('--event-accent-base', accent);
-    root.style.setProperty('--event-accent-contrast', getEventAccentContrast(accent));
+    const accentOverride = resolveAccentOverride(
+      effectiveEventBranding?.accentColor,
+      effectiveEventBranding?.themePreset
+    );
+
+    if (accentOverride) {
+      root.style.setProperty('--accent', accentOverride.accent);
+      root.style.setProperty('--accent-hover', accentOverride.accentHover);
+      root.style.setProperty('--accent-subtle', accentOverride.accentSubtle);
+      root.style.setProperty('--accent-on', accentOverride.accentOn);
+      return;
+    }
+
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-hover');
+    root.style.removeProperty('--accent-subtle');
+    root.style.removeProperty('--accent-on');
   }, [effectiveEventBranding]);
 
   const renderView = () => {
@@ -1689,9 +1732,12 @@ function App() {
       eventDefaultTheme: ['light', 'dark', 'system'].includes(configModeSnapshot?.effectiveBranding?.themePreference)
         ? configModeSnapshot.effectiveBranding.themePreference
         : eventThemePreference,
+      eventDefaultThemePreset: normalizeThemePreset(
+        configModeSnapshot?.effectiveBranding?.themePreset ?? effectiveEventBranding?.themePreset
+      ),
       pageId: eventPageId,
     }),
-    [eventThemePreference, eventPageId, configModeSnapshot]
+    [effectiveEventBranding?.themePreset, eventThemePreference, eventPageId, configModeSnapshot]
   );
 
   // Loading state

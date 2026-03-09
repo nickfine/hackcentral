@@ -409,7 +409,7 @@ const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
             'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-55',
             'focus-ring-control',
             isEnabled
-              ? 'border-teal-300/80 bg-[linear-gradient(135deg,#14b8a6_0%,#0d9488_100%)] text-white shadow-[0_10px_24px_rgba(20,184,166,0.35)] hover:brightness-105'
+              ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[linear-gradient(135deg,var(--accent)_0%,var(--accent-hover)_100%)] text-[var(--accent-on)] shadow-[0_10px_24px_color-mix(in_srgb,var(--accent)_35%,transparent)] hover:brightness-105'
               : 'border-orange-400/70 bg-[linear-gradient(135deg,#fb923c_0%,#f97316_100%)] text-[#291406] shadow-[0_10px_22px_rgba(249,115,22,0.34)] hover:brightness-105'
           )}
           aria-label="Config Mode"
@@ -438,7 +438,7 @@ const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
             >
               {isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
             </button>
-            <span className="hidden rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[11px] font-semibold text-teal-500 sm:inline-flex">
+            <span className="hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] sm:inline-flex">
               {statusLabel}
             </span>
           </>
@@ -792,7 +792,7 @@ function AppLayout({
                       'focus-ring-control',
                       openingAppView
                         ? 'cursor-wait border-arena-border bg-arena-card text-text-muted'
-                        : 'border-teal-400/60 bg-teal-500/10 text-teal-500 hover:bg-teal-500/20'
+                        : 'border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]'
                     )}
                     title="Open this HackDay in the app shell view"
                   >

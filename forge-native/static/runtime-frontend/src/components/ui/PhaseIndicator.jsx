@@ -61,7 +61,7 @@ const PhaseStep = memo(({
           slim
             ? (isActive ? 'w-8 h-8' : 'w-7 h-7')
             : (isActive ? 'w-10 h-10' : 'w-8 h-8'),
-          isActive && 'phase-active-beacon bg-teal-500 text-white shadow-[0_10px_20px_-10px_rgba(20,184,166,0.9)] ring-2 ring-teal-400/50',
+          isActive && 'phase-active-beacon bg-[var(--accent)] text-[var(--accent-on)] shadow-[0_10px_20px_-10px_color-mix(in_srgb,var(--accent)_90%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--accent)_50%,transparent)]',
           isComplete && !isActive && 'bg-gray-400 text-white',
           !isActive && !isComplete && 'bg-arena-card border border-arena-border text-text-muted',
           onClick && 'cursor-pointer hover:scale-105 focus-ring-control rounded-md'
@@ -80,7 +80,7 @@ const PhaseStep = memo(({
         data-testid={`phase-label-${phase.id}`}
         className={cn(
           slim ? 'mt-1 text-xs text-center whitespace-nowrap' : 'mt-2 text-xs text-center whitespace-nowrap',
-          isActive && 'text-teal-500 font-semibold',
+          isActive && 'text-[var(--accent)] font-semibold',
           isComplete && !isActive && 'phase-step-label-complete font-normal',
           !isActive && !isComplete && 'phase-step-label-future font-normal'
         )}
@@ -115,7 +115,7 @@ const ConnectingLine = memo(({ isComplete, slim = false }) => (
       : 'mx-2 sm:mx-3 min-w-[24px] sm:min-w-[32px]'
   )}>
     {isComplete ? (
-      <div className="absolute inset-0 bg-teal-500 transition-colors duration-300" />
+      <div className="absolute inset-0 bg-[var(--accent)] transition-colors duration-300" />
     ) : (
       <div className="phase-connector-muted absolute inset-0 transition-colors duration-300" />
     )}
@@ -166,7 +166,7 @@ const PhaseIndicator = memo(({
             aria-label={`Phase ${currentPhaseNumber} of ${totalPhases}`}
           >
             <div
-              className="h-full rounded-full bg-teal-500 transition-[width] duration-300"
+              className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -207,7 +207,7 @@ const PhaseIndicator = memo(({
               : 'phase-segment-label-future font-normal';
 
           const connectorClasses = isActive || isComplete
-            ? 'h-px w-3.5 sm:w-4 bg-teal-500'
+            ? 'h-px w-3.5 sm:w-4 bg-[var(--accent)]'
             : 'phase-segment-connector-muted h-px w-3.5 sm:w-4';
 
           return (
@@ -231,7 +231,7 @@ const PhaseIndicator = memo(({
                     !isLast && 'pr-3.5 sm:pr-4',
                     segmentText,
                     'focus-ring-control cursor-pointer hover:brightness-98',
-                    isActive && 'border-teal-500',
+                    isActive && 'border-[var(--accent)]',
                     !isActive && 'border-arena-border',
                     isActive && 'phase-segment-active',
                     isComplete && !isActive && 'phase-segment-complete',
@@ -254,7 +254,7 @@ const PhaseIndicator = memo(({
                     'w-full h-8 sm:h-9 min-w-0 inline-flex items-center justify-center gap-1 px-2.5 overflow-hidden border-y',
                     !isLast && 'pr-3.5 sm:pr-4',
                     segmentText,
-                    isActive && 'border-teal-500 phase-segment-active',
+                    isActive && 'border-[var(--accent)] phase-segment-active',
                     isComplete && !isActive && 'border-arena-border phase-segment-complete',
                     !isActive && !isComplete && 'border-arena-border phase-segment-future'
                   )}

@@ -14,7 +14,7 @@ const SIZE_MAP = {
 
 const VARIANT_STYLES = {
   default: { color: 'bg-brand' },
-  teal: { color: 'bg-[var(--event-accent-base)]' },
+  teal: { color: 'bg-[var(--accent)]' },
   success: { color: 'bg-success' },
   warning: { color: 'bg-warning' },
   error: { color: 'bg-error' },
@@ -22,7 +22,7 @@ const VARIANT_STYLES = {
 
 const TRACK_COLORS = {
   default: 'bg-arena-elevated',
-  teal: 'bg-gray-200 dark:bg-gray-700',
+  teal: 'bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface-card))]',
   success: 'bg-success/20',
   warning: 'bg-warning/20',
   error: 'bg-error/20',

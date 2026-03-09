@@ -101,7 +101,7 @@ function TabsTab({
     teal: cn(
       'px-4 py-2.5 text-sm border-b-2 -mb-[2px]',
       isActive
-        ? 'border-[var(--event-accent-base)] text-[var(--event-accent-base)] font-semibold'
+        ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
         : 'border-transparent text-gray-500 dark:text-gray-400 font-normal hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600',
       disabled && 'opacity-50 cursor-not-allowed'
     ),

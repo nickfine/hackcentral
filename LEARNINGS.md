@@ -20,11 +20,55 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.70 (root app)
+**Version:** 0.6.71 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.48
-**Runtime Bundle Version:** 1.2.82
+**Forge Native Package:** 0.3.49
+**Runtime Bundle Version:** 1.2.83
+
+## Session Update - v0.6.71 Curated Theme Presets Released To Production (Mar 9, 2026 01:38 GMT)
+
+### Completed
+
+- Released the runtime-only curated theme preset system to production without changing the existing global or macro cache-buster markers.
+- Bumped production version markers to:
+  - root app `0.6.71`
+  - forge-native `0.3.49`
+  - runtime bundle `1.2.83`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+- Production runtime Branding now includes:
+  - a `Theme preset` card selector with `Default`, `Editorial`, `Summit`, and `Studio`
+  - preset-aware live preview inside Admin Branding
+  - root-level `data-theme-preset` handling alongside `data-color-mode`
+  - shared-surface preset token bundles across page background, shared cards, nav chrome, hero surfaces, and overlays
+- Existing events without a stored preset now normalize to `default` with no intended visual regression.
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-hdcService.spec.ts tests/forge-native-repository-event-config.spec.ts tests/forge-native-runtime-branding-surface.spec.ts`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - final predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-013658Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-013658Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-013658Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-013658Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Hosted production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed on `Shona's IT Hack` (`pageId=24510466`):
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.83`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"`
+  - Branding showed 4 preset cards: `Default`, `Editorial`, `Summit`, `Studio`
+  - live preview switched from `default` to `summit` immediately without a save
+  - artifact set:
+    - [`theme-preset-production-validation-2026-03-09T01-38-26-888Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-production-validation-2026-03-09T01-38-26-888Z.json)
+    - [`theme-preset-production-validation-2026-03-09T01-38-26-888Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-production-validation-2026-03-09T01-38-26-888Z.md)
+    - [`theme-preset-production-validation-2026-03-09T01-38-26-888Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/theme-preset-production-validation-2026-03-09T01-38-26-888Z.png)
+
+### Operational Note
+
+- The first production smoke after deploy exposed a release-process gap: `forge-native/static/runtime-frontend/src/data/constants.js` still hard-coded `1.2.82`, so the runtime marker lagged behind the package version even though the theme preset UI had deployed. The fix was to bump `APP_VERSION` to `1.2.83`, rebuild, redeploy, and revalidate immediately.
 
 ## Session Update - v0.6.70 Event Management Overview Re-layout Released To Production (Mar 9, 2026 00:43 GMT)
 

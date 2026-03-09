@@ -69,8 +69,8 @@ export const SIZE_CLASSES = {
 
 export const BUTTON_VARIANTS = {
   primary: {
-    base: 'bg-[var(--event-accent-base)] text-[var(--event-accent-contrast)] border border-[color-mix(in_srgb,var(--event-accent-base)_35%,transparent)] shadow-[0_10px_24px_color-mix(in_srgb,var(--event-accent-base)_30%,transparent)]',
-    hover: 'hover:translate-y-[-1px] hover:bg-[var(--event-accent-hover)] hover:shadow-[0_14px_28px_color-mix(in_srgb,var(--event-accent-base)_34%,transparent)]',
+    base: 'bg-[var(--accent)] text-[var(--accent-on)] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] shadow-[0_10px_24px_color-mix(in_srgb,var(--accent)_30%,transparent)]',
+    hover: 'hover:translate-y-[-1px] hover:bg-[var(--accent-hover)] hover:shadow-[0_14px_28px_color-mix(in_srgb,var(--accent)_34%,transparent)]',
     active: 'active:translate-y-0 active:brightness-95',
     focus: 'focus-ring-control',
   },
@@ -96,15 +96,15 @@ export const BUTTON_VARIANTS = {
 
 /** Design-system card for Hack Ideas & Teams: white/gray-800, gray border, rounded-xl, shadow-sm (light only) */
 export const DESIGN_SYSTEM_CARD =
-  'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm dark:shadow-none';
+  'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 
 export const CARD_VARIANTS = {
   default: 'bg-arena-card border border-arena-border rounded-card',
-  primary: 'bg-arena-card border-2 border-arena-border-strong rounded-card shadow-lg',
+  primary: 'bg-arena-card border-2 border-arena-border-strong rounded-card shadow-[var(--shadow-elevated)]',
   secondary: 'bg-arena-card border border-arena-border rounded-card',
-  interactive: 'bg-arena-card border border-arena-border rounded-card hover:shadow-card-hover hover:-translate-y-0.5 cursor-pointer',
+  interactive: 'bg-arena-card border border-arena-border rounded-card hover:shadow-[var(--shadow-elevated)] hover:-translate-y-0.5 cursor-pointer',
   outlined: 'bg-arena-card border-2 border-arena-border-strong rounded-card',
-  elevated: 'bg-arena-elevated border border-arena-border rounded-card shadow-lg',
+  elevated: 'bg-arena-elevated border border-arena-border rounded-card shadow-[var(--shadow-elevated)]',
   ghost: 'bg-transparent border border-transparent rounded-card',
 };
 

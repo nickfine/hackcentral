@@ -212,6 +212,7 @@ describe('HdcService hardening behavior', () => {
           bannerImageUrl: 'https://cdn.example.com/banner.png',
           heroIconImageUrl: 'https://cdn.example.com/icon.png',
           themePreference: 'dark',
+          themePreset: 'default',
         },
       })
     );
@@ -903,6 +904,7 @@ describe('HdcService hardening behavior', () => {
     });
     expect(context.event?.branding).toEqual({
       accentColor: '#0f766e',
+      themePreset: 'default',
     });
     expect(context.event?.confluencePageId).toBeNull();
     expect(context.event?.isNavigable).toBe(false);

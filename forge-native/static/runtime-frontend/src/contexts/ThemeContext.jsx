@@ -9,6 +9,7 @@ import { useTheme } from '../hooks/useTheme';
 
 export const ThemeContext = createContext({
   eventDefaultTheme: null,
+  eventDefaultThemePreset: 'default',
   pageId: null,
 });
 

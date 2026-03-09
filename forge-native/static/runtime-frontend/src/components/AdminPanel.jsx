@@ -33,6 +33,13 @@ import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../data/constants';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { uploadHeroImageInline } from '../lib/heroImageUpload';
+import {
+  DEFAULT_THEME_PRESET,
+  getThemePresetAccent,
+  getThemePresetMeta,
+  THEME_PRESET_VALUES,
+  normalizeThemePreset,
+} from '../lib/themePresets';
 
 // ============================================================================
 // ROLE CONFIGURATION
@@ -54,20 +61,20 @@ const MESSAGE_PRIORITY_OPTIONS = [
 
 /** HackDay Design System: section labels (inside cards), doc §4 */
 const ADMIN_SECTION_LABEL =
-  'text-xs font-semibold tracking-wider text-gray-500 dark:text-gray-400 uppercase pb-2';
+  'text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase pb-2';
 /** Doc: standard card — white/gray-800, gray border, rounded-xl, shadow-sm light only */
 const ADMIN_CARD_CLASS =
-  'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm dark:shadow-none';
+  'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 /** Doc: inner block (metric box, phase row container) */
 const ADMIN_INNER_BLOCK =
-  'p-5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl';
+  'p-5 bg-[var(--surface-elevated)] border border-[var(--border-default)] rounded-xl';
 /** Doc: primary button — teal only, rounded-lg */
 const ADMIN_PRIMARY_BUTTON = 'admin-brand-button !rounded-lg';
 /** Doc: current phase / accent highlight */
 const ADMIN_ACCENT_BLOCK = 'admin-accent-block p-5 rounded-xl';
 /** Doc: metric label/number (Event Pulse pattern) */
-const ADMIN_METRIC_LABEL = 'text-sm font-normal text-gray-600 dark:text-gray-300';
-const ADMIN_METRIC_NUMBER = 'text-sm font-semibold text-gray-900 dark:text-white';
+const ADMIN_METRIC_LABEL = 'text-sm font-normal text-[var(--text-secondary)]';
+const ADMIN_METRIC_NUMBER = 'text-sm font-semibold text-[var(--text-primary)]';
 
 import { normalizeAdminMessage } from '../lib/normalizeAdminMessage';
 
@@ -110,6 +117,54 @@ function normalizeAccentColor(value, fallback = DEFAULT_BRANDING_ACCENT) {
   if (!match) return fallback;
 
   return `#${rgbComponentToHex(match[1])}${rgbComponentToHex(match[2])}${rgbComponentToHex(match[3])}`;
+}
+
+function getAccentContrastColor(value) {
+  const normalized = normalizeAccentColor(value, DEFAULT_BRANDING_ACCENT).slice(1);
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  const luminance = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
+  return luminance > 0.62 ? '#0f172a' : '#ffffff';
+}
+
+function resolveBrandingAccentOverride(accentColor, themePreset) {
+  if (accentColor == null || String(accentColor).trim() === '') {
+    return null;
+  }
+
+  const normalizedPreset = normalizeThemePreset(themePreset);
+  const normalizedAccent = normalizeAccentColor(accentColor, getThemePresetAccent(normalizedPreset, 'light'));
+  const presetLightAccent = normalizeAccentColor(getThemePresetAccent(normalizedPreset, 'light'));
+  const presetDarkAccent = normalizeAccentColor(getThemePresetAccent(normalizedPreset, 'dark'));
+
+  if (normalizedAccent === presetLightAccent || normalizedAccent === presetDarkAccent) {
+    return null;
+  }
+
+  return {
+    accent: normalizedAccent,
+    accentHover: `color-mix(in srgb, ${normalizedAccent} 85%, black)`,
+    accentSubtle: `color-mix(in srgb, ${normalizedAccent} 10%, transparent)`,
+    accentOn: getAccentContrastColor(normalizedAccent),
+  };
+}
+
+function syncAccentToPreset(nextPreset, currentAccent) {
+  const normalizedPreset = normalizeThemePreset(nextPreset);
+  const normalizedCurrentAccent = currentAccent
+    ? normalizeAccentColor(currentAccent, getThemePresetAccent(normalizedPreset, 'light'))
+    : '';
+  const knownPresetAccents = THEME_PRESET_VALUES.flatMap((preset) => [
+    normalizeAccentColor(getThemePresetAccent(preset, 'light')),
+    normalizeAccentColor(getThemePresetAccent(preset, 'dark')),
+  ]);
+
+  if (!normalizedCurrentAccent || knownPresetAccents.includes(normalizedCurrentAccent)) {
+    return getThemePresetAccent(normalizedPreset, 'light');
+  }
+
+  return normalizedCurrentAccent;
 }
 
 // ============================================================================
@@ -175,6 +230,7 @@ function AdminPanel({
     bannerImageUrl: '',
     heroIconImageUrl: '',
     themePreference: 'system',
+    themePreset: DEFAULT_THEME_PRESET,
   });
   const [brandingSaveStatus, setBrandingSaveStatus] = useState(null);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
@@ -369,21 +425,22 @@ function AdminPanel({
             bannerImageUrl: configMode.getFieldValue('branding.bannerImageUrl', eventBranding?.bannerImageUrl || ''),
             heroIconImageUrl: configMode.getFieldValue('branding.heroIconImageUrl', eventBranding?.heroIconImageUrl || ''),
             themePreference: configMode.getFieldValue('branding.themePreference', eventBranding?.themePreference || 'system') || 'system',
+            themePreset: configMode.getFieldValue('branding.themePreset', eventBranding?.themePreset || DEFAULT_THEME_PRESET) || DEFAULT_THEME_PRESET,
           }
         : (eventBranding || {});
+      const nextThemePreset = normalizeThemePreset(b.themePreset ?? DEFAULT_THEME_PRESET);
       setBrandingForm((prev) => ({
-        accentColor: normalizeAccentColor(b.accentColor, prev.accentColor || DEFAULT_BRANDING_ACCENT),
+        accentColor: normalizeAccentColor(
+          b.accentColor,
+          prev.accentColor || getThemePresetAccent(nextThemePreset, 'light')
+        ),
         bannerImageUrl: b.bannerImageUrl ?? prev.bannerImageUrl ?? '',
         heroIconImageUrl: b.heroIconImageUrl ?? prev.heroIconImageUrl ?? '',
         themePreference: ['light', 'dark', 'system'].includes(b.themePreference) ? b.themePreference : (prev.themePreference || 'system'),
+        themePreset: nextThemePreset,
       }));
     }
   }, [activeSection, eventBranding, hasBrandingDraftPreview, configMode.getFieldValue]);
-
-  const brandingPreviewAccent = useMemo(
-    () => normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT),
-    [brandingForm.accentColor]
-  );
 
   const brandingPreviewBannerImage = useMemo(() => {
     const value = typeof brandingForm.bannerImageUrl === 'string' ? brandingForm.bannerImageUrl.trim() : '';
@@ -394,6 +451,27 @@ function AdminPanel({
     const value = typeof brandingForm.heroIconImageUrl === 'string' ? brandingForm.heroIconImageUrl.trim() : '';
     return value;
   }, [brandingForm.heroIconImageUrl]);
+
+  const brandingPreviewThemePreset = useMemo(
+    () => normalizeThemePreset(brandingForm.themePreset),
+    [brandingForm.themePreset]
+  );
+
+  const brandingPreviewAccent = useMemo(
+    () => normalizeAccentColor(brandingForm.accentColor, getThemePresetAccent(brandingPreviewThemePreset, 'light')),
+    [brandingForm.accentColor, brandingPreviewThemePreset]
+  );
+
+  const brandingPreviewStyle = useMemo(() => {
+    const accentOverride = resolveBrandingAccentOverride(brandingForm.accentColor, brandingPreviewThemePreset);
+    if (!accentOverride) return undefined;
+    return {
+      '--accent': accentOverride.accent,
+      '--accent-hover': accentOverride.accentHover,
+      '--accent-subtle': accentOverride.accentSubtle,
+      '--accent-on': accentOverride.accentOn,
+    };
+  }, [brandingForm.accentColor, brandingPreviewThemePreset]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -887,7 +965,8 @@ function AdminPanel({
     setIsSavingBranding(true);
     setBrandingSaveStatus(null);
     try {
-      const accentColor = normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT);
+      const themePreset = normalizeThemePreset(brandingForm.themePreset);
+      const accentColor = normalizeAccentColor(brandingForm.accentColor, getThemePresetAccent(themePreset, 'light'));
       const bannerImageUrl = brandingForm.bannerImageUrl.trim();
       const heroIconImageUrl = brandingForm.heroIconImageUrl.trim();
       if (configModeActive) {
@@ -895,6 +974,7 @@ function AdminPanel({
         configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
         configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);
         configMode.setFieldValue('branding.themePreference', brandingForm.themePreference || 'system');
+        configMode.setFieldValue('branding.themePreset', themePreset);
         const result = await configMode.saveDraft();
         if (!result?.success) {
           throw result?.error || new Error('Failed to save branding draft');
@@ -910,6 +990,7 @@ function AdminPanel({
         bannerImageUrl,
         heroIconImageUrl,
         themePreference: brandingForm.themePreference || undefined,
+        themePreset,
       });
       setBrandingSaveStatus({ type: 'success', message: 'Branding saved. Theme and hero assets will update on next load.' });
       onRefreshEventPhase();
@@ -1024,7 +1105,7 @@ function AdminPanel({
       </div>
 
       {configModeActive && (
-        <div className="mb-6 rounded-xl border border-teal-500/20 bg-white dark:bg-gray-800 px-4 py-3 shadow-sm dark:shadow-none">
+        <div className="mb-6 rounded-xl border border-[color-mix(in_srgb,var(--accent)_20%,var(--border-default))] bg-[var(--surface-card)] px-4 py-3 shadow-[var(--shadow-card)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -1215,7 +1296,7 @@ function AdminPanel({
                 <div>
                   <p className={ADMIN_SECTION_LABEL}>Current Phase</p>
                   <div className={ADMIN_ACCENT_BLOCK}>
-                    <p className="text-xl font-black text-teal-500">
+                    <p className="text-xl font-black text-[var(--accent)]">
                       {EVENT_PHASES[eventPhase]?.label || eventPhase}
                     </p>
                     <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300">
@@ -1250,7 +1331,7 @@ function AdminPanel({
                 {operatorChecklistItems.map((item) => (
                   <div key={item.id} className={cn(ADMIN_INNER_BLOCK, 'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between')}>
                     <div className="flex min-w-0 flex-1 gap-3">
-                      <span className="text-sm font-semibold text-teal-500">{item.id}</span>
+                      <span className="text-sm font-semibold text-[var(--accent)]">{item.id}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-gray-900 dark:text-white">{item.title}</p>
                         <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{item.description}</p>
@@ -1276,7 +1357,7 @@ function AdminPanel({
               <Card padding="sm" className={ADMIN_CARD_CLASS}>
                 <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   <HStack gap="2" align="center">
-                    <Vote className="w-5 h-5 text-teal-500" />
+                    <Vote className="w-5 h-5 text-[var(--accent)]" />
                     <span>Voting Statistics</span>
                   </HStack>
                 </Card.Title>
@@ -1298,7 +1379,7 @@ function AdminPanel({
                     <p className="text-sm text-gray-500 dark:text-gray-400">Avg per Project</p>
                   </div>
                   <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
-                    <p className="text-lg font-semibold text-teal-500">{stats.maxVotes}</p>
+                    <p className="text-lg font-semibold text-[var(--accent)]">{stats.maxVotes}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Top Votes</p>
                   </div>
                 </div>
@@ -1314,7 +1395,7 @@ function AdminPanel({
                         >
                           <div className={cn(
                             'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
-                            index === 0 ? 'bg-teal-500/20 text-teal-500' :
+                            index === 0 ? 'bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)]' :
                             index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
                             index === 2 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
                             'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -1327,9 +1408,9 @@ function AdminPanel({
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">{team.name}</p>
                           </div>
-                          <div className="flex items-center gap-1 rounded-lg bg-teal-500/10 px-3 py-1">
-                            <Star className="w-4 h-4 text-teal-500" />
-                            <span className="font-bold text-teal-500">{team.submission?.participantVotes || 0}</span>
+                          <div className="flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-3 py-1">
+                            <Star className="w-4 h-4 text-[var(--accent)]" />
+                            <span className="font-bold text-[var(--accent)]">{team.submission?.participantVotes || 0}</span>
                           </div>
                         </div>
                       ))}
@@ -1345,7 +1426,7 @@ function AdminPanel({
               <Card padding="sm" className={ADMIN_CARD_CLASS}>
                 <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   <HStack gap="2" align="center">
-                    <Gavel className="w-5 h-5 text-teal-500" />
+                    <Gavel className="w-5 h-5 text-[var(--accent)]" />
                     <span>Judge Scoring Progress</span>
                   </HStack>
                 </Card.Title>
@@ -1448,7 +1529,7 @@ function AdminPanel({
                     <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTA Clicks</p>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-teal-500">{telemetrySummary.heroCtr || 0}%</p>
+                    <p className="text-2xl font-black text-[var(--accent)]">{telemetrySummary.heroCtr || 0}%</p>
                     <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTR</p>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
@@ -1463,7 +1544,7 @@ function AdminPanel({
               <Card padding="md" className={ADMIN_CARD_CLASS}>
                 <Card.Title className="text-lg sm:text-xl mb-4">
                   <HStack gap="2" align="center">
-                    <Target className="w-5 h-5 text-teal-500" />
+                    <Target className="w-5 h-5 text-[var(--accent)]" />
                     <span>Signup Funnel</span>
                   </HStack>
                 </Card.Title>
@@ -1500,7 +1581,7 @@ function AdminPanel({
               <Card padding="md" className={ADMIN_CARD_CLASS}>
                 <Card.Title className="text-lg sm:text-xl mb-4">
                   <HStack gap="2" align="center">
-                    <MousePointerClick className="w-5 h-5 text-teal-500" />
+                    <MousePointerClick className="w-5 h-5 text-[var(--accent)]" />
                     <span>Top CTA Actions</span>
                   </HStack>
                 </Card.Title>
@@ -1542,7 +1623,7 @@ function AdminPanel({
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Flows Abandoned</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-teal-500">{telemetrySummary.signupAbandonRate || 0}%</p>
+                  <p className="text-xl font-black text-[var(--accent)]">{telemetrySummary.signupAbandonRate || 0}%</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Abandon Rate</p>
                 </div>
               </div>
@@ -1601,7 +1682,7 @@ function AdminPanel({
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Joined a Team</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-teal-500">{teamFormationPipeline.avgHoursSignupToTeamJoin || 0}h</p>
+                  <p className="text-xl font-black text-[var(--accent)]">{teamFormationPipeline.avgHoursSignupToTeamJoin || 0}h</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Avg Join Time</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
@@ -1654,7 +1735,7 @@ function AdminPanel({
                       </p>
                       <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                         <div
-                          className="h-full bg-teal-500 rounded-full"
+                          className="h-full bg-[var(--accent)] rounded-full"
                           style={{ width: `${Math.max(4, Math.round(((day.heroImpressions || 0) / maxDailyImpressions) * 100))}%` }}
                         />
                       </div>
@@ -1693,7 +1774,7 @@ function AdminPanel({
                     className={cn(
                       'w-full flex items-center gap-4 p-5 rounded-lg border transition-all text-left',
                       isCurrent
-                        ? 'bg-teal-500/10 border-teal-500'
+                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] border-[var(--accent)]'
                         : isPast
                           ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
                           : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -1702,7 +1783,7 @@ function AdminPanel({
                     <div className={cn(
                       'w-10 h-10 rounded-full flex items-center justify-center font-bold text-base',
                       isCurrent
-                        ? 'bg-teal-500 text-white'
+                        ? 'bg-[var(--accent)] text-[var(--accent-on)]'
                         : isPast
                           ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
                           : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'
@@ -1712,14 +1793,14 @@ function AdminPanel({
                     <div className="flex-1">
                       <p className={cn(
                         'font-bold',
-                        isCurrent ? 'text-teal-500' : 'text-gray-900 dark:text-white'
+                        isCurrent ? 'text-[var(--accent)]' : 'text-gray-900 dark:text-white'
                       )}>
                         {phase.label}
                       </p>
                       <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{phase.description}</p>
                     </div>
                     {isCurrent && (
-                      <Badge className="!bg-teal-500/20 !text-teal-500 border-0">Current</Badge>
+                      <Badge className="!bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] !text-[var(--accent)] border-0">Current</Badge>
                     )}
                   </button>
                 );
@@ -1873,7 +1954,7 @@ function AdminPanel({
               </div>
 
               {motdMessage.message.trim() && (
-                <div className="p-5 rounded-xl border border-teal-500/30 bg-teal-500/10">
+                <div className="p-5 rounded-xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
                   <div className="flex items-center justify-between mb-2">
                     <p className={ADMIN_SECTION_LABEL}>
                       Preview
@@ -2138,11 +2219,11 @@ function AdminPanel({
         <Tabs.Panel value="branding">
           <Card padding="md" className={ADMIN_CARD_CLASS}>
             <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <Palette className="w-5 h-5 text-teal-500" />
+              <Palette className="w-5 h-5 text-[var(--accent)]" />
               Branding &amp; Theme
             </Card.Title>
             <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-              Customize accent color, hero banner, and theme for this HackDay. Participant-facing messaging is now handled through inline hero editing and Admin Update.
+              Customize the theme preset, accent behavior, hero banner, and runtime mode for this HackDay. Participant-facing messaging is now handled through inline hero editing and Admin Update.
               {!isEventAdmin && (
                 <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
                   Only the event creator or co-admins can save changes.
@@ -2159,8 +2240,51 @@ function AdminPanel({
               <VStack gap="5">
                 <div className="branding-field-group">
                   <div className="branding-field-header">
+                    <span className="field-label">Theme preset</span>
+                    <span className="field-hint">Curated atmosphere presets for the runtime. Accent color below can still be used as an override.</span>
+                  </div>
+                  <div className="branding-theme-preset-grid" role="radiogroup" aria-label="Theme preset">
+                    {THEME_PRESET_VALUES.map((presetId) => {
+                      const preset = getThemePresetMeta(presetId);
+                      const isActive = brandingPreviewThemePreset === presetId;
+                      return (
+                        <button
+                          key={presetId}
+                          type="button"
+                          role="radio"
+                          aria-checked={isActive}
+                          className={cn(
+                            'branding-theme-preset-card',
+                            isActive && 'branding-theme-preset-card-active'
+                          )}
+                          onClick={() =>
+                            setBrandingForm((prev) => ({
+                              ...prev,
+                              themePreset: presetId,
+                              accentColor: syncAccentToPreset(presetId, prev.accentColor),
+                            }))
+                          }
+                          disabled={isSavingBranding}
+                        >
+                          <span
+                            className="branding-theme-preset-swatch"
+                            style={{ background: preset.accent }}
+                            aria-hidden="true"
+                          />
+                          <span className="branding-theme-preset-copy">
+                            <span className="branding-theme-preset-label">{preset.label}</span>
+                            <span className="branding-theme-preset-description">{preset.description}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="branding-field-group">
+                  <div className="branding-field-header">
                     <label htmlFor="branding-accent-color" className="field-label">Accent color</label>
-                    <span className="field-hint">Primary actions, focus states, and runtime highlights.</span>
+                    <span className="field-hint">Optional override for primary actions, focus states, and runtime highlights.</span>
                   </div>
                   <div className="branding-color-row">
                     <input
@@ -2352,7 +2476,12 @@ function AdminPanel({
                   ]}
                   disabled={isSavingBranding}
                 />
-                <div className="branding-live-preview" data-color-mode={brandingForm.themePreference === 'system' ? undefined : brandingForm.themePreference}>
+                <div
+                  className="branding-live-preview"
+                  data-color-mode={brandingForm.themePreference === 'system' ? undefined : brandingForm.themePreference}
+                  data-theme-preset={brandingPreviewThemePreset}
+                  style={brandingPreviewStyle}
+                >
                   {brandingPreviewBannerImage ? (
                     <img
                       src={brandingPreviewBannerImage}
@@ -2369,7 +2498,7 @@ function AdminPanel({
                           'branding-live-preview-mark',
                           brandingPreviewHeroIconImage ? 'branding-live-preview-mark-with-icon' : null
                         )}
-                        style={brandingPreviewHeroIconImage ? undefined : { background: brandingPreviewAccent }}
+                        style={brandingPreviewHeroIconImage ? undefined : { background: 'var(--accent)' }}
                         aria-hidden={brandingPreviewHeroIconImage ? 'true' : undefined}
                       >
                         {brandingPreviewHeroIconImage ? (
@@ -2386,11 +2515,13 @@ function AdminPanel({
                       </div>
                     </div>
                     <div className="branding-live-preview-actions">
-                      <button type="button" className="branding-live-preview-button" style={{ background: brandingPreviewAccent }}>
+                      <button type="button" className="branding-live-preview-button">
                         Primary action
                       </button>
-                      <span className="branding-live-preview-badge" style={{ color: brandingPreviewAccent, borderColor: `${brandingPreviewAccent}33`, background: `${brandingPreviewAccent}14` }}>
-                        {brandingForm.themePreference === 'system' ? 'System theme' : `${brandingForm.themePreference} theme`}
+                      <span className="branding-live-preview-badge">
+                        {`${getThemePresetMeta(brandingPreviewThemePreset).label} · ${
+                          brandingForm.themePreference === 'system' ? 'System theme' : `${brandingForm.themePreference} theme`
+                        }`}
                       </span>
                     </div>
                   </div>

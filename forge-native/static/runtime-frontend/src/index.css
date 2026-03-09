@@ -54,7 +54,7 @@
   }
 
   body {
-    background-color: var(--color-bg-primary);
+    background-color: var(--surface-page);
     background-image: var(--gradient-page-bg);
     color: var(--color-text-body);
     font-family: var(--font-body);
@@ -66,8 +66,8 @@
   }
 
   [data-color-mode="light"] body {
-    background-color: var(--surface-elevated);
-    background-image: none;
+    background-color: var(--surface-page);
+    background-image: var(--gradient-page-bg);
   }
 
   :focus-visible {
@@ -417,16 +417,17 @@
 }
 
 .dashboard-main-card {
-  background: var(--surface-primary);
+  background: var(--surface-card);
   border-color: var(--border-default);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .dashboard-hero-card {
-  background: var(--surface-primary);
+  background: var(--surface-hero);
   border-color: var(--border-default);
-  border-left: 2px solid var(--event-accent-base);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  border-left: 2px solid var(--accent);
+  box-shadow: var(--shadow-card);
+  color: var(--surface-hero-text);
 }
 
 .dashboard-hero-banner-image {
@@ -451,7 +452,7 @@
 }
 
 .dashboard-hero-card--with-banner {
-  border-color: color-mix(in srgb, var(--event-accent-base) 26%, var(--border-default));
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border-default));
 }
 
 .dashboard-hero-logo-wrap {
@@ -490,8 +491,8 @@
 }
 
 .dashboard-hero-accent-rail {
-  background: var(--event-accent-base);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--event-accent-base) 30%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .dashboard-card-label {
@@ -504,7 +505,7 @@
 
 .dashboard-hero-title,
 .dashboard-hero-callout {
-  color: var(--text-primary);
+  color: var(--surface-hero-text);
 }
 
 .dashboard-readiness-card {
@@ -626,14 +627,14 @@
 }
 
 .dashboard-inline-link {
-  color: #0d9488;
+  color: var(--accent);
   transition: color 150ms ease, text-decoration-color 150ms ease;
 }
 
 .dashboard-inline-link:hover {
-  color: #0f766e;
+  color: var(--accent-hover);
   text-decoration: underline;
-  text-decoration-color: rgba(20, 184, 166, 0.35);
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
   text-underline-offset: 4px;
 }
 
@@ -664,7 +665,7 @@
 }
 
 .phase-segment-active {
-  background: rgba(20, 184, 166, 0.12);
+  background: var(--accent-subtle);
 }
 
 .phase-segment-complete {
@@ -676,11 +677,11 @@
 }
 
 .phase-label-active-pill {
-  background: rgba(20, 184, 166, 0.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .phase-segment-label-active {
-  color: #14b8a6;
+  color: var(--accent);
 }
 
 .phase-segment-label-complete,
@@ -713,14 +714,14 @@
 }
 
 .dashboard-hero-support-primary {
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--surface-hero-text) 78%, transparent);
 }
 
 .dashboard-hero-support-secondary,
 .dashboard-hero-meta-text,
 .dashboard-meta-text,
 .app-header-countdown-label {
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--surface-hero-text) 62%, var(--text-muted));
 }
 
 .dashboard-readiness-progress-track {
@@ -772,12 +773,12 @@
 }
 
 [data-color-mode="dark"] .dashboard-main-card {
-  box-shadow: none;
+  box-shadow: var(--shadow-card);
 }
 
 [data-color-mode="dark"] .dashboard-hero-card {
-  border-left-color: var(--event-accent-base);
-  box-shadow: none;
+  border-left-color: var(--accent);
+  box-shadow: var(--shadow-card);
 }
 
 [data-color-mode="dark"] .dashboard-hero-logo {
@@ -789,9 +790,7 @@
 }
 
 [data-color-mode="dark"] .dashboard-hero-banner-overlay {
-  background:
-    linear-gradient(115deg, color-mix(in srgb, var(--event-accent-base) 16%, rgba(2, 6, 23, 0.88)) 0%, rgba(2, 6, 23, 0.42) 55%, rgba(2, 6, 23, 0.78) 100%),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.28) 0%, rgba(2, 6, 23, 0.68) 100%);
+  background: none;
 }
 
 
@@ -1995,16 +1994,16 @@
 }
 
 [data-color-mode="light"] .dashboard-main-card {
-  background: var(--surface-primary);
+  background: var(--surface-card);
   border-color: var(--border-default);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 [data-color-mode="light"] .dashboard-hero-card {
-  background: var(--surface-primary);
+  background: var(--surface-hero);
   border-color: var(--border-default);
-  border-left-color: var(--event-accent-base);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  border-left-color: var(--accent);
+  box-shadow: var(--shadow-card);
 }
 
 [data-color-mode="light"] .dashboard-hero-logo {
@@ -2027,19 +2026,85 @@
 }
 
 .admin-brand-button {
-  background: var(--event-accent-base) !important;
-  border-color: color-mix(in srgb, var(--event-accent-base) 38%, transparent) !important;
-  color: var(--event-accent-contrast) !important;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--event-accent-base) 24%, transparent);
+  background: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent) !important;
+  color: var(--accent-on) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .admin-brand-button:hover {
-  background: var(--event-accent-hover) !important;
+  background: var(--accent-hover) !important;
 }
 
 .admin-accent-block {
-  background: var(--event-accent-soft);
-  border: 1px solid color-mix(in srgb, var(--event-accent-base) 28%, transparent);
+  background: var(--accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.branding-theme-preset-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .branding-theme-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.branding-theme-preset-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+  border-radius: 1rem;
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.branding-theme-preset-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border-default));
+  box-shadow: var(--shadow-elevated);
+}
+
+.branding-theme-preset-card-active {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-default));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent),
+    var(--shadow-elevated);
+}
+
+.branding-theme-preset-swatch {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-default) 80%, transparent);
+}
+
+.branding-theme-preset-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.branding-theme-preset-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.branding-theme-preset-description {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
 }
 
 .branding-field-group {
@@ -2092,7 +2157,7 @@
   height: 2.25rem;
   border-radius: 9999px;
   border: 2px solid rgba(255, 255, 255, 0.75);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--event-accent-base) 22%, var(--border-default));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, var(--border-default));
 }
 
 .branding-preset-row {
@@ -2116,7 +2181,7 @@
 
 .branding-preset-button-active {
   border-color: var(--surface-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--event-accent-base) 30%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .branding-banner-preview-card {
@@ -2135,7 +2200,7 @@
   justify-content: center;
   padding: 0.75rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--event-accent-base) 16%, var(--surface-primary)) 0%, var(--surface-elevated) 100%);
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface-primary)) 0%, var(--surface-elevated) 100%);
 }
 
 .branding-icon-preview-media {
@@ -2183,7 +2248,7 @@
   border: 0;
   background: transparent;
   padding: 0;
-  color: var(--event-accent-base);
+  color: var(--accent);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -2192,9 +2257,10 @@
   position: relative;
   overflow: hidden;
   border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--event-accent-base) 24%, var(--border-default));
-  background: var(--surface-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-default));
+  background: var(--surface-hero);
   min-height: 12rem;
+  box-shadow: var(--shadow-card);
 }
 
 .branding-live-preview-banner {
@@ -2227,7 +2293,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--surface-hero-text) 72%, transparent);
 }
 
 .branding-live-preview-title-row {
@@ -2243,7 +2309,7 @@
   width: 0.3rem;
   min-height: 3rem;
   border-radius: 9999px;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--event-accent-base) 24%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .branding-live-preview-mark-with-icon {
@@ -2252,10 +2318,10 @@
   min-height: clamp(4.75rem, 12vw, 6.5rem);
   border-radius: 1rem;
   padding: 0.65rem;
-  background: color-mix(in srgb, var(--surface-primary) 86%, var(--event-accent-base));
+  background: color-mix(in srgb, var(--surface-card) 86%, var(--accent));
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--event-accent-base) 24%, transparent),
-    0 12px 28px color-mix(in srgb, var(--event-accent-base) 16%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent),
+    0 12px 28px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .branding-live-preview-icon {
@@ -2271,13 +2337,13 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--surface-hero-text);
 }
 
 .branding-live-preview-copy {
   margin: 0.15rem 0 0;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--surface-hero-text) 78%, transparent);
 }
 
 .branding-live-preview-actions {
@@ -2293,18 +2359,21 @@
   padding: 0.65rem 1rem;
   font-size: 0.88rem;
   font-weight: 700;
-  color: var(--event-accent-contrast);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--event-accent-base) 20%, transparent);
+  background: var(--accent);
+  color: var(--accent-on);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .branding-live-preview-badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
   border-radius: 9999px;
   padding: 0.45rem 0.75rem;
   font-size: 0.8rem;
   font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 [data-color-mode="dark"] .branding-banner-preview-card,
@@ -2313,7 +2382,7 @@
 }
 
 [data-color-mode="dark"] .branding-live-preview-overlay {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--event-accent-base) 18%, rgba(2, 6, 23, 0.9)) 0%, rgba(2, 6, 23, 0.92) 70%);
+  background: none;
 }
 
 [data-color-mode="light"] .dashboard-card-footer {
@@ -2346,7 +2415,7 @@
 }
 
 [data-color-mode="light"] .phase-segment-label-active {
-  color: #14b8a6;
+  color: var(--accent);
 }
 
 [data-color-mode="light"] .phase-segment-label-complete,
