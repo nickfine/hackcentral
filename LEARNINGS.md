@@ -20,11 +20,41 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.77 (root app)
+**Version:** 0.6.78 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.55
-**Runtime Bundle Version:** 1.2.89
+**Forge Native Package:** 0.3.56
+**Runtime Bundle Version:** 1.2.90
+
+## Session Update - v0.6.78 Runtime Version Marker Correction For Branding Layout Release (Mar 9, 2026 14:17 GMT)
+
+### Completed
+
+- Issued an immediate follow-up release after postdeploy validation showed the runtime console marker was still sourced from a stale constant.
+- Fixed the runtime bundle source of truth in [`constants.js`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/data/constants.js) so the deployed runtime log matches the actual release marker.
+- Carried forward the Branding layout narrative restructure from the prior release:
+  - `Theme & Accent`
+  - `Event Artwork`
+  - `Live Preview`
+  - save-row `SAVED` / `UNSAVED` status
+- Bumped production version markers to:
+  - root app `0.6.78`
+  - forge-native `0.3.56`
+  - runtime bundle `1.2.90`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+
+### Operational Note
+
+- The first `v0.6.77` postdeploy probe revealed that the runtime console version string was still coming from a stale `APP_VERSION` constant even though package versions had been bumped.
+- `v0.6.78` corrects that source-of-truth mismatch so production evidence and runtime marker logs align cleanly again.
 
 ## Session Update - v0.6.77 Branding Layout Narrative Restructure Released To Production (Mar 9, 2026 14:17 GMT)
 

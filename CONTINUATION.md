@@ -9,11 +9,11 @@ Last updated: 2026-03-09 14:17 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.77`
-  - Forge native package version: `0.3.55`
+  - Root app version: `0.6.78`
+  - Forge native package version: `0.3.56`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.89`
+  - Runtime bundle version: `1.2.90`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -52,6 +52,10 @@ Last updated: 2026-03-09 14:17 GMT
   - artwork fields now stack vertically with banner first and icon second at a constrained 50% width
   - the live preview now reads as a dedicated verification section after artwork with the theme mode control in the preview heading row
   - the Branding `SAVED` / `UNSAVED` badge now sits beside the save action instead of beside theme preset
+- Runtime version marker correction follow-up is now live in production:
+  - runtime console/version logging is now sourced from the corrected `APP_VERSION` constant
+  - latest production version-check artifact:
+    - `docs/artifacts/release-version-check-2026-03-09T14-22-01-067Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -3639,3 +3643,29 @@ All passed in-session.
 - Production Confluence is now running the versioned branding/runtime refresh release with markers `0.6.65 / 0.3.43 / 1.2.78`.
 - Hosted validation is closed for both the feature behavior and the final version markers.
 - Next development should stay local-first until a deliberate release is requested.
+## Session Update - v0.6.78 Runtime Version Marker Correction For Branding Layout Release (Mar 9, 2026 14:17 GMT)
+
+### What changed
+
+- Released an immediate follow-up after postdeploy validation caught a stale runtime marker constant.
+- Version markers are now:
+  - root app `0.6.78`
+  - forge-native `0.3.56`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.90`
+- Runtime/admin behavior now:
+  - keeps the Branding layout narrative restructure from the prior release
+  - corrects the runtime console/version marker source so postdeploy runtime logs match the intended shipped bundle version
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+
+### Current state
+
+- Production Confluence should now be running markers `0.6.78 / 0.3.56 / 1.2.90` after deploy.
+- The runtime version log should now align with the actual release marker instead of the stale pre-fix constant.
