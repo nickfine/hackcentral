@@ -180,6 +180,17 @@ export const CONTENT_REGISTRY = [
     helpText: 'Optional hero icon image URL.',
   },
   {
+    key: 'branding.newToHackdayImageUrl',
+    page: 'admin',
+    section: 'branding',
+    fieldType: CONFIG_FIELD_TYPES.IMAGE_URL,
+    sourceKind: CONFIG_SOURCE_KINDS.BRANDING,
+    editablePhase: 1,
+    maxLength: 500,
+    label: 'New To HackDay Image URL',
+    helpText: 'Optional New To HackDay page image URL.',
+  },
+  {
     key: 'dashboard.motd.title',
     page: 'dashboard',
     section: 'motd',

@@ -960,7 +960,7 @@ export interface RuntimeConfigDiagnostics {
 export type SubmissionRequirement = "video_demo" | "working_prototype" | "documentation";
 export type ThemePreference = "system" | "light" | "dark";
 export type ThemePreset = "default" | "editorial" | "summit" | "studio";
-export type EventBrandingImageAssetKind = "banner" | "icon";
+export type EventBrandingImageAssetKind = "banner" | "icon" | "new-to-hackday";
 export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 export type ScheduleEventSignal = "start" | "deadline" | "ceremony" | "presentation" | "judging" | "neutral";
 
@@ -988,6 +988,7 @@ export interface EventBranding {
   accentColor: string;
   bannerImageUrl?: string;
   heroIconImageUrl?: string;
+  newToHackdayImageUrl?: string;
   themePreference?: ThemePreference;
   themePreset?: ThemePreset;
 }
@@ -1064,6 +1065,7 @@ export interface CreationWizardInput {
     accentColor?: string;
     bannerImageUrl?: string;
     heroIconImageUrl?: string;
+    newToHackdayImageUrl?: string;
     themePreference?: ThemePreference;
     themePreset?: ThemePreset;
   };

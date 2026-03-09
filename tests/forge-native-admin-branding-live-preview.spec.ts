@@ -27,11 +27,13 @@ describe('admin branding live preview contract', () => {
     expect(adminSource).toContain("onChange={(event) => handleAccentColorChange(event.target.value)}");
     expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('bannerImageUrl', e.target.value)}");
     expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('heroIconImageUrl', e.target.value)}");
+    expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('newToHackdayImageUrl', e.target.value)}");
     expect(adminSource).toContain("onChange={(value) => handleThemePreferenceChange(value)}");
     expect(adminSource).not.toContain("configMode.setFieldValue(`branding.${field}`, value);");
     expect(adminSource).not.toContain("configMode.setFieldValue('branding.themePreset', nextThemePreset);");
     expect(adminSource).not.toContain("configMode.setFieldValue('branding.accentColor', nextAccentColor);");
     expect(adminSource).not.toContain("configMode.setFieldValue(`branding.${assetField}`, uploaded.publicUrl);");
+    expect(adminSource).toContain('newToHackdayImageUrl');
   });
 
   it('lets app-level transient preview override runtime branding only while admin preview is active', async () => {

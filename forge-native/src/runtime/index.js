@@ -55,6 +55,8 @@ const EVENT_BRANDING_BANNER_MAX_WIDTH = 1200;
 const EVENT_BRANDING_BANNER_REQUIRED_HEIGHT = 400;
 const EVENT_BRANDING_ICON_REQUIRED_WIDTH = 400;
 const EVENT_BRANDING_ICON_REQUIRED_HEIGHT = 400;
+const EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_WIDTH = 800;
+const EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_HEIGHT = 800;
 const EVENT_BRANDING_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const EVENT_THEME_PRESETS = new Set(["default", "editorial", "summit", "studio"]);
 const APP_MODE_RUNTIME_SOURCES = Object.freeze({
@@ -2431,6 +2433,9 @@ function sanitizeManagedBrandingValue(value) {
   }
   if (value.heroIconImageUrl !== undefined && value.heroIconImageUrl !== null) {
     next.heroIconImageUrl = String(value.heroIconImageUrl).trim();
+  }
+  if (value.newToHackdayImageUrl !== undefined && value.newToHackdayImageUrl !== null) {
+    next.newToHackdayImageUrl = String(value.newToHackdayImageUrl).trim();
   }
   if (value.themePreference !== undefined && value.themePreference !== null) {
     const pref = String(value.themePreference).trim();
@@ -7118,6 +7123,7 @@ resolver.define("updateEventBranding", async (req) => {
   if (payload.accentColor !== undefined) updates.accentColor = String(payload.accentColor).trim() || existingBranding.accentColor;
   if (payload.bannerImageUrl !== undefined) updates.bannerImageUrl = String(payload.bannerImageUrl).trim();
   if (payload.heroIconImageUrl !== undefined) updates.heroIconImageUrl = String(payload.heroIconImageUrl).trim();
+  if (payload.newToHackdayImageUrl !== undefined) updates.newToHackdayImageUrl = String(payload.newToHackdayImageUrl).trim();
   if (payload.themePreference !== undefined) updates.themePreference = ["light", "dark", "system"].includes(payload.themePreference) ? payload.themePreference : existingBranding.themePreference;
   if (payload.themePreset !== undefined) {
     const preset = String(payload.themePreset || "").trim();
@@ -7165,8 +7171,8 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
   if (!fileName) {
     throw new Error("fileName is required");
   }
-  if (!["banner", "icon"].includes(assetKind)) {
-    throw new Error("assetKind is required and must be banner or icon.");
+  if (!["banner", "icon", "new-to-hackday"].includes(assetKind)) {
+    throw new Error("assetKind is required and must be banner, icon, or new-to-hackday.");
   }
   if (!EVENT_BRANDING_UPLOAD_ALLOWED_TYPES.has(contentType)) {
     throw new Error("Unsupported contentType. Use image/jpeg, image/png, or image/webp.");
@@ -7188,6 +7194,14 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
     }
     if (imageHeight !== EVENT_BRANDING_ICON_REQUIRED_HEIGHT) {
       throw new Error(`Hero icon height must be exactly ${EVENT_BRANDING_ICON_REQUIRED_HEIGHT}px.`);
+    }
+  }
+  if (assetKind === "new-to-hackday") {
+    if (imageWidth !== EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_WIDTH) {
+      throw new Error(`New To HackDay image width must be exactly ${EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_WIDTH}px.`);
+    }
+    if (imageHeight !== EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_HEIGHT) {
+      throw new Error(`New To HackDay image height must be exactly ${EVENT_BRANDING_NEW_TO_HACKDAY_REQUIRED_HEIGHT}px.`);
     }
   }
 

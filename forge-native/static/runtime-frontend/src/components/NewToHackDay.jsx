@@ -17,6 +17,7 @@ import { Card, Button } from './ui';
 import { BackButton } from './shared';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
+import { useConfigMode } from '../configMode/ConfigModeContext';
 import heroArtwork from '../assets/new-to-hackday-hero-engaging.png';
 import stepTeamArtwork from '../assets/new-to-hackday-step-team.svg';
 import stepBuildArtwork from '../assets/new-to-hackday-step-build.svg';
@@ -230,8 +231,15 @@ const FAQ_ITEMS = [
   },
 ];
 
-function NewToHackDay({ onNavigate }) {
+function NewToHackDay({ onNavigate, eventBranding = {} }) {
   const [expandedFaqId, setExpandedFaqId] = useState('item1');
+  const configMode = useConfigMode();
+  const newToHackdayHeroImageUrl = (() => {
+    const fallback = typeof eventBranding?.newToHackdayImageUrl === 'string' ? eventBranding.newToHackdayImageUrl : heroArtwork;
+    const next = configMode?.getFieldValue?.('branding.newToHackdayImageUrl', fallback);
+    const resolved = typeof next === 'string' ? next.trim() : '';
+    return resolved || heroArtwork;
+  })();
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-28 pt-4 sm:px-6 sm:pb-16 lg:px-8">
@@ -327,7 +335,7 @@ function NewToHackDay({ onNavigate }) {
           <Card padding="none" className="xl:col-span-5 overflow-hidden border border-arena-border h-full">
             <div className="relative h-full min-h-[300px] sm:min-h-[420px]">
               <img
-                src={heroArtwork}
+                src={newToHackdayHeroImageUrl}
                 alt="HackDay journey: innovate and imagine, collaborate and build, then share and execute"
                 className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 ease-out"
               />

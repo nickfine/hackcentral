@@ -196,6 +196,9 @@ export function normalizeConfigModeBrandingPatch(value) {
   if (value.heroIconImageUrl !== undefined) {
     next.heroIconImageUrl = String(value.heroIconImageUrl).trim().slice(0, 500);
   }
+  if (value.newToHackdayImageUrl !== undefined) {
+    next.newToHackdayImageUrl = String(value.newToHackdayImageUrl).trim().slice(0, 500);
+  }
   if (value.themePreference !== undefined) {
     const pref = String(value.themePreference).trim();
     next.themePreference = ['light', 'dark', 'system'].includes(pref) ? pref : 'system';

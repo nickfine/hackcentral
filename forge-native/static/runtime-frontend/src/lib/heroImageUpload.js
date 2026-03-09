@@ -3,6 +3,7 @@ export const HERO_IMAGE_MAX_FILE_SIZE_BYTES = 2_000_000;
 export const HERO_BANNER_MAX_WIDTH = 1200;
 export const HERO_BANNER_REQUIRED_HEIGHT = 400;
 export const HERO_ICON_REQUIRED_SIZE = 400;
+export const NEW_TO_HACKDAY_IMAGE_REQUIRED_SIZE = 800;
 
 const COMPRESSION_PROFILES = [
   { scale: 1, webpQuality: 0.82, jpegQuality: 0.85 },
@@ -134,6 +135,70 @@ async function normalizeHeroIcon(file) {
   throw new Error('Icon image is too large after compression. Try a simpler image.');
 }
 
+async function normalizeNewToHackdayImage(file) {
+  assertFileTypeAndSize(file);
+  const image = await loadImageFromFile(file);
+  const targetSize = NEW_TO_HACKDAY_IMAGE_REQUIRED_SIZE;
+  const scale = Math.max(targetSize / Math.max(1, image.naturalWidth), targetSize / Math.max(1, image.naturalHeight));
+  const sourceWidth = Math.max(1, Math.round(targetSize / scale));
+  const sourceHeight = Math.max(1, Math.round(targetSize / scale));
+  const sourceX = Math.max(0, Math.round((image.naturalWidth - sourceWidth) / 2));
+  const sourceY = Math.max(0, Math.round((image.naturalHeight - sourceHeight) / 2));
+
+  for (const profile of COMPRESSION_PROFILES) {
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Browser does not support canvas image processing.');
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      targetSize,
+      targetSize
+    );
+
+    const webpBlob = await canvasToBlob(canvas, 'image/webp', profile.webpQuality);
+    if (webpBlob && webpBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+      return { blob: webpBlob, contentType: 'image/webp', width: targetSize, height: targetSize };
+    }
+
+    const jpegBlob = await canvasToBlob(canvas, 'image/jpeg', profile.jpegQuality);
+    if (jpegBlob && jpegBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+      return { blob: jpegBlob, contentType: 'image/jpeg', width: targetSize, height: targetSize };
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetSize;
+  canvas.height = targetSize;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Browser does not support canvas image processing.');
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    targetSize,
+    targetSize
+  );
+
+  const pngBlob = await canvasToBlob(canvas, 'image/png');
+  if (pngBlob && pngBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+    return { blob: pngBlob, contentType: 'image/png', width: targetSize, height: targetSize };
+  }
+
+  throw new Error('New To HackDay image is too large after compression. Try a simpler image.');
+}
+
 async function uploadToSignedUrl(signedUploadUrl, blob, contentType) {
   const response = await fetch(signedUploadUrl, {
     method: 'PUT',
@@ -153,13 +218,15 @@ export async function uploadHeroImageInline({ file, invokeResolver, assetKind = 
     throw new Error('Upload resolver is unavailable.');
   }
 
-  if (!['banner', 'icon'].includes(assetKind)) {
-    throw new Error('assetKind must be banner or icon.');
+  if (!['banner', 'icon', 'new-to-hackday'].includes(assetKind)) {
+    throw new Error('assetKind must be banner, icon, or new-to-hackday.');
   }
 
   const normalized = assetKind === 'icon'
     ? await normalizeHeroIcon(file)
-    : await normalizeHeroImage(file);
+    : assetKind === 'new-to-hackday'
+      ? await normalizeNewToHackdayImage(file)
+      : await normalizeHeroImage(file);
 
   const uploadTarget = await invokeResolver('createEventBrandingImageUploadUrl', {
     assetKind,

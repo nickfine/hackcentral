@@ -931,6 +931,9 @@ function normalizeEventBranding(
   if (input?.heroIconImageUrl?.trim()) {
     branding.heroIconImageUrl = input.heroIconImageUrl.trim();
   }
+  if (input?.newToHackdayImageUrl?.trim()) {
+    branding.newToHackdayImageUrl = input.newToHackdayImageUrl.trim();
+  }
   if (themePreference) {
     branding.themePreference = themePreference;
   }
@@ -964,6 +967,9 @@ function normalizeEventBrandingForWrite(
   }
   if (input?.heroIconImageUrl?.trim()) {
     branding.heroIconImageUrl = input.heroIconImageUrl.trim();
+  }
+  if (input?.newToHackdayImageUrl?.trim()) {
+    branding.newToHackdayImageUrl = input.newToHackdayImageUrl.trim();
   }
   if (themePreference) {
     branding.themePreference = themePreference;

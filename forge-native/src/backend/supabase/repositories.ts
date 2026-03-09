@@ -2773,6 +2773,9 @@ function asEventBranding(value: unknown): EventBranding {
   if (typeof candidate.heroIconImageUrl === 'string' && candidate.heroIconImageUrl.trim()) {
     branding.heroIconImageUrl = candidate.heroIconImageUrl.trim();
   }
+  if (typeof candidate.newToHackdayImageUrl === 'string' && candidate.newToHackdayImageUrl.trim()) {
+    branding.newToHackdayImageUrl = candidate.newToHackdayImageUrl.trim();
+  }
   if (themePreference) {
     branding.themePreference = themePreference;
   }

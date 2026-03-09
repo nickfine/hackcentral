@@ -10,16 +10,20 @@ describe('runtime branding surface contract', () => {
   it('keeps branding upload-first in Admin and removes branding-level banner messaging', async () => {
     const adminSource = await readSource('forge-native/static/runtime-frontend/src/components/AdminPanel.jsx');
     const dashboardSource = await readSource('forge-native/static/runtime-frontend/src/components/Dashboard.jsx');
+    const newToHackdaySource = await readSource('forge-native/static/runtime-frontend/src/components/NewToHackDay.jsx');
     const contentRegistrySource = await readSource('forge-native/static/runtime-frontend/src/configMode/contentRegistry.js');
     const cssSource = await readSource('forge-native/static/runtime-frontend/src/index.css');
 
     expect(adminSource).toContain('type="color"');
     expect(adminSource).toContain('Upload banner');
     expect(adminSource).toContain('Upload icon');
+    expect(adminSource).toContain('Upload image');
     expect(adminSource).toContain('Hero banner image');
     expect(adminSource).toContain('Hero icon image');
+    expect(adminSource).toContain('New To HackDay page image');
     expect(adminSource).toContain('Manual banner image URL');
     expect(adminSource).toContain('Manual hero icon URL');
+    expect(adminSource).toContain('Manual New To HackDay image URL');
     expect(adminSource).toContain('Theme &amp; Accent');
     expect(adminSource).toContain('Event Artwork');
     expect(adminSource).toContain('Live Preview');
@@ -34,6 +38,7 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain("onChange={(event) => handleAccentColorChange(event.target.value)}");
     expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('bannerImageUrl', e.target.value)}");
     expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('heroIconImageUrl', e.target.value)}");
+    expect(adminSource).toContain("onChange={(e) => handleBrandingImageUrlChange('newToHackdayImageUrl', e.target.value)}");
     expect(adminSource).toContain("onChange={(value) => handleThemePreferenceChange(value)}");
     expect(adminSource).toContain("const brandingHasUnsavedChanges = useMemo(");
     expect(adminSource).toContain("const brandingSaveStateLabel = brandingHasUnsavedChanges ? 'UNSAVED' : 'SAVED';");
@@ -43,9 +48,12 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain('UNSAVED');
     expect(adminSource).toContain('SAVED');
     expect(adminSource).toContain("configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);");
+    expect(adminSource).toContain("configMode.setFieldValue('branding.newToHackdayImageUrl', newToHackdayImageUrl);");
     expect(adminSource).toContain("handleBrandingImagePicked('banner', event)");
     expect(adminSource).toContain("handleBrandingImagePicked('icon', event)");
+    expect(adminSource).toContain("handleBrandingImagePicked('new-to-hackday', event)");
     expect(adminSource).toContain('Hero banner updated in preview. Save branding when ready.');
+    expect(adminSource).toContain('New To HackDay image updated in preview. Save branding when ready.');
     expect(adminSource).toContain('branding-live-preview-icon');
     expect(adminSource).toContain("const [brandingPreviewSystemColorMode, setBrandingPreviewSystemColorMode] = useState(() => {");
     expect(adminSource).toContain("const brandingPreviewColorMode =");
@@ -64,8 +72,13 @@ describe('runtime branding surface contract', () => {
 
     expect(contentRegistrySource).not.toContain("key: 'branding.bannerMessage'");
     expect(contentRegistrySource).toContain("key: 'branding.heroIconImageUrl'");
+    expect(contentRegistrySource).toContain("key: 'branding.newToHackdayImageUrl'");
+    expect(newToHackdaySource).toContain("configMode?.getFieldValue?.('branding.newToHackdayImageUrl', fallback)");
+    expect(newToHackdaySource).toContain('eventBranding?.newToHackdayImageUrl');
+    expect(newToHackdaySource).toContain('src={newToHackdayHeroImageUrl}');
     expect(cssSource).toContain('.branding-banner-preview-image');
     expect(cssSource).toContain('.branding-icon-preview-image');
+    expect(cssSource).toContain('.branding-new-to-hackday-preview-image');
     expect(cssSource).toContain('.branding-live-preview-icon');
     expect(cssSource).toContain('.branding-theme-layout');
     expect(cssSource).toContain('.branding-section-break');

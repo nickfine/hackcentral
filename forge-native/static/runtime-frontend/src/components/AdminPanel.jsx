@@ -91,6 +91,7 @@ const BRANDING_PRESET_COLORS = ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#10
 const BRANDING_IMAGE_ASSET_FIELD_BY_KIND = {
   banner: 'bannerImageUrl',
   icon: 'heroIconImageUrl',
+  'new-to-hackday': 'newToHackdayImageUrl',
 };
 
 function rgbComponentToHex(value) {
@@ -163,6 +164,7 @@ function buildNormalizedBrandingState(branding = {}) {
     accentColor: normalizeAccentColor(branding?.accentColor, getThemePresetAccent(themePreset, 'light')),
     bannerImageUrl: typeof branding?.bannerImageUrl === 'string' ? branding.bannerImageUrl.trim() : '',
     heroIconImageUrl: typeof branding?.heroIconImageUrl === 'string' ? branding.heroIconImageUrl.trim() : '',
+    newToHackdayImageUrl: typeof branding?.newToHackdayImageUrl === 'string' ? branding.newToHackdayImageUrl.trim() : '',
     themePreference: normalizeThemePreference(branding?.themePreference, 'system'),
     themePreset,
   };
@@ -173,6 +175,7 @@ function brandingStatesEqual(a, b) {
     a?.accentColor === b?.accentColor &&
     a?.bannerImageUrl === b?.bannerImageUrl &&
     a?.heroIconImageUrl === b?.heroIconImageUrl &&
+    a?.newToHackdayImageUrl === b?.newToHackdayImageUrl &&
     a?.themePreference === b?.themePreference &&
     a?.themePreset === b?.themePreset
   );
@@ -336,6 +339,7 @@ function AdminPanel({
     accentColor: '',
     bannerImageUrl: '',
     heroIconImageUrl: '',
+    newToHackdayImageUrl: '',
     themePreference: 'system',
     themePreset: DEFAULT_THEME_PRESET,
   });
@@ -347,6 +351,7 @@ function AdminPanel({
   const [isUploadingBrandingImage, setIsUploadingBrandingImage] = useState(false);
   const [showBannerImageAdvancedField, setShowBannerImageAdvancedField] = useState(false);
   const [showHeroIconAdvancedField, setShowHeroIconAdvancedField] = useState(false);
+  const [showNewToHackdayImageAdvancedField, setShowNewToHackdayImageAdvancedField] = useState(false);
   const [brandingPreviewSystemColorMode, setBrandingPreviewSystemColorMode] = useState(() => {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -361,6 +366,7 @@ function AdminPanel({
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
   const brandingBannerImageInputRef = useRef(null);
   const brandingHeroIconInputRef = useRef(null);
+  const brandingNewToHackdayImageInputRef = useRef(null);
 
   // Check if user is admin (role or event creator/co-admin from seed)
   const isAdmin = user?.role === 'admin' || isEventAdmin;
@@ -555,6 +561,11 @@ function AdminPanel({
     return value;
   }, [brandingForm.heroIconImageUrl]);
 
+  const brandingPreviewNewToHackdayImage = useMemo(() => {
+    const value = typeof brandingForm.newToHackdayImageUrl === 'string' ? brandingForm.newToHackdayImageUrl.trim() : '';
+    return value;
+  }, [brandingForm.newToHackdayImageUrl]);
+
   const brandingPreviewThemePreset = useMemo(
     () => normalizeThemePreset(brandingForm.themePreset),
     [brandingForm.themePreset]
@@ -597,6 +608,7 @@ function AdminPanel({
       accentColor: brandingPreviewAccent,
       bannerImageUrl: brandingPreviewBannerImage,
       heroIconImageUrl: brandingPreviewHeroIconImage,
+      newToHackdayImageUrl: brandingPreviewNewToHackdayImage,
       themePreference: normalizeThemePreference(brandingForm.themePreference, 'system'),
       themePreset: brandingPreviewThemePreset,
     }),
@@ -605,6 +617,7 @@ function AdminPanel({
       brandingPreviewAccent,
       brandingPreviewBannerImage,
       brandingPreviewHeroIconImage,
+      brandingPreviewNewToHackdayImage,
       brandingPreviewThemePreset,
     ]
   );
@@ -1152,10 +1165,12 @@ function AdminPanel({
       const accentColor = normalizeAccentColor(brandingForm.accentColor, getThemePresetAccent(themePreset, 'light'));
       const bannerImageUrl = brandingForm.bannerImageUrl.trim();
       const heroIconImageUrl = brandingForm.heroIconImageUrl.trim();
+      const newToHackdayImageUrl = brandingForm.newToHackdayImageUrl.trim();
       const nextBranding = {
         accentColor,
         bannerImageUrl,
         heroIconImageUrl,
+        newToHackdayImageUrl,
         themePreference: normalizeThemePreference(brandingForm.themePreference, 'system'),
         themePreset,
       };
@@ -1163,6 +1178,7 @@ function AdminPanel({
         configMode.setFieldValue('branding.accentColor', accentColor);
         configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
         configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);
+        configMode.setFieldValue('branding.newToHackdayImageUrl', newToHackdayImageUrl);
         configMode.setFieldValue('branding.themePreference', nextBranding.themePreference);
         configMode.setFieldValue('branding.themePreset', themePreset);
         const result = await configMode.saveDraft();
@@ -1181,6 +1197,7 @@ function AdminPanel({
         accentColor,
         bannerImageUrl,
         heroIconImageUrl,
+        newToHackdayImageUrl,
         themePreference: nextBranding.themePreference || undefined,
         themePreset,
       });
@@ -1199,6 +1216,10 @@ function AdminPanel({
     if (!isEventAdmin || isUploadingBrandingImage || isSavingBranding) return;
     if (assetKind === 'icon') {
       brandingHeroIconInputRef.current?.click();
+      return;
+    }
+    if (assetKind === 'new-to-hackday') {
+      brandingNewToHackdayImageInputRef.current?.click();
       return;
     }
     brandingBannerImageInputRef.current?.click();
@@ -1226,12 +1247,24 @@ function AdminPanel({
       setBrandingForm((prev) => ({ ...prev, [assetField]: uploaded.publicUrl }));
       setBrandingSaveStatus({
         type: 'success',
-        message: assetKind === 'icon'
-          ? 'Hero icon updated in preview. Save branding when ready.'
-          : 'Hero banner updated in preview. Save branding when ready.',
+        message:
+          assetKind === 'icon'
+            ? 'Hero icon updated in preview. Save branding when ready.'
+            : assetKind === 'new-to-hackday'
+              ? 'New To HackDay image updated in preview. Save branding when ready.'
+              : 'Hero banner updated in preview. Save branding when ready.',
       });
     } catch (error) {
-      setBrandingSaveStatus({ type: 'error', message: error?.message || (assetKind === 'icon' ? 'Failed to upload hero icon.' : 'Failed to upload banner image.') });
+      setBrandingSaveStatus({
+        type: 'error',
+        message: error?.message || (
+          assetKind === 'icon'
+            ? 'Failed to upload hero icon.'
+            : assetKind === 'new-to-hackday'
+              ? 'Failed to upload New To HackDay image.'
+              : 'Failed to upload banner image.'
+        ),
+      });
     } finally {
       setIsUploadingBrandingImage(false);
     }
@@ -2649,7 +2682,7 @@ function AdminPanel({
                 <section className="branding-section" data-branding-section="event-artwork">
                   <div className="branding-section-header">
                     <span className="text-base font-semibold text-gray-900 dark:text-white">Event Artwork</span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Banner artwork appears as the dashboard hero background. Icon artwork appears in the hero mark area.</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Banner artwork appears as the dashboard hero background. Icon artwork appears in the hero mark area. New To HackDay artwork appears in the onboarding page hero.</span>
                   </div>
                   <div className="branding-artwork-stack">
                     <div className="branding-field-group">
@@ -2792,6 +2825,78 @@ function AdminPanel({
                           />
                         ) : null}
                       </div>
+                    </div>
+
+                    <div className="branding-artwork-new-to-hackday-shell">
+                      <div className="branding-field-group">
+                      <div className="branding-field-header">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">New To HackDay page image</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Square artwork for the New To HackDay page hero image. Use a square image, ideally 800×800 or larger.</span>
+                      </div>
+                      <input
+                        ref={brandingNewToHackdayImageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => handleBrandingImagePicked('new-to-hackday', event)}
+                      />
+                      <div className="branding-banner-preview-card">
+                        <div className="branding-banner-preview-media branding-new-to-hackday-preview-media">
+                          {brandingPreviewNewToHackdayImage ? (
+                            <img
+                              src={brandingPreviewNewToHackdayImage}
+                              alt="Current New To HackDay page image"
+                              className="branding-banner-preview-image branding-new-to-hackday-preview-image"
+                            />
+                          ) : (
+                            <div className="branding-banner-preview-empty">
+                              <ImagePlus className="h-5 w-5" />
+                              <span>No New To HackDay image uploaded</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="branding-banner-preview-actions">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<Upload className="w-4 h-4" />}
+                            onClick={() => handleOpenBrandingImagePicker('new-to-hackday')}
+                            disabled={!isEventAdmin || isSavingBranding}
+                            loading={isUploadingBrandingImage}
+                          >
+                            {brandingPreviewNewToHackdayImage ? 'Replace image' : 'Upload image'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<X className="w-4 h-4" />}
+                            onClick={() => handleClearBrandingImage('new-to-hackday')}
+                            disabled={!isEventAdmin || isSavingBranding || !brandingPreviewNewToHackdayImage}
+                          >
+                            Remove
+                          </Button>
+                          <button
+                            type="button"
+                            className="branding-advanced-toggle"
+                            onClick={() => setShowNewToHackdayImageAdvancedField((current) => !current)}
+                            disabled={isSavingBranding}
+                          >
+                            {showNewToHackdayImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                          </button>
+                        </div>
+                      </div>
+                      {showNewToHackdayImageAdvancedField ? (
+                        <Input
+                          label="Manual New To HackDay image URL"
+                          type="url"
+                          value={brandingForm.newToHackdayImageUrl}
+                          onChange={(e) => handleBrandingImageUrlChange('newToHackdayImageUrl', e.target.value)}
+                          placeholder="https://..."
+                          helperText="Advanced override if you need to point at an externally hosted New To HackDay image."
+                          disabled={isSavingBranding}
+                        />
+                      ) : null}
+                    </div>
                     </div>
                   </div>
                 </section>
