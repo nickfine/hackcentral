@@ -83,6 +83,10 @@ const isForgeHost = () => {
 
 const DEFAULT_BRANDING_ACCENT = '#0f766e';
 const BRANDING_PRESET_COLORS = ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#0ea5e9', '#8b5cf6', '#ec4899'];
+const BRANDING_IMAGE_ASSET_FIELD_BY_KIND = {
+  banner: 'bannerImageUrl',
+  icon: 'heroIconImageUrl',
+};
 
 function rgbComponentToHex(value) {
   return Number(value).toString(16).padStart(2, '0');
@@ -170,19 +174,22 @@ function AdminPanel({
   const [brandingForm, setBrandingForm] = useState({
     accentColor: '',
     bannerImageUrl: '',
+    heroIconImageUrl: '',
     themePreference: 'system',
   });
   const [brandingSaveStatus, setBrandingSaveStatus] = useState(null);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isUploadingBrandingImage, setIsUploadingBrandingImage] = useState(false);
   const [showBannerImageAdvancedField, setShowBannerImageAdvancedField] = useState(false);
+  const [showHeroIconAdvancedField, setShowHeroIconAdvancedField] = useState(false);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleteUserConfirmText, setDeleteUserConfirmText] = useState('');
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [deleteUserStatus, setDeleteUserStatus] = useState(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
-  const brandingImageInputRef = useRef(null);
+  const brandingBannerImageInputRef = useRef(null);
+  const brandingHeroIconInputRef = useRef(null);
 
   // Check if user is admin (role or event creator/co-admin from seed)
   const isAdmin = user?.role === 'admin' || isEventAdmin;
@@ -361,12 +368,14 @@ function AdminPanel({
         ? {
             accentColor: configMode.getFieldValue('branding.accentColor', eventBranding?.accentColor || ''),
             bannerImageUrl: configMode.getFieldValue('branding.bannerImageUrl', eventBranding?.bannerImageUrl || ''),
+            heroIconImageUrl: configMode.getFieldValue('branding.heroIconImageUrl', eventBranding?.heroIconImageUrl || ''),
             themePreference: configMode.getFieldValue('branding.themePreference', eventBranding?.themePreference || 'system') || 'system',
           }
         : (eventBranding || {});
       setBrandingForm((prev) => ({
         accentColor: normalizeAccentColor(b.accentColor, prev.accentColor || DEFAULT_BRANDING_ACCENT),
         bannerImageUrl: b.bannerImageUrl ?? prev.bannerImageUrl ?? '',
+        heroIconImageUrl: b.heroIconImageUrl ?? prev.heroIconImageUrl ?? '',
         themePreference: ['light', 'dark', 'system'].includes(b.themePreference) ? b.themePreference : (prev.themePreference || 'system'),
       }));
     }
@@ -381,6 +390,11 @@ function AdminPanel({
     const value = typeof brandingForm.bannerImageUrl === 'string' ? brandingForm.bannerImageUrl.trim() : '';
     return value;
   }, [brandingForm.bannerImageUrl]);
+
+  const brandingPreviewHeroIconImage = useMemo(() => {
+    const value = typeof brandingForm.heroIconImageUrl === 'string' ? brandingForm.heroIconImageUrl.trim() : '';
+    return value;
+  }, [brandingForm.heroIconImageUrl]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -876,9 +890,11 @@ function AdminPanel({
     try {
       const accentColor = normalizeAccentColor(brandingForm.accentColor, DEFAULT_BRANDING_ACCENT);
       const bannerImageUrl = brandingForm.bannerImageUrl.trim();
+      const heroIconImageUrl = brandingForm.heroIconImageUrl.trim();
       if (configModeActive) {
         configMode.setFieldValue('branding.accentColor', accentColor);
         configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
+        configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);
         configMode.setFieldValue('branding.themePreference', brandingForm.themePreference || 'system');
         const result = await configMode.saveDraft();
         if (!result?.success) {
@@ -893,9 +909,10 @@ function AdminPanel({
       await invokeEventScopedResolver(invoke, 'updateEventBranding', appModeResolverPayload, {
         accentColor,
         bannerImageUrl,
+        heroIconImageUrl,
         themePreference: brandingForm.themePreference || undefined,
       });
-      setBrandingSaveStatus({ type: 'success', message: 'Branding saved. Theme and banner will update on next load.' });
+      setBrandingSaveStatus({ type: 'success', message: 'Branding saved. Theme and hero assets will update on next load.' });
       onRefreshEventPhase();
     } catch (err) {
       setBrandingSaveStatus({ type: 'error', message: err?.message || 'Failed to save branding.' });
@@ -904,12 +921,16 @@ function AdminPanel({
     }
   }, [appModeResolverPayload, forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode]);
 
-  const handleOpenBrandingImagePicker = useCallback(() => {
+  const handleOpenBrandingImagePicker = useCallback((assetKind) => {
     if (!isEventAdmin || isUploadingBrandingImage || isSavingBranding) return;
-    brandingImageInputRef.current?.click();
+    if (assetKind === 'icon') {
+      brandingHeroIconInputRef.current?.click();
+      return;
+    }
+    brandingBannerImageInputRef.current?.click();
   }, [isEventAdmin, isSavingBranding, isUploadingBrandingImage]);
 
-  const handleBrandingImagePicked = useCallback(async (event) => {
+  const handleBrandingImagePicked = useCallback(async (assetKind, event) => {
     const file = event.target?.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -923,27 +944,30 @@ function AdminPanel({
       const { invoke } = await import('@forge/bridge');
       const uploaded = await uploadHeroImageInline({
         file,
+        assetKind,
         invokeResolver: (resolverName, payload) =>
           invokeEventScopedResolver(invoke, resolverName, appModeResolverPayload, payload),
       });
+      const assetField = BRANDING_IMAGE_ASSET_FIELD_BY_KIND[assetKind] || BRANDING_IMAGE_ASSET_FIELD_BY_KIND.banner;
       if (configModeActive) {
-        configMode.setFieldValue('branding.bannerImageUrl', uploaded.publicUrl);
+        configMode.setFieldValue(`branding.${assetField}`, uploaded.publicUrl);
       }
-      setBrandingForm((prev) => ({ ...prev, bannerImageUrl: uploaded.publicUrl }));
-      setBrandingSaveStatus({ type: 'success', message: 'Banner image uploaded. Save branding to apply it.' });
+      setBrandingForm((prev) => ({ ...prev, [assetField]: uploaded.publicUrl }));
+      setBrandingSaveStatus({ type: 'success', message: assetKind === 'icon' ? 'Hero icon uploaded. Save branding to apply it.' : 'Hero banner uploaded. Save branding to apply it.' });
     } catch (error) {
-      setBrandingSaveStatus({ type: 'error', message: error?.message || 'Failed to upload banner image.' });
+      setBrandingSaveStatus({ type: 'error', message: error?.message || (assetKind === 'icon' ? 'Failed to upload hero icon.' : 'Failed to upload banner image.') });
     } finally {
       setIsUploadingBrandingImage(false);
     }
   }, [appModeResolverPayload, configMode, configModeActive, forgeHost]);
 
-  const handleClearBrandingImage = useCallback(() => {
+  const handleClearBrandingImage = useCallback((assetKind) => {
     setBrandingSaveStatus(null);
+    const assetField = BRANDING_IMAGE_ASSET_FIELD_BY_KIND[assetKind] || BRANDING_IMAGE_ASSET_FIELD_BY_KIND.banner;
     if (configModeActive) {
-      configMode.setFieldValue('branding.bannerImageUrl', '');
+      configMode.setFieldValue(`branding.${assetField}`, '');
     }
-    setBrandingForm((prev) => ({ ...prev, bannerImageUrl: '' }));
+    setBrandingForm((prev) => ({ ...prev, [assetField]: '' }));
   }, [configMode, configModeActive]);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
@@ -2187,74 +2211,146 @@ function AdminPanel({
                   </div>
                 </div>
 
-                <div className="branding-field-group">
-                  <div className="branding-field-header">
-                    <span className="field-label">Hero banner image</span>
-                    <span className="field-hint">Uploads are normalized to the runtime hero banner format.</span>
-                  </div>
-                  <input
-                    ref={brandingImageInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleBrandingImagePicked}
-                  />
-                  <div className="branding-banner-preview-card">
-                    <div className="branding-banner-preview-media">
-                      {brandingPreviewBannerImage ? (
-                        <img
-                          src={brandingPreviewBannerImage}
-                          alt="Current hero banner"
-                          className="branding-banner-preview-image"
-                        />
-                      ) : (
-                        <div className="branding-banner-preview-empty">
-                          <ImagePlus className="h-5 w-5" />
-                          <span>No banner uploaded</span>
-                        </div>
-                      )}
+                <div className="branding-image-grid">
+                  <div className="branding-field-group">
+                    <div className="branding-field-header">
+                      <span className="field-label">Hero banner image</span>
+                      <span className="field-hint">Wide artwork for the full-width dashboard hero background. Use a wide image, ideally 1600×400 or larger.</span>
                     </div>
-                    <div className="branding-banner-preview-actions">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        leftIcon={<Upload className="w-4 h-4" />}
-                        onClick={handleOpenBrandingImagePicker}
-                        disabled={!isEventAdmin || isSavingBranding}
-                        loading={isUploadingBrandingImage}
-                      >
-                        {brandingPreviewBannerImage ? 'Replace banner' : 'Upload banner'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        leftIcon={<X className="w-4 h-4" />}
-                        onClick={handleClearBrandingImage}
-                        disabled={!isEventAdmin || isSavingBranding || !brandingPreviewBannerImage}
-                      >
-                        Remove
-                      </Button>
-                      <button
-                        type="button"
-                        className="branding-advanced-toggle"
-                        onClick={() => setShowBannerImageAdvancedField((current) => !current)}
-                        disabled={isSavingBranding}
-                      >
-                        {showBannerImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
-                      </button>
-                    </div>
-                  </div>
-                  {showBannerImageAdvancedField ? (
-                    <Input
-                      label="Manual banner image URL"
-                      type="url"
-                      value={brandingForm.bannerImageUrl}
-                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerImageUrl: e.target.value }))}
-                      placeholder="https://..."
-                      helperText="Advanced override if you need to point at an externally hosted image."
-                      disabled={isSavingBranding}
+                    <input
+                      ref={brandingBannerImageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(event) => handleBrandingImagePicked('banner', event)}
                     />
-                  ) : null}
+                    <div className="branding-banner-preview-card">
+                      <div className="branding-banner-preview-media">
+                        {brandingPreviewBannerImage ? (
+                          <img
+                            src={brandingPreviewBannerImage}
+                            alt="Current hero banner"
+                            className="branding-banner-preview-image"
+                          />
+                        ) : (
+                          <div className="branding-banner-preview-empty">
+                            <ImagePlus className="h-5 w-5" />
+                            <span>No banner uploaded</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="branding-banner-preview-actions">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          leftIcon={<Upload className="w-4 h-4" />}
+                          onClick={() => handleOpenBrandingImagePicker('banner')}
+                          disabled={!isEventAdmin || isSavingBranding}
+                          loading={isUploadingBrandingImage}
+                        >
+                          {brandingPreviewBannerImage ? 'Replace banner' : 'Upload banner'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          leftIcon={<X className="w-4 h-4" />}
+                          onClick={() => handleClearBrandingImage('banner')}
+                          disabled={!isEventAdmin || isSavingBranding || !brandingPreviewBannerImage}
+                        >
+                          Remove
+                        </Button>
+                        <button
+                          type="button"
+                          className="branding-advanced-toggle"
+                          onClick={() => setShowBannerImageAdvancedField((current) => !current)}
+                          disabled={isSavingBranding}
+                        >
+                          {showBannerImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                        </button>
+                      </div>
+                    </div>
+                    {showBannerImageAdvancedField ? (
+                      <Input
+                        label="Manual banner image URL"
+                        type="url"
+                        value={brandingForm.bannerImageUrl}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerImageUrl: e.target.value }))}
+                        placeholder="https://..."
+                        helperText="Advanced override if you need to point at an externally hosted banner image."
+                        disabled={isSavingBranding}
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="branding-field-group">
+                    <div className="branding-field-header">
+                      <span className="field-label">Hero icon image</span>
+                      <span className="field-hint">Square logo-style artwork for the hero mark area. Use a square image, ideally 400×400 or larger.</span>
+                    </div>
+                    <input
+                      ref={brandingHeroIconInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(event) => handleBrandingImagePicked('icon', event)}
+                    />
+                    <div className="branding-banner-preview-card">
+                      <div className="branding-banner-preview-media branding-icon-preview-media">
+                        {brandingPreviewHeroIconImage ? (
+                          <img
+                            src={brandingPreviewHeroIconImage}
+                            alt="Current hero icon"
+                            className="branding-banner-preview-image branding-icon-preview-image"
+                          />
+                        ) : (
+                          <div className="branding-banner-preview-empty">
+                            <ImagePlus className="h-5 w-5" />
+                            <span>No icon uploaded</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="branding-banner-preview-actions">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          leftIcon={<Upload className="w-4 h-4" />}
+                          onClick={() => handleOpenBrandingImagePicker('icon')}
+                          disabled={!isEventAdmin || isSavingBranding}
+                          loading={isUploadingBrandingImage}
+                        >
+                          {brandingPreviewHeroIconImage ? 'Replace icon' : 'Upload icon'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          leftIcon={<X className="w-4 h-4" />}
+                          onClick={() => handleClearBrandingImage('icon')}
+                          disabled={!isEventAdmin || isSavingBranding || !brandingPreviewHeroIconImage}
+                        >
+                          Remove
+                        </Button>
+                        <button
+                          type="button"
+                          className="branding-advanced-toggle"
+                          onClick={() => setShowHeroIconAdvancedField((current) => !current)}
+                          disabled={isSavingBranding}
+                        >
+                          {showHeroIconAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                        </button>
+                      </div>
+                    </div>
+                    {showHeroIconAdvancedField ? (
+                      <Input
+                        label="Manual hero icon URL"
+                        type="url"
+                        value={brandingForm.heroIconImageUrl}
+                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, heroIconImageUrl: e.target.value }))}
+                        placeholder="https://..."
+                        helperText="Advanced override if you need to point at an externally hosted icon image."
+                        disabled={isSavingBranding}
+                      />
+                    ) : null}
+                  </div>
                 </div>
 
                 <Select
@@ -2280,7 +2376,22 @@ function AdminPanel({
                   <div className="branding-live-preview-content">
                     <div className="branding-live-preview-tag">Dashboard preview</div>
                     <div className="branding-live-preview-title-row">
-                      <div className="branding-live-preview-mark" style={{ background: brandingPreviewAccent }} aria-hidden />
+                      <div
+                        className={cn(
+                          'branding-live-preview-mark',
+                          brandingPreviewHeroIconImage ? 'branding-live-preview-mark-with-icon' : null
+                        )}
+                        style={brandingPreviewHeroIconImage ? undefined : { background: brandingPreviewAccent }}
+                        aria-hidden={brandingPreviewHeroIconImage ? 'true' : undefined}
+                      >
+                        {brandingPreviewHeroIconImage ? (
+                          <img
+                            src={brandingPreviewHeroIconImage}
+                            alt=""
+                            className="branding-live-preview-icon"
+                          />
+                        ) : null}
+                      </div>
                       <div>
                         <p className="branding-live-preview-title">HackDay hero</p>
                         <p className="branding-live-preview-copy">Inline hero copy and Admin Update remain the messaging surfaces.</p>

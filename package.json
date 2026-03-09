@@ -1,7 +1,7 @@
 {
   "name": "hackcentral",
   "private": true,
-  "version": "0.6.68",
+  "version": "0.6.69",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:backend & npm run dev:frontend",
@@ -38,6 +38,8 @@
     "qa:phase8:showcase-backfill": "node scripts/phase8-showcase-page-backfill.mjs",
     "qa:phase8:submission-page-backfill": "node scripts/phase8-submission-page-backfill.mjs",
     "qa:backup:predeploy-snapshot": "node scripts/predeploy-event-backup-snapshot.mjs",
+    "qa:runtime:branding:staging": "./scripts/with-node22.sh node scripts/runtime-branding-validate.mjs",
+    "qa:runtime:branding:staging:deploy": "./scripts/with-node22.sh node scripts/runtime-branding-validate.mjs --deploy",
     "qa:runtime:migrate-macros:dry-run": "node scripts/migrate-hackday-runtime-macro.mjs --dry-run",
     "qa:runtime:migrate-macros": "node scripts/migrate-hackday-runtime-macro.mjs",
     "qa:runtime:rollback-macros:dry-run": "node scripts/rollback-hackday-runtime-macro.mjs --dry-run",

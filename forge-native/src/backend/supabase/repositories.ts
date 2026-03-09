@@ -2761,6 +2761,9 @@ function asEventBranding(value: unknown): EventBranding {
   if (typeof candidate.bannerImageUrl === 'string' && candidate.bannerImageUrl.trim()) {
     branding.bannerImageUrl = candidate.bannerImageUrl.trim();
   }
+  if (typeof candidate.heroIconImageUrl === 'string' && candidate.heroIconImageUrl.trim()) {
+    branding.heroIconImageUrl = candidate.heroIconImageUrl.trim();
+  }
   if (themePreference) {
     branding.themePreference = themePreference;
   }

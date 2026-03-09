@@ -919,6 +919,9 @@ function normalizeEventBranding(
   if (input?.bannerImageUrl?.trim()) {
     branding.bannerImageUrl = input.bannerImageUrl.trim();
   }
+  if (input?.heroIconImageUrl?.trim()) {
+    branding.heroIconImageUrl = input.heroIconImageUrl.trim();
+  }
   if (themePreference) {
     branding.themePreference = themePreference;
   }

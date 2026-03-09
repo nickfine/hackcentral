@@ -1,7 +1,8 @@
 export const HERO_IMAGE_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 export const HERO_IMAGE_MAX_FILE_SIZE_BYTES = 2_000_000;
-export const HERO_IMAGE_MAX_WIDTH = 1200;
-export const HERO_IMAGE_REQUIRED_HEIGHT = 400;
+export const HERO_BANNER_MAX_WIDTH = 1200;
+export const HERO_BANNER_REQUIRED_HEIGHT = 400;
+export const HERO_ICON_REQUIRED_SIZE = 400;
 
 const COMPRESSION_PROFILES = [
   { scale: 1, webpQuality: 0.82, jpegQuality: 0.85 },
@@ -45,12 +46,12 @@ async function normalizeHeroImage(file) {
   assertFileTypeAndSize(file);
   const image = await loadImageFromFile(file);
 
-  const baseScale = HERO_IMAGE_REQUIRED_HEIGHT / Math.max(1, image.naturalHeight);
+  const baseScale = HERO_BANNER_REQUIRED_HEIGHT / Math.max(1, image.naturalHeight);
   const scaledWidthAtRequiredHeight = Math.max(1, Math.round(image.naturalWidth * baseScale));
-  const targetWidthBase = Math.min(HERO_IMAGE_MAX_WIDTH, scaledWidthAtRequiredHeight);
-  const targetHeightBase = HERO_IMAGE_REQUIRED_HEIGHT;
+  const targetWidthBase = Math.min(HERO_BANNER_MAX_WIDTH, scaledWidthAtRequiredHeight);
+  const targetHeightBase = HERO_BANNER_REQUIRED_HEIGHT;
 
-  const cropSourceForMaxWidth = scaledWidthAtRequiredHeight > HERO_IMAGE_MAX_WIDTH;
+  const cropSourceForMaxWidth = scaledWidthAtRequiredHeight > HERO_BANNER_MAX_WIDTH;
   const targetAspectRatio = targetWidthBase / targetHeightBase;
   let sourceX = 0;
   let sourceY = 0;
@@ -97,6 +98,42 @@ async function normalizeHeroImage(file) {
   throw new Error('Image is too large after compression. Try a smaller image.');
 }
 
+async function normalizeHeroIcon(file) {
+  assertFileTypeAndSize(file);
+  const image = await loadImageFromFile(file);
+  const targetSize = HERO_ICON_REQUIRED_SIZE;
+  const scale = Math.min(targetSize / Math.max(1, image.naturalWidth), targetSize / Math.max(1, image.naturalHeight));
+  const drawWidth = Math.max(1, Math.round(image.naturalWidth * scale));
+  const drawHeight = Math.max(1, Math.round(image.naturalHeight * scale));
+  const offsetX = Math.max(0, Math.round((targetSize - drawWidth) / 2));
+  const offsetY = Math.max(0, Math.round((targetSize - drawHeight) / 2));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetSize;
+  canvas.height = targetSize;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Browser does not support canvas image processing.');
+  context.clearRect(0, 0, targetSize, targetSize);
+  context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+  const webpBlob = await canvasToBlob(canvas, 'image/webp', 0.9);
+  if (webpBlob && webpBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+    return { blob: webpBlob, contentType: 'image/webp', width: targetSize, height: targetSize };
+  }
+
+  const pngBlob = await canvasToBlob(canvas, 'image/png');
+  if (pngBlob && pngBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+    return { blob: pngBlob, contentType: 'image/png', width: targetSize, height: targetSize };
+  }
+
+  const jpegBlob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
+  if (jpegBlob && jpegBlob.size <= HERO_IMAGE_MAX_FILE_SIZE_BYTES) {
+    return { blob: jpegBlob, contentType: 'image/jpeg', width: targetSize, height: targetSize };
+  }
+
+  throw new Error('Icon image is too large after compression. Try a simpler image.');
+}
+
 async function uploadToSignedUrl(signedUploadUrl, blob, contentType) {
   const response = await fetch(signedUploadUrl, {
     method: 'PUT',
@@ -111,14 +148,21 @@ async function uploadToSignedUrl(signedUploadUrl, blob, contentType) {
   }
 }
 
-export async function uploadHeroImageInline({ file, invokeResolver }) {
+export async function uploadHeroImageInline({ file, invokeResolver, assetKind = 'banner' }) {
   if (typeof invokeResolver !== 'function') {
     throw new Error('Upload resolver is unavailable.');
   }
 
-  const normalized = await normalizeHeroImage(file);
+  if (!['banner', 'icon'].includes(assetKind)) {
+    throw new Error('assetKind must be banner or icon.');
+  }
+
+  const normalized = assetKind === 'icon'
+    ? await normalizeHeroIcon(file)
+    : await normalizeHeroImage(file);
 
   const uploadTarget = await invokeResolver('createEventBrandingImageUploadUrl', {
+    assetKind,
     fileName: file?.name || 'hero-image',
     contentType: normalized.contentType,
     fileSizeBytes: normalized.blob.size,

@@ -573,8 +573,13 @@ function Dashboard({
     const next = configMode?.getFieldValue?.('branding.bannerImageUrl', fallback);
     return typeof next === 'string' ? next.trim() : '';
   })();
-  const heroLogoSrc = useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png';
-  const heroLogoAlt = useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo';
+  const heroIconImageUrl = (() => {
+    const fallback = typeof eventBranding?.heroIconImageUrl === 'string' ? eventBranding.heroIconImageUrl : '';
+    const next = configMode?.getFieldValue?.('branding.heroIconImageUrl', fallback);
+    return typeof next === 'string' ? next.trim() : '';
+  })();
+  const heroLogoSrc = heroIconImageUrl || (useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png');
+  const heroLogoAlt = heroIconImageUrl ? 'HackDay hero icon' : (useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo');
 
   // Check for free agent reminders when dashboard loads
   useEffect(() => {
@@ -1062,7 +1067,10 @@ function Dashboard({
                   src={heroLogoSrc}
                   alt={heroLogoAlt}
                   data-testid="dashboard-hero-logo"
-                  className="dashboard-hero-logo"
+                  className={cn(
+                    'dashboard-hero-logo',
+                    heroIconImageUrl ? 'dashboard-hero-logo--uploaded' : null
+                  )}
                 />
               </div>
               <div className="min-w-0 space-y-3">

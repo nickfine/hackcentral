@@ -51,8 +51,10 @@ const APP_MODE_CONTEXT_TTL_MS = 12 * 60 * 60 * 1000;
 const EVENT_BRANDING_IMAGES_BUCKET = "event-branding-images";
 const EVENT_BRANDING_UPLOAD_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EVENT_BRANDING_UPLOAD_MAX_BYTES = 2_000_000;
-const EVENT_BRANDING_UPLOAD_MAX_WIDTH = 1200;
-const EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT = 400;
+const EVENT_BRANDING_BANNER_MAX_WIDTH = 1200;
+const EVENT_BRANDING_BANNER_REQUIRED_HEIGHT = 400;
+const EVENT_BRANDING_ICON_REQUIRED_WIDTH = 400;
+const EVENT_BRANDING_ICON_REQUIRED_HEIGHT = 400;
 const EVENT_BRANDING_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 const APP_MODE_RUNTIME_SOURCES = Object.freeze({
   ACTIVE: "app_mode_active_context",
@@ -2425,6 +2427,9 @@ function sanitizeManagedBrandingValue(value) {
   }
   if (value.bannerImageUrl !== undefined && value.bannerImageUrl !== null) {
     next.bannerImageUrl = String(value.bannerImageUrl).trim();
+  }
+  if (value.heroIconImageUrl !== undefined && value.heroIconImageUrl !== null) {
+    next.heroIconImageUrl = String(value.heroIconImageUrl).trim();
   }
   if (value.themePreference !== undefined && value.themePreference !== null) {
     const pref = String(value.themePreference).trim();
@@ -7107,6 +7112,7 @@ resolver.define("updateEventBranding", async (req) => {
   const updates = {};
   if (payload.accentColor !== undefined) updates.accentColor = String(payload.accentColor).trim() || existingBranding.accentColor;
   if (payload.bannerImageUrl !== undefined) updates.bannerImageUrl = String(payload.bannerImageUrl).trim();
+  if (payload.heroIconImageUrl !== undefined) updates.heroIconImageUrl = String(payload.heroIconImageUrl).trim();
   if (payload.themePreference !== undefined) updates.themePreference = ["light", "dark", "system"].includes(payload.themePreference) ? payload.themePreference : existingBranding.themePreference;
   const mergedBranding = sanitizeManagedBrandingValue({ ...existingBranding, ...updates });
 
@@ -7137,6 +7143,7 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
   const payload = req?.payload || {};
   const { supabase, event } = await resolveEventBrandingAdminContext(req);
 
+  const assetKind = String(payload.assetKind || "").trim().toLowerCase();
   const fileName = String(payload.fileName || "").trim().slice(0, 200);
   const contentType = String(payload.contentType || "").trim().toLowerCase();
   const fileSizeBytes = toPositiveInteger(payload.fileSizeBytes, "fileSizeBytes");
@@ -7146,17 +7153,30 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
   if (!fileName) {
     throw new Error("fileName is required");
   }
+  if (!["banner", "icon"].includes(assetKind)) {
+    throw new Error("assetKind is required and must be banner or icon.");
+  }
   if (!EVENT_BRANDING_UPLOAD_ALLOWED_TYPES.has(contentType)) {
     throw new Error("Unsupported contentType. Use image/jpeg, image/png, or image/webp.");
   }
   if (fileSizeBytes > EVENT_BRANDING_UPLOAD_MAX_BYTES) {
     throw new Error("Image file too large. Max size is 2 MB.");
   }
-  if (imageWidth > EVENT_BRANDING_UPLOAD_MAX_WIDTH) {
-    throw new Error(`Image width too large. Maximum is ${EVENT_BRANDING_UPLOAD_MAX_WIDTH}px.`);
+  if (assetKind === "banner") {
+    if (imageWidth > EVENT_BRANDING_BANNER_MAX_WIDTH) {
+      throw new Error(`Banner image width too large. Maximum is ${EVENT_BRANDING_BANNER_MAX_WIDTH}px.`);
+    }
+    if (imageHeight !== EVENT_BRANDING_BANNER_REQUIRED_HEIGHT) {
+      throw new Error(`Banner image height must be exactly ${EVENT_BRANDING_BANNER_REQUIRED_HEIGHT}px.`);
+    }
   }
-  if (imageHeight !== EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT) {
-    throw new Error(`Image height must be exactly ${EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT}px.`);
+  if (assetKind === "icon") {
+    if (imageWidth !== EVENT_BRANDING_ICON_REQUIRED_WIDTH) {
+      throw new Error(`Hero icon width must be exactly ${EVENT_BRANDING_ICON_REQUIRED_WIDTH}px.`);
+    }
+    if (imageHeight !== EVENT_BRANDING_ICON_REQUIRED_HEIGHT) {
+      throw new Error(`Hero icon height must be exactly ${EVENT_BRANDING_ICON_REQUIRED_HEIGHT}px.`);
+    }
   }
 
   const extension = getBrandingImageExtension(contentType);
@@ -7165,7 +7185,7 @@ resolver.define("createEventBrandingImageUploadUrl", async (req) => {
   }
 
   const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
-  const objectPath = `events/${event.id}/branding/hero-${stamp}-${randomUUID()}.${extension}`;
+  const objectPath = `events/${event.id}/branding/${assetKind}-${stamp}-${randomUUID()}.${extension}`;
   const bucket = EVENT_BRANDING_IMAGES_BUCKET;
 
   const { data: signedUploadData, error: signedUploadError } = await supabase.storage

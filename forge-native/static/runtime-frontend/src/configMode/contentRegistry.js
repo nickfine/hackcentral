@@ -151,6 +151,17 @@ export const CONTENT_REGISTRY = [
     helpText: 'Optional hero/banner image URL.',
   },
   {
+    key: 'branding.heroIconImageUrl',
+    page: 'admin',
+    section: 'branding',
+    fieldType: CONFIG_FIELD_TYPES.IMAGE_URL,
+    sourceKind: CONFIG_SOURCE_KINDS.BRANDING,
+    editablePhase: 1,
+    maxLength: 500,
+    label: 'Hero Icon Image URL',
+    helpText: 'Optional hero icon image URL.',
+  },
+  {
     key: 'dashboard.motd.title',
     page: 'dashboard',
     section: 'motd',

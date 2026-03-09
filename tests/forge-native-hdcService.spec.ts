@@ -181,6 +181,7 @@ describe('HdcService hardening behavior', () => {
       branding: {
         accentColor: '  #123abc  ',
         bannerImageUrl: '  https://cdn.example.com/banner.png  ',
+        heroIconImageUrl: '  https://cdn.example.com/icon.png  ',
         themePreference: 'dark',
       },
     });
@@ -209,6 +210,7 @@ describe('HdcService hardening behavior', () => {
         eventBranding: {
           accentColor: '#123abc',
           bannerImageUrl: 'https://cdn.example.com/banner.png',
+          heroIconImageUrl: 'https://cdn.example.com/icon.png',
           themePreference: 'dark',
         },
       })

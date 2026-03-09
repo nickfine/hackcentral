@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 8, 2026
+**Last Updated:** March 9, 2026
 
 ## Project Overview
 
@@ -20,11 +20,138 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.68 (root app)
+**Version:** 0.6.69 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.46
-**Runtime Bundle Version:** 1.2.80
+**Forge Native Package:** 0.3.47
+**Runtime Bundle Version:** 1.2.81
+
+## Session Update - v0.6.69 Runtime Hero Split Branding Released To Production (Mar 9, 2026 00:09 GMT)
+
+### Completed
+
+- Released the split runtime hero-branding follow-up to production without changing the existing global or macro cache-buster markers.
+- Bumped production version markers to:
+  - root app `0.6.69`
+  - forge-native `0.3.47`
+  - runtime bundle `1.2.81`
+- Production runtime branding now includes:
+  - separate `Hero banner image` and `Hero icon image` controls in `Admin Panel -> Branding`
+  - `branding.bannerImageUrl` for the hero background
+  - `branding.heroIconImageUrl` for the hero mark area
+  - clear custom banner rendering with no added wash or opacity treatment
+  - reduced branding preview caps (`200px`) plus explicit banner/icon guidance text
+- Corrected the runtime console version marker before closing the release by bumping `forge-native/static/runtime-frontend/src/data/constants.js` from `1.2.80` to `1.2.81` and redeploying production.
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-hdcService.spec.ts tests/forge-native-repository-event-config.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Staging baseline validation passed before release:
+  - `./scripts/with-node22.sh npm run qa:runtime:branding:staging`
+  - artifact: [`staging-hero-split-validation-2026-03-09T00-02-30-515Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-09T00-02-30-515Z.json)
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshots:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000439Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000439Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000439Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000439Z.md)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000722Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000722Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000722Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-000722Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Hosted production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed on `Shona's IT Hack` (`pageId=24510466`):
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.81`
+  - two image upload inputs were present in Branding
+  - uploaded banner matched the dashboard hero background
+  - uploaded icon matched the dashboard hero logo area
+  - both previews persisted when returning to Branding before publish
+  - artifact bundle:
+    - [`staging-hero-split-validation-2026-03-09T00-08-53-237Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-09T00-08-53-237Z.json)
+    - [`staging-hero-split-validation-2026-03-09T00-08-53-237Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-09T00-08-53-237Z.md)
+    - [`staging-hero-split-validation-2026-03-09T00-08-53-237Z-dashboard.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-09T00-08-53-237Z-dashboard.png)
+    - [`staging-hero-split-validation-2026-03-09T00-08-53-237Z-branding.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-09T00-08-53-237Z-branding.png)
+
+### Learned
+
+- The runtime console version marker is sourced from `forge-native/static/runtime-frontend/src/data/constants.js`, not only from `static/runtime-frontend/package.json`. Bump both before claiming a runtime bundle version change.
+- The reusable runtime branding validator now has a generic script path (`scripts/runtime-branding-validate.mjs`) and writes environment-specific artifact prefixes for future runs.
+
+## Session Update - Staging Hero Branding Preview Sizing + Clear Background (Mar 8, 2026 23:43 GMT)
+
+### Completed
+
+- Kept the runtime hero-branding split in staging and refined the child HackDay Admin Branding UX without a production release.
+- Removed all banner wash treatment from the hero preview path for custom uploaded banners:
+  - dashboard hero banner now renders without the added opacity layer
+  - dashboard hero banner now renders without the added overlay gradient
+- Reduced Admin Branding preview display sizes by half so the uploaded assets are easier to inspect without dominating the form:
+  - banner preview display cap reduced from `400px` to `200px`
+  - icon preview display cap reduced from `400px` to `200px`
+- Added explicit upload guidance in the Branding tab:
+  - banner: `Use a wide image, ideally 1600×400 or larger.`
+  - icon: `Use a square image, ideally 400×400 or larger.`
+
+### Validation
+
+- Local validation passed:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Staging deploy/install executed through the reusable QA/deploy command:
+  - `npm run qa:runtime:branding:staging:deploy`
+- Hosted validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed on staging child page `pageId=24510466`:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.80`
+  - banner and icon uploads still matched the dashboard hero/background and hero mark
+  - both uploaded previews still persisted when returning to `Admin Panel -> Branding`
+  - latest artifact bundle:
+    - [`staging-hero-split-validation-2026-03-08T23-43-02-321Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T23-43-02-321Z.json)
+    - [`staging-hero-split-validation-2026-03-08T23-43-02-321Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T23-43-02-321Z.md)
+    - [`staging-hero-split-validation-2026-03-08T23-43-02-321Z-dashboard.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T23-43-02-321Z-dashboard.png)
+    - [`staging-hero-split-validation-2026-03-08T23-43-02-321Z-branding.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T23-43-02-321Z-branding.png)
+
+### Learned
+
+- For custom HackDay hero banners, do not impose contrast/opacity treatment unless explicitly requested. Event owners may intentionally choose their own contrast strategy, and extra wash layers read as regressions rather than guardrails.
+- The reusable staging command is now the fastest trustworthy loop for child-runtime branding work:
+  - `npm run qa:runtime:branding:staging`
+  - `npm run qa:runtime:branding:staging:deploy`
+
+## Session Update - Staging Hero Banner/Icon Split Validation (Mar 8, 2026 22:10 GMT)
+
+### Completed
+
+- Deployed the in-progress runtime hero-branding split to Forge `staging` without a production release/version bump.
+- Staging now carries the split-branding runtime changes:
+  - explicit `Hero banner image` and `Hero icon image` upload controls in the child HackDay Admin Branding tab
+  - banner uploads map to `branding.bannerImageUrl`
+  - icon uploads map to `branding.heroIconImageUrl`
+  - dashboard hero resolves both draft values directly in Config Mode
+
+### Validation
+
+- Ran staging deploy/install exactly via the staging path in [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment staging --no-verify`
+  - `../scripts/with-node22.sh forge install -e staging --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Added reusable runtime branding staging QA commands:
+  - `npm run qa:runtime:branding:staging`
+  - `npm run qa:runtime:branding:staging:deploy`
+- Hosted validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` and frame-aware selectors passed on staging child page `pageId=24510466`:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.80`
+  - banner upload generated a stored URL with `/branding/banner-...`
+  - icon upload generated a stored URL with `/branding/icon-...`
+  - dashboard hero background matched the uploaded banner preview
+  - dashboard hero logo matched the uploaded icon preview
+  - both uploaded previews persisted when returning to `Admin Panel -> Branding` before publish
+  - artifacts:
+    - [`staging-hero-split-validation-2026-03-08T22-08-40-539Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T22-08-40-539Z.json)
+    - [`staging-hero-split-validation-2026-03-08T22-08-40-539Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T22-08-40-539Z.md)
+    - [`staging-hero-split-validation-2026-03-08T22-08-40-539Z-dashboard.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T22-08-40-539Z-dashboard.png)
+    - [`staging-hero-split-validation-2026-03-08T22-08-40-539Z-branding.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/staging-hero-split-validation-2026-03-08T22-08-40-539Z-branding.png)
+
+### Learned
+
+- For Confluence-hosted runtime validation, the direct `/wiki/apps/.../hackday-app?pageId=...` route still renders the real app inside a second Atlassian CDN iframe. Browser automation should target `page.frames()[1]` or an equivalent frame-aware selector strategy rather than assuming the main frame contains the runtime DOM.
+- In staging, the `Enter Config Mode` control can spend several seconds in a disabled loading state before it becomes actionable. Validation scripts should wait for the button to enable before clicking instead of treating that transient state as a regression.
 
 ## Session Update - v0.6.68 Runtime Branding Draft Upload Fix Deployed To Production (Mar 8, 2026 21:13 GMT)
 

@@ -40,7 +40,7 @@ Planning references are optional and only used if explicitly requested:
 4. Keep docs synchronized in the same session as meaningful process changes.
 5. Do not open `ROADMAP.md` or `HDC-PRODUCT-EXECUTION-PLAN.md` unless planning/rescoping is explicitly requested.
 
-## Current Operational Notes (2026-03-07 16:35 GMT)
+## Current Operational Notes (2026-03-09 00:09 GMT)
 
 - Atlassian MCP target remains:
   - site: `https://hackdaytemp.atlassian.net`
@@ -48,6 +48,19 @@ Planning references are optional and only used if explicitly requested:
 - Runtime hero image upload is live in production:
   - draft preview updates immediately when uploaded
   - Supabase-hosted hero images are allowed via manifest `external.images` policy.
+- Runtime hero branding split is now live in production:
+  - `Hero banner image` maps to `branding.bannerImageUrl`
+  - `Hero icon image` maps to `branding.heroIconImageUrl`
+  - dashboard hero uses banner as background and icon in the hero mark area
+  - Admin Branding preview cards are reduced and include explicit banner/icon guidance text
+  - staging validation for this flow should use the reusable commands:
+    - `npm run qa:runtime:branding:staging`
+    - `npm run qa:runtime:branding:staging:deploy`
+  - latest known production child page:
+    - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
+  - latest known staging child page:
+    - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/17778174-f2aa-4f73-a34a-985afd5fa4e2/hackday-app?pageId=24510466`
+- For custom uploaded hero banners, do not add extra contrast overlays or opacity reduction unless explicitly asked. Current production/staging expectation is a clear banner render with no wash layer.
 - Event backup/restore v1 is live in production:
   - backup/restore controls now live under Admin Panel -> Settings
   - Config Mode no longer carries backup/restore controls in the draft-actions drawer
@@ -69,7 +82,7 @@ Planning references are optional and only used if explicitly requested:
 - For Supabase access, keep MCP-first checks; if MCP project listing is empty in this workspace, use the documented service-role SQL fallback and record evidence in `LEARNINGS.md`.
 - Child HackDay schedule ownership is now in the runtime `Schedule` page under Config Mode; HackCentral creation no longer owns schedule setup.
 - The latest production follow-up fixed published schedule card contrast in dark mode.
-- Forge production is currently deployed from repo `0.6.60` / forge-native `0.3.38` / runtime `1.2.73` at commit `89c6d94`.
+- Forge production is currently deployed from repo `0.6.69` / forge-native `0.3.47` / runtime `1.2.81`.
 - Hosted Confluence browser validation guardrail:
   - before claiming Playwright/Chrome-hosted validation is blocked, first try the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
   - use frame-aware selectors because the HackDay runtime UI is rendered inside a Confluence iframe

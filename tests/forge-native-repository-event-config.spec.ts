@@ -34,6 +34,7 @@ const baseCreateEventInput = {
   eventBranding: {
     accentColor: '#123abc',
     bannerImageUrl: 'https://cdn.example.com/banner.png',
+    heroIconImageUrl: 'https://cdn.example.com/icon.png',
     themePreference: 'light',
   },
 } as const;
