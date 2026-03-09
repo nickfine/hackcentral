@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 14:17 GMT
+Last updated: 2026-03-09 15:00 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-09 14:17 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.78`
-  - Forge native package version: `0.3.56`
+  - Root app version: `0.6.79`
+  - Forge native package version: `0.3.57`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.90`
+  - Runtime bundle version: `1.2.91`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -56,6 +56,15 @@ Last updated: 2026-03-09 14:17 GMT
   - runtime console/version logging is now sourced from the corrected `APP_VERSION` constant
   - latest production version-check artifact:
     - `docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.json`
+- Analytics narrative hierarchy + signal remediation is now live in production:
+  - `Telemetry Analytics` now opens with a phase-aware helper line tied to the real admin event phase
+  - `7-Day Hero Trend` is anchored inside the telemetry card with heading treatment and explanatory helper copy
+  - `Signup Funnel` remains the primary full-width narrative and `Top CTA Actions` now sits beneath it as supporting evidence
+  - `Team Formation Pipeline` now separates `Conversion` and `Speed` KPI pairs and keeps downstream rates grouped by lens
+  - Hero CTR, Signup Completed, Abandon Rate, and Free Agent After 24h now use threshold-based semantic KPI text colours
+  - analytics progress bars now differentiate semantics via opacity and inline labels without adding new tokens
+  - latest production version-check artifact:
+    - `docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -78,6 +87,51 @@ Last updated: 2026-03-09 14:17 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - v0.6.79 Analytics Narrative Hierarchy + Signal Remediation Released (Mar 9, 2026 15:00 GMT)
+
+### What changed
+
+- Released the admin analytics narrative restructure follow-up to production.
+- Version markers are now:
+  - root app `0.6.79`
+  - forge-native `0.3.57`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.91`
+- Runtime/admin analytics behavior now:
+  - adds a phase-aware helper line below `Telemetry Analytics`
+  - anchors `7-Day Hero Trend` inside the telemetry section beneath the KPI row
+  - keeps `Signup Funnel` full-width and moves `Top CTA Actions` below it as the supporting block
+  - separates `Team Formation Pipeline` into `Conversion` and `Speed` KPI pairs
+  - applies semantic KPI text thresholds for Hero CTR, Signup Completed, Abandon Rate, and Free Agent After 24h
+  - differentiates analytics progress bars by semantic role using existing accent opacity and inline labels
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Postdeploy production validation:
+  - runtime iframe logged `[HackCentral Runtime v2] Module loaded - 1.2.91`
+  - root attributes resolved to `data-color-mode=\"light\"` and `data-theme-preset=\"default\"`
+  - runtime body loaded beyond the initial shell and showed the live app navigation
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.md`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.png`
+
+### Current state
+
+- Production Confluence is now running markers `0.6.79 / 0.3.57 / 1.2.91`.
+- Ignore the earlier `2026-03-09T14-58-09-925Z` shell-only probe; the `2026-03-09T15-00-16-793Z` artifact trio is the authoritative postdeploy evidence for this release.
 
 ## Session Update - v0.6.77 Branding Layout Narrative Restructure Released (Mar 9, 2026 14:17 GMT)
 

@@ -20,11 +20,60 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.78 (root app)
+**Version:** 0.6.79 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.56
-**Runtime Bundle Version:** 1.2.90
+**Forge Native Package:** 0.3.57
+**Runtime Bundle Version:** 1.2.91
+
+## Session Update - v0.6.79 Analytics Narrative Hierarchy + Signal Remediation Released To Production (Mar 9, 2026 15:00 GMT)
+
+### Completed
+
+- Released a runtime/admin analytics follow-up that completes the organiser-facing narrative restructure for `Admin Panel -> Analytics`.
+- Added a phase-aware helper line under `Telemetry Analytics` using the existing admin phase state so the page opens with the correct analytical focus.
+- Anchored `7-Day Hero Trend` inside the `Telemetry Analytics` card beneath the KPI row with proper heading treatment and helper copy.
+- Kept `Signup Funnel` as the primary full-width conversion narrative and moved `Top CTA Actions` into its own supporting full-width block underneath.
+- Split `Team Formation Pipeline` into distinct `Conversion` and `Speed` KPI pairs with an existing-border divider on large screens.
+- Applied threshold-based KPI text signals using existing semantic colours:
+  - Hero CTR: healthy at `>= 20%`, warning at `10-19%`, concern below `10%`
+  - Signup Completed: concern only when still `0` after 48h in `Registration`
+  - Abandon Rate: healthy below `15%`, warning at `15-30%`, concern above `30%`
+  - Free Agent After 24h: healthy below `15%`, warning at `15-30%`, concern above `30%`
+- Differentiated analytics progress-bar semantics without new tokens:
+  - funnel conversion bars stay full-opacity accent
+  - signup drop-off completion bars use reduced-opacity accent
+  - team-formation rate bars use lower-opacity accent with inline semantic labels
+- Bumped production version markers to:
+  - root app `0.6.79`
+  - forge-native `0.3.57`
+  - runtime bundle `1.2.91`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-145606Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Final postdeploy production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.91`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"`
+  - runtime body loaded beyond the initial shell and showed the live app navigation on the checked child page
+  - artifact set:
+    - [`release-version-check-2026-03-09T15-00-16-793Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.json)
+    - [`release-version-check-2026-03-09T15-00-16-793Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.md)
+    - [`release-version-check-2026-03-09T15-00-16-793Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-00-16-793Z.png)
+
+### Operational Note
+
+- A first postdeploy probe at `2026-03-09T14:58:09.925Z` captured the Confluence host shell instead of the live runtime iframe. Use the later `2026-03-09T15-00-16.793Z` artifact trio above as the authoritative release evidence for `v0.6.79`.
 
 ## Session Update - v0.6.78 Runtime Version Marker Correction For Branding Layout Release (Mar 9, 2026 14:17 GMT)
 

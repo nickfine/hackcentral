@@ -38,6 +38,8 @@ const Progress = forwardRef(({
   animated = true,
   glossy = true,
   className,
+  trackClassName,
+  indicatorClassName,
   ...props
 }, ref) => {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
@@ -66,7 +68,8 @@ const Progress = forwardRef(({
         className={cn(
           'w-full overflow-hidden rounded-full',
           trackColor,
-          sizeClass
+          sizeClass,
+          trackClassName
         )}
         role="progressbar"
         aria-valuenow={value}
@@ -78,7 +81,8 @@ const Progress = forwardRef(({
           className={cn(
             'h-full rounded-full relative overflow-hidden',
             variantStyle.color,
-            animated && 'transition-all duration-500 ease-out'
+            animated && 'transition-all duration-500 ease-out',
+            indicatorClassName
           )}
           style={{ width: `${percentage}%` }}
         >

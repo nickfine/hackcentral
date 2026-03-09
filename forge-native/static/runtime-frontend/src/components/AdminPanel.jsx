@@ -178,6 +178,98 @@ function brandingStatesEqual(a, b) {
   );
 }
 
+function parseFlexibleDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const parsedFromNumber = new Date(value);
+    if (!Number.isNaN(parsedFromNumber.getTime())) {
+      return parsedFromNumber;
+    }
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^\d{13}$/.test(trimmed)) {
+      const parsedEpochMs = new Date(Number(trimmed));
+      if (!Number.isNaN(parsedEpochMs.getTime())) {
+        return parsedEpochMs;
+      }
+    }
+    if (/^\d{10}$/.test(trimmed)) {
+      const parsedEpochSec = new Date(Number(trimmed) * 1000);
+      if (!Number.isNaN(parsedEpochSec.getTime())) {
+        return parsedEpochSec;
+      }
+    }
+    const parsedFromString = new Date(trimmed);
+    if (!Number.isNaN(parsedFromString.getTime())) {
+      return parsedFromString;
+    }
+  }
+  return null;
+}
+
+function getAnalyticsPhaseContext(eventPhase) {
+  const currentPhase = EVENT_PHASES[eventPhase];
+  const phaseLabel = currentPhase?.label || 'Current phase';
+
+  const contextByPhase = {
+    signup: `Current phase: ${phaseLabel} - signup conversion and drop-off metrics are your primary focus.`,
+    team_formation: `Current phase: ${phaseLabel} - team join conversion, join speed, and free-agent retention are your primary focus.`,
+    hacking: `Current phase: ${phaseLabel} - team formation completion and free-agent retention are your primary focus.`,
+    submission: `Current phase: ${phaseLabel} - team formation completion and readiness signals are your primary focus.`,
+    voting: `Current phase: ${phaseLabel} - use this page as the acquisition backstory for downstream engagement.`,
+    judging: `Current phase: ${phaseLabel} - use this page as the demand and conversion backstory behind judging.`,
+    results: `Current phase: ${phaseLabel} - review the full discovery-to-signup story behind event turnout.`
+  };
+
+  return contextByPhase[eventPhase] || `Current phase: ${phaseLabel} - use the active event context to decide which participation signals need attention first.`;
+}
+
+function getHighIsGoodSignal(value, { healthyMin, warningMin }) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 'neutral';
+  if (numericValue >= healthyMin) return 'healthy';
+  if (numericValue >= warningMin) return 'warning';
+  return 'concern';
+}
+
+function getLowIsGoodSignal(value, { healthyMax, warningMax }) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 'neutral';
+  if (numericValue > warningMax) return 'concern';
+  if (numericValue >= healthyMax) return 'warning';
+  return 'healthy';
+}
+
+function getMetricSignalTone(signal) {
+  switch (signal) {
+    case 'healthy':
+      return 'text-emerald-600 dark:text-emerald-400';
+    case 'warning':
+      return 'text-amber-600 dark:text-amber-400';
+    case 'concern':
+      return 'text-red-600 dark:text-red-400';
+    default:
+      return 'text-gray-900 dark:text-white';
+  }
+}
+
+function getMetricSignalProgressVariant(signal) {
+  switch (signal) {
+    case 'warning':
+      return 'warning';
+    case 'concern':
+      return 'error';
+    case 'healthy':
+      return 'teal';
+    default:
+      return 'default';
+  }
+}
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -187,6 +279,7 @@ function AdminPanel({
   teams = [],
   onNavigate,
   eventPhase,
+  eventMeta = null,
   onPhaseChange,
   allUsers = [],
   onUpdateUserRole,
@@ -597,10 +690,37 @@ function AdminPanel({
   const signupStepMetrics = telemetry?.signupStepMetrics || [];
   const worstSignupStep = telemetry?.worstSignupStep || null;
   const teamFormationPipeline = telemetry?.teamFormationPipeline || {};
+  const topCtaActions = telemetry?.topCtaActions || [];
+  const last7Days = telemetry?.last7Days || [];
+  const eventSchedule = eventMeta?.schedule && typeof eventMeta.schedule === 'object' ? eventMeta.schedule : {};
   const maxDailyImpressions = Math.max(
     1,
-    ...(telemetry?.last7Days || []).map((day) => day.heroImpressions || 0)
+    ...last7Days.map((day) => day.heroImpressions || 0)
   );
+  const analyticsPhaseContext = getAnalyticsPhaseContext(eventPhase);
+  const registrationOpenedAt = parseFlexibleDate(eventSchedule.registrationOpensAt)
+    || parseFlexibleDate(eventMeta?.startAt);
+  const isRegistrationPastFortyEightHours = eventPhase === 'signup'
+    && registrationOpenedAt instanceof Date
+    && (Date.now() - registrationOpenedAt.getTime()) >= (48 * 60 * 60 * 1000);
+  const teamJoinConversionRate = teamFormationPipeline.usersWithTrackedSignup > 0
+    ? Number(((teamFormationPipeline.usersWithTeamJoin / teamFormationPipeline.usersWithTrackedSignup) * 100).toFixed(1))
+    : 0;
+  const heroCtrSignal = getHighIsGoodSignal(telemetrySummary.heroCtr, {
+    healthyMin: 20,
+    warningMin: 10,
+  });
+  const signupCompletedSignal = Number(telemetrySummary.signupCompleted || 0) === 0 && isRegistrationPastFortyEightHours
+    ? 'concern'
+    : 'neutral';
+  const signupAbandonSignal = getLowIsGoodSignal(telemetrySummary.signupAbandonRate, {
+    healthyMax: 15,
+    warningMax: 30,
+  });
+  const freeAgentRetentionSignal = getLowIsGoodSignal(teamFormationPipeline.freeAgentAfter24hRate, {
+    healthyMax: 15,
+    warningMax: 30,
+  });
 
   // Handle phase change
   const handlePhaseChange = (newPhase) => {
@@ -1622,6 +1742,7 @@ function AdminPanel({
               <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
                 Real-time insight into hero visibility, CTA engagement, and signup conversion.
               </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">{analyticsPhaseContext}</p>
 
               {telemetryLoading && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">Loading telemetry metrics...</p>
@@ -1634,89 +1755,147 @@ function AdminPanel({
               )}
 
               {!telemetryLoading && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroImpressions || 0}</p>
-                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero Impressions</p>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroImpressions || 0}</p>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero Impressions</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroCtaClicks || 0}</p>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTA Clicks</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className={cn('text-2xl font-black', getMetricSignalTone(heroCtrSignal))}>{telemetrySummary.heroCtr || 0}%</p>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTR</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className={cn('text-2xl font-black', getMetricSignalTone(signupCompletedSignal))}>{telemetrySummary.signupCompleted || 0}</p>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Signup Completed</p>
+                    </div>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroCtaClicks || 0}</p>
-                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTA Clicks</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-[var(--accent)]">{telemetrySummary.heroCtr || 0}%</p>
-                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Hero CTR</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.signupCompleted || 0}</p>
-                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Signup Completed</p>
+
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                    <p className={ADMIN_SECTION_LABEL}>Trend Detail</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">7-Day Hero Trend</p>
+                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 mb-4">
+                      Daily hero impression count over the last 7 days, with CTA clicks and completed signups for context.
+                    </p>
+                    {last7Days.length > 0 ? (
+                      <VStack gap="2">
+                        {last7Days.map((day) => (
+                          <div key={day.day} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-800/50">
+                            <div className="grid grid-cols-[88px_1fr_52px] items-center gap-3">
+                              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                {new Date(day.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </p>
+                              <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                <div
+                                  className="h-full bg-[var(--accent)] rounded-full"
+                                  style={{ width: `${Math.max(4, Math.round(((day.heroImpressions || 0) / maxDailyImpressions) * 100))}%` }}
+                                />
+                              </div>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white text-right">{day.heroImpressions || 0}</p>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                              <span>{day.heroCtaClicks || 0} CTA clicks</span>
+                              <span>{day.signupCompleted || 0} signups completed</span>
+                            </div>
+                          </div>
+                        ))}
+                      </VStack>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Not enough telemetry data yet for trend view.</p>
+                    )}
                   </div>
                 </div>
               )}
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card padding="md" className={ADMIN_CARD_CLASS}>
-                <Card.Title className="text-lg sm:text-xl mb-4">
-                  <HStack gap="2" align="center">
-                    <Target className="w-5 h-5 text-[var(--accent)]" />
-                    <span>Signup Funnel</span>
-                  </HStack>
-                </Card.Title>
-                <VStack gap="3">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      Welcome Hero to Register CTA: {telemetrySummary.registerClickRate || 0}%
-                    </p>
-                    <Progress variant="teal" value={telemetrySummary.registerClickRate || 0} showLabel />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                      Register CTA to Signup Complete: {telemetrySummary.clickToSignupRate || 0}%
-                    </p>
-                    <Progress variant="teal" value={telemetrySummary.clickToSignupRate || 0} showLabel />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                      <p className="text-lg font-black text-gray-900 dark:text-white">{telemetrySummary.welcomeImpressions || 0}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Welcome Views</p>
+            <Card padding="md" className={ADMIN_CARD_CLASS}>
+              <Card.Title className="text-lg sm:text-xl mb-2">
+                <HStack gap="2" align="center">
+                  <Target className="w-5 h-5 text-[var(--accent)]" />
+                  <span>Signup Funnel</span>
+                </HStack>
+              </Card.Title>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                Primary conversion narrative from first hero exposure through completed signup.
+              </p>
+              <VStack gap="4">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Welcome Hero to Register CTA</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Measures how often the registration prompt turns hero visibility into intent.
+                      </p>
                     </div>
-                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                      <p className="text-lg font-black text-gray-900 dark:text-white">{telemetrySummary.registerClicks || 0}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Register Clicks</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                      <p className="text-lg font-black text-gray-900 dark:text-white">{telemetrySummary.signupFailed || 0}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Signup Fails</p>
-                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Conversion</p>
                   </div>
-                </VStack>
-              </Card>
+                  <Progress variant="teal" value={telemetrySummary.registerClickRate || 0} showLabel indicatorClassName="opacity-100" />
+                </div>
 
-              <Card padding="md" className={ADMIN_CARD_CLASS}>
-                <Card.Title className="text-lg sm:text-xl mb-4">
-                  <HStack gap="2" align="center">
-                    <MousePointerClick className="w-5 h-5 text-[var(--accent)]" />
-                    <span>Top CTA Actions</span>
-                  </HStack>
-                </Card.Title>
-                {(telemetry.topCtaActions || []).length > 0 ? (
-                  <VStack gap="2">
-                    {telemetry.topCtaActions.map((item) => (
-                      <div
-                        key={item.action}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
-                      >
-                        <p className="font-semibold text-gray-900 dark:text-white capitalize">{item.action.replace(/-/g, ' ')}</p>
-                        <Badge variant="default">{item.count}</Badge>
-                      </div>
-                    ))}
-                  </VStack>
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No CTA activity captured yet.</p>
-                )}
-              </Card>
-            </div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Register CTA to Signup Complete</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Shows whether expressed intent is actually converting into finished registrations.
+                      </p>
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Conversion</p>
+                  </div>
+                  <Progress variant="teal" value={telemetrySummary.clickToSignupRate || 0} showLabel indicatorClassName="opacity-100" />
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroImpressions || 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Hero Views</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.registerClicks || 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Register Clicks</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.signupCompleted || 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Completed Signups</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.signupFailed || 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Signup Fails</p>
+                  </div>
+                </div>
+              </VStack>
+            </Card>
+
+            <Card padding="md" className={ADMIN_CARD_CLASS}>
+              <Card.Title className="text-lg sm:text-xl mb-4">
+                <HStack gap="2" align="center">
+                  <MousePointerClick className="w-5 h-5 text-[var(--accent)]" />
+                  <span>Top CTA Actions</span>
+                </HStack>
+              </Card.Title>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                Supporting evidence beneath the funnel, ranked by the CTA actions participants actually chose.
+              </p>
+              {topCtaActions.length > 0 ? (
+                <VStack gap="2">
+                  {topCtaActions.map((item) => (
+                    <div
+                      key={item.action}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    >
+                      <p className="font-semibold text-gray-900 dark:text-white capitalize">{item.action.replace(/-/g, ' ')}</p>
+                      <Badge variant="default">{item.count}</Badge>
+                    </div>
+                  ))}
+                </VStack>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No CTA activity captured yet.</p>
+              )}
+            </Card>
 
             <Card padding="md" className={ADMIN_CARD_CLASS}>
               <Card.Title className="text-lg sm:text-xl mb-2">Signup Tab Drop-off (3 Steps)</Card.Title>
@@ -1738,7 +1917,7 @@ function AdminPanel({
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Flows Abandoned</p>
                 </div>
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-[var(--accent)]">{telemetrySummary.signupAbandonRate || 0}%</p>
+                  <p className={cn('text-xl font-black', getMetricSignalTone(signupAbandonSignal))}>{telemetrySummary.signupAbandonRate || 0}%</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Abandon Rate</p>
                 </div>
               </div>
@@ -1765,7 +1944,10 @@ function AdminPanel({
                           <p>Advanced: {stepMetric.next || 0}</p>
                           <p>Dropoffs: {stepMetric.dropoffs || 0}</p>
                         </div>
-                        <Progress variant="teal" value={stepMetric.progressionRate || 0} showLabel />
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Completion</p>
+                        </div>
+                        <Progress variant="teal" value={stepMetric.progressionRate || 0} showLabel indicatorClassName="opacity-70" trackClassName="bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface-card))]" />
                       </div>
                     );
                   })}
@@ -1787,80 +1969,115 @@ function AdminPanel({
                 From signup completion to first team join, free-agent retention, and invite conversion.
               </p>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.usersWithTrackedSignup || 0}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Tracked Signups</p>
-                </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.usersWithTeamJoin || 0}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Joined a Team</p>
-                </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-[var(--accent)]">{teamFormationPipeline.avgHoursSignupToTeamJoin || 0}h</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Avg Join Time</p>
-                </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.medianHoursSignupToTeamJoin || 0}h</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Median Join Time</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                    Joined Team Within 24h: {teamFormationPipeline.joinedWithin24hRate || 0}%
-                  </p>
-                  <Progress variant="teal" value={teamFormationPipeline.joinedWithin24hRate || 0} showLabel />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Speed from signup completion to first accepted team membership.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                    Still Free Agent After 24h: {teamFormationPipeline.freeAgentAfter24hRate || 0}%
-                  </p>
-                  <Progress variant="teal" value={teamFormationPipeline.freeAgentAfter24hRate || 0} showLabel />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    {teamFormationPipeline.stillFreeAgentsAfter24h || 0} of {teamFormationPipeline.eligibleFor24hCheck || 0} eligible signups.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                  Invite Acceptance (Newly Signed-Up Users): {teamFormationPipeline.inviteAcceptanceRateNewSignups || 0}%
-                </p>
-                <Progress variant="teal" value={teamFormationPipeline.inviteAcceptanceRateNewSignups || 0} showLabel />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  {teamFormationPipeline.acceptedInvitesToNewSignups || 0} accepted out of {teamFormationPipeline.invitesToNewSignups || 0} invites sent within 24h of signup completion.
-                </p>
-              </div>
-            </Card>
-
-            <Card padding="md" className={ADMIN_CARD_CLASS}>
-              <Card.Title className="text-lg sm:text-xl mb-4">7-Day Hero Trend</Card.Title>
-              {(telemetry.last7Days || []).length > 0 ? (
-                <VStack gap="2">
-                  {telemetry.last7Days.map((day) => (
-                    <div key={day.day} className="grid grid-cols-[88px_1fr_52px] items-center gap-3">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        {new Date(day.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </p>
-                      <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                        <div
-                          className="h-full bg-[var(--accent)] rounded-full"
-                          style={{ width: `${Math.max(4, Math.round(((day.heroImpressions || 0) / maxDailyImpressions) * 100))}%` }}
-                        />
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white text-right">{day.heroImpressions || 0}</p>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto_1fr] mb-5">
+                <div>
+                  <p className={ADMIN_SECTION_LABEL}>Conversion</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.usersWithTrackedSignup || 0}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Tracked Signups</p>
                     </div>
-                  ))}
-                </VStack>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Not enough telemetry data yet for trend view.</p>
-              )}
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.usersWithTeamJoin || 0}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Joined a Team</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden lg:block w-px bg-gray-200 dark:bg-gray-700" />
+
+                <div>
+                  <p className={ADMIN_SECTION_LABEL}>Speed</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-xl font-black text-[var(--accent)]">{teamFormationPipeline.avgHoursSignupToTeamJoin || 0}h</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Avg Join Time</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                      <p className="text-xl font-black text-gray-900 dark:text-white">{teamFormationPipeline.medianHoursSignupToTeamJoin || 0}h</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Median Join Time</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <p className={ADMIN_SECTION_LABEL}>Conversion</p>
+                  <VStack gap="3">
+                    <div className="p-4 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Signup to Team Join: {teamJoinConversionRate}%
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Derived conversion from tracked signup completion to first accepted team membership.
+                          </p>
+                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Conversion</p>
+                      </div>
+                      <Progress variant="teal" value={teamJoinConversionRate} showLabel indicatorClassName="opacity-50" trackClassName="bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-card))]" />
+                    </div>
+
+                    <div className="p-4 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Invite Acceptance (Newly Signed-Up Users): {teamFormationPipeline.inviteAcceptanceRateNewSignups || 0}%
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {teamFormationPipeline.acceptedInvitesToNewSignups || 0} accepted out of {teamFormationPipeline.invitesToNewSignups || 0} invites sent within 24h of signup completion.
+                          </p>
+                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Acceptance</p>
+                      </div>
+                      <Progress variant="teal" value={teamFormationPipeline.inviteAcceptanceRateNewSignups || 0} showLabel indicatorClassName="opacity-50" trackClassName="bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-card))]" />
+                    </div>
+                  </VStack>
+                </div>
+
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <p className={ADMIN_SECTION_LABEL}>Speed</p>
+                  <VStack gap="3">
+                    <div className="p-4 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Joined Team Within 24h: {teamFormationPipeline.joinedWithin24hRate || 0}%
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Speed from signup completion to first accepted team membership.
+                          </p>
+                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Speed</p>
+                      </div>
+                      <Progress variant="teal" value={teamFormationPipeline.joinedWithin24hRate || 0} showLabel indicatorClassName="opacity-50" trackClassName="bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-card))]" />
+                    </div>
+
+                    <div className="p-4 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Still Free Agent After 24h: <span className={getMetricSignalTone(freeAgentRetentionSignal)}>{teamFormationPipeline.freeAgentAfter24hRate || 0}%</span>
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {teamFormationPipeline.stillFreeAgentsAfter24h || 0} of {teamFormationPipeline.eligibleFor24hCheck || 0} eligible signups remain unplaced after 24 hours.
+                          </p>
+                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">Retention</p>
+                      </div>
+                      <Progress
+                        variant="teal"
+                        value={teamFormationPipeline.freeAgentAfter24hRate || 0}
+                        showLabel
+                        indicatorClassName="opacity-50"
+                        trackClassName="bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-card))]"
+                      />
+                    </div>
+                  </VStack>
+                </div>
+              </div>
             </Card>
           </VStack>
         </Tabs.Panel>
