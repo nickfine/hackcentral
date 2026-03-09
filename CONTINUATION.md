@@ -55,7 +55,7 @@ Last updated: 2026-03-09 14:17 GMT
 - Runtime version marker correction follow-up is now live in production:
   - runtime console/version logging is now sourced from the corrected `APP_VERSION` constant
   - latest production version-check artifact:
-    - `docs/artifacts/release-version-check-2026-03-09T14-22-01-067Z.json`
+    - `docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -3664,6 +3664,23 @@ All passed in-session.
   - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
   - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
   - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Postdeploy production validation:
+  - runtime iframe logged `[HackCentral Runtime v2] Module loaded - 1.2.90`
+  - root attributes resolved to `data-color-mode="light"` and `data-theme-preset="default"`
+  - runtime body moved beyond the `Loading HackDay...` shell on the checked child page
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.md`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.png`
 
 ### Current state
 

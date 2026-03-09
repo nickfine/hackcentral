@@ -50,6 +50,23 @@ When users create a HackDay in HackCentral:
   - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
   - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
   - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - first predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-141925Z.md)
+  - corrective follow-up predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-142639Z.md)
+  - Forge CLI returned `✔ Deployed` on both deploy passes
+  - production install reported the site was already at the latest version after upgrade
+- Final postdeploy production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.90`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"`
+  - runtime body loaded beyond the initial shell and showed the live app navigation on the checked child page
+  - artifact set:
+    - [`release-version-check-2026-03-09T14-28-12-783Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.json)
+    - [`release-version-check-2026-03-09T14-28-12-783Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.md)
+    - [`release-version-check-2026-03-09T14-28-12-783Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T14-28-12-783Z.png)
 
 ### Operational Note
 
