@@ -20,11 +20,54 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.69 (root app)
+**Version:** 0.6.70 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.47
-**Runtime Bundle Version:** 1.2.81
+**Forge Native Package:** 0.3.48
+**Runtime Bundle Version:** 1.2.82
+
+## Session Update - v0.6.70 Event Management Overview Re-layout Released To Production (Mar 9, 2026 00:43 GMT)
+
+### Completed
+
+- Released the Event Management Overview layout refactor to production without changing the existing global or macro cache-buster markers.
+- Bumped production version markers to:
+  - root app `0.6.70`
+  - forge-native `0.3.48`
+  - runtime bundle `1.2.82`
+- Production runtime admin panel now includes:
+  - page-level tabs directly beneath the Event Management header
+  - a compact Overview metrics strip inside the active tab instead of oversized stat cards above navigation
+  - an `Operator Checklist` primary surface with inline CTAs for Messaging, Analytics, and User Controls
+  - side-by-side monitoring cards for Voting Statistics and Judge Scoring Progress on desktop
+  - a minimal export utility row instead of a full-card export section
+  - an active-only slim Config Mode strip that collapses entirely when config mode is off
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Hosted production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` passed on `Shona's IT Hack` (`pageId=24510466`):
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.82`
+  - tab navigation rendered above the Overview metrics strip
+  - Operator Checklist rendered with all three inline CTAs
+  - Voting Statistics and Judge Scoring Progress rendered side by side at desktop width
+  - Config Mode strip was absent while config mode was off
+  - artifact bundle:
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.json)
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.md)
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.png)
+
+### Learned
+
+- The Event Management admin surface is practical to validate with the same stored-auth, frame-aware Playwright approach used for branding checks; direct DOM position assertions are sufficient to verify the hierarchy change without adding a dedicated repo script first.
+- Runtime releases must still bump both `forge-native/static/runtime-frontend/package.json` and `forge-native/static/runtime-frontend/src/data/constants.js` so hosted console evidence matches the deployed bundle.
 
 ## Session Update - v0.6.69 Runtime Hero Split Branding Released To Production (Mar 9, 2026 00:09 GMT)
 

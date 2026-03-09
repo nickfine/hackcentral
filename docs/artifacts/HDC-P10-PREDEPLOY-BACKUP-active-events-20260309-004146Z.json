@@ -1,0 +1,46 @@
+{
+  "generatedAtUtc": "2026-03-09T00:41:46.479Z",
+  "source": "predeploy",
+  "dryRun": false,
+  "requestedEventIds": [],
+  "requestedCount": 0,
+  "candidateCount": 3,
+  "processedCount": 3,
+  "createdCount": 3,
+  "plannedCount": 0,
+  "failedCount": 0,
+  "skippedCount": 0,
+  "durationMs": 15093,
+  "results": [
+    {
+      "eventId": "7047d6d2-16a7-4d08-aea2-fb9ac26f8125",
+      "eventName": "HackDay 2026",
+      "lifecycleStatus": "registration",
+      "runtimeType": "hackday_template",
+      "status": "created",
+      "snapshotId": "719f2109-b323-449b-b9c6-92a715676769",
+      "createdAt": "2026-03-09T00:41:37.953+00:00",
+      "warningCount": 0
+    },
+    {
+      "eventId": "10886f79-53ad-4baa-b2f2-9ab0c547adb7",
+      "eventName": "Nick's Hack Attack",
+      "lifecycleStatus": "draft",
+      "runtimeType": "hackday_template",
+      "status": "created",
+      "snapshotId": "4094437d-7b33-4f6d-99ee-1c85b2eb6357",
+      "createdAt": "2026-03-09T00:41:41.357+00:00",
+      "warningCount": 0
+    },
+    {
+      "eventId": "d3f7bb14-7d8f-4e92-8740-23b02994b4d4",
+      "eventName": "Shona's IT Hack",
+      "lifecycleStatus": "registration",
+      "runtimeType": "hackday_template",
+      "status": "created",
+      "snapshotId": "5839328e-d87d-4217-a843-096e8945c741",
+      "createdAt": "2026-03-09T00:41:45.515+00:00",
+      "warningCount": 0
+    }
+  ]
+}

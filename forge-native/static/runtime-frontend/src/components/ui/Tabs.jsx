@@ -174,6 +174,7 @@ function TabsPanel({ value, className, children, ...props }) {
     <div
       role="tabpanel"
       tabIndex={0}
+      // Compressed panel spacing keeps admin tab content closer to the navigation.
       className={cn('pt-4 animate-fade-in', className)}
       {...props}
     >

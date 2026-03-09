@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 00:09 GMT
+Last updated: 2026-03-09 00:43 GMT
 
 ## Current Snapshot
 
@@ -9,13 +9,22 @@ Last updated: 2026-03-09 00:09 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.69`
-  - Forge native package version: `0.3.47`
+  - Root app version: `0.6.70`
+  - Forge native package version: `0.3.48`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.81`
+  - Runtime bundle version: `1.2.82`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
+- Event Management admin overview re-layout is now live in production:
+  - tabs render immediately below the Event Management header
+  - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
+  - `Operator Checklist` now carries inline CTAs for Messaging, Analytics, and User Controls
+  - Voting Statistics and Judge Scoring Progress now sit side by side on desktop
+  - Export Results now renders as a compact utility row
+  - active-only Config Mode strip collapses entirely when config mode is off
+  - latest production hosted validation artifact:
+    - `docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.json`
 - Runtime hero branding split is now live in production:
   - separate `Hero banner image` and `Hero icon image` controls are implemented in runtime branding
   - banner uploads map to `branding.bannerImageUrl`
@@ -119,6 +128,38 @@ Last updated: 2026-03-09 00:09 GMT
     - Showcase list load + filters (query/type/status/tags/source event/featured-only)
     - hack detail panel
     - admin featured toggle controls
+
+## Session Update - v0.6.70 Event Management Overview Re-layout Released (Mar 9, 2026 00:43 GMT)
+
+- Released the Event Management Overview layout refactor to production.
+- Version markers now live in production:
+  - root app `0.6.70`
+  - forge-native `0.3.48`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.82`
+- Production admin runtime now includes:
+  - tab navigation directly under the Event Management header
+  - compact Overview metrics strip inside the active tab
+  - `Operator Checklist` with inline Messaging, Analytics, and User Controls CTAs
+  - side-by-side Voting Statistics and Judge Scoring Progress cards on desktop
+  - compact export utility row and an active-only Config Mode strip
+- Production deploy/install executed exactly per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy backup snapshots:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-004146Z.md)
+  - Forge CLI result: `forge deploy --environment production --no-verify` -> `✔ Deployed`
+  - Forge install result: production site already at latest version after upgrade
+- Hosted production validation passed on [Shona's IT Hack](https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466) with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`:
+  - runtime app-shell logged `[HackCentral Runtime v2] Module loaded - 1.2.82`
+  - tabs rendered above the Overview metrics strip
+  - Operator Checklist showed all three inline CTAs
+  - Voting Statistics and Judge Scoring Progress rendered side by side at desktop width
+  - Config Mode strip was absent while config mode was off
+  - artifacts:
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.json)
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.md)
+    - [`runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.png)
 
 ## Session Update - v0.6.69 Runtime Hero Split Branding Released (Mar 9, 2026 00:09 GMT)
 

@@ -8,7 +8,6 @@ import {
   Shield,
   Settings,
   Users,
-  Trophy,
   Clock,
   BarChart3,
   Activity,
@@ -971,6 +970,40 @@ function AdminPanel({
   }, [configMode, configModeActive]);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
+  const overviewMetrics = [
+    { label: 'Participants', value: stats.totalParticipants },
+    { label: 'Teams', value: stats.totalTeams },
+    { label: 'Submissions', value: stats.submittedProjects },
+    { label: 'Judges', value: stats.judges },
+  ];
+  const operatorChecklistItems = [
+    {
+      id: '01',
+      title: 'Publish a clear priority message',
+      description: 'Use the participant bulletin to reduce confusion during active phases.',
+      ctaLabel: 'Open Messaging',
+      ctaVariant: 'primary',
+      onClick: () => setActiveSection('messaging'),
+    },
+    {
+      id: '02',
+      title: 'Review funnel and participation signals',
+      description: 'Check analytics to spot engagement drop-off before it slows the event.',
+      ctaLabel: 'Open Analytics',
+      ctaVariant: 'secondary',
+      onClick: () => setActiveSection('analytics'),
+    },
+    {
+      id: '03',
+      title: 'Watch free-agent and submission risk',
+      description: 'Prioritize interventions where team formation or handoff readiness is weak.',
+      ctaLabel: 'Open User Controls',
+      ctaVariant: 'secondary',
+      onClick: () => setActiveSection('users'),
+    },
+  ];
+  const hasVotingActivity = stats.totalVotes > 0;
+  const hasJudgeScoringActivity = stats.totalJudgeScores > 0;
 
   return (
     <div className="admin-panel p-4 sm:p-6">
@@ -990,18 +1023,15 @@ function AdminPanel({
         </div>
       </div>
 
-      {configMode.canEdit && (
-        <Card padding="md" className={cn(ADMIN_CARD_CLASS, 'mb-6 border-teal-500/20')}>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className={ADMIN_SECTION_LABEL}>Config Mode (Phase 1 Pilot)</p>
-              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 max-w-3xl">
-                Inline-edit participant-facing copy on Dashboard and Rules, then save as draft and publish when ready.
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant={configModeActive ? 'success' : 'default'}>
-                  {configModeActive ? 'Config Mode On' : 'Config Mode Off'}
-                </Badge>
+      {configModeActive && (
+        <div className="mb-6 rounded-xl border border-teal-500/20 bg-white dark:bg-gray-800 px-4 py-3 shadow-sm dark:shadow-none">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Config Mode is live for participant-facing copy.
+                </p>
+                <Badge variant="success">Config Mode On</Badge>
                 {configMode.hasUnsavedChanges && (
                   <Badge variant="warning">Unsaved changes</Badge>
                 )}
@@ -1012,69 +1042,28 @@ function AdminPanel({
                   <Badge variant="error">Draft conflict</Badge>
                 )}
               </div>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Edit on-page content, then save or publish from the drawer while using Dashboard and Rules as preview surfaces.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={configModeActive ? 'secondary' : 'primary'}
-                onClick={configModeActive ? configMode.exitConfigMode : configMode.enterConfigMode}
+                variant="secondary"
+                onClick={configMode.exitConfigMode}
                 loading={configMode.isLoading}
               >
-                {configModeActive ? 'Exit Config Mode' : 'Enter Config Mode'}
+                Exit Config Mode
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!configModeActive) configMode.enterConfigMode();
-                  onNavigate('dashboard');
-                }}
-              >
+              <Button variant="secondary" onClick={() => onNavigate('dashboard')}>
                 Open Dashboard
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!configModeActive) configMode.enterConfigMode();
-                  onNavigate('rules');
-                }}
-              >
+              <Button variant="secondary" onClick={() => onNavigate('rules')}>
                 Open Rules
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
       )}
-
-      {/* Stats Overview — 24px gap per doc */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
-        <Card padding="md" className={ADMIN_CARD_CLASS}>
-          <div className="text-center">
-            <Users className="w-9 h-9 text-gray-500 dark:text-gray-400 mx-auto mb-3" />
-            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalParticipants}</p>
-            <p className={ADMIN_METRIC_LABEL}>Participants</p>
-          </div>
-        </Card>
-        <Card padding="md" className={ADMIN_CARD_CLASS}>
-          <div className="text-center">
-            <Trophy className="w-9 h-9 text-gray-500 dark:text-gray-400 mx-auto mb-3" />
-            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalTeams}</p>
-            <p className={ADMIN_METRIC_LABEL}>Teams</p>
-          </div>
-        </Card>
-        <Card padding="md" className={ADMIN_CARD_CLASS}>
-          <div className="text-center">
-            <BarChart3 className="w-9 h-9 text-gray-500 dark:text-gray-400 mx-auto mb-3" />
-            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.submittedProjects}</p>
-            <p className={ADMIN_METRIC_LABEL}>Submissions</p>
-          </div>
-        </Card>
-        <Card padding="md" className={ADMIN_CARD_CLASS}>
-          <div className="text-center">
-            <Gavel className="w-9 h-9 text-gray-500 dark:text-gray-400 mx-auto mb-3" />
-            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.judges}</p>
-            <p className={ADMIN_METRIC_LABEL}>Judges</p>
-          </div>
-        </Card>
-      </div>
 
       {/* Section Tabs */}
       <Tabs value={activeSection} onChange={setActiveSection} className="mb-6">
@@ -1203,9 +1192,21 @@ function AdminPanel({
 
         {/* Overview Panel */}
         <Tabs.Panel value="overview">
-          <VStack gap="4">
-            <Card padding="md" className={ADMIN_CARD_CLASS}>
-              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event Overview</Card.Title>
+          <VStack gap="6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+              {overviewMetrics.map((metric) => (
+                <div
+                  key={metric.label}
+                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-3 dark:bg-gray-800/50"
+                >
+                  <span className={ADMIN_METRIC_LABEL}>{metric.label}</span>
+                  <span className={ADMIN_METRIC_NUMBER}>{metric.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <Card padding="sm" className={ADMIN_CARD_CLASS}>
+              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event Status</Card.Title>
               <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
                 Monitor current phase status and overall submission progress.
               </p>
@@ -1240,193 +1241,180 @@ function AdminPanel({
             </Card>
 
             <Card padding="md" className={ADMIN_CARD_CLASS} data-testid="admin-operator-actions-card">
-              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Operator Actions</Card.Title>
+              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Operator Checklist</Card.Title>
               <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
                 Keep participant momentum high by publishing clear guidance and checking risk signals.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                <div className={ADMIN_INNER_BLOCK}>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">1. Publish a clear priority message</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    Use the participant bulletin to reduce confusion during active phases.
-                  </p>
-                </div>
-                <div className={ADMIN_INNER_BLOCK}>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">2. Watch free-agent and submission risk</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    Prioritize interventions where team formation or handoff readiness is weak.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button size="sm" className={ADMIN_PRIMARY_BUTTON} onClick={() => setActiveSection('messaging')}>
-                  Open Messaging
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setActiveSection('analytics')}>
-                  Open Analytics
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setActiveSection('users')}>
-                  Open User Controls
-                </Button>
-              </div>
-            </Card>
-
-            {/* Voting Statistics */}
-            <Card padding="md" className={ADMIN_CARD_CLASS}>
-              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                <HStack gap="2" align="center">
-                  <Vote className="w-5 h-5 text-teal-500" />
-                  <span>Voting Statistics</span>
-                </HStack>
-              </Card.Title>
-              <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-                Track participation volume and which projects are leading.
-              </p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalVotes}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Votes</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.teamsWithVotes}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Projects Voted</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.avgVotes}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Avg per Project</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-teal-500">{stats.maxVotes}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Top Votes</p>
-                </div>
-              </div>
-
-              {/* Top Voted Projects */}
-              {stats.topVotedProjects.length > 0 && (
-                <div>
-                  <p className="text-base font-bold text-gray-500 dark:text-gray-400 mb-3">Top Voted Projects</p>
-                  <VStack gap="2">
-                    {stats.topVotedProjects.map((team, index) => (
-                      <div
-                        key={team.id}
-                        className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
-                      >
-                        <div className={cn(
-                          'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
-                          index === 0 ? 'bg-teal-500/20 text-teal-500' :
-                          index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
-                          index === 2 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
-                          'bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400'
-                        )}>
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 dark:text-white truncate">
-                            {team.submission?.projectName || team.name}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{team.name}</p>
-                        </div>
-                        <div className="flex items-center gap-1 px-3 py-1 bg-teal-500/10 rounded-lg">
-                          <Star className="w-4 h-4 text-teal-500" />
-                          <span className="font-bold text-teal-500">{team.submission?.participantVotes || 0}</span>
-                        </div>
+              <VStack gap="3">
+                {operatorChecklistItems.map((item) => (
+                  <div key={item.id} className={cn(ADMIN_INNER_BLOCK, 'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between')}>
+                    <div className="flex min-w-0 flex-1 gap-3">
+                      <span className="text-sm font-semibold text-teal-500">{item.id}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">{item.title}</p>
+                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{item.description}</p>
                       </div>
-                    ))}
-                  </VStack>
-                </div>
-              )}
-
-              {stats.topVotedProjects.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Vote className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                  <p className="text-base font-semibold">No votes cast yet</p>
-                  <p className="text-sm">Voting statistics will appear here during the voting phase</p>
-                </div>
-              )}
+                    </div>
+                    <div className="w-full sm:w-auto sm:shrink-0" style={{ minWidth: '120px' }}>
+                      <Button
+                        size="sm"
+                        variant={item.ctaVariant}
+                        className={cn(item.ctaVariant === 'primary' && ADMIN_PRIMARY_BUTTON)}
+                        fullWidth
+                        onClick={item.onClick}
+                      >
+                        {item.ctaLabel}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </VStack>
             </Card>
 
-            {/* Judge Scoring Progress */}
-            <Card padding="md" className={ADMIN_CARD_CLASS}>
-              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                <HStack gap="2" align="center">
-                  <Gavel className="w-5 h-5 text-teal-500" />
-                  <span>Judge Scoring Progress</span>
-                </HStack>
-              </Card.Title>
-              <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-                See how many projects have received judge scores so far.
-              </p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.judges}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Active Judges</p>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <Card padding="sm" className={ADMIN_CARD_CLASS}>
+                <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <HStack gap="2" align="center">
+                    <Vote className="w-5 h-5 text-teal-500" />
+                    <span>Voting Statistics</span>
+                  </HStack>
+                </Card.Title>
+                <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-4">
+                  Track participation volume and which projects are leading.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.totalVotes}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Votes</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.teamsWithVotes}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Projects Voted</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.avgVotes}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Avg per Project</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-teal-500">{stats.maxVotes}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Top Votes</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.scoredProjects}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Projects Scored</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.totalJudgeScores}</p>
-                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Scores</p>
-                </div>
-              </div>
-              
-              {stats.submittedProjects > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-2">
-                    Scoring progress: {stats.scoredProjects} of {stats.submittedProjects} projects
+
+                {hasVotingActivity && stats.topVotedProjects.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Top Voted Projects</p>
+                    <VStack gap="2">
+                      {stats.topVotedProjects.map((team, index) => (
+                        <div
+                          key={team.id}
+                          className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-3 dark:bg-gray-800/50"
+                        >
+                          <div className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
+                            index === 0 ? 'bg-teal-500/20 text-teal-500' :
+                            index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
+                            index === 2 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
+                            'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                          )}>
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold text-gray-900 dark:text-white">
+                              {team.submission?.projectName || team.name}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{team.name}</p>
+                          </div>
+                          <div className="flex items-center gap-1 rounded-lg bg-teal-500/10 px-3 py-1">
+                            <Star className="w-4 h-4 text-teal-500" />
+                            <span className="font-bold text-teal-500">{team.submission?.participantVotes || 0}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </VStack>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Voting activity will appear here once participants start casting votes.
                   </p>
-                  <Progress 
-                    variant="teal"
-                    value={(stats.scoredProjects / Math.max(stats.submittedProjects, 1)) * 100} 
-                    showLabel 
-                  />
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
 
-            {/* Export Results */}
-            <Card padding="md" className={ADMIN_CARD_CLASS}>
-              <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                <HStack gap="2" align="center">
-                  <Download className="w-5 h-5 text-teal-500" />
-                  <span>Export Results</span>
-                </HStack>
-              </Card.Title>
-              <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-                Download complete results data including team rankings, votes, judge scores, and project details.
-              </p>
+              <Card padding="sm" className={ADMIN_CARD_CLASS}>
+                <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <HStack gap="2" align="center">
+                    <Gavel className="w-5 h-5 text-teal-500" />
+                    <span>Judge Scoring Progress</span>
+                  </HStack>
+                </Card.Title>
+                <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-4">
+                  See how many projects have received judge scores so far.
+                </p>
 
-              {stats.submittedProjects > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    size="sm"
-                    className={ADMIN_PRIMARY_BUTTON}
-                    onClick={() => handleExportResults('csv')}
-                    leftIcon={<Download className="w-4 h-4" />}
-                  >
-                    Export as CSV
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleExportResults('json')}
-                    leftIcon={<Download className="w-4 h-4" />}
-                  >
-                    Export as JSON
-                  </Button>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.judges}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Active Judges</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.scoredProjects}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Projects Scored</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-3 text-center dark:bg-gray-800/50">
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.totalJudgeScores}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Scores</p>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                  <Trophy className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No submitted projects to export yet</p>
-                </div>
-              )}
-            </Card>
+
+                {hasJudgeScoringActivity ? (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      Scoring progress: {stats.scoredProjects} of {stats.submittedProjects} projects
+                    </p>
+                    <Progress
+                      variant="teal"
+                      value={(stats.scoredProjects / Math.max(stats.submittedProjects, 1)) * 100}
+                      showLabel
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Judge scoring will appear here once scorecards are submitted.
+                  </p>
+                )}
+              </Card>
+            </div>
+
+            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:shadow-none md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">Export Results</p>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                  Download complete results data including team rankings, votes, judge scores, and project details.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  size="sm"
+                  className={ADMIN_PRIMARY_BUTTON}
+                  onClick={() => handleExportResults('csv')}
+                  leftIcon={<Download className="w-4 h-4" />}
+                  disabled={stats.submittedProjects === 0}
+                >
+                  Export as CSV
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleExportResults('json')}
+                  leftIcon={<Download className="w-4 h-4" />}
+                  disabled={stats.submittedProjects === 0}
+                >
+                  Export as JSON
+                </Button>
+              </div>
+            </div>
           </VStack>
         </Tabs.Panel>
 

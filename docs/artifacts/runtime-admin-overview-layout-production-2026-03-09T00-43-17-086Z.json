@@ -1,0 +1,36 @@
+{
+  "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466",
+  "storageState": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "validatedAt": "2026-03-09T00:43:17.087Z",
+  "screenshotPath": "/Users/nickster/Downloads/HackCentral/docs/artifacts/runtime-admin-overview-layout-production-2026-03-09T00-43-17-086Z.png",
+  "runtimeLog": "[HackCentral Runtime v2] Module loaded - 1.2.82",
+  "positions": {
+    "tabsTop": 489.796875,
+    "metricsTop": 559.796875,
+    "checklistTop": 885.796875,
+    "votingTop": 1338.796875,
+    "judgeTop": 1338.796875,
+    "exportTop": 1664.796875,
+    "votingLeft": 349,
+    "judgeLeft": 977
+  },
+  "assertions": {
+    "tabsAboveMetrics": true,
+    "checklistPresent": true,
+    "monitoringSideBySideDesktop": true,
+    "exportBelowMonitoring": true,
+    "configStripHiddenWhenOff": true,
+    "runtimeVersionLogged": true
+  },
+  "operatorChecklistActions": [
+    "Open Messaging",
+    "Open Analytics",
+    "Open User Controls"
+  ],
+  "overviewMetrics": [
+    "Participants",
+    "Hack Ideas & Teams",
+    "Submissions",
+    "Judges"
+  ]
+}
