@@ -20,11 +20,54 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.79 (root app)
+**Version:** 0.6.80 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.57
-**Runtime Bundle Version:** 1.2.91
+**Forge Native Package:** 0.3.58
+**Runtime Bundle Version:** 1.2.92
+
+## Session Update - v0.6.80 Analytics Consistency Correction Released To Production (Mar 9, 2026 15:32 GMT)
+
+### Completed
+
+- Released a narrow runtime/admin analytics consistency correction for `Admin Panel -> Analytics`.
+- Updated the `Signup Funnel` support row so it now shows `Welcome Views` from `welcomeImpressions`, matching the runtime denominator used by `registerClickRate`.
+- Removed the `eventMeta.startAt` fallback from the `Signup Completed` concern rule.
+- Zero completed signups now turn concern/red only when:
+  - the real admin phase is `Registration`
+  - `registrationOpensAt` exists and parses successfully
+  - more than 48 hours have elapsed since `registrationOpensAt`
+- Missing or invalid `registrationOpensAt` now leaves the `Signup Completed` KPI neutral instead of inferring elapsed time from a non-equivalent event start timestamp.
+- Bumped production version markers to:
+  - root app `0.6.80`
+  - forge-native `0.3.58`
+  - runtime bundle `1.2.92`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-152154Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-152154Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-152154Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-152154Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Final postdeploy production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.92`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"`
+  - runtime body loaded beyond the initial Confluence shell and showed the live app navigation on the checked child page
+  - artifact set:
+    - [`release-version-check-2026-03-09T15-32-31-390Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-32-31-390Z.json)
+    - [`release-version-check-2026-03-09T15-32-31-390Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-32-31-390Z.md)
+    - [`release-version-check-2026-03-09T15-32-31-390Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T15-32-31-390Z.png)
+
+### Operational Note
+
+- A first postdeploy probe at `2026-03-09T15:30:26.199Z` captured the Confluence host shell instead of the live runtime iframe. Use the later `2026-03-09T15-32-31.390Z` artifact trio above as the authoritative release evidence for `v0.6.80`.
 
 ## Session Update - v0.6.79 Analytics Narrative Hierarchy + Signal Remediation Released To Production (Mar 9, 2026 15:00 GMT)
 

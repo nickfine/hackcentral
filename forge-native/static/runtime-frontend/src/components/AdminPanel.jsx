@@ -698,8 +698,7 @@ function AdminPanel({
     ...last7Days.map((day) => day.heroImpressions || 0)
   );
   const analyticsPhaseContext = getAnalyticsPhaseContext(eventPhase);
-  const registrationOpenedAt = parseFlexibleDate(eventSchedule.registrationOpensAt)
-    || parseFlexibleDate(eventMeta?.startAt);
+  const registrationOpenedAt = parseFlexibleDate(eventSchedule.registrationOpensAt);
   const isRegistrationPastFortyEightHours = eventPhase === 'signup'
     && registrationOpenedAt instanceof Date
     && (Date.now() - registrationOpenedAt.getTime()) >= (48 * 60 * 60 * 1000);
@@ -1851,8 +1850,8 @@ function AdminPanel({
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.heroImpressions || 0}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Hero Views</p>
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.welcomeImpressions || 0}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em]">Welcome Views</p>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-center">
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{telemetrySummary.registerClicks || 0}</p>
