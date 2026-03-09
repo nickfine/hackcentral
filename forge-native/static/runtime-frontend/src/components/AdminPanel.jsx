@@ -154,6 +154,31 @@ function syncAccentToPreset(nextPreset) {
   return getThemePresetAccent(normalizeThemePreset(nextPreset), 'light');
 }
 
+function normalizeThemePreference(value, fallback = 'system') {
+  return ['light', 'dark', 'system'].includes(value) ? value : fallback;
+}
+
+function buildNormalizedBrandingState(branding = {}) {
+  const themePreset = normalizeThemePreset(branding?.themePreset ?? DEFAULT_THEME_PRESET);
+  return {
+    accentColor: normalizeAccentColor(branding?.accentColor, getThemePresetAccent(themePreset, 'light')),
+    bannerImageUrl: typeof branding?.bannerImageUrl === 'string' ? branding.bannerImageUrl.trim() : '',
+    heroIconImageUrl: typeof branding?.heroIconImageUrl === 'string' ? branding.heroIconImageUrl.trim() : '',
+    themePreference: normalizeThemePreference(branding?.themePreference, 'system'),
+    themePreset,
+  };
+}
+
+function brandingStatesEqual(a, b) {
+  return (
+    a?.accentColor === b?.accentColor &&
+    a?.bannerImageUrl === b?.bannerImageUrl &&
+    a?.heroIconImageUrl === b?.heroIconImageUrl &&
+    a?.themePreference === b?.themePreference &&
+    a?.themePreset === b?.themePreset
+  );
+}
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -169,9 +194,12 @@ function AdminPanel({
   onEventSettingsUpdate,
   onIdeaSummaryChange,
   onRefreshUsers,
-  eventBranding = {},
+  savedBrandingBaseline = {},
   isEventAdmin = false,
   onRefreshEventPhase,
+  onBrandingPreviewChange,
+  onBrandingPreviewClear,
+  onBrandingSaved,
   appModeResolverPayload = null,
 }) {
   const configMode = useConfigMode();
@@ -219,11 +247,20 @@ function AdminPanel({
     themePreference: 'system',
     themePreset: DEFAULT_THEME_PRESET,
   });
+  const [brandingSavedBaseline, setBrandingSavedBaseline] = useState(() =>
+    buildNormalizedBrandingState(savedBrandingBaseline)
+  );
   const [brandingSaveStatus, setBrandingSaveStatus] = useState(null);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isUploadingBrandingImage, setIsUploadingBrandingImage] = useState(false);
   const [showBannerImageAdvancedField, setShowBannerImageAdvancedField] = useState(false);
   const [showHeroIconAdvancedField, setShowHeroIconAdvancedField] = useState(false);
+  const [brandingPreviewSystemColorMode, setBrandingPreviewSystemColorMode] = useState(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'light';
+  });
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleteUserConfirmText, setDeleteUserConfirmText] = useState('');
@@ -399,35 +436,22 @@ function AdminPanel({
     };
   }, [isAdmin, forgeHost]);
 
-  const hasBrandingDraftPreview = Boolean(
-    configMode.canEdit && (configModeActive || configMode.hasDraft || configMode.hasUnsavedChanges)
+  const normalizedSavedBrandingBaseline = useMemo(
+    () => buildNormalizedBrandingState(savedBrandingBaseline),
+    [savedBrandingBaseline]
   );
 
-  // Sync branding form from published or draft branding when opening Branding tab or when branding state updates
   useEffect(() => {
-    if (activeSection === 'branding' || Object.keys(eventBranding || {}).length > 0 || hasBrandingDraftPreview) {
-      const b = hasBrandingDraftPreview
-        ? {
-            accentColor: configMode.getFieldValue('branding.accentColor', eventBranding?.accentColor || ''),
-            bannerImageUrl: configMode.getFieldValue('branding.bannerImageUrl', eventBranding?.bannerImageUrl || ''),
-            heroIconImageUrl: configMode.getFieldValue('branding.heroIconImageUrl', eventBranding?.heroIconImageUrl || ''),
-            themePreference: configMode.getFieldValue('branding.themePreference', eventBranding?.themePreference || 'system') || 'system',
-            themePreset: configMode.getFieldValue('branding.themePreset', eventBranding?.themePreset || DEFAULT_THEME_PRESET) || DEFAULT_THEME_PRESET,
-          }
-        : (eventBranding || {});
-      const nextThemePreset = normalizeThemePreset(b.themePreset ?? DEFAULT_THEME_PRESET);
-      setBrandingForm((prev) => ({
-        accentColor: normalizeAccentColor(
-          b.accentColor,
-          prev.accentColor || getThemePresetAccent(nextThemePreset, 'light')
-        ),
-        bannerImageUrl: b.bannerImageUrl ?? prev.bannerImageUrl ?? '',
-        heroIconImageUrl: b.heroIconImageUrl ?? prev.heroIconImageUrl ?? '',
-        themePreference: ['light', 'dark', 'system'].includes(b.themePreference) ? b.themePreference : (prev.themePreference || 'system'),
-        themePreset: nextThemePreset,
-      }));
+    setBrandingSavedBaseline((prev) => (
+      brandingStatesEqual(prev, normalizedSavedBrandingBaseline) ? prev : normalizedSavedBrandingBaseline
+    ));
+
+    if (activeSection === 'branding' || Object.keys(savedBrandingBaseline || {}).length > 0) {
+      setBrandingForm((prev) => (
+        brandingStatesEqual(prev, normalizedSavedBrandingBaseline) ? prev : normalizedSavedBrandingBaseline
+      ));
     }
-  }, [activeSection, eventBranding, hasBrandingDraftPreview, configMode.getFieldValue]);
+  }, [activeSection, normalizedSavedBrandingBaseline, savedBrandingBaseline]);
 
   const brandingPreviewBannerImage = useMemo(() => {
     const value = typeof brandingForm.bannerImageUrl === 'string' ? brandingForm.bannerImageUrl.trim() : '';
@@ -443,6 +467,22 @@ function AdminPanel({
     () => normalizeThemePreset(brandingForm.themePreset),
     [brandingForm.themePreset]
   );
+  const brandingPreviewColorMode =
+    brandingForm.themePreference === 'light' || brandingForm.themePreference === 'dark'
+      ? brandingForm.themePreference
+      : brandingPreviewSystemColorMode;
+
+  useEffect(() => {
+    if (brandingForm.themePreference !== 'system') return undefined;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const syncColorMode = () => setBrandingPreviewSystemColorMode(mediaQuery.matches ? 'dark' : 'light');
+
+    syncColorMode();
+    mediaQuery.addEventListener('change', syncColorMode);
+    return () => mediaQuery.removeEventListener('change', syncColorMode);
+  }, [brandingForm.themePreference]);
 
   const brandingPreviewAccent = useMemo(
     () => normalizeAccentColor(brandingForm.accentColor, getThemePresetAccent(brandingPreviewThemePreset, 'light')),
@@ -459,6 +499,44 @@ function AdminPanel({
       '--accent-on': accentOverride.accentOn,
     };
   }, [brandingForm.accentColor, brandingPreviewThemePreset]);
+
+  const normalizedBrandingForm = useMemo(
+    () => ({
+      accentColor: brandingPreviewAccent,
+      bannerImageUrl: brandingPreviewBannerImage,
+      heroIconImageUrl: brandingPreviewHeroIconImage,
+      themePreference: normalizeThemePreference(brandingForm.themePreference, 'system'),
+      themePreset: brandingPreviewThemePreset,
+    }),
+    [
+      brandingForm.themePreference,
+      brandingPreviewAccent,
+      brandingPreviewBannerImage,
+      brandingPreviewHeroIconImage,
+      brandingPreviewThemePreset,
+    ]
+  );
+
+  const brandingHasUnsavedChanges = useMemo(
+    () => !brandingStatesEqual(normalizedBrandingForm, brandingSavedBaseline),
+    [normalizedBrandingForm, brandingSavedBaseline]
+  );
+
+  const brandingSaveStateLabel = brandingHasUnsavedChanges ? 'UNSAVED' : 'SAVED';
+
+  useEffect(() => {
+    if (activeSection !== 'branding') return;
+    onBrandingPreviewChange?.(normalizedBrandingForm);
+  }, [activeSection, normalizedBrandingForm, onBrandingPreviewChange]);
+
+  useEffect(() => {
+    if (activeSection === 'branding') return;
+    onBrandingPreviewClear?.();
+  }, [activeSection, onBrandingPreviewClear]);
+
+  useEffect(() => () => {
+    onBrandingPreviewClear?.();
+  }, [onBrandingPreviewClear]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -956,16 +1034,25 @@ function AdminPanel({
       const accentColor = normalizeAccentColor(brandingForm.accentColor, getThemePresetAccent(themePreset, 'light'));
       const bannerImageUrl = brandingForm.bannerImageUrl.trim();
       const heroIconImageUrl = brandingForm.heroIconImageUrl.trim();
+      const nextBranding = {
+        accentColor,
+        bannerImageUrl,
+        heroIconImageUrl,
+        themePreference: normalizeThemePreference(brandingForm.themePreference, 'system'),
+        themePreset,
+      };
       if (configModeActive) {
         configMode.setFieldValue('branding.accentColor', accentColor);
         configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
         configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);
-        configMode.setFieldValue('branding.themePreference', brandingForm.themePreference || 'system');
+        configMode.setFieldValue('branding.themePreference', nextBranding.themePreference);
         configMode.setFieldValue('branding.themePreset', themePreset);
         const result = await configMode.saveDraft();
         if (!result?.success) {
           throw result?.error || new Error('Failed to save branding draft');
         }
+        setBrandingSavedBaseline(nextBranding);
+        onBrandingSaved?.(nextBranding, { persistedTarget: 'draft' });
         setBrandingSaveStatus({ type: 'success', message: 'Branding saved to draft. Publish from the Config drawer to apply to participants.' });
         return;
       }
@@ -976,9 +1063,11 @@ function AdminPanel({
         accentColor,
         bannerImageUrl,
         heroIconImageUrl,
-        themePreference: brandingForm.themePreference || undefined,
+        themePreference: nextBranding.themePreference || undefined,
         themePreset,
       });
+      setBrandingSavedBaseline(nextBranding);
+      onBrandingSaved?.(nextBranding, { persistedTarget: 'published' });
       setBrandingSaveStatus({ type: 'success', message: 'Branding saved. Theme and hero assets will update on next load.' });
       onRefreshEventPhase();
     } catch (err) {
@@ -986,7 +1075,7 @@ function AdminPanel({
     } finally {
       setIsSavingBranding(false);
     }
-  }, [appModeResolverPayload, forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode]);
+  }, [appModeResolverPayload, forgeHost, onRefreshEventPhase, brandingForm, configModeActive, configMode, onBrandingSaved]);
 
   const handleOpenBrandingImagePicker = useCallback((assetKind) => {
     if (!isEventAdmin || isUploadingBrandingImage || isSavingBranding) return;
@@ -1016,26 +1105,66 @@ function AdminPanel({
           invokeEventScopedResolver(invoke, resolverName, appModeResolverPayload, payload),
       });
       const assetField = BRANDING_IMAGE_ASSET_FIELD_BY_KIND[assetKind] || BRANDING_IMAGE_ASSET_FIELD_BY_KIND.banner;
-      if (configModeActive) {
-        configMode.setFieldValue(`branding.${assetField}`, uploaded.publicUrl);
-      }
       setBrandingForm((prev) => ({ ...prev, [assetField]: uploaded.publicUrl }));
-      setBrandingSaveStatus({ type: 'success', message: assetKind === 'icon' ? 'Hero icon uploaded. Save branding to apply it.' : 'Hero banner uploaded. Save branding to apply it.' });
+      setBrandingSaveStatus({
+        type: 'success',
+        message: assetKind === 'icon'
+          ? 'Hero icon updated in preview. Save branding when ready.'
+          : 'Hero banner updated in preview. Save branding when ready.',
+      });
     } catch (error) {
       setBrandingSaveStatus({ type: 'error', message: error?.message || (assetKind === 'icon' ? 'Failed to upload hero icon.' : 'Failed to upload banner image.') });
     } finally {
       setIsUploadingBrandingImage(false);
     }
-  }, [appModeResolverPayload, configMode, configModeActive, forgeHost]);
+  }, [appModeResolverPayload, forgeHost]);
 
   const handleClearBrandingImage = useCallback((assetKind) => {
     setBrandingSaveStatus(null);
     const assetField = BRANDING_IMAGE_ASSET_FIELD_BY_KIND[assetKind] || BRANDING_IMAGE_ASSET_FIELD_BY_KIND.banner;
-    if (configModeActive) {
-      configMode.setFieldValue(`branding.${assetField}`, '');
-    }
     setBrandingForm((prev) => ({ ...prev, [assetField]: '' }));
-  }, [configMode, configModeActive]);
+  }, []);
+
+  const updateBrandingFormField = useCallback((field, value) => {
+    setBrandingSaveStatus(null);
+    setBrandingForm((prev) => {
+      if (prev[field] === value) {
+        return prev;
+      }
+      return { ...prev, [field]: value };
+    });
+  }, []);
+
+  const handleThemePresetChange = useCallback((presetId) => {
+    const nextThemePreset = normalizeThemePreset(presetId);
+    const nextAccentColor = syncAccentToPreset(nextThemePreset);
+
+    setBrandingSaveStatus(null);
+    setBrandingForm((prev) => {
+      if (prev.themePreset === nextThemePreset && prev.accentColor === nextAccentColor) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        themePreset: nextThemePreset,
+        accentColor: nextAccentColor,
+      };
+    });
+
+  }, []);
+
+  const handleThemePreferenceChange = useCallback((value) => {
+    updateBrandingFormField('themePreference', normalizeThemePreference(value, 'system'));
+  }, [updateBrandingFormField]);
+
+  const handleAccentColorChange = useCallback((value) => {
+    updateBrandingFormField('accentColor', value);
+  }, [updateBrandingFormField]);
+
+  const handleBrandingImageUrlChange = useCallback((field, value) => {
+    updateBrandingFormField(field, value);
+  }, [updateBrandingFormField]);
 
   const canRunReset = forgeHost && resetConfirmText === 'RESET' && !isResettingData && !isLoadingSettings;
   const overviewMetrics = [
@@ -1074,7 +1203,7 @@ function AdminPanel({
   const hasJudgeScoringActivity = stats.totalJudgeScores > 0;
 
   return (
-    <div className="admin-panel p-4 sm:p-6">
+    <div className="admin-panel admin-panel-theme-scope p-4 sm:p-6">
       {/* Header — Tier 1 page title per HackDay Design System */}
       <div className="mb-6">
         <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
@@ -1082,10 +1211,10 @@ function AdminPanel({
           <p className={ADMIN_SECTION_LABEL}>
             Admin Panel
           </p>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white mb-2">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[var(--text-primary)] mb-2">
             Event Management
           </h1>
-          <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 max-w-3xl">
+          <p className="text-lg font-semibold text-[var(--text-secondary)] max-w-3xl">
             Manage users, phases, voting progress, and event settings from one command center.
           </p>
         </div>
@@ -1096,7 +1225,7 @@ function AdminPanel({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
                   Config Mode is live for participant-facing copy.
                 </p>
                 <Badge variant="success">Config Mode On</Badge>
@@ -1110,7 +1239,7 @@ function AdminPanel({
                   <Badge variant="error">Draft conflict</Badge>
                 )}
               </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
                 Edit on-page content, then save or publish from the drawer while using Dashboard and Rules as preview surfaces.
               </p>
             </div>
@@ -2227,7 +2356,12 @@ function AdminPanel({
               <VStack gap="5">
                 <div className="branding-field-group">
                   <div className="branding-field-header">
-                    <span className="field-label">Theme preset</span>
+                    <div className="flex items-center gap-2">
+                      <span className="field-label">Theme preset</span>
+                      <Badge variant={brandingHasUnsavedChanges ? 'warning' : 'success'}>
+                        {brandingSaveStateLabel}
+                      </Badge>
+                    </div>
                     <span className="field-hint">Selecting a preset resets the accent to that preset. Accent color below can then be used as a manual override.</span>
                   </div>
                   <div className="branding-theme-preset-grid" role="radiogroup" aria-label="Theme preset">
@@ -2244,13 +2378,7 @@ function AdminPanel({
                             'branding-theme-preset-card',
                             isActive && 'branding-theme-preset-card-active'
                           )}
-                          onClick={() =>
-                            setBrandingForm((prev) => ({
-                              ...prev,
-                              themePreset: presetId,
-                              accentColor: syncAccentToPreset(presetId),
-                            }))
-                          }
+                          onClick={() => handleThemePresetChange(presetId)}
                           disabled={isSavingBranding}
                         >
                           <span
@@ -2279,14 +2407,14 @@ function AdminPanel({
                       type="color"
                       className="branding-color-swatch"
                       value={brandingPreviewAccent}
-                      onChange={(event) => setBrandingForm((prev) => ({ ...prev, accentColor: event.target.value }))}
+                      onChange={(event) => handleAccentColorChange(event.target.value)}
                       disabled={isSavingBranding}
                     />
                     <input
                       type="text"
                       className="field-input branding-color-hex"
                       value={brandingForm.accentColor}
-                      onChange={(event) => setBrandingForm((prev) => ({ ...prev, accentColor: event.target.value }))}
+                      onChange={(event) => handleAccentColorChange(event.target.value)}
                       placeholder="#0f766e"
                       disabled={isSavingBranding}
                     />
@@ -2302,7 +2430,7 @@ function AdminPanel({
                           brandingPreviewAccent.toLowerCase() === hex.toLowerCase() && 'branding-preset-button-active'
                         )}
                         style={{ background: hex }}
-                        onClick={() => setBrandingForm((prev) => ({ ...prev, accentColor: hex }))}
+                        onClick={() => handleAccentColorChange(hex)}
                         disabled={isSavingBranding}
                         aria-label={`Use accent ${hex}`}
                       />
@@ -2373,7 +2501,7 @@ function AdminPanel({
                         label="Manual banner image URL"
                         type="url"
                         value={brandingForm.bannerImageUrl}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, bannerImageUrl: e.target.value }))}
+                        onChange={(e) => handleBrandingImageUrlChange('bannerImageUrl', e.target.value)}
                         placeholder="https://..."
                         helperText="Advanced override if you need to point at an externally hosted banner image."
                         disabled={isSavingBranding}
@@ -2443,7 +2571,7 @@ function AdminPanel({
                         label="Manual hero icon URL"
                         type="url"
                         value={brandingForm.heroIconImageUrl}
-                        onChange={(e) => setBrandingForm((prev) => ({ ...prev, heroIconImageUrl: e.target.value }))}
+                        onChange={(e) => handleBrandingImageUrlChange('heroIconImageUrl', e.target.value)}
                         placeholder="https://..."
                         helperText="Advanced override if you need to point at an externally hosted icon image."
                         disabled={isSavingBranding}
@@ -2455,7 +2583,7 @@ function AdminPanel({
                 <Select
                   label="Theme"
                   value={brandingForm.themePreference}
-                  onChange={(value) => setBrandingForm((prev) => ({ ...prev, themePreference: value }))}
+                  onChange={(value) => handleThemePreferenceChange(value)}
                   options={[
                     { value: 'system', label: 'System (follow device)' },
                     { value: 'light', label: 'Light' },
@@ -2465,7 +2593,7 @@ function AdminPanel({
                 />
                 <div
                   className="branding-live-preview"
-                  data-color-mode={brandingForm.themePreference === 'system' ? undefined : brandingForm.themePreference}
+                  data-color-mode={brandingPreviewColorMode}
                   data-theme-preset={brandingPreviewThemePreset}
                   style={brandingPreviewStyle}
                 >
@@ -2517,7 +2645,7 @@ function AdminPanel({
                   className={ADMIN_PRIMARY_BUTTON}
                   onClick={handleSaveBranding}
                   loading={isSavingBranding}
-                  disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin}
+                  disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin || !brandingHasUnsavedChanges}
                 >
                   {isSavingBranding ? 'Saving...' : isEventAdmin ? 'Save branding' : 'Save (creator/co-admin only)'}
                 </Button>
@@ -2573,7 +2701,7 @@ function AdminPanel({
         <Modal.Footer>
           <Button
             variant="secondary"
-            className="border border-gray-300 dark:border-gray-600 rounded-lg"
+            className="border border-[var(--border-default)] rounded-lg"
             onClick={() => {
               setShowDeleteUserModal(false);
               setUserToDelete(null);

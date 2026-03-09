@@ -2041,6 +2041,48 @@
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+/* Shared admin chrome should follow preset tokens even where legacy utility classes remain. */
+.admin-panel-theme-scope [class~="text-gray-900"],
+.admin-panel-theme-scope [class~="text-gray-800"],
+.admin-panel-theme-scope [class~="dark:text-white"],
+.admin-panel-theme-scope [class~="dark:text-gray-100"] {
+  color: var(--text-primary) !important;
+}
+
+.admin-panel-theme-scope [class~="text-gray-700"],
+.admin-panel-theme-scope [class~="text-gray-600"],
+.admin-panel-theme-scope [class~="dark:text-gray-300"],
+.admin-panel-theme-scope [class~="dark:text-gray-200"] {
+  color: var(--text-secondary) !important;
+}
+
+.admin-panel-theme-scope [class~="text-gray-500"],
+.admin-panel-theme-scope [class~="dark:text-gray-400"] {
+  color: var(--text-muted) !important;
+}
+
+.admin-panel-theme-scope [class~="bg-white"],
+.admin-panel-theme-scope [class~="dark:bg-gray-800"],
+.admin-panel-theme-scope [class~="dark:bg-gray-900"] {
+  background: var(--surface-card) !important;
+}
+
+.admin-panel-theme-scope [class~="bg-gray-50"],
+.admin-panel-theme-scope [class~="bg-gray-100"],
+.admin-panel-theme-scope [class~="bg-gray-200"],
+.admin-panel-theme-scope [class~="dark:bg-gray-800/50"],
+.admin-panel-theme-scope [class~="dark:bg-gray-700"],
+.admin-panel-theme-scope [class~="dark:bg-gray-600"] {
+  background: var(--surface-elevated) !important;
+}
+
+.admin-panel-theme-scope [class~="border-gray-200"],
+.admin-panel-theme-scope [class~="border-gray-300"],
+.admin-panel-theme-scope [class~="dark:border-gray-700"],
+.admin-panel-theme-scope [class~="dark:border-gray-600"] {
+  border-color: var(--border-default) !important;
+}
+
 .branding-theme-preset-grid {
   display: grid;
   gap: 0.85rem;

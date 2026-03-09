@@ -937,6 +937,40 @@ function normalizeEventBranding(
   return branding;
 }
 
+function normalizeEventBrandingForWrite(
+  input: CreateInstanceDraftInput['branding'] | EventBranding | null | undefined
+): EventBranding {
+  let themePreset: ThemePreset = 'default';
+  if (input?.themePreset !== undefined && input?.themePreset !== null) {
+    const preset = String(input.themePreset).trim();
+    if (!preset) {
+      themePreset = 'default';
+    } else if (preset === 'default' || preset === 'editorial' || preset === 'summit' || preset === 'studio') {
+      themePreset = preset;
+    } else {
+      throw new Error(`Invalid theme preset: ${preset}`);
+    }
+  }
+  const themePreference: ThemePreference | null =
+    input?.themePreference === 'system' || input?.themePreference === 'light' || input?.themePreference === 'dark'
+      ? input.themePreference
+      : null;
+  const branding: EventBranding = {
+    accentColor: input?.accentColor?.trim() || '#0f766e',
+    themePreset,
+  };
+  if (input?.bannerImageUrl?.trim()) {
+    branding.bannerImageUrl = input.bannerImageUrl.trim();
+  }
+  if (input?.heroIconImageUrl?.trim()) {
+    branding.heroIconImageUrl = input.heroIconImageUrl.trim();
+  }
+  if (themePreference) {
+    branding.themePreference = themePreference;
+  }
+  return branding;
+}
+
 const LIFECYCLE_NEXT_STATUS: Partial<Record<LifecycleStatus, LifecycleStatus>> = {
   draft: 'registration',
   registration: 'team_formation',
@@ -1448,7 +1482,7 @@ export class HdcService {
       }
 
       const eventRules = normalizeEventRules(input.rules);
-      const eventBranding = normalizeEventBranding(input.branding);
+      const eventBranding = normalizeEventBrandingForWrite(input.branding);
 
       const createEventStartedAt = Date.now();
       const event = await this.repository.createEvent({

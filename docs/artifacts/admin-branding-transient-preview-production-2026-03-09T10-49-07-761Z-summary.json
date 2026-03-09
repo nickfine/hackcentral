@@ -1,0 +1,24 @@
+{
+  "url": "https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466",
+  "storageState": "/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json",
+  "runtimeLog": "[HackCentral Runtime v2] Module loaded - 1.2.85",
+  "baselineThemePreset": "default",
+  "clickedPreset": "Editorial",
+  "badgeBehavior": {
+    "initial": "SAVED",
+    "afterChange": "UNSAVED",
+    "afterReturn": "SAVED"
+  },
+  "saveButton": {
+    "initialDisabled": true,
+    "enabledAfterChange": true,
+    "disabledAfterReturn": true
+  },
+  "rootThemePresetCheck": {
+    "before": "default",
+    "afterEditorialClick": "default",
+    "afterLeavingBranding": "default",
+    "afterReturningToBranding": "default"
+  },
+  "note": "Hosted production validation confirmed the new SAVED/UNSAVED UX and save-button gating, but did not confirm full-page unsaved theme-preset propagation on the runtime root. Follow-up debugging is required."
+}

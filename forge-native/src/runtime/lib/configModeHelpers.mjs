@@ -202,7 +202,13 @@ export function normalizeConfigModeBrandingPatch(value) {
   }
   if (value.themePreset !== undefined) {
     const preset = String(value.themePreset).trim();
-    next.themePreset = CONFIG_MODE_THEME_PRESETS.has(preset) ? preset : 'default';
+    if (!preset) {
+      next.themePreset = 'default';
+    } else if (CONFIG_MODE_THEME_PRESETS.has(preset)) {
+      next.themePreset = preset;
+    } else {
+      throw new Error(`Invalid theme preset: ${preset}`);
+    }
   }
 
   return next;

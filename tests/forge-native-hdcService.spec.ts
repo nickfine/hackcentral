@@ -232,6 +232,41 @@ describe('HdcService hardening behavior', () => {
     );
   });
 
+  it('rejects invalid explicit theme preset values during draft creation', async () => {
+    const repo = createRepoMock();
+    repo.getEventByCreationRequestId.mockResolvedValue(null);
+    repo.getEventNameConflicts.mockResolvedValue([]);
+    repo.ensureUser.mockResolvedValue({ id: 'user-creator' });
+    repo.createEvent.mockResolvedValue({
+      id: 'event-created',
+      name: 'HackDay Spring 2026',
+      confluence_page_id: 'child-901',
+      confluence_page_url: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+    });
+    repo.addEventAdmin.mockResolvedValue(undefined);
+    repo.upsertSyncState.mockResolvedValue(undefined);
+    repo.logAudit.mockResolvedValue(undefined);
+    getCurrentUserEmailMock.mockResolvedValue('owner@adaptavist.com');
+    createChildPageUnderParentMock.mockResolvedValue({
+      pageId: 'child-901',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/HDC/pages/child-901',
+    });
+
+    const service = new ServiceClass(repo as never);
+
+    await expect(
+      service.createInstanceDraft(viewer, {
+        ...baseCreateInput,
+        branding: {
+          accentColor: '#123abc',
+          themePreset: 'sunset' as never,
+        },
+      })
+    ).rejects.toThrow('Invalid theme preset: sunset');
+
+    expect(repo.createEvent).not.toHaveBeenCalled();
+  });
+
   it('persists schedule payload and promotes lifecycle on go_live launch mode', async () => {
     const repo = createRepoMock();
     repo.getEventByCreationRequestId.mockResolvedValue(null);

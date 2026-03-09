@@ -47,7 +47,7 @@ function ConfigToolbar({ isMacroHost = false }) {
             'flex flex-wrap items-center gap-2 rounded-full border px-2 py-2 shadow-xl backdrop-blur',
             'bg-arena-card/95',
             isEnabled
-              ? 'border-teal-500/45 ring-1 ring-teal-500/20'
+              ? 'border-[color-mix(in_srgb,var(--accent)_45%,var(--border-default))] ring-1 ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]'
               : 'border-arena-border'
           )}
         >
@@ -56,7 +56,8 @@ function ConfigToolbar({ isMacroHost = false }) {
             variant={isEnabled ? 'secondary' : 'primary'}
             className={cn(
               'rounded-full',
-              isEnabled && 'border border-teal-500/45 bg-teal-500/12 text-teal-500'
+              isEnabled &&
+                'border border-[color-mix(in_srgb,var(--accent)_45%,var(--border-default))] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
             )}
             onClick={toggleConfigMode}
             disabled={isPublishFooterActive}
@@ -78,7 +79,7 @@ function ConfigToolbar({ isMacroHost = false }) {
                 {isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
               </Button>
               <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-teal-500/90">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[color-mix(in_srgb,var(--accent)_90%,transparent)]">
                 {isBusy ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (

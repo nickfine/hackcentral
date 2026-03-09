@@ -89,7 +89,7 @@ function ConfigSidePanel({ isMacroHost = false }) {
         isMacroHost
           ? 'relative ml-auto w-full max-w-[390px]'
           : 'fixed inset-x-2 bottom-2 flex max-h-[72vh] flex-col overflow-hidden sm:inset-x-auto sm:w-[380px] sm:max-h-[calc(100vh-8rem)]',
-        'flex flex-col overflow-hidden rounded-t-2xl border border-teal-500/25 bg-arena-card shadow-2xl sm:rounded-2xl'
+        'flex flex-col overflow-hidden rounded-t-2xl border border-[color-mix(in_srgb,var(--accent)_25%,var(--border-default))] bg-arena-card shadow-2xl sm:rounded-2xl'
       )}
       style={isMacroHost ? undefined : { zIndex: 'var(--z-config-drawer)', ...desktopAnchorStyle }}
       aria-label="Config actions drawer"
@@ -116,7 +116,7 @@ function ConfigSidePanel({ isMacroHost = false }) {
             </Button>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-teal-500">Config Mode</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Config Mode</p>
             <h3 className="text-base font-bold text-text-primary">Draft Actions</h3>
             <p className="text-xs text-text-muted">
               Edit content inline on the page, then save or publish from here.
@@ -202,14 +202,14 @@ function ConfigSidePanel({ isMacroHost = false }) {
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-teal-500/25 bg-arena-elevated px-3 py-3">
+              <div className="rounded-xl border border-[color-mix(in_srgb,var(--accent)_25%,var(--border-default))] bg-arena-elevated px-3 py-3">
                 <div className="flex items-start gap-2">
                   {publishFooterState === 'error' ? (
                     <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-error" />
                   ) : publishFooterState === 'publishing' ? (
-                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-teal-500" />
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />
                   ) : (
-                    <Upload className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                    <Upload className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent)]" />
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-text-primary">

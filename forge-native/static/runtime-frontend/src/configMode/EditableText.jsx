@@ -91,7 +91,7 @@ function EditableText({
                 cancel();
               }
             }}
-            className="w-full rounded-lg border border-teal-500/40 bg-arena-card px-3 py-2 text-sm text-text-primary focus:ring-2 focus:ring-teal-500/40 focus:outline-none"
+            className="w-full rounded-lg border border-[color-mix(in_srgb,var(--accent)_40%,var(--border-default))] bg-arena-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
           />
         ) : (
           <input
@@ -109,7 +109,7 @@ function EditableText({
                 cancel();
               }
             }}
-            className="w-full rounded-lg border border-teal-500/40 bg-arena-card px-3 py-2 text-sm text-text-primary focus:ring-2 focus:ring-teal-500/40 focus:outline-none"
+            className="w-full rounded-lg border border-[color-mix(in_srgb,var(--accent)_40%,var(--border-default))] bg-arena-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
           />
         )}
 
@@ -129,7 +129,7 @@ function EditableText({
             <button
               type="button"
               onClick={commit}
-              className="inline-flex items-center gap-1 rounded-md border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-teal-500 hover:bg-teal-500/15"
+              className="inline-flex items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--accent)_30%,var(--border-default))] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-1 text-xs font-semibold text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_15%,transparent)]"
             >
               <Check className="h-3.5 w-3.5" />
               Apply

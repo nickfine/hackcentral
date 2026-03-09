@@ -20,11 +20,52 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.72 (root app)
+**Version:** 0.6.73 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.50
-**Runtime Bundle Version:** 1.2.84
+**Forge Native Package:** 0.3.51
+**Runtime Bundle Version:** 1.2.85
+
+## Session Update - v0.6.73 Admin Branding Transient Preview Deployed To Production (Mar 9, 2026 10:52 GMT)
+
+### Completed
+
+- Deployed the admin-only Branding transient preview release to production.
+- Bumped production version markers to:
+  - root app `0.6.73`
+  - forge-native `0.3.51`
+  - runtime bundle `1.2.85`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+- Runtime Branding now shows a compact `SAVED` / `UNSAVED` state badge beside `Theme preset` and disables `Save branding` while no Branding changes are pending.
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-admin-branding-live-preview.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-runtime-theme-preset-application.spec.ts tests/forge-native-config-mode-theme-preset.spec.ts tests/forge-native-hdcService.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-104436Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-104436Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-104436Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-104436Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Hosted production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` on `NickTestMonday` (`pageId=24510466`) confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.85`
+  - Branding badge flow now reads `SAVED` -> `UNSAVED` -> `SAVED`
+  - `Save branding` is disabled while saved, enabled after an unsaved Branding edit, and disabled again after returning to the saved state
+  - artifact set:
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z.json)
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z.md)
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-unsaved.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-unsaved.png)
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-reverted.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-reverted.png)
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-summary.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-summary.json)
+    - [`admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-summary.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/admin-branding-transient-preview-production-2026-03-09T10-49-07-761Z-summary.md)
+
+### Operational Note
+
+- Hosted production validation did not confirm full-page unsaved preset propagation on the runtime root: the `SAVED` / `UNSAVED` badge and `Save branding` gating are live, but the root `data-theme-preset` remained `default` during the non-destructive smoke. Follow-up debugging is required.
 
 ## Session Update - v0.6.72 Theme Preset Accent Reset Released To Production (Mar 9, 2026 01:54 GMT)
 

@@ -386,6 +386,7 @@ function App() {
   /** True only for HackDays created via HackCentral (template seed); original site uses VIBING logo. */
   const [useAdaptavistLogo, setUseAdaptavistLogo] = useState(false);
   const [configModeSnapshot, setConfigModeSnapshot] = useState(null);
+  const [adminBrandingPreview, setAdminBrandingPreview] = useState(null);
 
   // Dev mode state
   const [devRoleOverride, setDevRoleOverride] = useState(null);
@@ -1490,6 +1491,11 @@ function App() {
     handleNavigate('dashboard', {}, { replace: true });
   }, [currentView, effectiveUser, handleNavigate]);
 
+  useEffect(() => {
+    if (currentView === 'admin') return;
+    setAdminBrandingPreview(null);
+  }, [currentView]);
+
   // ============================================================================
   // AUTO-ASSIGN OPT-IN HANDLER
   // ============================================================================
@@ -1545,10 +1551,13 @@ function App() {
     }
   }, [devMode, currentView]);
 
-  // Render the current view
-  const effectiveEventBranding = configModeSnapshot?.effectiveBranding && typeof configModeSnapshot.effectiveBranding === 'object'
+  const persistedBrandingBaseline = configModeSnapshot?.effectiveBranding && typeof configModeSnapshot.effectiveBranding === 'object'
     ? configModeSnapshot.effectiveBranding
     : eventBranding;
+  const effectiveEventBranding =
+    currentView === 'admin' && adminBrandingPreview && typeof adminBrandingPreview === 'object'
+      ? adminBrandingPreview
+      : persistedBrandingBaseline;
   const effectiveEventAdminMessage = configModeSnapshot?.effectiveMotdMessage !== undefined
     ? configModeSnapshot.effectiveMotdMessage
     : eventAdminMessage;
@@ -1573,6 +1582,32 @@ function App() {
     root.style.removeProperty('--accent-subtle');
     root.style.removeProperty('--accent-on');
   }, [effectiveEventBranding]);
+
+  const handleAdminBrandingPreviewChange = useCallback((nextPreview) => {
+    if (!nextPreview || typeof nextPreview !== 'object') {
+      setAdminBrandingPreview(null);
+      return;
+    }
+    setAdminBrandingPreview(nextPreview);
+  }, []);
+
+  const handleAdminBrandingPreviewClear = useCallback(() => {
+    setAdminBrandingPreview(null);
+  }, []);
+
+  const handleAdminBrandingSaved = useCallback((nextBranding, options = {}) => {
+    if (options?.persistedTarget !== 'published' || !nextBranding || typeof nextBranding !== 'object') {
+      return;
+    }
+
+    setEventBranding(nextBranding);
+    const pref = nextBranding?.themePreference;
+    if (pref && ['light', 'dark', 'system'].includes(pref)) {
+      setEventThemePreference(pref);
+      return;
+    }
+    setEventThemePreference(null);
+  }, []);
 
   const renderView = () => {
     const commonProps = {
@@ -1652,6 +1687,10 @@ function App() {
             onPhaseChange={devMode ? handlePhaseChange : null}
             onEventSettingsUpdate={handleEventSettingsUpdate}
             onIdeaSummaryChange={refreshTeamsAndFreeAgents}
+            savedBrandingBaseline={persistedBrandingBaseline}
+            onBrandingPreviewChange={handleAdminBrandingPreviewChange}
+            onBrandingPreviewClear={handleAdminBrandingPreviewClear}
+            onBrandingSaved={handleAdminBrandingSaved}
             allUsers={allUsers}
             onRefreshUsers={refreshRegistrations}
             onUpdateUserRole={async (userId, newRole) => {
@@ -1729,15 +1768,13 @@ function App() {
 
   const themeContextValue = useMemo(
     () => ({
-      eventDefaultTheme: ['light', 'dark', 'system'].includes(configModeSnapshot?.effectiveBranding?.themePreference)
-        ? configModeSnapshot.effectiveBranding.themePreference
+      eventDefaultTheme: ['light', 'dark', 'system'].includes(effectiveEventBranding?.themePreference)
+        ? effectiveEventBranding.themePreference
         : eventThemePreference,
-      eventDefaultThemePreset: normalizeThemePreset(
-        configModeSnapshot?.effectiveBranding?.themePreset ?? effectiveEventBranding?.themePreset
-      ),
+      eventDefaultThemePreset: normalizeThemePreset(effectiveEventBranding?.themePreset),
       pageId: eventPageId,
     }),
-    [effectiveEventBranding?.themePreset, eventThemePreference, eventPageId, configModeSnapshot]
+    [effectiveEventBranding?.themePreference, effectiveEventBranding?.themePreset, eventThemePreference, eventPageId]
   );
 
   // Loading state
