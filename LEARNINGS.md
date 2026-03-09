@@ -20,11 +20,49 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.73 (root app)
+**Version:** 0.6.74 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.51
-**Runtime Bundle Version:** 1.2.85
+**Forge Native Package:** 0.3.52
+**Runtime Bundle Version:** 1.2.86
+
+## Session Update - v0.6.74 Continuity Correction Release Deployed To Production (Mar 9, 2026 11:09 GMT)
+
+### Completed
+
+- Released a small continuity-correction follow-up to production so deployed version markers and handoff docs match the currently verified production state.
+- Bumped production version markers to:
+  - root app `0.6.74`
+  - forge-native `0.3.52`
+  - runtime bundle `1.2.86`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+- No functional runtime behavior changes were introduced in this release beyond the version-marker bump and continuity-note correction.
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-110719Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-110719Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-110719Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-110719Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Postdeploy production check with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` on `NickTestMonday` (`pageId=24510466`) confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.86`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"` on the live page
+  - runtime body loaded past the initial shell and showed the expected child-runtime navigation
+  - artifact set:
+    - [`release-version-check-2026-03-09T11-08-52-143Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T11-08-52-143Z.json)
+    - [`release-version-check-2026-03-09T11-08-52-143Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T11-08-52-143Z.md)
+    - [`release-version-check-2026-03-09T11-08-52-143Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T11-08-52-143Z.png)
+
+### Operational Note
+
+- Manual production verification remains the source of truth for the transient Branding preview behavior.
+- The earlier non-destructive hosted smoke caveat is now closed as a validation artifact caused by a fragile iframe-readiness probe, not as an open product defect.
 
 ## Session Update - v0.6.73 Admin Branding Transient Preview Deployed To Production (Mar 9, 2026 10:52 GMT)
 
@@ -65,7 +103,14 @@ When users create a HackDay in HackCentral:
 
 ### Operational Note
 
-- Hosted production validation did not confirm full-page unsaved preset propagation on the runtime root: the `SAVED` / `UNSAVED` badge and `Save branding` gating are live, but the root `data-theme-preset` remained `default` during the non-destructive smoke. Follow-up debugging is required.
+- Manual production verification after release confirmed the admin-only transient preview behaves correctly end to end:
+  - live Branding preview updates immediately
+  - `Save branding` persists correctly
+  - saved theme state remains correct while navigating around the runtime
+- Code inspection confirms the preview path is root-level, not preview-card-only:
+  - [`App.jsx`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/App.jsx) resolves `effectiveEventBranding` from `adminBrandingPreview` while the Admin view is active
+  - [`useTheme.js`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/hooks/useTheme.js) applies `data-color-mode` and `data-theme-preset` directly to `document.documentElement`
+- A targeted re-check of the hosted DOM probe on March 9, 2026 stalled in the iframe `Loading HackDay...` state and timed out before the `Admin` nav became available, which makes the earlier root-attribute caveat most likely a validation false negative caused by runtime/frame readiness rather than a confirmed product bug.
 
 ## Session Update - v0.6.72 Theme Preset Accent Reset Released To Production (Mar 9, 2026 01:54 GMT)
 
