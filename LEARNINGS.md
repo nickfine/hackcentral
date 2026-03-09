@@ -20,11 +20,53 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.75 (root app)
+**Version:** 0.6.76 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.53
-**Runtime Bundle Version:** 1.2.87
+**Forge Native Package:** 0.3.54
+**Runtime Bundle Version:** 1.2.88
+
+## Session Update - v0.6.76 Registration UX + Dev Controls Cleanup Released To Production (Mar 9, 2026 13:26 GMT)
+
+### Completed
+
+- Released a runtime follow-up focused on registration UX clarity and dev-mode reliability.
+- Fixed the local Event Phase selector so it stays bound to the real/global phase while participant-facing surfaces continue to use the derived effective phase where appropriate.
+- Fixed the localhost `Participant - Needs Signup` impersonation path so it remains genuinely unregistered until signup completes, then progresses cleanly into the registered free-agent state.
+- Updated the registration hero copy so the next step explicitly points to signup.
+- Updated the dashboard next action for unregistered users during `signup` so it routes to signup with `Sign Up Now` instead of incorrectly sending them to Marketplace.
+- Removed the redundant yellow free-agent alert panel from the dashboard hero so team-formation messaging no longer repeats the same action twice.
+- Bumped production version markers to:
+  - root app `0.6.76`
+  - forge-native `0.3.54`
+  - runtime bundle `1.2.88`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-effective-phase.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Postdeploy production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` against the live child runtime iframe confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.88`
+  - root document carried `data-color-mode="dark"` and `data-theme-preset="default"`
+  - dashboard hero rendered on the live runtime page
+  - artifact set:
+    - [`release-version-check-2026-03-09T13-26-11-818Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.json)
+    - [`release-version-check-2026-03-09T13-26-11-818Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.md)
+    - [`release-version-check-2026-03-09T13-26-11-818Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.png)
+
+### Operational Note
+
+- A first postdeploy probe captured the Confluence host shell rather than the runtime iframe. The iframe-targeted artifact above is the release evidence to use for this version.
 
 ## Session Update - v0.6.75 Per-User Team Formation During Registration Released To Production (Mar 9, 2026 12:47 GMT)
 

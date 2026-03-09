@@ -102,10 +102,14 @@ describe('runtime effective phase app-shell contract', () => {
   it('lets the localhost participant_guest simulation progress after signup completion', async () => {
     const source = await readSource('forge-native/static/runtime-frontend/src/App.jsx');
 
+    expect(source).toContain("const [devParticipantGuestNeedsSignup, setDevParticipantGuestNeedsSignup] = useState(false);");
+    expect(source).toContain('const handleDevRoleChange = useCallback((nextRole) => {');
+    expect(source).toContain("setDevParticipantGuestNeedsSignup(nextRole === 'participant_guest');");
     expect(source).toContain("if (devRoleOverride === 'participant_guest') {");
-    expect(source).toContain('if (hasCompletedRegistration(user)) {');
+    expect(source).toContain("if (!devParticipantGuestNeedsSignup && hasCompletedRegistration(user)) {");
     expect(source).toContain("id: `FREE_AGENT_${user.id}`");
     expect(source).toContain("id: `GUEST_${user.id}`");
+    expect(source).toContain("if (devRoleOverride === 'participant_guest' && hasCompletedRegistration(nextUser)) {");
   });
 
   it('redirects completed participants out of the signup route without interrupting the success handoff', async () => {
@@ -117,5 +121,22 @@ describe('runtime effective phase app-shell contract', () => {
     expect(source).toContain("if (eventPhase !== 'team_formation') return;");
     expect(source).toContain("if (!hasCompletedRegistration(user)) return;");
     expect(source).toContain("onNavigate('dashboard', {}, { replace: true });");
+  });
+
+  it('keeps dev phase controls bound to the real phase and sends unregistered signup next actions to signup', async () => {
+    const layoutSource = await readSource('forge-native/static/runtime-frontend/src/components/AppLayout.jsx');
+    const dashboardSource = await readSource('forge-native/static/runtime-frontend/src/components/Dashboard.jsx');
+    const missionContentSource = await readSource('forge-native/static/runtime-frontend/src/lib/missionBriefContent.js');
+
+    expect(layoutSource).toContain('realEventPhase = eventPhase,');
+    expect(layoutSource).toContain('value={realEventPhase}');
+    expect(dashboardSource).toContain('function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate, isRegisteredUser })');
+    expect(dashboardSource).toContain("if (eventPhase === 'signup' && !isRegisteredUser) {");
+    expect(dashboardSource).toContain("nextActionLabel: 'Sign Up Now'");
+    expect(dashboardSource).toContain("nextActionRoute: 'signup'");
+    expect(dashboardSource).not.toContain('const inlineFreeAgentAlert = useMemo(() => {');
+    expect(dashboardSource).not.toContain("title: 'Free agent action'");
+    expect(missionContentSource).toContain("status: 'Next step: sign up to unlock your HackDay workspace.'");
+    expect(missionContentSource).toContain("primaryCTA: { label: 'Sign Up Now', action: 'signup' }");
   });
 });

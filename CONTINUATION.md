@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 12:47 GMT
+Last updated: 2026-03-09 13:26 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-09 12:47 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.75`
-  - Forge native package version: `0.3.53`
+  - Root app version: `0.6.76`
+  - Forge native package version: `0.3.54`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.87`
+  - Runtime bundle version: `1.2.88`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -38,6 +38,14 @@ Last updated: 2026-03-09 12:47 GMT
   - the change is runtime-only and does not mutate event lifecycle or schedule data
   - latest production version-check artifact:
     - `docs/artifacts/release-version-check-2026-03-09T12-46-35-836Z.json`
+- Registration UX + localhost dev-controls cleanup is now live in production:
+  - local dev `Event Phase` selector remains bound to the real/global phase instead of the derived participant phase
+  - local `Participant - Needs Signup` impersonation now stays genuinely unregistered until signup completes
+  - registration hero copy now makes signup the explicit next step
+  - unregistered dashboard next action in `signup` now routes to signup with `Sign Up Now`
+  - the redundant yellow free-agent alert block was removed from the dashboard hero
+  - latest production version-check artifact:
+    - `docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.json`
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -60,6 +68,51 @@ Last updated: 2026-03-09 12:47 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - v0.6.76 Registration UX + Dev Controls Cleanup Released (Mar 9, 2026 13:26 GMT)
+
+### What changed
+
+- Released the registration UX cleanup and localhost dev-controls fix to production.
+- Version markers are now:
+  - root app `0.6.76`
+  - forge-native `0.3.54`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.88`
+- Runtime/dev behavior now:
+  - keeps the local Event Phase dropdown tied to the real/global phase
+  - makes `Participant - Needs Signup` a true transient unregistered simulation until signup completes
+  - updates registration-phase messaging so the next step clearly directs users to signup
+  - removes the redundant free-agent warning panel from the dashboard hero
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-effective-phase.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+- Predeploy backup artifacts:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.json`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-132223Z.md`
+- Deploy/install:
+  - `../scripts/with-node22.sh npm run custom-ui:build`
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify`
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence`
+- Postdeploy production validation:
+  - runtime iframe logged `[HackCentral Runtime v2] Module loaded - 1.2.88`
+  - root attributes resolved to `data-color-mode="dark"` and `data-theme-preset="default"`
+  - dashboard hero was present on the live child runtime
+  - artifacts:
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.json`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.md`
+    - `/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.png`
+
+### Current state
+
+- Production Confluence is now running markers `0.6.76 / 0.3.54 / 1.2.88`.
+- The registration hero and next-action flow now push unregistered users toward signup more clearly.
+- The local dev controls now support the `Registration` + `Participant - Needs Signup` test path reliably.
 
 ## Session Update - v0.6.75 Per-User Team Formation During Registration Released (Mar 9, 2026 12:47 GMT)
 

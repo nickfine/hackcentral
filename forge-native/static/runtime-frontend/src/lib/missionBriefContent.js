@@ -68,9 +68,9 @@ export const MISSION_CONTENT = {
     [USER_STATES.NOT_REGISTERED]: {
       heroVariant: 'welcome',
       headline: 'Welcome to HackDay',
-      status: 'You are in. Let us get you mission-ready.',
+      status: 'Next step: sign up to unlock your HackDay workspace.',
       context: () => 'Complete your quick profile to unlock ideas, team formation, and the full event experience.',
-      primaryCTA: { label: 'Register in 2 minutes', action: 'signup' },
+      primaryCTA: { label: 'Sign Up Now', action: 'signup' },
       secondaryCTA: { label: 'How HackDay works', action: 'new-to-hackday' },
       footerPrefix: 'Team formation opens in',
     },

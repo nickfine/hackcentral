@@ -391,6 +391,7 @@ function App() {
 
   // Dev mode state
   const [devRoleOverride, setDevRoleOverride] = useState(null);
+  const [devParticipantGuestNeedsSignup, setDevParticipantGuestNeedsSignup] = useState(false);
   const autoOpenAppViewAttemptedRef = useRef(false);
 
   const isMacroHost = useMemo(() => {
@@ -721,6 +722,11 @@ function App() {
     setEventPhase(phase);
   }, []);
 
+  const handleDevRoleChange = useCallback((nextRole) => {
+    setDevRoleOverride(nextRole);
+    setDevParticipantGuestNeedsSignup(nextRole === 'participant_guest');
+  }, []);
+
   const handleEventSettingsUpdate = useCallback((updates = {}) => {
     if (updates.motd !== undefined) {
       setEventMotd(updates.motd || '');
@@ -922,7 +928,7 @@ function App() {
         };
       }
       if (devRoleOverride === 'participant_guest') {
-        if (hasCompletedRegistration(user)) {
+        if (!devParticipantGuestNeedsSignup && hasCompletedRegistration(user)) {
           return {
             ...user,
             role: 'participant',
@@ -966,7 +972,7 @@ function App() {
       return { ...user, role: devRoleOverride };
     }
     return user;
-  }, [user, devRoleOverride, teams]);
+  }, [user, devRoleOverride, teams, devParticipantGuestNeedsSignup]);
 
   const effectiveEventPhase = useMemo(
     () => deriveEffectiveEventPhase(eventPhase, effectiveUser),
@@ -977,7 +983,11 @@ function App() {
   const handleUpdateUser = useCallback(async (updates) => {
     if (devMode) {
       // Dev mode: update local state only
-      setUser(prev => ({ ...prev, ...updates }));
+      const nextUser = { ...(user || {}), ...updates };
+      setUser(nextUser);
+      if (devRoleOverride === 'participant_guest' && hasCompletedRegistration(nextUser)) {
+        setDevParticipantGuestNeedsSignup(false);
+      }
       setIsNewUser(false);
       return;
     }
@@ -997,7 +1007,7 @@ function App() {
       setUser(prev => ({ ...prev, ...updates }));
       setIsNewUser(false);
     }
-  }, [devMode]);
+  }, [devMode, devRoleOverride, user]);
 
   const handleCreateTeam = useCallback(async (teamData) => {
     const normalizedTeam = {
@@ -1881,7 +1891,7 @@ function App() {
           showSidebar={true}
           isDevMode={devMode}
           devRoleOverride={devRoleOverride}
-          onDevRoleChange={setDevRoleOverride}
+          onDevRoleChange={handleDevRoleChange}
           onPhaseChange={handlePhaseChange}
           eventPhases={EVENT_PHASES}
           accountId={context?.accountId}

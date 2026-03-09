@@ -330,7 +330,7 @@ function derivePhaseEndDate(eventPhase, milestones = []) {
   return currentPhaseEnds.length > 0 ? currentPhaseEnds[0].toISOString() : null;
 }
 
-function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate }) {
+function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate, isRegisteredUser }) {
   const memberCount = userTeam?.memberCount || (userTeam?.members?.length || 0) + (userTeam ? 1 : 0);
   const hasTeam = Boolean(userTeam);
   const isTeamReady = hasTeam && memberCount >= 2;
@@ -344,6 +344,17 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
       if (hoursRemaining <= 6) deadlineRisk = 'high';
       else if (hoursRemaining <= 18) deadlineRisk = 'medium';
     }
+  }
+
+  if (eventPhase === 'signup' && !isRegisteredUser) {
+    return {
+      teamStatus: 'no_team',
+      submissionReady: false,
+      deadlineRisk,
+      nextActionLabel: 'Sign Up Now',
+      nextActionRoute: 'signup',
+      nextActionParams: {},
+    };
   }
 
   if (!hasTeam && (eventPhase === 'signup' || eventPhase === 'team_formation')) {
@@ -695,14 +706,20 @@ function Dashboard({
 
   const hasSubmitted = Boolean(userTeam?.submission?.status === 'submitted');
 
-  const myProgress = useMemo(
-    () => buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate }),
-    [eventPhase, userTeam, hasSubmitted, phaseEndDate]
-  );
-
   const isRegisteredUser = useMemo(() => {
     return hasCompletedRegistration(user);
   }, [user]);
+
+  const myProgress = useMemo(
+    () => buildMyProgressModel({
+      eventPhase,
+      userTeam,
+      hasSubmitted,
+      phaseEndDate,
+      isRegisteredUser,
+    }),
+    [eventPhase, userTeam, hasSubmitted, phaseEndDate, isRegisteredUser]
+  );
 
   const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation';
 
@@ -729,21 +746,6 @@ function Dashboard({
       detail: 'Profile and readiness checks are complete.',
     };
   }, [isRegisteredUser, userTeam, isEarlyExecutionPhase]);
-
-  const inlineFreeAgentAlert = useMemo(() => {
-    if (!user || !isRegisteredUser) return null;
-    if (eventPhase !== 'team_formation') return null;
-    if (userTeam) return null;
-    if (user.role === 'judge' || user.role === 'admin') return null;
-
-    return {
-      title: 'Free agent action',
-      body: 'Team formation is live. Join an idea now so you enter hacking with a committed squad.',
-      ctaLabel: user.autoAssignOptIn ? null : 'Browse ideas',
-      ctaAction: user.autoAssignOptIn ? null : 'marketplace',
-      ctaParams: user.autoAssignOptIn ? null : { tab: 'ideas' },
-    };
-  }, [user, isRegisteredUser, eventPhase, userTeam]);
 
   const hasPostedIdea = Boolean(userTeam && userTeam.captainId === user?.id);
   const userState = useMemo(
@@ -1112,22 +1114,6 @@ function Dashboard({
                     </p>
                   </div>
                 </div>
-
-                {inlineFreeAgentAlert && (
-                  <div className="dashboard-hero-alert rounded-lg border px-3 py-2 text-sm">
-                    <p className="font-normal">{inlineFreeAgentAlert.title}</p>
-                    <p className="mt-0.5 font-normal">{inlineFreeAgentAlert.body}</p>
-                    {inlineFreeAgentAlert.ctaAction && inlineFreeAgentAlert.ctaLabel && (
-                      <button
-                        type="button"
-                        className="dashboard-hero-alert-link mt-2 inline-flex items-center text-sm font-normal underline underline-offset-4"
-                        onClick={() => onNavigate?.(inlineFreeAgentAlert.ctaAction, inlineFreeAgentAlert.ctaParams)}
-                      >
-                        {inlineFreeAgentAlert.ctaLabel}
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 

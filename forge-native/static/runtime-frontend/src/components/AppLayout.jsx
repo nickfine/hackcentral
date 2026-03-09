@@ -523,6 +523,7 @@ function AppLayout({
   teams = [],
   onNavigate,
   eventPhase = 'signup',
+  realEventPhase = eventPhase,
   activeNav = 'dashboard',
   children,
   showSidebar = true,
@@ -880,7 +881,7 @@ function AppLayout({
                                 Event Phase
                               </label>
                               <select
-                                value={eventPhase}
+                                value={realEventPhase}
                                 onChange={(e) => {
                                   onPhaseChange(e.target.value);
                                   setDevControlsOpen(false);
