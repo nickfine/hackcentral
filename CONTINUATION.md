@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 13:26 GMT
+Last updated: 2026-03-09 14:17 GMT
 
 ## Current Snapshot
 
@@ -9,11 +9,11 @@ Last updated: 2026-03-09 13:26 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.76`
-  - Forge native package version: `0.3.54`
+  - Root app version: `0.6.77`
+  - Forge native package version: `0.3.55`
   - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
   - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
-  - Runtime bundle version: `1.2.88`
+  - Runtime bundle version: `1.2.89`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
 - Curated runtime theme presets are now live in production:
@@ -46,6 +46,12 @@ Last updated: 2026-03-09 13:26 GMT
   - the redundant yellow free-agent alert block was removed from the dashboard hero
   - latest production version-check artifact:
     - `docs/artifacts/release-version-check-2026-03-09T13-26-11-818Z.json`
+- Branding layout narrative restructure is now live in production:
+  - Branding is now grouped into `Theme & Accent`, `Event Artwork`, and `Live Preview`
+  - accent override now sits directly beneath the preset selector inside the theme-identity block
+  - artwork fields now stack vertically with banner first and icon second at a constrained 50% width
+  - the live preview now reads as a dedicated verification section after artwork with the theme mode control in the preview heading row
+  - the Branding `SAVED` / `UNSAVED` badge now sits beside the save action instead of beside theme preset
 - Event Management admin overview re-layout is now live in production:
   - tabs render immediately below the Event Management header
   - Overview metrics are compressed into an in-panel strip instead of oversized stat cards
@@ -68,6 +74,37 @@ Last updated: 2026-03-09 13:26 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - v0.6.77 Branding Layout Narrative Restructure Released (Mar 9, 2026 14:17 GMT)
+
+### What changed
+
+- Released a layout-only Branding restructure to production.
+- Version markers are now:
+  - root app `0.6.77`
+  - forge-native `0.3.55`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+  - runtime bundle `1.2.89`
+- Runtime/admin behavior now:
+  - groups theme preset and accent override together as one theme-identity section
+  - stacks banner and icon artwork vertically, with the icon container constrained to 50% width and left-aligned
+  - separates the live preview into a distinct verification section after artwork
+  - keeps the preview always rendered, including empty-artwork state
+  - moves the `SAVED` / `UNSAVED` status to the save row so it reflects the whole Branding form
+  - removes the Branding tab icon and the Branding card title icon
+
+### Evidence
+
+- Local validation:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+
+### Current state
+
+- Production Confluence should now be running markers `0.6.77 / 0.3.55 / 1.2.89` after deploy.
+- The Branding page now follows a clearer configure -> verify narrative without introducing any new styling primitives.
 
 ## Session Update - v0.6.76 Registration UX + Dev Controls Cleanup Released (Mar 9, 2026 13:26 GMT)
 

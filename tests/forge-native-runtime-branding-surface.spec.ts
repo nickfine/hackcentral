@@ -20,8 +20,12 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain('Hero icon image');
     expect(adminSource).toContain('Manual banner image URL');
     expect(adminSource).toContain('Manual hero icon URL');
-    expect(adminSource).toContain('Dashboard preview');
-    expect(adminSource).toContain('Selecting a preset resets the accent to that preset.');
+    expect(adminSource).toContain('Theme &amp; Accent');
+    expect(adminSource).toContain('Event Artwork');
+    expect(adminSource).toContain('Live Preview');
+    expect(adminSource).toContain('Live dashboard hero sample for the selected preset, accent, banner, icon, and theme mode.');
+    expect(adminSource).toContain('Theme mode');
+    expect(adminSource).toContain('Choosing a preset resets the accent to that preset');
     expect(adminSource).toContain("return getThemePresetAccent(normalizeThemePreset(nextPreset), 'light');");
     expect(adminSource).toContain('savedBrandingBaseline = {}');
     expect(adminSource).toContain("const updateBrandingFormField = useCallback((field, value) => {");
@@ -33,6 +37,8 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain("onChange={(value) => handleThemePreferenceChange(value)}");
     expect(adminSource).toContain("const brandingHasUnsavedChanges = useMemo(");
     expect(adminSource).toContain("const brandingSaveStateLabel = brandingHasUnsavedChanges ? 'UNSAVED' : 'SAVED';");
+    expect(adminSource).toContain('<div className="branding-save-row">');
+    expect(adminSource).toContain('<div className="branding-save-status">');
     expect(adminSource).toContain("Badge variant={brandingHasUnsavedChanges ? 'warning' : 'success'}");
     expect(adminSource).toContain('UNSAVED');
     expect(adminSource).toContain('SAVED');
@@ -45,7 +51,10 @@ describe('runtime branding surface contract', () => {
     expect(adminSource).toContain("const brandingPreviewColorMode =");
     expect(adminSource).toContain("data-color-mode={brandingPreviewColorMode}");
     expect(adminSource).toContain("disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin || !brandingHasUnsavedChanges}");
+    expect(adminSource).not.toContain('icon={<Palette className="w-4 h-4" />}');
     expect(adminSource).not.toContain('label="Banner message"');
+    expect(adminSource.indexOf('Theme &amp; Accent')).toBeLessThan(adminSource.indexOf('Event Artwork'));
+    expect(adminSource.indexOf('Event Artwork')).toBeLessThan(adminSource.indexOf('Live Preview'));
 
     expect(dashboardSource).toContain('dashboard-hero-banner-image');
     expect(dashboardSource).toContain("configMode?.getFieldValue?.('branding.bannerImageUrl', fallback)");
@@ -58,11 +67,18 @@ describe('runtime branding surface contract', () => {
     expect(cssSource).toContain('.branding-banner-preview-image');
     expect(cssSource).toContain('.branding-icon-preview-image');
     expect(cssSource).toContain('.branding-live-preview-icon');
+    expect(cssSource).toContain('.branding-theme-layout');
+    expect(cssSource).toContain('.branding-section-break');
+    expect(cssSource).toContain('.branding-artwork-icon-shell');
+    expect(cssSource).toContain('.branding-preview-strip-header');
+    expect(cssSource).toContain('.branding-live-preview-toolbar');
+    expect(cssSource).toContain('.branding-save-row');
     expect(cssSource).toContain('.dashboard-hero-logo--uploaded');
     expect(cssSource).toContain('.admin-panel-theme-scope [class~="text-gray-900"]');
-    expect(cssSource).toContain('max-height: 400px;');
+    expect(cssSource).toContain('min-height: 12.5rem;');
+    expect(cssSource).toContain('max-width: 50%;');
     expect(cssSource).toContain('object-fit: contain;');
-    expect(cssSource).toContain('max-width: 11rem;');
-    expect(cssSource).toContain('inset: 1rem 1.25rem;');
+    expect(cssSource).toContain('max-width: 400px;');
+    expect(cssSource).toContain('inset: 0.85rem 1rem;');
   });
 });

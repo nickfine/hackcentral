@@ -2086,11 +2086,112 @@
 .branding-theme-preset-grid {
   display: grid;
   gap: 0.85rem;
+  align-content: start;
+}
+
+.branding-theme-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.branding-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.branding-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.branding-section-break {
+  height: 1px;
+  margin-block: 2rem;
+  background: var(--border-default);
+}
+
+.branding-artwork-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.branding-artwork-icon-shell {
+  width: 100%;
+  max-width: 50%;
+}
+
+.branding-preview-section {
+  gap: 0.85rem;
+}
+
+.branding-preview-strip-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.branding-live-preview-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.branding-preview-mode-field {
+  width: min(100%, 18rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.branding-theme-select {
+  width: 100%;
+}
+
+.branding-save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.branding-save-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
   .branding-theme-preset-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .branding-artwork-icon-shell {
+    max-width: 100%;
+  }
+
+  .branding-preview-strip-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .branding-live-preview-toolbar {
+    justify-content: flex-start;
+  }
+
+  .branding-preview-mode-field {
+    width: 100%;
+  }
+
+  .branding-save-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -2235,8 +2336,8 @@
 
 .branding-banner-preview-media {
   position: relative;
-  min-height: 6rem;
-  max-height: 200px;
+  min-height: 12.5rem;
+  max-height: 12.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2246,8 +2347,9 @@
 }
 
 .branding-icon-preview-media {
-  min-height: min(12rem, 30vw);
-  aspect-ratio: 1 / 1;
+  min-height: 12.5rem;
+  max-height: 12.5rem;
+  aspect-ratio: auto;
 }
 
 .branding-banner-preview-image {
@@ -2328,14 +2430,6 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1.15rem;
-}
-
-.branding-live-preview-tag {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--surface-hero-text) 72%, transparent);
 }
 
 .branding-live-preview-title-row {

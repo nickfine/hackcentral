@@ -20,11 +20,47 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.76 (root app)
+**Version:** 0.6.77 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.54
-**Runtime Bundle Version:** 1.2.88
+**Forge Native Package:** 0.3.55
+**Runtime Bundle Version:** 1.2.89
+
+## Session Update - v0.6.77 Branding Layout Narrative Restructure Released To Production (Mar 9, 2026 14:17 GMT)
+
+### Completed
+
+- Released a layout-only refinement of `Admin Panel -> Branding` so the page reads as a clearer configure-to-verify narrative without changing the design system.
+- Re-grouped the Branding form into three sections in order:
+  - `Theme & Accent`
+  - `Event Artwork`
+  - `Live Preview`
+- Kept preset selection and accent override together as one theme-identity block.
+- Stacked the artwork fields vertically so `Hero banner image` stays primary and `Hero icon image` is visually secondary with a left-aligned 50% width cap.
+- Moved the live preview into a dedicated verification section after artwork, added a stronger divider break before it, and kept the preview strip always visible even when no artwork is uploaded.
+- Moved the theme mode control into the preview section header row so it reads as a control for the preview rather than part of the form content.
+- Moved the `SAVED` / `UNSAVED` badge into the save row so the status reflects the whole Branding form, not only theme preset selection.
+- Removed the Branding tab icon and the Branding card title icon while keeping all existing upload, remove, manual URL, preset, accent, and save functionality intact.
+- Bumped production version markers to:
+  - root app `0.6.77`
+  - forge-native `0.3.55`
+  - runtime bundle `1.2.89`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+
+### Operational Note
+
+- This release is intentionally layout-only for the Branding surface:
+  - no backend, schema, or draft-flow changes
+  - no new tokens, colors, components, or typography system changes
+  - all changes stay within the existing admin panel design language and the repo design-system constraints
 
 ## Session Update - v0.6.76 Registration UX + Dev Controls Cleanup Released To Production (Mar 9, 2026 13:26 GMT)
 

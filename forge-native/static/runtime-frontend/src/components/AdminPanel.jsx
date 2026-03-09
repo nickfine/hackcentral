@@ -17,7 +17,6 @@ import {
   Megaphone,
   Vote,
   Star,
-  Palette,
   Download,
   Trash2,
   Upload,
@@ -1268,7 +1267,7 @@ function AdminPanel({
           <Tabs.Tab value="overview" icon={<BarChart3 className="w-4 h-4" />}>
             Overview
           </Tabs.Tab>
-          <Tabs.Tab value="branding" icon={<Palette className="w-4 h-4" />}>
+          <Tabs.Tab value="branding">
             Branding
           </Tabs.Tab>
           <Tabs.Tab value="idea-summary" icon={<Users className="w-4 h-4" />}>
@@ -2334,8 +2333,7 @@ function AdminPanel({
 
         <Tabs.Panel value="branding">
           <Card padding="md" className={ADMIN_CARD_CLASS}>
-            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <Palette className="w-5 h-5 text-[var(--accent)]" />
+            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Branding &amp; Theme
             </Card.Title>
             <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
@@ -2354,301 +2352,324 @@ function AdminPanel({
               )}
 
               <VStack gap="5">
-                <div className="branding-field-group">
-                  <div className="branding-field-header">
-                    <div className="flex items-center gap-2">
-                      <span className="field-label">Theme preset</span>
-                      <Badge variant={brandingHasUnsavedChanges ? 'warning' : 'success'}>
-                        {brandingSaveStateLabel}
-                      </Badge>
-                    </div>
-                    <span className="field-hint">Selecting a preset resets the accent to that preset. Accent color below can then be used as a manual override.</span>
+                <section className="branding-section" data-branding-section="theme-accent">
+                  <div className="branding-section-header">
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">Theme &amp; Accent</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Select a preset to define the base atmosphere. Choosing a preset resets the accent to that preset, and the accent field below is an optional override.</span>
                   </div>
-                  <div className="branding-theme-preset-grid" role="radiogroup" aria-label="Theme preset">
-                    {THEME_PRESET_VALUES.map((presetId) => {
-                      const preset = getThemePresetMeta(presetId);
-                      const isActive = brandingPreviewThemePreset === presetId;
-                      return (
+                  <div className="branding-field-group">
+                    <div className="branding-theme-preset-grid" role="radiogroup" aria-label="Theme preset">
+                      {THEME_PRESET_VALUES.map((presetId) => {
+                        const preset = getThemePresetMeta(presetId);
+                        const isActive = brandingPreviewThemePreset === presetId;
+                        return (
+                          <button
+                            key={presetId}
+                            type="button"
+                            role="radio"
+                            aria-checked={isActive}
+                            className={cn(
+                              'branding-theme-preset-card',
+                              isActive && 'branding-theme-preset-card-active'
+                            )}
+                            onClick={() => handleThemePresetChange(presetId)}
+                            disabled={isSavingBranding}
+                          >
+                            <span
+                              className="branding-theme-preset-swatch"
+                              style={{ background: preset.accent }}
+                              aria-hidden="true"
+                            />
+                            <span className="branding-theme-preset-copy">
+                              <span className="branding-theme-preset-label">{preset.label}</span>
+                              <span className="branding-theme-preset-description">{preset.description}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="branding-field-header">
+                      <label htmlFor="branding-accent-color" className="text-sm font-semibold text-gray-900 dark:text-white">Accent color</label>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Optional manual override for the selected preset&apos;s primary actions, focus states, and runtime highlights.</span>
+                    </div>
+                    <div className="branding-color-row">
+                      <input
+                        id="branding-accent-color"
+                        type="color"
+                        className="branding-color-swatch"
+                        value={brandingPreviewAccent}
+                        onChange={(event) => handleAccentColorChange(event.target.value)}
+                        disabled={isSavingBranding}
+                      />
+                      <input
+                        type="text"
+                        className="field-input branding-color-hex"
+                        value={brandingForm.accentColor}
+                        onChange={(event) => handleAccentColorChange(event.target.value)}
+                        placeholder="#0f766e"
+                        disabled={isSavingBranding}
+                      />
+                      <span className="branding-color-preview-chip" style={{ background: brandingPreviewAccent }} aria-hidden />
+                    </div>
+                    <div className="branding-preset-row" role="group" aria-label="Accent color presets">
+                      {BRANDING_PRESET_COLORS.map((hex) => (
                         <button
-                          key={presetId}
+                          key={hex}
                           type="button"
-                          role="radio"
-                          aria-checked={isActive}
                           className={cn(
-                            'branding-theme-preset-card',
-                            isActive && 'branding-theme-preset-card-active'
+                            'branding-preset-button',
+                            brandingPreviewAccent.toLowerCase() === hex.toLowerCase() && 'branding-preset-button-active'
                           )}
-                          onClick={() => handleThemePresetChange(presetId)}
+                          style={{ background: hex }}
+                          onClick={() => handleAccentColorChange(hex)}
                           disabled={isSavingBranding}
-                        >
-                          <span
-                            className="branding-theme-preset-swatch"
-                            style={{ background: preset.accent }}
-                            aria-hidden="true"
-                          />
-                          <span className="branding-theme-preset-copy">
-                            <span className="branding-theme-preset-label">{preset.label}</span>
-                            <span className="branding-theme-preset-description">{preset.description}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="branding-field-group">
-                  <div className="branding-field-header">
-                    <label htmlFor="branding-accent-color" className="field-label">Accent color</label>
-                    <span className="field-hint">Optional manual override for the selected preset&apos;s primary actions, focus states, and runtime highlights.</span>
-                  </div>
-                  <div className="branding-color-row">
-                    <input
-                      id="branding-accent-color"
-                      type="color"
-                      className="branding-color-swatch"
-                      value={brandingPreviewAccent}
-                      onChange={(event) => handleAccentColorChange(event.target.value)}
-                      disabled={isSavingBranding}
-                    />
-                    <input
-                      type="text"
-                      className="field-input branding-color-hex"
-                      value={brandingForm.accentColor}
-                      onChange={(event) => handleAccentColorChange(event.target.value)}
-                      placeholder="#0f766e"
-                      disabled={isSavingBranding}
-                    />
-                    <span className="branding-color-preview-chip" style={{ background: brandingPreviewAccent }} aria-hidden />
-                  </div>
-                  <div className="branding-preset-row" role="group" aria-label="Accent color presets">
-                    {BRANDING_PRESET_COLORS.map((hex) => (
-                      <button
-                        key={hex}
-                        type="button"
-                        className={cn(
-                          'branding-preset-button',
-                          brandingPreviewAccent.toLowerCase() === hex.toLowerCase() && 'branding-preset-button-active'
-                        )}
-                        style={{ background: hex }}
-                        onClick={() => handleAccentColorChange(hex)}
-                        disabled={isSavingBranding}
-                        aria-label={`Use accent ${hex}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="branding-image-grid">
-                  <div className="branding-field-group">
-                    <div className="branding-field-header">
-                      <span className="field-label">Hero banner image</span>
-                      <span className="field-hint">Wide artwork for the full-width dashboard hero background. Use a wide image, ideally 1600×400 or larger.</span>
+                          aria-label={`Use accent ${hex}`}
+                        />
+                      ))}
                     </div>
-                    <input
-                      ref={brandingBannerImageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={(event) => handleBrandingImagePicked('banner', event)}
-                    />
-                    <div className="branding-banner-preview-card">
-                      <div className="branding-banner-preview-media">
-                        {brandingPreviewBannerImage ? (
-                          <img
-                            src={brandingPreviewBannerImage}
-                            alt="Current hero banner"
-                            className="branding-banner-preview-image"
-                          />
-                        ) : (
-                          <div className="branding-banner-preview-empty">
-                            <ImagePlus className="h-5 w-5" />
-                            <span>No banner uploaded</span>
+                  </div>
+                </section>
+
+                <section className="branding-section" data-branding-section="event-artwork">
+                  <div className="branding-section-header">
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">Event Artwork</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Banner artwork appears as the dashboard hero background. Icon artwork appears in the hero mark area.</span>
+                  </div>
+                  <div className="branding-artwork-stack">
+                    <div className="branding-field-group">
+                      <div className="branding-field-header">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">Hero banner image</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Wide artwork for the full-width dashboard hero background. Use a wide image, ideally 1600×400 or larger.</span>
+                      </div>
+                      <input
+                        ref={brandingBannerImageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => handleBrandingImagePicked('banner', event)}
+                      />
+                      <div className="branding-banner-preview-card">
+                        <div className="branding-banner-preview-media">
+                          {brandingPreviewBannerImage ? (
+                            <img
+                              src={brandingPreviewBannerImage}
+                              alt="Current hero banner"
+                              className="branding-banner-preview-image"
+                            />
+                          ) : (
+                            <div className="branding-banner-preview-empty">
+                              <ImagePlus className="h-5 w-5" />
+                              <span>No banner uploaded</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="branding-banner-preview-actions">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<Upload className="w-4 h-4" />}
+                            onClick={() => handleOpenBrandingImagePicker('banner')}
+                            disabled={!isEventAdmin || isSavingBranding}
+                            loading={isUploadingBrandingImage}
+                          >
+                            {brandingPreviewBannerImage ? 'Replace banner' : 'Upload banner'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<X className="w-4 h-4" />}
+                            onClick={() => handleClearBrandingImage('banner')}
+                            disabled={!isEventAdmin || isSavingBranding || !brandingPreviewBannerImage}
+                          >
+                            Remove
+                          </Button>
+                          <button
+                            type="button"
+                            className="branding-advanced-toggle"
+                            onClick={() => setShowBannerImageAdvancedField((current) => !current)}
+                            disabled={isSavingBranding}
+                          >
+                            {showBannerImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                          </button>
+                        </div>
+                      </div>
+                      {showBannerImageAdvancedField ? (
+                        <Input
+                          label="Manual banner image URL"
+                          type="url"
+                          value={brandingForm.bannerImageUrl}
+                          onChange={(e) => handleBrandingImageUrlChange('bannerImageUrl', e.target.value)}
+                          placeholder="https://..."
+                          helperText="Advanced override if you need to point at an externally hosted banner image."
+                          disabled={isSavingBranding}
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="branding-artwork-icon-shell">
+                      <div className="branding-field-group">
+                        <div className="branding-field-header">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">Hero icon image</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Square logo-style artwork for the hero mark area. Use a square image, ideally 400×400 or larger.</span>
+                        </div>
+                        <input
+                          ref={brandingHeroIconInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(event) => handleBrandingImagePicked('icon', event)}
+                        />
+                        <div className="branding-banner-preview-card">
+                          <div className="branding-banner-preview-media branding-icon-preview-media">
+                            {brandingPreviewHeroIconImage ? (
+                              <img
+                                src={brandingPreviewHeroIconImage}
+                                alt="Current hero icon"
+                                className="branding-banner-preview-image branding-icon-preview-image"
+                              />
+                            ) : (
+                              <div className="branding-banner-preview-empty">
+                                <ImagePlus className="h-5 w-5" />
+                                <span>No icon uploaded</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="branding-banner-preview-actions">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          leftIcon={<Upload className="w-4 h-4" />}
-                          onClick={() => handleOpenBrandingImagePicker('banner')}
-                          disabled={!isEventAdmin || isSavingBranding}
-                          loading={isUploadingBrandingImage}
-                        >
-                          {brandingPreviewBannerImage ? 'Replace banner' : 'Upload banner'}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          leftIcon={<X className="w-4 h-4" />}
-                          onClick={() => handleClearBrandingImage('banner')}
-                          disabled={!isEventAdmin || isSavingBranding || !brandingPreviewBannerImage}
-                        >
-                          Remove
-                        </Button>
-                        <button
-                          type="button"
-                          className="branding-advanced-toggle"
-                          onClick={() => setShowBannerImageAdvancedField((current) => !current)}
-                          disabled={isSavingBranding}
-                        >
-                          {showBannerImageAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
-                        </button>
-                      </div>
-                    </div>
-                    {showBannerImageAdvancedField ? (
-                      <Input
-                        label="Manual banner image URL"
-                        type="url"
-                        value={brandingForm.bannerImageUrl}
-                        onChange={(e) => handleBrandingImageUrlChange('bannerImageUrl', e.target.value)}
-                        placeholder="https://..."
-                        helperText="Advanced override if you need to point at an externally hosted banner image."
-                        disabled={isSavingBranding}
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="branding-field-group">
-                    <div className="branding-field-header">
-                      <span className="field-label">Hero icon image</span>
-                      <span className="field-hint">Square logo-style artwork for the hero mark area. Use a square image, ideally 400×400 or larger.</span>
-                    </div>
-                    <input
-                      ref={brandingHeroIconInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={(event) => handleBrandingImagePicked('icon', event)}
-                    />
-                    <div className="branding-banner-preview-card">
-                      <div className="branding-banner-preview-media branding-icon-preview-media">
-                        {brandingPreviewHeroIconImage ? (
-                          <img
-                            src={brandingPreviewHeroIconImage}
-                            alt="Current hero icon"
-                            className="branding-banner-preview-image branding-icon-preview-image"
-                          />
-                        ) : (
-                          <div className="branding-banner-preview-empty">
-                            <ImagePlus className="h-5 w-5" />
-                            <span>No icon uploaded</span>
+                          <div className="branding-banner-preview-actions">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              leftIcon={<Upload className="w-4 h-4" />}
+                              onClick={() => handleOpenBrandingImagePicker('icon')}
+                              disabled={!isEventAdmin || isSavingBranding}
+                              loading={isUploadingBrandingImage}
+                            >
+                              {brandingPreviewHeroIconImage ? 'Replace icon' : 'Upload icon'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              leftIcon={<X className="w-4 h-4" />}
+                              onClick={() => handleClearBrandingImage('icon')}
+                              disabled={!isEventAdmin || isSavingBranding || !brandingPreviewHeroIconImage}
+                            >
+                              Remove
+                            </Button>
+                            <button
+                              type="button"
+                              className="branding-advanced-toggle"
+                              onClick={() => setShowHeroIconAdvancedField((current) => !current)}
+                              disabled={isSavingBranding}
+                            >
+                              {showHeroIconAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
+                            </button>
                           </div>
-                        )}
-                      </div>
-                      <div className="branding-banner-preview-actions">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          leftIcon={<Upload className="w-4 h-4" />}
-                          onClick={() => handleOpenBrandingImagePicker('icon')}
-                          disabled={!isEventAdmin || isSavingBranding}
-                          loading={isUploadingBrandingImage}
-                        >
-                          {brandingPreviewHeroIconImage ? 'Replace icon' : 'Upload icon'}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          leftIcon={<X className="w-4 h-4" />}
-                          onClick={() => handleClearBrandingImage('icon')}
-                          disabled={!isEventAdmin || isSavingBranding || !brandingPreviewHeroIconImage}
-                        >
-                          Remove
-                        </Button>
-                        <button
-                          type="button"
-                          className="branding-advanced-toggle"
-                          onClick={() => setShowHeroIconAdvancedField((current) => !current)}
-                          disabled={isSavingBranding}
-                        >
-                          {showHeroIconAdvancedField ? 'Hide manual URL' : 'Use manual URL'}
-                        </button>
-                      </div>
-                    </div>
-                    {showHeroIconAdvancedField ? (
-                      <Input
-                        label="Manual hero icon URL"
-                        type="url"
-                        value={brandingForm.heroIconImageUrl}
-                        onChange={(e) => handleBrandingImageUrlChange('heroIconImageUrl', e.target.value)}
-                        placeholder="https://..."
-                        helperText="Advanced override if you need to point at an externally hosted icon image."
-                        disabled={isSavingBranding}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-
-                <Select
-                  label="Theme"
-                  value={brandingForm.themePreference}
-                  onChange={(value) => handleThemePreferenceChange(value)}
-                  options={[
-                    { value: 'system', label: 'System (follow device)' },
-                    { value: 'light', label: 'Light' },
-                    { value: 'dark', label: 'Dark' },
-                  ]}
-                  disabled={isSavingBranding}
-                />
-                <div
-                  className="branding-live-preview"
-                  data-color-mode={brandingPreviewColorMode}
-                  data-theme-preset={brandingPreviewThemePreset}
-                  style={brandingPreviewStyle}
-                >
-                  {brandingPreviewBannerImage ? (
-                    <img
-                      src={brandingPreviewBannerImage}
-                      alt=""
-                      className="branding-live-preview-banner"
-                    />
-                  ) : null}
-                  <div className="branding-live-preview-overlay" />
-                  <div className="branding-live-preview-content">
-                    <div className="branding-live-preview-tag">Dashboard preview</div>
-                    <div className="branding-live-preview-title-row">
-                      <div
-                        className={cn(
-                          'branding-live-preview-mark',
-                          brandingPreviewHeroIconImage ? 'branding-live-preview-mark-with-icon' : null
-                        )}
-                        style={brandingPreviewHeroIconImage ? undefined : { background: 'var(--accent)' }}
-                        aria-hidden={brandingPreviewHeroIconImage ? 'true' : undefined}
-                      >
-                        {brandingPreviewHeroIconImage ? (
-                          <img
-                            src={brandingPreviewHeroIconImage}
-                            alt=""
-                            className="branding-live-preview-icon"
+                        </div>
+                        {showHeroIconAdvancedField ? (
+                          <Input
+                            label="Manual hero icon URL"
+                            type="url"
+                            value={brandingForm.heroIconImageUrl}
+                            onChange={(e) => handleBrandingImageUrlChange('heroIconImageUrl', e.target.value)}
+                            placeholder="https://..."
+                            helperText="Advanced override if you need to point at an externally hosted icon image."
+                            disabled={isSavingBranding}
                           />
                         ) : null}
                       </div>
-                      <div>
-                        <p className="branding-live-preview-title">HackDay hero</p>
-                        <p className="branding-live-preview-copy">Inline hero copy and Admin Update remain the messaging surfaces.</p>
-                      </div>
-                    </div>
-                    <div className="branding-live-preview-actions">
-                      <button type="button" className="branding-live-preview-button">
-                        Primary action
-                      </button>
-                      <span className="branding-live-preview-badge">
-                        {`${getThemePresetMeta(brandingPreviewThemePreset).label} · ${
-                          brandingForm.themePreference === 'system' ? 'System theme' : `${brandingForm.themePreference} theme`
-                        }`}
-                      </span>
                     </div>
                   </div>
+                </section>
+
+                <div className="branding-section-break" aria-hidden="true" />
+
+                <section className="branding-section branding-preview-section" data-branding-section="live-preview">
+                  <div className="branding-preview-strip-header">
+                    <div className="branding-section-header">
+                      <span className="text-base font-semibold text-gray-900 dark:text-white">Live Preview</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Live dashboard hero sample for the selected preset, accent, banner, icon, and theme mode.</span>
+                    </div>
+                    <div className="branding-preview-mode-field">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Theme mode</span>
+                      <Select
+                        className="branding-theme-select"
+                        value={brandingForm.themePreference}
+                        onChange={(value) => handleThemePreferenceChange(value)}
+                        options={[
+                          { value: 'system', label: 'System (follow device)' },
+                          { value: 'light', label: 'Light' },
+                          { value: 'dark', label: 'Dark' },
+                        ]}
+                        disabled={isSavingBranding}
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className="branding-live-preview"
+                    data-color-mode={brandingPreviewColorMode}
+                    data-theme-preset={brandingPreviewThemePreset}
+                    style={brandingPreviewStyle}
+                  >
+                    {brandingPreviewBannerImage ? (
+                      <img
+                        src={brandingPreviewBannerImage}
+                        alt=""
+                        className="branding-live-preview-banner"
+                      />
+                    ) : null}
+                    <div className="branding-live-preview-overlay" />
+                    <div className="branding-live-preview-content">
+                      <div className="branding-live-preview-title-row">
+                        <div
+                          className={cn(
+                            'branding-live-preview-mark',
+                            brandingPreviewHeroIconImage ? 'branding-live-preview-mark-with-icon' : null
+                          )}
+                          style={brandingPreviewHeroIconImage ? undefined : { background: 'var(--accent)' }}
+                          aria-hidden={brandingPreviewHeroIconImage ? 'true' : undefined}
+                        >
+                          {brandingPreviewHeroIconImage ? (
+                            <img
+                              src={brandingPreviewHeroIconImage}
+                              alt=""
+                              className="branding-live-preview-icon"
+                            />
+                          ) : null}
+                        </div>
+                        <div>
+                          <p className="branding-live-preview-title">HackDay hero</p>
+                          <p className="branding-live-preview-copy">Inline hero copy and Admin Update remain the messaging surfaces.</p>
+                        </div>
+                      </div>
+                      <div className="branding-live-preview-actions">
+                        <button type="button" className="branding-live-preview-button">
+                          Primary action
+                        </button>
+                        <span className="branding-live-preview-badge">
+                          {`${getThemePresetMeta(brandingPreviewThemePreset).label} · ${
+                            brandingForm.themePreference === 'system' ? 'System theme' : `${brandingForm.themePreference} theme`
+                          }`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="branding-save-row">
+                  <div className="branding-save-status">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Save status</span>
+                    <Badge variant={brandingHasUnsavedChanges ? 'warning' : 'success'}>
+                      {brandingSaveStateLabel}
+                    </Badge>
+                  </div>
+                  <Button
+                    className={ADMIN_PRIMARY_BUTTON}
+                    onClick={handleSaveBranding}
+                    loading={isSavingBranding}
+                    disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin || !brandingHasUnsavedChanges}
+                  >
+                    {isSavingBranding ? 'Saving...' : isEventAdmin ? 'Save branding' : 'Save (creator/co-admin only)'}
+                  </Button>
                 </div>
-                <Button
-                  className={ADMIN_PRIMARY_BUTTON}
-                  onClick={handleSaveBranding}
-                  loading={isSavingBranding}
-                  disabled={isSavingBranding || isUploadingBrandingImage || !isEventAdmin || !brandingHasUnsavedChanges}
-                >
-                  {isSavingBranding ? 'Saving...' : isEventAdmin ? 'Save branding' : 'Save (creator/co-admin only)'}
-                </Button>
               </VStack>
             </Card>
           </Tabs.Panel>
