@@ -20,11 +20,53 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.80 (root app)
+**Version:** 0.6.81 (root app)
 **Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.58
-**Runtime Bundle Version:** 1.2.92
+**Forge Native Package:** 0.3.59
+**Runtime Bundle Version:** 1.2.93
+
+## Session Update - v0.6.81 New To HackDay Branding Artwork Released To Production (Mar 9, 2026 23:35 GMT)
+
+### Completed
+
+- Released a runtime/admin branding follow-up that adds event-managed artwork for the `New to HackDay?` page.
+- Extended the existing branding model with `newToHackdayImageUrl` and reused the existing admin branding save flow, config-mode draft path, and transient admin preview behavior.
+- Added a third image control under `Admin Panel -> Branding -> Event Artwork` for the `New To HackDay page image`.
+- Wired the saved branding image through to the `New to HackDay?` page so it now resolves from branding/config-mode first and falls back to the bundled asset only when unset.
+- Refined the new artwork preview so it stays visually bounded in the Branding form instead of spanning the full artwork row.
+- Bumped production version markers to:
+  - root app `0.6.81`
+  - forge-native `0.3.59`
+  - runtime bundle `1.2.93`
+  - HackCentral UI marker unchanged at `0.6.66`
+  - HackCentral macro marker unchanged at `0.6.66`
+
+### Validation
+
+- Local validation passed before release:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-admin-branding-live-preview.spec.ts`
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend`
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build`
+- Production deploy/install executed per [`DEPLOY.md`](/Users/nickster/Downloads/HackCentral/DEPLOY.md):
+  - predeploy snapshot:
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-233109Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-233109Z.json)
+    - [`HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-233109Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260309-233109Z.md)
+  - Forge CLI returned `✔ Deployed`
+  - production install reported the site was already at the latest version after upgrade
+- Postdeploy production validation with `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json` confirmed:
+  - runtime console logged `[HackCentral Runtime v2] Module loaded - 1.2.93`
+  - root document carried `data-color-mode="light"` and `data-theme-preset="default"`
+  - live child runtime iframe mounted and showed the runtime shell/navigation beyond the Confluence host page
+  - artifact set:
+    - [`release-version-check-2026-03-09T23-35-47-798Z.json`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T23-35-47-798Z.json)
+    - [`release-version-check-2026-03-09T23-35-47-798Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T23-35-47-798Z.md)
+    - [`release-version-check-2026-03-09T23-35-47-798Z.png`](/Users/nickster/Downloads/HackCentral/docs/artifacts/release-version-check-2026-03-09T23-35-47-798Z.png)
+
+### Operational Note
+
+- The earlier full-page hosted probe for this release was slower than expected, so the authoritative release evidence is the later direct iframe-targeted artifact trio at `2026-03-09T23-35-47.798Z`.
 
 ## Session Update - v0.6.80 Analytics Consistency Correction Released To Production (Mar 9, 2026 15:32 GMT)
 
