@@ -398,6 +398,7 @@ button {
 
 .side-link {
   border: 1px solid transparent;
+  border-left: 3px solid transparent;
   background: transparent;
   border-radius: 10px;
   color: var(--text-soft);
@@ -406,21 +407,32 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 10px;
+  padding: 0 10px 0 12px;
   cursor: pointer;
   text-align: left;
 }
 
 .side-link:hover {
-  background: var(--surface);
-  border-color: var(--line);
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface));
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
 }
 
 .side-link-active {
-  color: var(--text);
-  background: var(--brand-soft);
-  border-color: var(--brand);
+  color: var(--brand-strong);
+  background: color-mix(in srgb, var(--brand) 6%, var(--surface));
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left: 3px solid var(--brand);
   font-weight: 600;
+}
+
+.side-link-active:hover {
+  background: color-mix(in srgb, var(--brand) 6%, var(--surface));
+  border-left-color: var(--brand);
 }
 
 .side-icon {
