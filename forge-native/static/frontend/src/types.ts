@@ -360,6 +360,7 @@ export interface PersonSnapshot {
   id: string;
   fullName: string;
   email: string;
+  teamLabel?: string | null;
   experienceLevel: string | null;
   experienceLabel: string | null;
   mentorCapacity: number;

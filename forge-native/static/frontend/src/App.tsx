@@ -727,6 +727,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p1',
       fullName: 'Nick Fine',
       email: 'nick.fine@adaptavist.com',
+      teamLabel: 'Platform Engineering',
       experienceLevel: 'power_user',
       experienceLabel: 'AI Power User',
       mentorCapacity: 4,
@@ -738,6 +739,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p2',
       fullName: 'Priya Sharma',
       email: 'priya.sharma@adaptavist.com',
+      teamLabel: 'Product Ops',
       experienceLevel: 'power_user',
       experienceLabel: 'AI Power User',
       mentorCapacity: 3,
@@ -749,6 +751,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p3',
       fullName: 'Tom Harvey',
       email: 'tom.harvey@adaptavist.com',
+      teamLabel: 'Knowledge Systems',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
@@ -760,6 +763,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p4',
       fullName: 'Sam Chen',
       email: 'sam.chen@adaptavist.com',
+      teamLabel: 'Solutions Consulting',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
@@ -771,6 +775,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p5',
       fullName: 'Marcus Devereux',
       email: 'marcus.devereux@adaptavist.com',
+      teamLabel: 'RevOps',
       experienceLevel: 'power_user',
       experienceLabel: 'AI Power User',
       mentorCapacity: 3,
@@ -782,6 +787,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p6',
       fullName: 'Chloe Richards',
       email: 'chloe.richards@adaptavist.com',
+      teamLabel: 'Agile Delivery',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
@@ -793,6 +799,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p7',
       fullName: 'Lena Müller',
       email: 'lena.muller@adaptavist.com',
+      teamLabel: 'Developer Experience',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
@@ -804,6 +811,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p8',
       fullName: 'Danielle Kowalski',
       email: 'danielle.kowalski@adaptavist.com',
+      teamLabel: 'AI Enablement',
       experienceLevel: 'power_user',
       experienceLabel: 'AI Power User',
       mentorCapacity: 4,
@@ -815,6 +823,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p9',
       fullName: 'Jordan Taylor',
       email: 'jordan.taylor@adaptavist.com',
+      teamLabel: 'Quality Engineering',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 0,
@@ -826,6 +835,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p10',
       fullName: 'Yemi Okafor',
       email: 'yemi.okafor@adaptavist.com',
+      teamLabel: 'Strategy',
       experienceLevel: 'curious',
       experienceLabel: 'AI Curious',
       mentorCapacity: 0,
@@ -837,6 +847,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p11',
       fullName: 'Fatima Al-Hassan',
       email: 'fatima.alhassan@adaptavist.com',
+      teamLabel: 'Internal Communications',
       experienceLevel: 'curious',
       experienceLabel: 'AI Curious',
       mentorCapacity: 0,
@@ -848,6 +859,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p12',
       fullName: 'Ravi Patel',
       email: 'ravi.patel@adaptavist.com',
+      teamLabel: 'API Platform',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 2,
@@ -859,6 +871,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p13',
       fullName: 'Chris Brennan',
       email: 'chris.brennan@adaptavist.com',
+      teamLabel: 'Site Reliability',
       experienceLevel: 'comfortable',
       experienceLabel: 'AI Comfortable',
       mentorCapacity: 0,
@@ -870,6 +883,7 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       id: 'p14',
       fullName: 'Alex Rivera',
       email: 'alex.rivera@adaptavist.com',
+      teamLabel: 'PMO',
       experienceLevel: 'newbie',
       experienceLabel: 'AI Newbie',
       mentorCapacity: 0,
@@ -3814,8 +3828,13 @@ export function App(): JSX.Element {
 
   const handleModerateProblem = useCallback(
     async (problem: ProblemListItem, decision: 'remove' | 'reinstate') => {
-      if (!problemCanModerate) {
-        setActionError('Moderator access is required for remove/reinstate actions.');
+      const canRemoveProblem = decision === 'remove' && problem.canRemove;
+      if (!problemCanModerate && !canRemoveProblem) {
+        setActionError(
+          decision === 'remove'
+            ? 'Moderator or owner access is required for remove actions.'
+            : 'Moderator access is required for reinstate actions.'
+        );
         return;
       }
       setProblemModerationPendingId(problem.id);
@@ -4126,31 +4145,41 @@ export function App(): JSX.Element {
   const leaders = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'leader').length;
   const others = Math.max(0, allPeople.length - frontline - leaders);
 
+  const normalizeRecognitionPersonKey = (value: string): string => value.trim().toLowerCase().replace(/\./g, '');
+  const buildRecognitionPersonKeys = (value: string): string[] => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue) return [];
+    const parts = normalizedValue.split(/\s+/).filter(Boolean);
+    const keys = new Set<string>([normalizeRecognitionPersonKey(normalizedValue)]);
+    if (parts.length >= 2) {
+      const firstName = parts[0];
+      const lastInitial = parts[parts.length - 1]?.[0];
+      if (firstName && lastInitial) {
+        keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}`));
+        keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}.`));
+      }
+    }
+    return Array.from(keys);
+  };
+
   const personLabelByName = useMemo(() => {
     const labelMap = new Map<string, string>();
     allPeople.forEach((person) => {
-      labelMap.set(
-        person.fullName.trim().toLowerCase(),
-        person.capabilities[0] ?? person.experienceLabel ?? 'General'
-      );
+      const label = person.teamLabel ?? person.experienceLabel ?? 'General';
+      buildRecognitionPersonKeys(person.fullName).forEach((key) => {
+        labelMap.set(key, label);
+      });
     });
     return labelMap;
   }, [allPeople]);
 
-  const problemCountBySolver = useMemo(() => {
-    const countMap = new Map<string, { name: string; count: number }>();
-    problemItems
-      .filter((problem) => problem.status === 'solved')
-      .forEach((problem) => {
-        const key = problem.createdByName.trim().toLowerCase();
-        const current = countMap.get(key);
-        countMap.set(key, {
-          name: current?.name ?? problem.createdByName,
-          count: (current?.count ?? 0) + 1,
-        });
-      });
-    return countMap;
-  }, [problemItems]);
+  const personLabelById = useMemo(() => {
+    const labelMap = new Map<string, string>();
+    allPeople.forEach((person) => {
+      labelMap.set(person.id, person.teamLabel ?? person.experienceLabel ?? 'General');
+    });
+    return labelMap;
+  }, [allPeople]);
 
   const artifactCountByAuthor = useMemo(() => {
     const countMap = new Map<string, { name: string; count: number }>();
@@ -4179,12 +4208,16 @@ export function App(): JSX.Element {
   }, [featuredHacks]);
 
   type RecognitionListRow = {
+    userId?: string;
     name: string;
     label: string;
     countLabel: string;
   };
 
-  const resolveRecognitionLabel = (name: string): string => personLabelByName.get(name.trim().toLowerCase()) ?? 'General';
+  const resolveRecognitionLabel = (name: string, userId?: string): string =>
+    (userId ? personLabelById.get(userId) : undefined) ??
+    personLabelByName.get(normalizeRecognitionPersonKey(name)) ??
+    'General';
   const formatContributionCount = (count: number, singular: string, plural: string): string =>
     `${count} ${count === 1 ? singular : plural}`;
 
@@ -4193,8 +4226,9 @@ export function App(): JSX.Element {
       ? recognitionLeaderboards.builders
           .slice(0, 5)
           .map((entry) => ({
+            userId: entry.userId,
             name: entry.userName,
-            label: resolveRecognitionLabel(entry.userName),
+            label: resolveRecognitionLabel(entry.userName, entry.userId),
             countLabel: formatContributionCount(entry.count, 'hack built', 'hacks built'),
           }))
       : [...hackCountByAuthor.entries()]
@@ -4210,8 +4244,9 @@ export function App(): JSX.Element {
       ? recognitionLeaderboards.sharers
           .slice(0, 5)
           .map((entry) => ({
+            userId: entry.userId,
             name: entry.userName,
-            label: resolveRecognitionLabel(entry.userName),
+            label: resolveRecognitionLabel(entry.userName, entry.userId),
             countLabel: formatContributionCount(entry.count, 'artifact published', 'artifacts published'),
           }))
       : [...(artifactCountByAuthor.size > 0 ? artifactCountByAuthor.entries() : hackCountByAuthor.entries())]
@@ -4227,33 +4262,29 @@ export function App(): JSX.Element {
       ? recognitionLeaderboards.solvers
           .slice(0, 5)
           .map((entry) => ({
+            userId: entry.userId,
             name: entry.userName,
-            label: resolveRecognitionLabel(entry.userName),
+            label: resolveRecognitionLabel(entry.userName, entry.userId),
             countLabel: formatContributionCount(entry.count, 'pain solved', 'pains solved'),
           }))
-      : [...problemCountBySolver.entries()]
-          .sort((a, b) => b[1].count - a[1].count)
-          .slice(0, 3)
-          .map(([, entry]) => ({
-            name: entry.name,
-            label: resolveRecognitionLabel(entry.name),
-            countLabel: formatContributionCount(entry.count, 'pain solved', 'pains solved'),
-          }));
+      : [];
   const mentorRows: RecognitionListRow[] =
     recognitionLeaderboards && recognitionLeaderboards.mentors.length > 0
       ? recognitionLeaderboards.mentors
           .slice(0, 5)
           .map((entry) => ({
+            userId: entry.userId,
             name: entry.userName,
-            label: resolveRecognitionLabel(entry.userName),
+            label: resolveRecognitionLabel(entry.userName, entry.userId),
             countLabel: formatContributionCount(entry.count, 'mentor session', 'mentor sessions'),
           }))
       : mentorSignal && mentorSignal.leaderboard.length > 0
           ? mentorSignal.leaderboard
               .slice(0, 3)
               .map((entry) => ({
+                userId: entry.userId,
                 name: entry.userName,
-                label: resolveRecognitionLabel(entry.userName),
+                label: resolveRecognitionLabel(entry.userName, entry.userId),
                 countLabel: formatContributionCount(entry.mentorSessionsUsed, 'mentor session', 'mentor sessions'),
               }))
           : allPeople
@@ -4261,7 +4292,7 @@ export function App(): JSX.Element {
               .slice(0, 3)
               .map((person) => ({
                 name: person.fullName,
-                label: person.capabilities[0] ?? person.experienceLabel ?? 'General',
+                label: person.teamLabel ?? person.experienceLabel ?? 'General',
                 countLabel: formatContributionCount(person.mentorSessionsUsed, 'mentor session', 'mentor sessions'),
               }));
   const dashboardBadges = BADGES.map((badge) =>
@@ -6156,7 +6187,7 @@ export function App(): JSX.Element {
               <section>
                 <h2 className="list-title">HackCentral Helpers <span>({helpers.length})</span></h2>
                 <div className="grid people-grid teamup-people-grid">
-                  {helpers.slice(0, 6).map((person) => (
+                  {helpers.map((person) => (
                     <PersonCard key={`helper-${person.id}`} item={person} />
                   ))}
                 </div>

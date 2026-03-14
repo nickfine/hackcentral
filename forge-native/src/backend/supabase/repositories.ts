@@ -2914,6 +2914,79 @@ function buildDisplayNameFromEmail(email: string): string {
   return localPart?.trim() || 'Unknown';
 }
 
+function buildPrimaryTeamAssignmentLookup(
+  teamRows: Record<string, unknown>[],
+  teamMemberRows: Record<string, unknown>[]
+): {
+  primaryTeamByUserId: Map<string, string>;
+  teamLabelById: Map<string, string>;
+} {
+  const teamLabelById = new Map<string, string>();
+  for (const row of teamRows) {
+    const teamId = getStringField(row, ['id']);
+    if (!teamId) continue;
+    const label =
+      getStringField(row, ['name', 'title', 'display_name', 'slug']) ??
+      `Team ${teamId.slice(Math.max(0, teamId.length - 6))}`;
+    teamLabelById.set(teamId, label);
+  }
+
+  const membershipsByUserId = new Map<
+    string,
+    Array<{ teamId: string; rolePriority: number; createdAtMs: number; sourceIndex: number }>
+  >();
+  const rolePriority = (role: string | null): number => {
+    if (!role) return 4;
+    const normalized = role.trim().toLowerCase();
+    if (normalized === 'owner') return 0;
+    if (normalized === 'admin') return 1;
+    if (normalized === 'lead') return 2;
+    if (normalized === 'member') return 3;
+    return 4;
+  };
+  const membershipSortTime = (value: string | null): number => {
+    if (!value) return Number.POSITIVE_INFINITY;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+  };
+
+  for (let index = 0; index < teamMemberRows.length; index += 1) {
+    const row = teamMemberRows[index];
+    const userId = getStringField(row, ['user_id', 'userId']);
+    const teamId = getStringField(row, ['team_id', 'teamId']);
+    const status = getStringField(row, ['status'])?.trim().toLowerCase() ?? null;
+    if (!userId || !teamId || !isAcceptedTeamMembershipStatus(status)) continue;
+    const createdAt = getStringField(row, ['created_at', 'createdAt']);
+    const existing = membershipsByUserId.get(userId) ?? [];
+    existing.push({
+      teamId,
+      rolePriority: rolePriority(getStringField(row, ['role'])),
+      createdAtMs: membershipSortTime(createdAt),
+      sourceIndex: index,
+    });
+    membershipsByUserId.set(userId, existing);
+  }
+
+  const primaryTeamByUserId = new Map<string, string>();
+  for (const [userId, memberships] of membershipsByUserId) {
+    memberships.sort((a, b) => {
+      if (a.rolePriority !== b.rolePriority) return a.rolePriority - b.rolePriority;
+      if (a.createdAtMs !== b.createdAtMs) return a.createdAtMs - b.createdAtMs;
+      if (a.teamId !== b.teamId) return a.teamId.localeCompare(b.teamId);
+      return a.sourceIndex - b.sourceIndex;
+    });
+    const primary = memberships[0];
+    if (primary) {
+      primaryTeamByUserId.set(userId, primary.teamId);
+    }
+  }
+
+  return {
+    primaryTeamByUserId,
+    teamLabelById,
+  };
+}
+
 export class SupabaseRepository {
   private readonly client: SupabaseRestClient;
 
@@ -3721,6 +3794,7 @@ export class SupabaseRepository {
         }),
     ]);
     const showcaseByProjectId = new Map(showcaseRows.map((row) => [row.project_id, row]));
+    const { primaryTeamByUserId, teamLabelById } = buildPrimaryTeamAssignmentLookup(teamRows, teamMemberRows);
 
     const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
 
@@ -3795,6 +3869,9 @@ export class SupabaseRepository {
         id: user.id,
         fullName: user.full_name?.trim() || buildDisplayNameFromEmail(user.email),
         email: user.email,
+        teamLabel: primaryTeamByUserId.get(user.id)
+          ? teamLabelById.get(primaryTeamByUserId.get(user.id) ?? '') ?? null
+          : null,
         experienceLevel: user.experience_level,
         experienceLabel: toExperienceLabel(user.experience_level),
         mentorCapacity,
