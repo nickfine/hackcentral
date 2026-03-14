@@ -119,6 +119,37 @@ button {
   color: var(--text);
 }
 
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  z-index: 30;
+}
+
+.search-suggestion {
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-soft);
+  font-size: var(--tier4-size);
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.search-suggestion:hover {
+  background: color-mix(in srgb, var(--brand-soft) 22%, var(--surface));
+  color: var(--brand-strong);
+}
+
 .top-actions {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-import React, { type ReactNode, type Ref } from 'react';
+import React, { useRef, useState, type ReactNode, type Ref } from 'react';
 import adaptaLogo from '../assets/adaptalogo.jpg';
 import type { EventRegistryItem } from '../types';
 import { isNavigableRegistryItem, runSwitcherNavigation, switcherRowMetaText } from '../appSwitcher';
@@ -15,6 +15,7 @@ export interface LayoutProps {
   setHackTab: (t: 'completed' | 'in_progress') => void;
   globalSearch: string;
   setGlobalSearch: (v: string) => void;
+  searchExampleQueries: string[];
   switcherOpen: boolean;
   setSwitcherOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   switcherRef: Ref<HTMLDivElement | null>;
@@ -36,6 +37,7 @@ export function Layout({
   setView,
   globalSearch,
   setGlobalSearch,
+  searchExampleQueries,
   switcherOpen,
   setSwitcherOpen,
   switcherRef,
@@ -51,13 +53,25 @@ export function Layout({
   refreshingSwitcherRegistry,
   children,
 }: LayoutProps): JSX.Element {
+  const [searchSuggestionsOpen, setSearchSuggestionsOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const visibleSearchExamples = searchExampleQueries.filter(Boolean).slice(0, 3);
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-wrap">
           <img src={adaptaLogo} alt="Adaptavist" className="brand-logo" />
         </div>
-        <div className="top-search">
+        <div
+          className="top-search"
+          ref={searchRef}
+          onBlur={(event) => {
+            if (!searchRef.current?.contains(event.relatedTarget as Node | null)) {
+              setSearchSuggestionsOpen(false);
+            }
+          }}
+        >
           <span className="search-icon" aria-hidden>🔍</span>
           <input
             type="search"
@@ -65,8 +79,40 @@ export function Layout({
             aria-label="Search hacks, people, and pains"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setView('search'); }}
+            onFocus={() => {
+              if (visibleSearchExamples.length > 0) {
+                setSearchSuggestionsOpen(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setSearchSuggestionsOpen(false);
+                return;
+              }
+              if (e.key === 'Enter') {
+                setSearchSuggestionsOpen(false);
+                setView('search');
+              }
+            }}
           />
+          {searchSuggestionsOpen && visibleSearchExamples.length > 0 ? (
+            <div className="search-suggestions" role="listbox" aria-label="Example search queries">
+              {visibleSearchExamples.map((query) => (
+                <button
+                  key={query}
+                  type="button"
+                  className="search-suggestion"
+                  onClick={() => {
+                    setGlobalSearch(query);
+                    setSearchSuggestionsOpen(false);
+                    setView('search');
+                  }}
+                >
+                  Try: {query}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="top-actions">
           <div className="app-switcher" ref={switcherRef as React.RefObject<HTMLDivElement>}>

@@ -4028,6 +4028,20 @@ export function App(): JSX.Element {
     };
   }, [globalSearch, featuredHacks, allPeople, allProjects]);
 
+  const searchExampleQueries = useMemo(() => {
+    const examples = new Set<string>();
+    if (featuredHacks[0]?.title) examples.add(featuredHacks[0].title);
+    if (problemItems[0]?.domain) {
+      examples.add(problemItems[0].domain);
+    } else if (problemPreviewItems[0]?.domain) {
+      examples.add(problemPreviewItems[0].domain);
+    } else if (allPeople[0]?.capabilities[0]) {
+      examples.add(allPeople[0].capabilities[0]);
+    }
+    if (allPeople[0]?.fullName) examples.add(allPeople[0].fullName);
+    return Array.from(examples).slice(0, 3);
+  }, [allPeople, featuredHacks, problemItems, problemPreviewItems]);
+
   const filteredPeople = useMemo(() => {
     const search = teamSearch.trim().toLowerCase();
     return allPeople.filter((person) => {
@@ -5185,6 +5199,7 @@ export function App(): JSX.Element {
       setHackTab={setHackTab}
       globalSearch={globalSearch}
       setGlobalSearch={setGlobalSearch}
+      searchExampleQueries={searchExampleQueries}
       switcherOpen={switcherOpen}
       setSwitcherOpen={setSwitcherOpen}
       switcherRef={switcherRef}
