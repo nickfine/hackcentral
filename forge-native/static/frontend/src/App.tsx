@@ -374,6 +374,10 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
     siteUrl: 'localhost',
     timezone: 'America/Los_Angeles',
   },
+  extractionAccess: {
+    canReadPrompt: true,
+    canBulkImport: true,
+  },
   parentPageId: 'local-preview-parent-page',
   source: {
     provider: 'supabase',
@@ -1647,10 +1651,10 @@ export function App(): JSX.Element {
     () => sortedRegistry.find((event) => event.id === extractionEventIdInput) ?? null,
     [extractionEventIdInput, sortedRegistry]
   );
-  const canSeeHackdayExtractionPanel = useMemo(() => {
-    if (previewMode) return true;
-    return Boolean(bootstrap?.extractionAccess?.canReadPrompt || bootstrap?.extractionAccess?.canBulkImport);
-  }, [bootstrap?.extractionAccess?.canBulkImport, bootstrap?.extractionAccess?.canReadPrompt, previewMode]);
+  const canSeeHackdayExtractionPanel = useMemo(
+    () => Boolean(bootstrap?.extractionAccess?.canBulkImport),
+    [bootstrap?.extractionAccess?.canBulkImport]
+  );
   const showHackdayExtractionPanel = canSeeHackdayExtractionPanel && sortedRegistry.length > 0;
   const fallbackPipelineItems = useMemo<PipelineBoardItem[]>(
     () =>
@@ -7219,13 +7223,74 @@ export function App(): JSX.Element {
                 </p>
               </section>
 
+              {sortedRegistry.length > 0 ? (
+                hackdayRegistryView.length > 0 ? (
+                  <div className="grid hacks-grid">
+                    {hackdayRegistryView.map((event) => (
+                      <article key={event.id} className="card hackday-card">
+                        <div className="hackday-card-top">
+                          <div className="hackday-card-header">
+                            <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
+                            <div className="hackday-title-wrap">
+                              <h3>{event.eventName}</h3>
+                              {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
+                            </div>
+                          </div>
+                          <span
+                            className={`hackday-status-pill${ACTIVE_HACKDAY_LIFECYCLE_STATUSES.has(event.lifecycleStatus) ? ' hackday-status-pill-active' : ''}`}
+                          >
+                            {formatHackdayLifecycleStatus(event.lifecycleStatus)}
+                          </span>
+                        </div>
+
+                        <div className="hackday-meta">
+                          {event.hackingStartsAt ? (
+                            <div className="hackday-meta-row">
+                              <span className="hackday-meta-label">Hacking starts</span>
+                              <span className="hackday-date">
+                                {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="hackday-card-footer">
+                          {event.isNavigable && event.confluencePageId ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
+                            >
+                              Open
+                            </button>
+                          ) : (
+                            <span className="text-muted">Page not yet available</span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <section className="card hackdays-empty-card">
+                    <div className="hackdays-empty-icon" aria-hidden>🔎</div>
+                    <p className="hackdays-empty-title">No HackDays match this search</p>
+                    <p className="empty-copy">Try a different search term or sort mode.</p>
+                  </section>
+                )
+              ) : (
+                <section className="card hackdays-empty-card">
+                  <div className="hackdays-empty-icon" aria-hidden>🚀</div>
+                  <p className="hackdays-empty-title">No HackDays yet</p>
+                  <p className="empty-copy">Use “Create HackDay” above to create your first event.</p>
+                </section>
+              )}
+
               {showHackdayExtractionPanel ? (
                 <section className="card hackday-extraction-card">
                   <div className="hackday-extraction-head">
                     <div>
                       <h2>[ADMIN] Post-HackDay Extraction (R11)</h2>
                       <p>
-                        Event Admin/HDC Admin can read candidates and trigger prompts. HDC Admin/Platform Admin can run bulk import.
+                        HDC Admin and Platform Admin can review candidates, trigger prompts, and run bulk import.
                       </p>
                     </div>
                     <button
@@ -7432,67 +7497,6 @@ export function App(): JSX.Element {
                   )}
                 </section>
               ) : null}
-
-              {sortedRegistry.length > 0 ? (
-                hackdayRegistryView.length > 0 ? (
-                  <div className="grid hacks-grid">
-                    {hackdayRegistryView.map((event) => (
-                      <article key={event.id} className="card hackday-card">
-                        <div className="hackday-card-top">
-                          <div className="hackday-card-header">
-                            <span className="hackday-icon" aria-hidden>{event.icon || '🚀'}</span>
-                            <div className="hackday-title-wrap">
-                              <h3>{event.eventName}</h3>
-                              {event.tagline ? <p className="hackday-tagline">{event.tagline}</p> : null}
-                            </div>
-                          </div>
-                          <span
-                            className={`hackday-status-pill${ACTIVE_HACKDAY_LIFECYCLE_STATUSES.has(event.lifecycleStatus) ? ' hackday-status-pill-active' : ''}`}
-                          >
-                            {formatHackdayLifecycleStatus(event.lifecycleStatus)}
-                          </span>
-                        </div>
-
-                        <div className="hackday-meta">
-                          {event.hackingStartsAt ? (
-                            <div className="hackday-meta-row">
-                              <span className="hackday-meta-label">Hacking starts</span>
-                              <span className="hackday-date">
-                                {new Date(event.hackingStartsAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                              </span>
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="hackday-card-footer">
-                          {event.isNavigable && event.confluencePageId ? (
-                            <button
-                              type="button"
-                              className="btn btn-outline btn-sm"
-                              onClick={() => navigateToSwitcherPage(event.confluencePageId!)}
-                            >
-                              Open
-                            </button>
-                          ) : (
-                            <span className="text-muted">Page not yet available</span>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <section className="card hackdays-empty-card">
-                    <div className="hackdays-empty-icon" aria-hidden>🔎</div>
-                    <p className="hackdays-empty-title">No HackDays match this search</p>
-                    <p className="empty-copy">Try a different search term or sort mode.</p>
-                  </section>
-                )
-              ) : (
-                <section className="card hackdays-empty-card">
-                  <div className="hackdays-empty-icon" aria-hidden>🚀</div>
-                  <p className="hackdays-empty-title">No HackDays yet</p>
-                  <p className="empty-copy">Use “Create HackDay” above to create your first event.</p>
-                </section>
-              )}
 
               {!bootstrap?.parentPageId ? (
                 <p className="meta">Set <strong>CONFLUENCE_HDC_PARENT_PAGE_ID</strong> in Forge env to enable the create wizard.</p>
