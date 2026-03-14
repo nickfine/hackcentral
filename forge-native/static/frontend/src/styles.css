@@ -3287,6 +3287,14 @@ button {
   letter-spacing: -0.02em;
 }
 
+.metric-empty-state {
+  margin: 8px 0 0;
+  font-size: var(--tier3-size);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
 .gini-wrap {
   display: flex;
   align-items: center;
@@ -3387,6 +3395,22 @@ button {
   display: grid;
   gap: 8px;
   padding-top: 10px;
+}
+
+.pulse-empty-state {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+
+.pulse-empty-link {
+  justify-self: start;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.pulse-empty-link:hover {
+  text-decoration: underline;
 }
 
 .list-row {

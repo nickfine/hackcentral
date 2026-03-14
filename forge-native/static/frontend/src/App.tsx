@@ -4086,6 +4086,7 @@ export function App(): JSX.Element {
   const projectsWithAiPct = percent(projectsWithAiCount, Math.max(projectsWithAiCount + 25, 1));
 
   const completedHacks = bootstrap?.summary.totalHacks ?? 0;
+  const viewerHasPublishedArtifacts = recognition?.viewerBadges.firstArtifactPublished ?? false;
 
   const maturityValue = Math.min(100, (reuseRatePct + problemConversionPct) / 2 + 20);
   const nextMilestone = Math.max(0, Math.round(50 - maturityValue));
@@ -6041,22 +6042,49 @@ export function App(): JSX.Element {
                 </article>
                 <article className="card metric-tile">
                   <h3>CROSS-TEAM ADOPTION</h3>
-                  <p>{crossTeamAdoptionCount}</p>
-                  <small>Cross-team artifact reuse events where source and adopter teams differ.</small>
+                  {crossTeamAdoptionCount > 0 ? (
+                    <>
+                      <p className="metric-value">{crossTeamAdoptionCount}</p>
+                      <small>Cross-team artifact reuse events where source and adopter teams differ.</small>
+                    </>
+                  ) : (
+                    <>
+                      <p className="metric-empty-state">No cross-team reuse recorded yet.</p>
+                      <small>When a team adopts an artifact from another team, it appears here.</small>
+                    </>
+                  )}
                 </article>
                 <article className="card metric-tile">
                   <h3>TIME TO FIRST HACK</h3>
-                  <p>{timeToFirstHackMedianDays === null ? '—' : `${timeToFirstHackMedianDays.toFixed(1)}d`}</p>
-                  <small>
-                    Median across {teamPulse?.timeToFirstHackSampleSize ?? 0} users from join to first hack submission.
-                  </small>
+                  {timeToFirstHackMedianDays === null ? (
+                    <>
+                      <p className="metric-empty-state">Not enough data yet.</p>
+                      <small>Time to first hack is calculated once at least one member submits a hack.</small>
+                    </>
+                  ) : (
+                    <>
+                      <p className="metric-value">{`${timeToFirstHackMedianDays.toFixed(1)}d`}</p>
+                      <small>
+                        Median across {teamPulse?.timeToFirstHackSampleSize ?? 0} users from join to first hack submission.
+                      </small>
+                    </>
+                  )}
                 </article>
                 <article className="card metric-tile">
                   <h3>PAIN CONVERSION</h3>
-                  <p>{problemConversionPct.toFixed(1)}%</p>
-                  <small>
-                    {teamPulse?.solvedProblemCount ?? 0} solved pains out of {teamPulse?.totalProblemCount ?? 0} submitted.
-                  </small>
+                  {(teamPulse?.solvedProblemCount ?? 0) > 0 ? (
+                    <>
+                      <p className="metric-value">{problemConversionPct.toFixed(1)}%</p>
+                      <small>
+                        {teamPulse?.solvedProblemCount ?? 0} solved pains out of {teamPulse?.totalProblemCount ?? 0} submitted.
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      <p className="metric-empty-state">No pains have been solved by a hack yet.</p>
+                      <small>Link a hack to a pain when submitting to start tracking conversion.</small>
+                    </>
+                  )}
                 </article>
               </section>
 
@@ -6084,7 +6112,21 @@ export function App(): JSX.Element {
                       </tbody>
                     </table>
                   ) : (
-                    <p className="empty-copy">No cross-team reuse events recorded yet.</p>
+                    <div className="pulse-empty-state">
+                      <p className="empty-copy">No cross-team reuse events recorded yet.</p>
+                      {!viewerHasPublishedArtifacts ? (
+                        <button
+                          type="button"
+                          className="text-link pulse-empty-link"
+                          onClick={() => {
+                            setView('library');
+                            setShowCreateArtifactForm(true);
+                          }}
+                        >
+                          Publish your first artifact
+                        </button>
+                      ) : null}
+                    </div>
                   )}
                 </article>
 
