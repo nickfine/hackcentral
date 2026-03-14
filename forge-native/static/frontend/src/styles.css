@@ -715,6 +715,14 @@ button {
   gap: 10px;
 }
 
+.person-card {
+  transition: box-shadow 0.15s ease;
+}
+
+.person-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
 .home-feed-list {
   display: grid;
   gap: 8px;
@@ -819,6 +827,10 @@ button {
 }
 
 .hack-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   border-left: 2px solid #14b8a6;
   display: grid;
   gap: 12px;
@@ -1621,11 +1633,20 @@ button {
   padding: 0;
   overflow: hidden;
   border-left: 2px solid #14b8a6;
+  transition: box-shadow 0.15s ease;
+}
+
+.showcase-hack-shell:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .showcase-hack-shell-active {
   border-color: var(--brand);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-soft) 65%, transparent);
+}
+
+.showcase-hack-shell-active:hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-soft) 65%, transparent), var(--shadow-md);
 }
 
 .showcase-hack-hit {
@@ -1639,6 +1660,10 @@ button {
 
 .showcase-hack-hit .hack-card {
   padding: var(--spacing-card);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .showcase-hack-hit:hover .hack-card {
@@ -1743,6 +1768,11 @@ button {
   border-left: 1px solid var(--line);
   min-width: 0;
   padding: 14px;
+  transition: box-shadow 0.15s ease;
+}
+
+.problem-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .problem-card-shell {
@@ -4132,12 +4162,21 @@ button {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.pipeline-stage-node:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .pipeline-stage-node.is-active {
   background: var(--brand-soft);
   border-color: var(--brand);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent), var(--shadow-sm);
+}
+
+.pipeline-stage-node.is-active:hover {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent), var(--shadow-md);
 }
 
 .pipeline-stage-node h3 {
