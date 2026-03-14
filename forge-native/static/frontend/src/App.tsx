@@ -5493,7 +5493,7 @@ export function App(): JSX.Element {
                             return (
                               <article
                                 key={`featured-${showcaseItem.projectId}`}
-                                className={`card showcase-hack-shell${isSelected ? ' showcase-hack-shell-active' : ''}`}
+                                className={`card showcase-hack-shell showcase-hack-shell-featured${isSelected ? ' showcase-hack-shell-active' : ''}`}
                               >
                                 <button
                                   type="button"
@@ -5753,7 +5753,7 @@ export function App(): JSX.Element {
                       <p>High-trust, curated collection of proven AI hacks</p>
                       <div className="grid featured-grid">
                         {featuredTop.map((hack) => (
-                          <article key={`featured-${hack.id}`} className="card">
+                          <article key={`featured-${hack.id}`} className="card featured-hack-card-shell">
                             <HackCard item={hack} />
                           </article>
                         ))}

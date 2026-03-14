@@ -831,7 +831,6 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  border-left: 2px solid #14b8a6;
   display: grid;
   gap: 12px;
   transition: box-shadow 0.15s ease;
@@ -1562,7 +1561,7 @@ button {
 }
 
 .registry-card {
-  border-left-color: #0ea5e9;
+  border-left: 2px solid #5eead4;
 }
 
 .registry-tags {
@@ -1632,12 +1631,15 @@ button {
 .showcase-hack-shell {
   padding: 0;
   overflow: hidden;
-  border-left: 2px solid #14b8a6;
   transition: box-shadow 0.15s ease;
 }
 
 .showcase-hack-shell:hover {
   box-shadow: var(--shadow-md);
+}
+
+.showcase-hack-shell-featured {
+  border-left: 4px solid #14b8a6;
 }
 
 .showcase-hack-shell-active {
@@ -1659,6 +1661,20 @@ button {
 }
 
 .showcase-hack-hit .hack-card {
+  padding: var(--spacing-card);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.featured-hack-card-shell {
+  padding: 0;
+  overflow: hidden;
+  border-left: 4px solid #14b8a6;
+}
+
+.featured-hack-card-shell .hack-card {
   padding: var(--spacing-card);
   background: transparent;
   border: 0;
@@ -1765,7 +1781,7 @@ button {
 }
 
 .problem-card {
-  border-left: 1px solid var(--line);
+  border-left: 2px solid #5eead4;
   min-width: 0;
   padding: 14px;
   transition: box-shadow 0.15s ease;
