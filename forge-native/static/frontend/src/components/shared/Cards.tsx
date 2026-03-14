@@ -1,16 +1,32 @@
 import type { FeaturedHack, PersonSnapshot, ProjectSnapshot } from '../../types';
 import { formatLabel, getInitials } from '../../utils/format';
 
+function getHackStatusTooltip(item: FeaturedHack): string {
+  if (item.status === 'verified') return item.demoUrl ? 'Active - demo available' : 'Active';
+  if (item.status === 'in_progress' || item.status === 'draft') return 'In progress';
+  if (item.status === 'deprecated') return 'Blocked';
+  return formatLabel(item.status);
+}
+
+function getHackStatusDotClass(status: string): string {
+  if (status === 'verified') return 'hack-card-status-dot-active';
+  if (status === 'in_progress' || status === 'draft') return 'hack-card-status-dot-progress';
+  return 'hack-card-status-dot-blocked';
+}
+
 export function HackCard({ item }: { item: FeaturedHack }): JSX.Element {
+  const statusTooltip = getHackStatusTooltip(item);
   return (
     <div className="hack-card">
       <div className="hack-card-head">
         <div className="hack-card-title-wrap">
           <h3>{item.title}</h3>
         </div>
-        {item.status === 'verified' ? (
-          <span className="verified-dot hack-card-verified-dot" aria-label="Verified" />
-        ) : null}
+        <span
+          className={`verified-dot hack-card-verified-dot ${getHackStatusDotClass(item.status)}`}
+          aria-label={statusTooltip}
+          title={statusTooltip}
+        />
       </div>
       <p className="hack-card-copy">{item.description || 'No description provided.'}</p>
       <div className="hack-card-foot">

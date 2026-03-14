@@ -1003,6 +1003,21 @@ button {
   box-shadow: 0 0 0 3px #e8f8f0;
 }
 
+.hack-card-status-dot-active {
+  background: var(--success);
+  box-shadow: 0 0 0 3px #e8f8f0;
+}
+
+.hack-card-status-dot-progress {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px #fef3c7;
+}
+
+.hack-card-status-dot-blocked {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px #fee2e2;
+}
+
 .quote-card {
   background: var(--surface);
   border: 1px solid var(--line);
