@@ -4521,13 +4521,19 @@ button {
   padding: 20px;
 }
 
-.pipeline-detail-empty svg {
+.pipeline-detail-empty-icon {
+  font-size: 1.75rem;
+  line-height: 1;
   margin-bottom: 10px;
+  color: var(--brand);
 }
 
-.pipeline-detail-empty p {
+.pipeline-detail-empty-copy {
   margin: 0;
-  font-size: 0.95rem;
+  max-width: 320px;
+  font-size: var(--tier4-size);
+  color: #9ca3af;
+  line-height: 1.5;
 }
 
 .sr-only {

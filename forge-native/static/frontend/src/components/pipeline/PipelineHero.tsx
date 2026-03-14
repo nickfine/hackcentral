@@ -152,17 +152,8 @@ export function PipelineHero({
 
       {!selectedStage ? (
         <section className="pipeline-detail-empty" aria-label="No selected stage">
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden>
-            <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
-            <path
-              d="M18 24H30M30 24L26 20M30 24L26 28"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <p>Select a stage above to view details</p>
+          <span className="pipeline-detail-empty-icon" aria-hidden>📈</span>
+          <p className="pipeline-detail-empty-copy">Select a stage to see what&apos;s in it and what&apos;s blocking progress.</p>
         </section>
       ) : null}
     </section>
