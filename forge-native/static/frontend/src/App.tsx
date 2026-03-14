@@ -1321,6 +1321,7 @@ export function App(): JSX.Element {
   const [showcaseError, setShowcaseError] = useState('');
   const [showcaseFeaturePendingProjectId, setShowcaseFeaturePendingProjectId] = useState<string | null>(null);
   const [showcaseForkPendingProjectId, setShowcaseForkPendingProjectId] = useState<string | null>(null);
+  const [showcaseAdminMenuProjectId, setShowcaseAdminMenuProjectId] = useState<string | null>(null);
   const [showcaseSelectedProjectId, setShowcaseSelectedProjectId] = useState<string | null>(null);
   const [showcaseDetailDismissed, setShowcaseDetailDismissed] = useState(false);
   const [showcaseDetail, setShowcaseDetail] = useState<GetShowcaseHackDetailResult | null>(null);
@@ -2902,6 +2903,7 @@ export function App(): JSX.Element {
     async (item: ShowcaseHackListItem) => {
       if (!showcaseCanManage) return;
       const nextFeatured = !item.featured;
+      setShowcaseAdminMenuProjectId(null);
       setShowcaseFeaturePendingProjectId(item.projectId);
       setActionError('');
       setActionMessage('');
@@ -3059,6 +3061,7 @@ export function App(): JSX.Element {
   const handleSelectShowcaseProject = useCallback(
     (item: ShowcaseHackListItem) => {
       if (HDC_SHOWCASE_PAGE_ONLY_V1) {
+        setShowcaseAdminMenuProjectId(null);
         setShowcaseSelectedProjectId(null);
         setShowcaseDetail(null);
         setShowcaseDetailError('');
@@ -3067,6 +3070,7 @@ export function App(): JSX.Element {
         return;
       }
       if (hasShowcasePageLink(item)) {
+        setShowcaseAdminMenuProjectId(null);
         setShowcaseSelectedProjectId(null);
         setShowcaseDetail(null);
         setShowcaseDetailError('');
@@ -3074,6 +3078,7 @@ export function App(): JSX.Element {
         void handleOpenShowcasePage(item);
         return;
       }
+      setShowcaseAdminMenuProjectId(null);
       setShowcaseDetailDismissed(false);
       setShowcaseSelectedProjectId(item.projectId);
       setShowcaseDetailError('');
@@ -5739,18 +5744,42 @@ export function App(): JSX.Element {
                                 {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
                               </button>
                               {showcaseCanManage ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-outline"
-                                  onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
-                                  disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
-                                >
-                                  {showcaseFeaturePendingProjectId === showcaseItem.projectId
-                                    ? 'Saving...'
-                                    : showcaseItem.featured
-                                      ? 'Unfeature'
-                                      : 'Mark featured'}
-                                </button>
+                                <div className="showcase-admin-menu-wrap">
+                                  <button
+                                    type="button"
+                                    className="showcase-admin-menu-trigger"
+                                    aria-label="Show admin actions"
+                                    aria-haspopup="menu"
+                                    aria-expanded={showcaseAdminMenuProjectId === showcaseItem.projectId}
+                                    onClick={() =>
+                                      setShowcaseAdminMenuProjectId((current) =>
+                                        current === showcaseItem.projectId ? null : showcaseItem.projectId
+                                      )
+                                    }
+                                    disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                                  >
+                                    ...
+                                  </button>
+                                  {showcaseAdminMenuProjectId === showcaseItem.projectId ? (
+                                    <div className="showcase-admin-menu" role="menu">
+                                      <button
+                                        type="button"
+                                        className="showcase-admin-menu-item"
+                                        onClick={() => {
+                                          setShowcaseAdminMenuProjectId(null);
+                                          void handleToggleShowcaseFeatured(showcaseItem);
+                                        }}
+                                        disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                                      >
+                                        {showcaseFeaturePendingProjectId === showcaseItem.projectId
+                                          ? 'Saving...'
+                                          : showcaseItem.featured
+                                            ? 'Unfeature'
+                                            : 'Mark featured'}
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
                               ) : null}
                             </div>
                           </article>
@@ -5897,18 +5926,42 @@ export function App(): JSX.Element {
                             {showcaseForkPendingProjectId === showcaseItem.projectId ? 'Forking...' : 'Fork Hack'}
                           </button>
                           {showcaseCanManage ? (
-                            <button
-                              type="button"
-                              className="btn btn-outline"
-                              onClick={() => void handleToggleShowcaseFeatured(showcaseItem)}
-                              disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
-                            >
-                              {showcaseFeaturePendingProjectId === showcaseItem.projectId
-                                ? 'Saving...'
-                                : showcaseItem.featured
-                                  ? 'Unfeature'
-                                  : 'Mark featured'}
-                            </button>
+                            <div className="showcase-admin-menu-wrap">
+                              <button
+                                type="button"
+                                className="showcase-admin-menu-trigger"
+                                aria-label="Show admin actions"
+                                aria-haspopup="menu"
+                                aria-expanded={showcaseAdminMenuProjectId === showcaseItem.projectId}
+                                onClick={() =>
+                                  setShowcaseAdminMenuProjectId((current) =>
+                                    current === showcaseItem.projectId ? null : showcaseItem.projectId
+                                  )
+                                }
+                                disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                              >
+                                ...
+                              </button>
+                              {showcaseAdminMenuProjectId === showcaseItem.projectId ? (
+                                <div className="showcase-admin-menu" role="menu">
+                                  <button
+                                    type="button"
+                                    className="showcase-admin-menu-item"
+                                    onClick={() => {
+                                      setShowcaseAdminMenuProjectId(null);
+                                      void handleToggleShowcaseFeatured(showcaseItem);
+                                    }}
+                                    disabled={showcaseFeaturePendingProjectId === showcaseItem.projectId}
+                                  >
+                                    {showcaseFeaturePendingProjectId === showcaseItem.projectId
+                                      ? 'Saving...'
+                                      : showcaseItem.featured
+                                        ? 'Unfeature'
+                                        : 'Mark featured'}
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
                       </article>

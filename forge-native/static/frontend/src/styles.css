@@ -1695,6 +1695,64 @@ button {
   padding: 0 var(--spacing-card) var(--spacing-card);
 }
 
+.showcase-admin-menu-wrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.showcase-admin-menu-trigger {
+  min-width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.showcase-admin-menu-trigger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand-soft) 22%, var(--surface));
+  color: var(--brand-strong);
+}
+
+.showcase-admin-menu-trigger:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.showcase-admin-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 6px;
+  z-index: 5;
+}
+
+.showcase-admin-menu-item {
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--tier4-size);
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.showcase-admin-menu-item:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand-soft) 22%, var(--surface));
+}
+
 .showcase-legacy-pill {
   font-size: 11px;
   letter-spacing: 0.04em;
