@@ -1106,19 +1106,27 @@ button {
   opacity: 1;
 }
 
-.dashboard-metric-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+.dashboard-metric-head .dashboard-metric-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-meta);
 }
 
-.dashboard-metric-value {
+.dashboard-metric-card .dashboard-metric-value {
   margin-top: 10px;
+  line-height: 1.1;
+}
+
+.dashboard-metric-card .dashboard-metric-value-primary {
   font-size: var(--tier1-size);
   font-weight: 700;
-  line-height: 1.1;
+}
+
+.dashboard-metric-card .dashboard-metric-value-secondary {
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .hackdays-hero-card {
