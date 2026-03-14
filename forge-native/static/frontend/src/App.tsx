@@ -3933,7 +3933,7 @@ export function App(): JSX.Element {
   }, [debouncedHackSearch, hackSearch, hackStatusFilter, hackTypeFilter, showDeprecated, showcaseAsFeaturedHacks]);
 
   const featuredTop = useMemo(() => {
-    const featured = showcaseItems.filter((item) => item.featured).slice(0, 4).map(mapShowcaseItemToFeaturedHack);
+    const featured = showcaseItems.filter((item) => item.featured).map(mapShowcaseItemToFeaturedHack);
     if (HDC_SHOWCASE_UX_V1) return featured;
     if (featured.length > 0) return featured;
     return filteredHacks.slice(0, 4);
@@ -3960,9 +3960,19 @@ export function App(): JSX.Element {
     [featuredTop, showcaseItemsByProjectId]
   );
 
+  const featuredShowcaseProjectIds = useMemo(
+    () => new Set(featuredShowcaseItems.map((item) => item.projectId)),
+    [featuredShowcaseItems]
+  );
+
+  const standardShowcaseItems = useMemo(
+    () => filteredShowcaseItems.filter((item) => !featuredShowcaseProjectIds.has(item.projectId)),
+    [featuredShowcaseProjectIds, filteredShowcaseItems]
+  );
+
   const legacyFilteredShowcaseItems = useMemo(
-    () => filteredShowcaseItems.filter((item) => !hasShowcasePageLink(item)),
-    [filteredShowcaseItems]
+    () => standardShowcaseItems.filter((item) => !hasShowcasePageLink(item)),
+    [standardShowcaseItems]
   );
 
   const showcaseShouldRenderLegacyDetail = Boolean(
@@ -5678,7 +5688,7 @@ export function App(): JSX.Element {
                     ) : null}
 
                     <section className="grid hacks-grid showcase-results-grid">
-                              {filteredShowcaseItems.map((showcaseItem) => {
+                              {standardShowcaseItems.map((showcaseItem) => {
                         const hack = mapShowcaseItemToFeaturedHack(showcaseItem);
                         const isSelected =
                           !HDC_SHOWCASE_PAGE_ONLY_V1 &&
@@ -5786,7 +5796,7 @@ export function App(): JSX.Element {
                         );
                       })}
                     </section>
-                    {!showcaseLoading && filteredShowcaseItems.length === 0 && showcaseLoaded ? (
+                    {!showcaseLoading && standardShowcaseItems.length === 0 && featuredShowcaseItems.length === 0 && showcaseLoaded ? (
                       <p className="empty-copy">No showcase hacks match your filters.</p>
                     ) : null}
                     {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
@@ -5904,7 +5914,7 @@ export function App(): JSX.Element {
                   ) : null}
 
                   <section className="grid hacks-grid">
-                    {filteredShowcaseItems.map((showcaseItem) => (
+                    {standardShowcaseItems.map((showcaseItem) => (
                       <article key={showcaseItem.projectId} className="card">
                         <HackCard item={mapShowcaseItemToFeaturedHack(showcaseItem)} />
                         <div className="registry-actions">
@@ -5967,7 +5977,7 @@ export function App(): JSX.Element {
                       </article>
                     ))}
                   </section>
-                  {!showcaseLoading && filteredShowcaseItems.length === 0 && showcaseLoaded ? (
+                  {!showcaseLoading && standardShowcaseItems.length === 0 && featuredTop.length === 0 && showcaseLoaded ? (
                     <p className="empty-copy">No showcase hacks match your filters.</p>
                   ) : null}
                   {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
