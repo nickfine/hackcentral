@@ -20,6 +20,7 @@ const mockRepo = {
   flagProblem: vi.fn(),
   moderateProblem: vi.fn(),
   canUserModerateProblemExchange: vi.fn(),
+  canUserRemoveProblem: vi.fn(),
 };
 
 vi.mock('../forge-native/src/backend/supabase/repositories', () => {
@@ -32,6 +33,7 @@ vi.mock('../forge-native/src/backend/supabase/repositories', () => {
     flagProblem = mockRepo.flagProblem;
     moderateProblem = mockRepo.moderateProblem;
     canUserModerateProblemExchange = mockRepo.canUserModerateProblemExchange;
+    canUserRemoveProblem = mockRepo.canUserRemoveProblem;
   }
 
   return { SupabaseRepository };
@@ -84,6 +86,7 @@ describe('forge-native problem exchange runtime mode behavior', () => {
           flagCount: 0,
           linkedHackProjectId: undefined,
           linkedArtifactId: undefined,
+          canRemove: true,
           createdAt: '2026-03-01T00:00:00.000Z',
           updatedAt: '2026-03-01T00:00:00.000Z',
           createdByName: 'Alice',
@@ -148,6 +151,7 @@ describe('forge-native problem exchange runtime mode behavior', () => {
     mockRepo.flagProblem.mockResolvedValue(flagResult);
     mockRepo.moderateProblem.mockResolvedValue(moderateResult);
     mockRepo.canUserModerateProblemExchange.mockResolvedValue(capabilitiesResult.canModerate);
+    mockRepo.canUserRemoveProblem.mockResolvedValue(true);
 
     const mod = await import('../forge-native/src/backend/hackcentral');
 
@@ -184,9 +188,34 @@ describe('forge-native problem exchange runtime mode behavior', () => {
     expect(mockRepo.canUserModerateProblemExchange).toHaveBeenCalledTimes(2);
   });
 
+  it('allows remove when viewer owns the problem without broader moderation capability', async () => {
+    process.env.FORGE_DATA_BACKEND = 'supabase';
+    mockRepo.canUserModerateProblemExchange.mockResolvedValue(false);
+    mockRepo.canUserRemoveProblem.mockResolvedValue(true);
+    mockRepo.moderateProblem.mockResolvedValue({
+      problemId: 'problem-1',
+      moderationState: 'removed',
+      reviewedAt: '2026-03-01T02:00:00.000Z',
+    });
+
+    const mod = await import('../forge-native/src/backend/hackcentral');
+
+    await expect(
+      mod.moderateProblem(viewer, { problemId: 'problem-1', decision: 'remove', note: 'Owner removed' })
+    ).resolves.toEqual({
+      problemId: 'problem-1',
+      moderationState: 'removed',
+      reviewedAt: '2026-03-01T02:00:00.000Z',
+    });
+
+    expect(mockRepo.canUserRemoveProblem).toHaveBeenCalledWith(viewer, 'problem-1');
+    expect(mockRepo.moderateProblem).toHaveBeenCalledTimes(1);
+  });
+
   it('blocks moderateProblem when viewer lacks moderation capability', async () => {
     process.env.FORGE_DATA_BACKEND = 'supabase';
     mockRepo.canUserModerateProblemExchange.mockResolvedValue(false);
+    mockRepo.canUserRemoveProblem.mockResolvedValue(false);
 
     const mod = await import('../forge-native/src/backend/hackcentral');
 

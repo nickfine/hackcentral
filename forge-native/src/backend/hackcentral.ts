@@ -811,9 +811,17 @@ export async function moderateProblem(
   return withConfiguredBackend(
     async () => {
       const canModerate = await repository.canUserModerateProblemExchange(viewer);
-      if (!canModerate) {
+      const canRemove = !canModerate && input.decision === 'remove'
+        ? await repository.canUserRemoveProblem(viewer, input.problemId)
+        : false;
+      if (!canModerate && !canRemove) {
         throw new Error(
-          `[PROBLEM_MODERATION_FORBIDDEN] Moderator access required via org admin role/capability tags. accountId=${viewer.accountId}`
+          `[PROBLEM_MODERATION_FORBIDDEN] Moderator or owner access required for remove/reinstate actions. accountId=${viewer.accountId}`
+        );
+      }
+      if (input.decision === 'reinstate' && !canModerate) {
+        throw new Error(
+          `[PROBLEM_MODERATION_FORBIDDEN] Moderator access required for reinstate actions. accountId=${viewer.accountId}`
         );
       }
       return repository.moderateProblem(viewer, input);

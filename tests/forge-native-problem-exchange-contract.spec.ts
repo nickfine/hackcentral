@@ -147,6 +147,86 @@ describe('SupabaseRepository problem exchange contracts', () => {
     });
   });
 
+  it('lists problems with explicit remove permissions for owners and moderators', async () => {
+    const selectMany = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: 'problem-1',
+          title: 'Status updates',
+          description: 'Manual reporting burden.',
+          frequency: 'weekly',
+          estimated_time_wasted_hours: 3,
+          team: 'Delivery',
+          domain: 'Operations',
+          contact_details: 'alice@adaptavist.com',
+          status: 'open',
+          moderation_state: 'visible',
+          vote_count: 8,
+          flag_count: 0,
+          created_by_user_id: 'user-1',
+          claimed_by_user_id: null,
+          linked_hack_project_id: null,
+          linked_artifact_id: null,
+          auto_hidden_at: null,
+          hidden_at: null,
+          closed_at: null,
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T01:00:00.000Z',
+        },
+        {
+          id: 'problem-2',
+          title: 'Other team issue',
+          description: 'Different author.',
+          frequency: 'daily',
+          estimated_time_wasted_hours: 6,
+          team: 'Delivery',
+          domain: 'Operations',
+          contact_details: 'bob@adaptavist.com',
+          status: 'open',
+          moderation_state: 'visible',
+          vote_count: 6,
+          flag_count: 0,
+          created_by_user_id: 'user-2',
+          claimed_by_user_id: null,
+          linked_hack_project_id: null,
+          linked_artifact_id: null,
+          auto_hidden_at: null,
+          hidden_at: null,
+          closed_at: null,
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T02:00:00.000Z',
+        },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'user-1', full_name: 'Alice', email: 'alice@adaptavist.com' },
+        { id: 'user-2', full_name: 'Bob', email: 'bob@adaptavist.com' },
+      ]);
+
+    const fakeRepo = {
+      client: { selectMany },
+      getUserByAccountId: vi.fn().mockResolvedValue({ id: 'user-1' }),
+      canUserModerateProblemExchange: vi.fn().mockResolvedValue(false),
+    };
+
+    const result = await SupabaseRepository.prototype.listProblems.call(fakeRepo, viewer, {
+      statuses: ['open'],
+      limit: 10,
+    });
+
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toMatchObject({
+      id: 'problem-1',
+      createdByName: 'Alice',
+      canRemove: true,
+    });
+    expect(result.items[1]).toMatchObject({
+      id: 'problem-2',
+      createdByName: 'Bob',
+      canRemove: false,
+    });
+  });
+
   it('auto-hides problems after third distinct flag and reports moderation state', async () => {
     const patchMany = vi
       .fn()

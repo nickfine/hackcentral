@@ -25,6 +25,7 @@ function makeProblem(overrides: Partial<ProblemListItem> = {}): ProblemListItem 
     flagCount: 0,
     linkedHackProjectId: undefined,
     linkedArtifactId: undefined,
+    canRemove: false,
     createdAt: '2026-03-01T00:00:00.000Z',
     updatedAt: '2026-03-01T00:00:00.000Z',
     createdByName: 'Alice',

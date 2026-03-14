@@ -540,6 +540,7 @@ export interface ProblemListItem {
   flagCount: number;
   linkedHackProjectId?: string;
   linkedArtifactId?: string;
+  canRemove: boolean;
   createdAt: string;
   updatedAt: string;
   createdByName: string;

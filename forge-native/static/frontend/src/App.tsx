@@ -1392,6 +1392,7 @@ export function App(): JSX.Element {
   const [problemModerationPendingId, setProblemModerationPendingId] = useState<string | null>(null);
   const [problemCanModerate, setProblemCanModerate] = useState(false);
   const [problemModerationMode, setProblemModerationMode] = useState<'allowlist' | 'none'>('none');
+  const [problemManageOpenId, setProblemManageOpenId] = useState<string | null>(null);
 
   const [pipelineItems, setPipelineItems] = useState<PipelineBoardItem[]>([]);
   const [pipelineStageCriteria, setPipelineStageCriteria] = useState<PipelineStageCriteria[]>([]);
@@ -3487,6 +3488,19 @@ export function App(): JSX.Element {
     if (!problemAppliedFilters.includeHidden) return;
     setProblemAppliedFilters((current) => ({ ...current, includeHidden: false }));
   }, [problemAppliedFilters.includeHidden, problemCanModerate]);
+
+  useEffect(() => {
+    if (problemCanModerate) return;
+    setProblemManageOpenId(null);
+  }, [problemCanModerate]);
+
+  useEffect(() => {
+    if (!problemManageOpenId) return;
+    const stillVisible = problemItems.some((problem) => problem.id === problemManageOpenId);
+    if (!stillVisible) {
+      setProblemManageOpenId(null);
+    }
+  }, [problemItems, problemManageOpenId]);
 
   const applyPreviewProblemMutation = useCallback(
     (mutation: (items: ProblemListItem[]) => ProblemListItem[]) => {
@@ -6939,166 +6953,202 @@ export function App(): JSX.Element {
                     const statusNoteValue = problemStatusNoteById[problem.id] ?? '';
                     const flagReasonValue = problemFlagReasonById[problem.id] ?? '';
                     const moderationAction = resolveProblemModerationAction(problemCanModerate, problem.moderationState);
+                    const manageDrawerOpen = problemCanModerate && problemManageOpenId === problem.id;
+                    const canRemoveProblem = problem.canRemove && problem.moderationState !== 'removed';
+                    const canReinstateProblem = moderationAction === 'reinstate';
                     return (
-                      <article key={problem.id} className="card hack-card problem-card">
-                        <div className="problem-card-main">
-                          <div className="hack-card-head">
-                            <div className="hack-card-title-wrap">
-                              <h3>{problem.title}</h3>
+                      <article
+                        key={problem.id}
+                        className={`card hack-card problem-card${manageDrawerOpen ? ' problem-card-open' : ''}`}
+                      >
+                        <div className="problem-card-shell">
+                          <div className="problem-card-main">
+                            <div className="hack-card-head">
+                              <div className="hack-card-title-wrap">
+                                <h3>{problem.title}</h3>
+                              </div>
+                              <div className="problem-pill-row">
+                                <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
+                                {problem.moderationState !== 'visible' ? (
+                                  <span className={`pill pill-moderation-${problem.moderationState}`}>
+                                    {formatLabel(problem.moderationState)}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
-                            <div className="problem-pill-row">
-                              <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
-                              {problem.moderationState !== 'visible' ? (
-                                <span className={`pill pill-moderation-${problem.moderationState}`}>
-                                  {formatLabel(problem.moderationState)}
-                                </span>
-                              ) : null}
+
+                            <p className="hack-card-copy">{problem.description}</p>
+
+                            <div className="problem-meta-grid">
+                              <span className="meta">Team: {problem.team}</span>
+                              <span className="meta">Domain: {problem.domain}</span>
+                              <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
+                              <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
+                              <span className="meta">Submitted by {problem.createdByName}</span>
+                              <span className="meta">Contact: {problem.contactDetails}</span>
                             </div>
-                          </div>
 
-                          <p className="hack-card-copy">{problem.description}</p>
-
-                          <div className="problem-meta-grid">
-                            <span className="meta">Team: {problem.team}</span>
-                            <span className="meta">Domain: {problem.domain}</span>
-                            <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
-                            <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
-                            <span className="meta">Submitted by {problem.createdByName}</span>
-                            <span className="meta">Contact: {problem.contactDetails}</span>
-                          </div>
-
-                          <div className="hack-card-foot">
-                            <div className="problem-actions">
-                              <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={() => {
-                                  void handleVoteProblem(problem.id);
-                                }}
-                                disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
-                              >
-                                {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-outline"
-                                onClick={() => {
-                                  void handleFlagProblem(problem);
-                                }}
-                                disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
-                              >
-                                {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
-                              </button>
-                              {moderationAction ? (
+                            <div className="hack-card-foot">
+                              <div className="problem-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  onClick={() => {
+                                    void handleVoteProblem(problem.id);
+                                  }}
+                                  disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
+                                >
+                                  {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
+                                </button>
                                 <button
                                   type="button"
                                   className="btn btn-outline"
                                   onClick={() => {
-                                    void handleModerateProblem(problem, moderationAction);
+                                    void handleFlagProblem(problem);
                                   }}
-                                  disabled={problemModerationPendingId === problem.id}
+                                  disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
                                 >
-                                  {problemModerationPendingId === problem.id
-                                    ? 'Saving...'
-                                    : moderationAction === 'reinstate'
-                                      ? 'Reinstate'
-                                      : 'Remove'}
+                                  {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
                                 </button>
-                              ) : null}
+                                {canRemoveProblem ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline btn-outline-danger"
+                                    onClick={() => {
+                                      void handleModerateProblem(problem, 'remove');
+                                    }}
+                                    disabled={problemModerationPendingId === problem.id}
+                                  >
+                                    {problemModerationPendingId === problem.id ? 'Saving...' : 'Remove'}
+                                  </button>
+                                ) : null}
+                                {canReinstateProblem ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={() => {
+                                      void handleModerateProblem(problem, 'reinstate');
+                                    }}
+                                    disabled={problemModerationPendingId === problem.id}
+                                  >
+                                    {problemModerationPendingId === problem.id ? 'Saving...' : 'Reinstate'}
+                                  </button>
+                                ) : null}
+                              </div>
+                              <span className="meta">
+                                {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
+                              </span>
                             </div>
-                            <span className="meta">
-                              {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
-                            </span>
                           </div>
-                        </div>
 
-                        <aside className="problem-card-side">
-                          <section className="problem-inline-section">
-                            <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
-                            <input
-                              id={`problem-flag-reason-${problem.id}`}
-                              value={flagReasonValue}
-                              onChange={(event) =>
-                                setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
-                              }
-                              placeholder="Reason to help moderators review"
-                            />
-                          </section>
-
-                          <section className="problem-status-panel">
-                            <h4>Update status</h4>
-                            <div className="problem-status-grid">
-                              <select
-                                className="problem-status-field problem-status-field-wide"
-                                value={statusValue}
-                                onChange={(event) =>
-                                  setProblemStatusDraftById((current) => ({
-                                    ...current,
-                                    [problem.id]: event.target.value as ProblemStatus,
-                                  }))
-                                }
-                              >
-                                {PROBLEM_STATUSES.map((status) => (
-                                  <option key={status} value={status}>
-                                    {formatLabel(status)}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                className="problem-status-field"
-                                value={linkedHackProjectValue}
-                                onChange={(event) =>
-                                  setProblemLinkHackProjectById((current) => ({
-                                    ...current,
-                                    [problem.id]: event.target.value,
-                                  }))
-                                }
-                                placeholder="Linked hack project ID (required for solved unless artifact linked)"
-                              />
-                              <input
-                                className="problem-status-field"
-                                value={linkedArtifactValue}
-                                onChange={(event) =>
-                                  setProblemLinkArtifactById((current) => ({
-                                    ...current,
-                                    [problem.id]: event.target.value,
-                                  }))
-                                }
-                                placeholder="Linked artifact ID (required for solved unless project linked)"
-                              />
-                              <input
-                                className="problem-status-field problem-status-field-wide"
-                                value={statusNoteValue}
-                                onChange={(event) =>
-                                  setProblemStatusNoteById((current) => ({
-                                    ...current,
-                                    [problem.id]: event.target.value,
-                                  }))
-                                }
-                                placeholder="Transition note (optional)"
-                              />
-                            </div>
-                            <div className="problem-status-actions">
+                          {problemCanModerate ? (
+                            <div className="problem-manage-rail">
                               <button
                                 type="button"
-                                className="btn btn-primary"
+                                className={`btn btn-outline problem-manage-trigger${manageDrawerOpen ? ' problem-manage-trigger-open' : ''}`}
                                 onClick={() => {
-                                  void handleUpdateProblemStatus(problem);
+                                  setProblemManageOpenId((current) => (current === problem.id ? null : problem.id));
                                 }}
-                                disabled={problemStatusPendingId === problem.id}
+                                aria-expanded={manageDrawerOpen}
+                                aria-controls={`problem-manage-drawer-${problem.id}`}
                               >
-                                {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
+                                {manageDrawerOpen ? 'Close' : 'Manage'}
                               </button>
                             </div>
-                            {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
-                              <p className="meta">
-                                Linked sources:
-                                {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
-                                {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
-                              </p>
-                            ) : null}
+                          ) : null}
+                        </div>
+
+                        {manageDrawerOpen ? (
+                          <section id={`problem-manage-drawer-${problem.id}`} className="problem-manage-drawer">
+                            <div className="problem-manage-content">
+                              <section className="problem-inline-section">
+                                <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
+                                <input
+                                  id={`problem-flag-reason-${problem.id}`}
+                                  value={flagReasonValue}
+                                  onChange={(event) =>
+                                    setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
+                                  }
+                                  placeholder="Reason to help moderators review"
+                                />
+                              </section>
+
+                              <section className="problem-status-panel">
+                                <h4>Update status</h4>
+                                <div className="problem-status-grid">
+                                  <select
+                                    className="problem-status-field problem-status-field-wide"
+                                    value={statusValue}
+                                    onChange={(event) =>
+                                      setProblemStatusDraftById((current) => ({
+                                        ...current,
+                                        [problem.id]: event.target.value as ProblemStatus,
+                                      }))
+                                    }
+                                  >
+                                    {PROBLEM_STATUSES.map((status) => (
+                                      <option key={status} value={status}>
+                                        {formatLabel(status)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    className="problem-status-field"
+                                    value={linkedHackProjectValue}
+                                    onChange={(event) =>
+                                      setProblemLinkHackProjectById((current) => ({
+                                        ...current,
+                                        [problem.id]: event.target.value,
+                                      }))
+                                    }
+                                    placeholder="Linked hack project ID (required for solved unless artifact linked)"
+                                  />
+                                  <input
+                                    className="problem-status-field"
+                                    value={linkedArtifactValue}
+                                    onChange={(event) =>
+                                      setProblemLinkArtifactById((current) => ({
+                                        ...current,
+                                        [problem.id]: event.target.value,
+                                      }))
+                                    }
+                                    placeholder="Linked artifact ID (required for solved unless project linked)"
+                                  />
+                                  <input
+                                    className="problem-status-field problem-status-field-wide"
+                                    value={statusNoteValue}
+                                    onChange={(event) =>
+                                      setProblemStatusNoteById((current) => ({
+                                        ...current,
+                                        [problem.id]: event.target.value,
+                                      }))
+                                    }
+                                    placeholder="Transition note (optional)"
+                                  />
+                                </div>
+                                <div className="problem-status-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                      void handleUpdateProblemStatus(problem);
+                                    }}
+                                    disabled={problemStatusPendingId === problem.id}
+                                  >
+                                    {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
+                                  </button>
+                                </div>
+                                {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
+                                  <p className="meta">
+                                    Linked sources:
+                                    {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
+                                    {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
+                                  </p>
+                                ) : null}
+                              </section>
+                            </div>
                           </section>
-                        </aside>
+                        ) : null}
                       </article>
                     );
                   })}

@@ -1428,7 +1428,7 @@ function createArtifactListItem(row: DbArtifact, authorName: string, forkCount =
   };
 }
 
-function createProblemListItem(row: DbProblem, createdByName: string): ProblemListItem {
+function createProblemListItem(row: DbProblem, createdByName: string, canRemove: boolean): ProblemListItem {
   return {
     id: row.id,
     title: row.title,
@@ -1444,6 +1444,7 @@ function createProblemListItem(row: DbProblem, createdByName: string): ProblemLi
     flagCount: row.flag_count ?? 0,
     linkedHackProjectId: row.linked_hack_project_id ?? undefined,
     linkedArtifactId: row.linked_artifact_id ?? undefined,
+    canRemove,
     createdAt: row.created_at ?? nowIso(),
     updatedAt: row.updated_at ?? row.created_at ?? nowIso(),
     createdByName,
@@ -3016,6 +3017,22 @@ export class SupabaseRepository {
       }
       throw error;
     }
+  }
+
+  async canUserRemoveProblem(viewer: ViewerContext, problemId: string): Promise<boolean> {
+    const normalizedProblemId = problemId.trim();
+    if (!normalizedProblemId) return false;
+
+    const canModerate = await this.canUserModerateProblemExchange(viewer);
+    if (canModerate) return true;
+
+    const viewerUser = await this.getUserByAccountId(viewer.accountId?.trim() ?? '');
+    if (!viewerUser) return false;
+
+    const problem = await this.getProblemById(normalizedProblemId);
+    if (!problem) return false;
+
+    return problem.created_by_user_id === viewerUser.id;
   }
 
   async canUserManagePipeline(viewer: ViewerContext): Promise<boolean> {
@@ -6522,7 +6539,7 @@ export class SupabaseRepository {
     }
   }
 
-  async listProblems(_viewer: ViewerContext, input: ListProblemsInput): Promise<ListProblemsResult> {
+  async listProblems(viewer: ViewerContext, input: ListProblemsInput): Promise<ListProblemsResult> {
     const query = input.query?.trim().toLowerCase() || '';
     const teamFilter = new Set((input.teams || []).map((team) => team.trim().toLowerCase()).filter(Boolean));
     const domainFilter = new Set((input.domains || []).map((domain) => domain.trim().toLowerCase()).filter(Boolean));
@@ -6532,12 +6549,14 @@ export class SupabaseRepository {
     const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 20)));
 
     try {
-      const [rows, users] = await Promise.all([
+      const [rows, users, viewerUser, canModerate] = await Promise.all([
         this.client.selectMany<DbProblem>(
           PROBLEM_TABLE,
           'id,title,description,frequency,estimated_time_wasted_hours,team,domain,contact_details,status,moderation_state,vote_count,flag_count,created_by_user_id,claimed_by_user_id,linked_hack_project_id,linked_artifact_id,auto_hidden_at,hidden_at,closed_at,created_at,updated_at'
         ),
         this.client.selectMany<DbUser>(USER_TABLE, 'id,email,full_name'),
+        this.getUserByAccountId(viewer.accountId?.trim() ?? ''),
+        this.canUserModerateProblemExchange(viewer),
       ]);
 
       const userNameById = new Map(users.map((user) => [user.id, user.full_name || user.email]));
@@ -6590,7 +6609,13 @@ export class SupabaseRepository {
       return {
         items: filtered
           .slice(0, limit)
-          .map((row) => createProblemListItem(row, userNameById.get(row.created_by_user_id) ?? 'Unknown')),
+          .map((row) =>
+            createProblemListItem(
+              row,
+              userNameById.get(row.created_by_user_id) ?? 'Unknown',
+              canModerate || (!!viewerUser && row.created_by_user_id === viewerUser.id)
+            )
+          ),
         nextCursor: null,
       };
     } catch (error) {

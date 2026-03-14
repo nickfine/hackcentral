@@ -1723,13 +1723,20 @@ button {
 }
 
 .problem-card {
-  border-left-color: #f59e0b;
+  border-left: 1px solid var(--line);
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
-  column-gap: 16px;
-  row-gap: 0;
-  align-items: start;
   padding: 14px;
+}
+
+.problem-card-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: start;
+}
+
+.problem-card-open {
+  border-left: 4px solid var(--brand);
 }
 
 .problem-card-main {
@@ -1763,17 +1770,39 @@ button {
   gap: 6px 10px;
 }
 
-.problem-card-side {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-
 .problem-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.problem-manage-rail {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 110px;
+}
+
+.problem-manage-trigger {
+  min-width: 96px;
+}
+
+.problem-manage-trigger-open {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.problem-manage-drawer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  animation: problem-drawer-slide-in 160ms ease;
+}
+
+.problem-manage-content {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 12px;
 }
 
 .problem-inline-section {
@@ -1832,6 +1861,26 @@ button {
 .problem-status-actions {
   display: flex;
   justify-content: flex-start;
+}
+
+.btn-outline-danger {
+  border-color: color-mix(in srgb, #dc2626 35%, var(--line-strong));
+  color: #b91c1c;
+}
+
+.btn-outline-danger:hover {
+  background: color-mix(in srgb, #dc2626 8%, var(--surface));
+}
+
+@keyframes problem-drawer-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .check-label {
@@ -3531,11 +3580,8 @@ button {
 }
 
 @media (max-width: 1100px) {
-  .problem-card {
-    grid-template-columns: 1fr;
-  }
-
-  .problem-card-side {
+  .problem-card-shell,
+  .problem-manage-content {
     grid-template-columns: 1fr;
   }
 
@@ -3762,6 +3808,15 @@ button {
 
   .problem-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .problem-manage-rail {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .problem-manage-trigger {
+    width: 100%;
   }
 
   .problem-status-grid {
