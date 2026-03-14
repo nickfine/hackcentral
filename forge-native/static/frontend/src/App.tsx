@@ -4097,40 +4097,144 @@ export function App(): JSX.Element {
   const leaders = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'leader').length;
   const others = Math.max(0, allPeople.length - frontline - leaders);
 
-  const buildersRows =
+  const personLabelByName = useMemo(() => {
+    const labelMap = new Map<string, string>();
+    allPeople.forEach((person) => {
+      labelMap.set(
+        person.fullName.trim().toLowerCase(),
+        person.capabilities[0] ?? person.experienceLabel ?? 'General'
+      );
+    });
+    return labelMap;
+  }, [allPeople]);
+
+  const problemCountBySolver = useMemo(() => {
+    const countMap = new Map<string, { name: string; count: number }>();
+    problemItems
+      .filter((problem) => problem.status === 'solved')
+      .forEach((problem) => {
+        const key = problem.createdByName.trim().toLowerCase();
+        const current = countMap.get(key);
+        countMap.set(key, {
+          name: current?.name ?? problem.createdByName,
+          count: (current?.count ?? 0) + 1,
+        });
+      });
+    return countMap;
+  }, [problemItems]);
+
+  const artifactCountByAuthor = useMemo(() => {
+    const countMap = new Map<string, { name: string; count: number }>();
+    registryItems.forEach((item) => {
+      const key = item.authorName.trim().toLowerCase();
+      const current = countMap.get(key);
+      countMap.set(key, {
+        name: current?.name ?? item.authorName,
+        count: (current?.count ?? 0) + 1,
+      });
+    });
+    return countMap;
+  }, [registryItems]);
+
+  const hackCountByAuthor = useMemo(() => {
+    const countMap = new Map<string, { name: string; count: number }>();
+    featuredHacks.forEach((hack) => {
+      const key = hack.authorName.trim().toLowerCase();
+      const current = countMap.get(key);
+      countMap.set(key, {
+        name: current?.name ?? hack.authorName,
+        count: (current?.count ?? 0) + 1,
+      });
+    });
+    return countMap;
+  }, [featuredHacks]);
+
+  type RecognitionListRow = {
+    name: string;
+    label: string;
+    countLabel: string;
+  };
+
+  const resolveRecognitionLabel = (name: string): string => personLabelByName.get(name.trim().toLowerCase()) ?? 'General';
+  const formatContributionCount = (count: number, singular: string, plural: string): string =>
+    `${count} ${count === 1 ? singular : plural}`;
+
+  const buildersRows: RecognitionListRow[] =
     recognitionLeaderboards && recognitionLeaderboards.builders.length > 0
       ? recognitionLeaderboards.builders
           .slice(0, 5)
-          .map((entry) => `${entry.userName} — ${entry.count} hacks`)
-      : helpers.slice(0, 3).map((person) => `${person.fullName} — ${person.capabilities[0] ?? 'Contributor'}`);
-  const sharersRows =
+          .map((entry) => ({
+            name: entry.userName,
+            label: resolveRecognitionLabel(entry.userName),
+            countLabel: formatContributionCount(entry.count, 'hack built', 'hacks built'),
+          }))
+      : [...hackCountByAuthor.entries()]
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 3)
+          .map(([, entry]) => ({
+            name: entry.name,
+            label: resolveRecognitionLabel(entry.name),
+            countLabel: formatContributionCount(entry.count, 'hack built', 'hacks built'),
+          }));
+  const sharersRows: RecognitionListRow[] =
     recognitionLeaderboards && recognitionLeaderboards.sharers.length > 0
       ? recognitionLeaderboards.sharers
           .slice(0, 5)
-          .map((entry) => `${entry.userName} — ${entry.count} artifacts`)
-      : [...featuredHacks]
-          .sort((a, b) => b.reuseCount - a.reuseCount)
+          .map((entry) => ({
+            name: entry.userName,
+            label: resolveRecognitionLabel(entry.userName),
+            countLabel: formatContributionCount(entry.count, 'artifact published', 'artifacts published'),
+          }))
+      : [...(artifactCountByAuthor.size > 0 ? artifactCountByAuthor.entries() : hackCountByAuthor.entries())]
+          .sort((a, b) => b[1].count - a[1].count)
           .slice(0, 3)
-          .map((hack) => `${hack.authorName} — 1 artifact`);
-  const solversRows =
+          .map(([, entry]) => ({
+            name: entry.name,
+            label: resolveRecognitionLabel(entry.name),
+            countLabel: formatContributionCount(entry.count, 'artifact published', 'artifacts published'),
+          }));
+  const solversRows: RecognitionListRow[] =
     recognitionLeaderboards && recognitionLeaderboards.solvers.length > 0
       ? recognitionLeaderboards.solvers
           .slice(0, 5)
-          .map((entry) => `${entry.userName} — ${entry.count} solved`)
-      : [];
-  const mentorRows =
+          .map((entry) => ({
+            name: entry.userName,
+            label: resolveRecognitionLabel(entry.userName),
+            countLabel: formatContributionCount(entry.count, 'pain solved', 'pains solved'),
+          }))
+      : [...problemCountBySolver.entries()]
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 3)
+          .map(([, entry]) => ({
+            name: entry.name,
+            label: resolveRecognitionLabel(entry.name),
+            countLabel: formatContributionCount(entry.count, 'pain solved', 'pains solved'),
+          }));
+  const mentorRows: RecognitionListRow[] =
     recognitionLeaderboards && recognitionLeaderboards.mentors.length > 0
       ? recognitionLeaderboards.mentors
           .slice(0, 5)
-          .map((entry) => `${entry.userName} — ${entry.count} sessions`)
+          .map((entry) => ({
+            name: entry.userName,
+            label: resolveRecognitionLabel(entry.userName),
+            countLabel: formatContributionCount(entry.count, 'mentor session', 'mentor sessions'),
+          }))
       : mentorSignal && mentorSignal.leaderboard.length > 0
           ? mentorSignal.leaderboard
               .slice(0, 3)
-              .map((entry) => `${entry.userName} — ${entry.mentorSessionsUsed} sessions`)
-          : helpers
-              .filter((person) => person.mentorSlotsRemaining > 0)
+              .map((entry) => ({
+                name: entry.userName,
+                label: resolveRecognitionLabel(entry.userName),
+                countLabel: formatContributionCount(entry.mentorSessionsUsed, 'mentor session', 'mentor sessions'),
+              }))
+          : allPeople
+              .filter((person) => person.mentorSessionsUsed > 0)
               .slice(0, 3)
-              .map((person) => `${person.fullName} — ${person.mentorSlotsRemaining} slots`);
+              .map((person) => ({
+                name: person.fullName,
+                label: person.capabilities[0] ?? person.experienceLabel ?? 'General',
+                countLabel: formatContributionCount(person.mentorSessionsUsed, 'mentor session', 'mentor sessions'),
+              }));
   const dashboardBadges = BADGES.map((badge) =>
     badge.id === 'b-artifact'
       ? { ...badge, count: viewerBadges?.firstArtifactPublished ? 1 : 0 }
@@ -4145,7 +4249,7 @@ export function App(): JSX.Element {
         : badge
   );
 
-  const recognitionRows: Record<RecognitionTab, string[]> = {
+  const recognitionRows: Record<RecognitionTab, RecognitionListRow[]> = {
     builders: buildersRows,
     sharers: sharersRows,
     solvers: solversRows,
@@ -4157,6 +4261,13 @@ export function App(): JSX.Element {
     sharers: 'Sharers',
     solvers: 'Solvers',
     mentors: 'Mentors',
+  };
+
+  const recognitionEmptyCopy: Record<RecognitionTab, string> = {
+    builders: 'No builders recorded in this snapshot yet.',
+    sharers: 'No sharers recorded in this snapshot yet.',
+    solvers: 'No solvers recorded in this snapshot yet.',
+    mentors: 'No mentors recorded in this snapshot yet.',
   };
 
   const closeModal = (): void => setModalView('none');
@@ -6187,13 +6298,16 @@ export function App(): JSX.Element {
                 <div className="tab-list">
                   {recognitionRows[recognitionTab].length > 0 ? (
                     recognitionRows[recognitionTab].map((row, index) => (
-                      <div key={`${recognitionTab}-${index}`} className="list-row">
-                        <span>{row}</span>
-                        <span>1 week ago</span>
+                      <div key={`${recognitionTab}-${index}`} className="list-row recognition-list-row">
+                        <div className="recognition-row-main">
+                          <span className="recognition-row-name">{row.name}</span>
+                          <span className="recognition-row-label">{row.label}</span>
+                        </div>
+                        <span className="recognition-row-count">{row.countLabel}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="empty-copy">No entries yet.</p>
+                    <p className="empty-copy">{recognitionEmptyCopy[recognitionTab]}</p>
                   )}
                 </div>
               </article>

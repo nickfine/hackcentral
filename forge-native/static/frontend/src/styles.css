@@ -3421,6 +3421,34 @@ button {
   font-size: var(--tier3-size);
 }
 
+.recognition-list-row {
+  align-items: center;
+}
+
+.recognition-row-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.recognition-row-name {
+  font-size: var(--tier3-size);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recognition-row-label {
+  font-size: var(--tier4-size);
+  color: var(--text-soft);
+}
+
+.recognition-row-count {
+  flex-shrink: 0;
+  font-size: var(--tier4-size);
+  color: var(--text-soft);
+  text-align: right;
+}
+
 .message {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
