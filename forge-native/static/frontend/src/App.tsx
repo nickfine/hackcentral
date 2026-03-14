@@ -4031,7 +4031,8 @@ export function App(): JSX.Element {
   const helpers = filteredPeople.filter(
     (person) => person.mentorSlotsRemaining > 0 || person.capabilities.length > 0
   );
-  const hackers = filteredPeople;
+  const helperIds = new Set(helpers.map((person) => person.id));
+  const hackers = filteredPeople.filter((person) => !helperIds.has(person.id));
   const homeFeedItems = homeFeedSnapshot?.items ?? [];
   const homeFeedRecommendations = homeFeedSnapshot?.recommendations ?? [];
   const showHomeFeedDebugMeta = HDC_HOME_UX_V1 && previewMode;

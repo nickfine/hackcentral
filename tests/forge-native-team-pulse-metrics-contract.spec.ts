@@ -137,7 +137,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
       return [];
     });
 
-    const repo = new SupabaseRepository({ selectMany } as never);
+    const repo = new SupabaseRepository({ selectMany, selectOne: vi.fn().mockResolvedValue(null) } as never);
     Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-1',
@@ -292,7 +292,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
       return [];
     });
 
-    const repo = new SupabaseRepository({ selectMany } as never);
+    const repo = new SupabaseRepository({ selectMany, selectOne: vi.fn().mockResolvedValue(null) } as never);
     Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-1',
@@ -362,7 +362,7 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
       return [];
     });
 
-    const repo = new SupabaseRepository({ selectMany } as never);
+    const repo = new SupabaseRepository({ selectMany, selectOne: vi.fn().mockResolvedValue(null) } as never);
     Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([
       {
         id: 'p-legacy',
@@ -392,5 +392,63 @@ describe('SupabaseRepository Team Pulse metrics contracts', () => {
 
     expect(result.teamPulse?.timeToFirstHackSampleSize).toBe(1);
     expect(result.teamPulse?.timeToFirstHackMedianDays).toBe(19);
+  });
+
+  it('normalizes bootstrap people labels to username fallbacks instead of raw emails', async () => {
+    const selectMany = vi.fn(async (table: string) => {
+      if (table === 'User') {
+        return [
+          {
+            id: 'u-name',
+            email: 'named.user@example.com',
+            full_name: 'Named User',
+            experience_level: null,
+            mentor_capacity: 1,
+            mentor_sessions_used: 0,
+            happy_to_mentor: false,
+            seeking_mentor: false,
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'u-fallback',
+            email: 'nfine@adaptavist.com',
+            full_name: null,
+            experience_level: null,
+            mentor_capacity: 0,
+            mentor_sessions_used: 0,
+            happy_to_mentor: false,
+            seeking_mentor: false,
+            capability_tags: [],
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ];
+      }
+      if (table === 'ShowcaseHack') return [];
+      if (table === 'Artifact') return [];
+      if (table === 'ArtifactReuse') return [];
+      if (table === 'Problem') return [];
+      if (table === 'Team') return [];
+      if (table === 'TeamMember') return [];
+      return [];
+    });
+
+    const repo = new SupabaseRepository({ selectMany, selectOne: vi.fn().mockResolvedValue(null) } as never);
+    Reflect.set(repo, 'listProjects', vi.fn().mockResolvedValue([]));
+    Reflect.set(repo, 'listAllEvents', vi.fn().mockResolvedValue([]));
+
+    const result = await repo.getBootstrapData(viewer);
+
+    expect(result.people).toMatchObject([
+      {
+        id: 'u-name',
+        fullName: 'Named User',
+      },
+      {
+        id: 'u-fallback',
+        fullName: 'nfine',
+      },
+    ]);
+    expect(result.people[1]?.fullName).not.toContain('@');
   });
 });

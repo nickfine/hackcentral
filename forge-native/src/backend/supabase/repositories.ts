@@ -2910,8 +2910,8 @@ function buildAccountFallbackEmail(accountId: string): string {
 }
 
 function buildDisplayNameFromEmail(email: string): string {
-  const [localPart] = email.split('@');
-  return localPart || email;
+  const [localPart] = email.trim().split('@');
+  return localPart?.trim() || 'Unknown';
 }
 
 export class SupabaseRepository {
@@ -3793,7 +3793,7 @@ export class SupabaseRepository {
 
       return {
         id: user.id,
-        fullName: user.full_name || user.email,
+        fullName: user.full_name?.trim() || buildDisplayNameFromEmail(user.email),
         email: user.email,
         experienceLevel: user.experience_level,
         experienceLabel: toExperienceLabel(user.experience_level),
