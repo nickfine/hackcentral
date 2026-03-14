@@ -1,6 +1,6 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 9, 2026
+**Last Updated:** March 14, 2026
 
 ## Project Overview
 
@@ -20,10 +20,10 @@ When users create a HackDay in HackCentral:
 
 ## Current Project State
 
-**Version:** 0.6.81 (root app)
-**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.66`, `HACKCENTRAL_MACRO_VERSION=0.6.66` (independent markers; both values must be tracked in continuity docs)
+**Version:** 0.6.82 (root app)
+**Forge UI Cache-Busters:** `HACKCENTRAL_UI_VERSION=0.6.82`, `HACKCENTRAL_MACRO_VERSION=0.6.82` (independent markers; both values must be tracked in continuity docs)
 **Tech Stack:** React 19 + TypeScript + Vite + Convex + Forge Native
-**Forge Native Package:** 0.3.59
+**Forge Native Package:** 0.3.60
 **Runtime Bundle Version:** 1.2.93
 
 ## Session Update - v0.6.81 New To HackDay Branding Artwork Released To Production (Mar 9, 2026 23:35 GMT)

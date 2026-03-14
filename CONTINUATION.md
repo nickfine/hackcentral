@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-09 23:35 GMT
+Last updated: 2026-03-14 00:00 GMT
 
 ## Current Snapshot
 
@@ -9,10 +9,10 @@ Last updated: 2026-03-09 23:35 GMT
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
 - Latest known release markers:
-  - Root app version: `0.6.81`
-  - Forge native package version: `0.3.59`
-  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.66`
-  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.66`
+  - Root app version: `0.6.82`
+  - Forge native package version: `0.3.60`
+  - HackCentral UI marker (`HACKCENTRAL_UI_VERSION`): `0.6.82`
+  - HackCentral macro marker (`HACKCENTRAL_MACRO_VERSION`): `0.6.82`
   - Runtime bundle version: `1.2.93`
   - Marker policy: UI and macro cache-buster markers may move independently; continuity docs must list both explicit values.
 - Current phase: `Phase 3 in execution`
