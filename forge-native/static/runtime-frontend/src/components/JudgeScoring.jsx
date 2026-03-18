@@ -95,6 +95,13 @@ function JudgeScoring({
     return teams.find((t) => t.id === selectedTeamId);
   }, [teams, selectedTeamId]);
 
+  const isOwnTeam = (team) => {
+    if (!team || !user?.id) return false;
+    return team.captainId === user.id || team.members?.some((member) => member.id === user.id);
+  };
+
+  const selectedTeamIsOwn = isOwnTeam(selectedTeam);
+
   // Check if user has already scored a team
   const hasScored = (teamId) => {
     const team = teams.find((t) => t.id === teamId);
@@ -115,6 +122,11 @@ function JudgeScoring({
 
   // Handle selecting a team to score
   const handleSelectTeam = (teamId) => {
+    const team = teams.find((item) => item.id === teamId);
+    if (isOwnTeam(team)) {
+      setSaveStatus('own-team');
+      return;
+    }
     setSelectedTeamId(teamId);
     // Initialize with empty scores
     const initialScores = {};
@@ -138,6 +150,10 @@ function JudgeScoring({
   // Handle save
   const handleSave = async () => {
     if (!selectedTeamId || !user) return;
+    if (selectedTeamIsOwn) {
+      setSaveStatus('own-team');
+      return;
+    }
     setSaveStatus('saving');
     try {
       const { invoke } = await import('@forge/bridge');
@@ -216,16 +232,19 @@ function JudgeScoring({
                 {submittedProjects.map((team) => {
                   const scored = hasScored(team.id);
                   const isSelected = selectedTeamId === team.id;
+                  const teamIsOwn = isOwnTeam(team);
                   
                   return (
                     <button
                       key={team.id}
                       onClick={() => handleSelectTeam(team.id)}
+                      disabled={teamIsOwn}
                       className={cn(
                         'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
                         isSelected
                           ? 'bg-brand/10 border-brand'
-                          : 'bg-arena-elevated border-arena-border hover:border-arena-border-strong'
+                          : 'bg-arena-elevated border-arena-border hover:border-arena-border-strong',
+                        teamIsOwn && 'cursor-not-allowed opacity-60 hover:border-arena-border'
                       )}
                     >
                       <div className="w-8 h-8 rounded-lg bg-arena-card flex items-center justify-center">
@@ -239,7 +258,10 @@ function JudgeScoring({
                         <p className="font-bold text-text-primary truncate">
                           {team.submission?.projectName || team.name}
                         </p>
-                        <p className="text-xs text-text-muted">{team.name}</p>
+                        <p className="text-xs text-text-muted">
+                          {team.name}
+                          {teamIsOwn ? ' · Your team' : ''}
+                        </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-text-muted" />
                     </button>
@@ -312,6 +334,12 @@ function JudgeScoring({
               </div>
 
               {/* Scoring Criteria */}
+              {selectedTeamIsOwn ? (
+                <Alert variant="warning" className="mb-6">
+                  You cannot score your own team.
+                </Alert>
+              ) : null}
+
               <VStack gap="4" className="mb-6">
                 {judgeCriteria.map((criterion) => (
                   <ScoreInput
@@ -359,8 +387,14 @@ function JudgeScoring({
                     Failed to save score. Please try again.
                   </Alert>
                 )}
+                {saveStatus === 'own-team' && (
+                  <Alert variant="warning" className="flex-1 mr-4">
+                    You cannot score your own team.
+                  </Alert>
+                )}
                 <Button
                   onClick={handleSave}
+                  disabled={selectedTeamIsOwn}
                   loading={saveStatus === 'saving'}
                   leftIcon={<Save className="w-4 h-4" />}
                   className="ml-auto"

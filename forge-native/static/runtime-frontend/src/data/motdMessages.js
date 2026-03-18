@@ -148,7 +148,7 @@ export const MOTD_MESSAGES = {
     },
     participant: {
       title: "Vote for People's Champion!",
-      message: 'Review the submitted projects and cast your votes. You can vote for up to 5 projects. Help decide who wins the People\'s Champion award!',
+      message: 'Review the submitted projects and cast your vote. You can vote for 1 project. Help decide who wins the People\'s Champion award!',
       variant: 'info',
     },
     ambassador: {

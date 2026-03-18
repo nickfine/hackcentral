@@ -302,7 +302,7 @@ function AdminPanel({
   const [userSearch, setUserSearch] = useState('');
   const [settings, setSettings] = useState({
     maxTeamSize: 6,
-    maxVotesPerUser: 3,
+    maxVotesPerUser: 1,
   });
   const [motdMessage, setMotdMessage] = useState({
     title: '',
@@ -669,7 +669,7 @@ function AdminPanel({
 
         setSettings({
           maxTeamSize: Number(result?.maxTeamSize) || 5,
-          maxVotesPerUser: Number(result?.maxVotesPerUser) || 3,
+          maxVotesPerUser: Number(result?.maxVotesPerUser) || 1,
         });
         setMotdMessage(normalizeAdminMessage(result?.motdMessage, result?.motd || ''));
       } catch (err) {

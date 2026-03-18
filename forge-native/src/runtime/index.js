@@ -1546,7 +1546,7 @@ async function createEventFromTemplateSeed(supabase, seed, pageId) {
     name: defaultEventFieldValue("name", seed, preferredEventId, pageId, nowIso),
     phase: defaultEventFieldValue("phase", seed, preferredEventId, pageId, nowIso),
     isCurrent: false,
-    maxVotesPerUser: 3,
+    maxVotesPerUser: 1,
     startDate: defaultEventFieldValue("startDate", seed, preferredEventId, pageId, nowIso),
     endDate: defaultEventFieldValue("endDate", seed, preferredEventId, pageId, nowIso),
     createdAt: nowIso,
@@ -6053,6 +6053,24 @@ resolver.define("getVotes", async (req) => {
 /**
  * Cast a vote for a team
  */
+async function isAcceptedTeamMember(supabase, teamId, userId) {
+  if (!teamId || !userId) {
+    return false;
+  }
+
+  const { data: membershipData, error: membershipError } = await supabase
+    .from("TeamMember")
+    .select("id")
+    .eq("teamId", teamId)
+    .eq("userId", userId)
+    .eq("status", "ACCEPTED")
+    .limit(1);
+
+  if (membershipError) throw membershipError;
+
+  return Boolean(membershipData?.[0]);
+}
+
 resolver.define("castVote", async (req) => {
   const accountId = getCallerAccountId(req);
   const { teamId } = req.payload || {};
@@ -6073,6 +6091,10 @@ resolver.define("castVote", async (req) => {
     const user = userData?.[0];
     if (userError || !user) {
       throw new Error("User not found");
+    }
+
+    if (await isAcceptedTeamMember(supabase, teamId, user.id)) {
+      throw new Error("You cannot vote for your own team");
     }
 
     // Get team's project
@@ -6101,9 +6123,9 @@ resolver.define("castVote", async (req) => {
       throw new Error("Already voted for this team");
     }
 
-    // Check vote limit (event setting; default 3)
+    // Check vote limit (event setting; default 1)
     const event = await getCurrentEvent(supabase, req);
-    const maxVotesPerUser = event?.maxVotesPerUser || 3;
+    const maxVotesPerUser = event?.maxVotesPerUser || 1;
 
     // Get event teams to filter votes by current event
     const { data: eventTeams } = await supabase
@@ -6313,6 +6335,10 @@ resolver.define("submitScore", async (req) => {
       throw new Error("Only judges can submit scores");
     }
 
+    if (await isAcceptedTeamMember(supabase, teamId, user.id)) {
+      throw new Error("You cannot score your own team");
+    }
+
     // Get team's project
     const { data: projectData, error: projectError } = await supabase
       .from("Project")
@@ -6399,7 +6425,7 @@ resolver.define("getEventPhase", async (req) => {
       phase: "signup",
       motd: null,
       motdMessage: null,
-      maxVotesPerUser: 3,
+      maxVotesPerUser: 1,
       eventMeta: defaultEventMeta,
       branding: {},
       isCreatedHackDay: false,
@@ -6520,7 +6546,7 @@ resolver.define("getEventPhase", async (req) => {
     eventId: event.id,
     motd: effectiveMotd?.message || null,
     motdMessage: effectiveMotd,
-    maxVotesPerUser: event.maxVotesPerUser || 3,
+    maxVotesPerUser: event.maxVotesPerUser || 1,
     maxTeamSize: event.maxTeamSize || 5,
     eventMeta: {
       name: resolvedEventName,
@@ -7925,7 +7951,7 @@ resolver.define("getEventSettings", async (req) => {
 
     return {
       maxTeamSize: event.maxTeamSize || 6,
-      maxVotesPerUser: event.maxVotesPerUser || 3,
+      maxVotesPerUser: event.maxVotesPerUser || 1,
       submissionDeadline: event.submissionDeadline || null,
       votingDeadline: event.votingDeadline || null,
       motd: effectiveMotd.message || "",

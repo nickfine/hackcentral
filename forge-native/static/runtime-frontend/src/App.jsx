@@ -370,7 +370,7 @@ function App() {
   const [eventAdminMessage, setEventAdminMessage] = useState(null);
   const [eventMeta, setEventMeta] = useState(DEFAULT_EVENT_META);
   const [eventId, setEventId] = useState(null);
-  const [maxVotesPerUser, setMaxVotesPerUser] = useState(3);
+  const [maxVotesPerUser, setMaxVotesPerUser] = useState(1);
   const [maxTeamSize, setMaxTeamSize] = useState(5);
   const [isNewUser, setIsNewUser] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);

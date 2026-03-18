@@ -135,14 +135,14 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
 // COMPONENT
 // ============================================================================
 
-function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 3, appModeResolverPayload = null }) {
+function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1, appModeResolverPayload = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [votes, setVotes] = useState([]);
   const [votingTeamId, setVotingTeamId] = useState(null);
   const [voteError, setVoteError] = useState('');
 
-  const MAX_VOTES = Math.max(1, Math.floor(Number(maxVotesPerUser) || 3));
+  const MAX_VOTES = Math.max(1, Math.floor(Number(maxVotesPerUser) || 1));
 
   // Get projects with submissions
   const submittedProjects = useMemo(() => {

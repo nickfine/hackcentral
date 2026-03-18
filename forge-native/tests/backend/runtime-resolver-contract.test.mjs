@@ -58,3 +58,10 @@ test('runtime restore resolvers enforce platform-admin-only access', async () =>
   assert.match(source, /resolver\.define\("previewEventBackupRestore"[\s\S]*if \(!access\.isPlatformAdmin\)/);
   assert.match(source, /resolver\.define\("applyEventBackupRestore"[\s\S]*if \(!access\.isPlatformAdmin\)/);
 });
+
+test('runtime voting and judging resolvers block self-team actions server-side', async () => {
+  const source = await readRuntimeSource();
+  assert.match(source, /async function isAcceptedTeamMember\(supabase, teamId, userId\)/);
+  assert.match(source, /resolver\.define\("castVote"[\s\S]*You cannot vote for your own team/);
+  assert.match(source, /resolver\.define\("submitScore"[\s\S]*You cannot score your own team/);
+});
