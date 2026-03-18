@@ -41,10 +41,13 @@ test('runtime schedule page owns config-mode editing and participant empty state
 });
 
 test('HackCentral create wizard defers schedule setup to the child page', async () => {
-  const source = await readFile('../../static/frontend/src/App.tsx');
+  const [wizardSource, runtimeScheduleSource] = await Promise.all([
+    readFile('../../static/frontend/src/App.tsx'),
+    readFile('../../static/runtime-frontend/src/components/Schedule.jsx'),
+  ]);
 
-  assert.doesNotMatch(source, /import\s+\{[^}]*ScheduleBuilderV2/);
-  assert.match(source, /Schedule setup now happens inside the child HackDay page while Config Mode is enabled\./);
-  assert.match(source, /Configured later in the child HackDay page/);
-  assert.match(source, /Child page → Schedule → Config Mode/);
+  assert.doesNotMatch(wizardSource, /import\s+\{[^}]*ScheduleBuilderV2/);
+  assert.match(wizardSource, /finish schedule setup in the HackDay page/);
+  assert.match(runtimeScheduleSource, /Turn on Config Mode/);
+  assert.match(runtimeScheduleSource, /Open Schedule Builder|Editing in Config Mode/);
 });

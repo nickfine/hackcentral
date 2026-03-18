@@ -1,4 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('../forge-native/src/backend/confluencePages', () => ({
+  buildConfluencePageUrl: (siteUrl: string | null | undefined, pageId: string) =>
+    `${siteUrl || 'https://example.atlassian.net'}/wiki/spaces/IS/pages/${pageId}`,
+  buildHackOutputPageStorageValue: () => '<p>output</p>',
+  buildHackPageStorageValue: () => '<p>hack</p>',
+  createStandardChildPage: vi
+    .fn()
+    .mockResolvedValueOnce({
+      pageId: 'hack-page-1',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/IS/pages/hack-page-1',
+    })
+    .mockResolvedValueOnce({
+      pageId: 'output-page-1',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/IS/pages/output-page-1',
+    })
+    .mockResolvedValueOnce({
+      pageId: 'output-page-2',
+      pageUrl: 'https://example.atlassian.net/wiki/spaces/IS/pages/output-page-2',
+    }),
+  deletePage: vi.fn().mockResolvedValue(undefined),
+  ensureHacksParentPageUnderParent: vi.fn().mockResolvedValue({
+    pageId: 'hacks-parent-1',
+    pageUrl: 'https://example.atlassian.net/wiki/spaces/IS/pages/hacks-parent-1',
+  }),
+  setPageStorageContent: vi.fn().mockResolvedValue(undefined),
+}));
 import { SupabaseRepository } from '../forge-native/src/backend/supabase/repositories';
 import type { ViewerContext } from '../forge-native/src/shared/types';
 
@@ -7,6 +33,7 @@ const viewer: ViewerContext = {
   siteUrl: 'https://example.atlassian.net',
   timezone: 'Europe/London',
 };
+const linkedArtifactId = '11111111-1111-4111-8111-111111111111';
 
 describe('SupabaseRepository showcase contracts', () => {
   it('lists showcase hacks with status/featured filters', async () => {
@@ -129,7 +156,7 @@ describe('SupabaseRepository showcase contracts', () => {
       team_members: ['Alice', 'Ben'],
       source_event_id: 'event-1',
       tags: ['ops-automation'],
-      linked_artifact_ids: ['artifact-1'],
+      linked_artifact_ids: [linkedArtifactId],
       context: 'Ops workflow acceleration',
       limitations: 'Needs Jira access',
       risk_notes: 'Review generated summaries',
@@ -142,7 +169,7 @@ describe('SupabaseRepository showcase contracts', () => {
       .fn()
       .mockResolvedValueOnce([
         {
-          id: 'artifact-1',
+          id: linkedArtifactId,
           title: 'Ops Prompt Pack',
           artifact_type: 'prompt',
           visibility: 'org',
@@ -203,13 +230,13 @@ describe('SupabaseRepository showcase contracts', () => {
       featured: true,
       status: 'completed',
       teamMembers: ['Alice', 'Ben'],
-      linkedArtifactIds: ['artifact-1'],
+      linkedArtifactIds: [linkedArtifactId],
       context: 'Ops workflow acceleration',
       forkCount: 0,
     });
     expect(result.artifactsProduced).toEqual([
       {
-        artifactId: 'artifact-1',
+        artifactId: linkedArtifactId,
         title: 'Ops Prompt Pack',
         artifactType: 'prompt',
         visibility: 'org',
@@ -262,6 +289,8 @@ describe('SupabaseRepository showcase contracts', () => {
   });
 
   it('creates hack with required demoUrl and persists showcase metadata', async () => {
+    process.env.CONFLUENCE_HDC_PARENT_PAGE_ID = '24680';
+    process.env.CONFLUENCE_HDC_PARENT_PAGE_URL = 'https://example.atlassian.net/wiki/spaces/IS/pages/24680';
     const upsert = vi.fn().mockResolvedValue({
       project_id: 'project-1',
       updated_at: '2026-03-01T04:00:00.000Z',
@@ -275,7 +304,7 @@ describe('SupabaseRepository showcase contracts', () => {
       title: 'Ops Assistant',
     }));
     Reflect.set(repo, 'getArtifactRowById', vi.fn().mockResolvedValue({
-      id: 'artifact-1',
+      id: linkedArtifactId,
       archived_at: null,
     }));
 
@@ -288,18 +317,23 @@ describe('SupabaseRepository showcase contracts', () => {
       teamMembers: ['Alice', 'Ben'],
       sourceEventId: 'event-1',
       tags: ['Ops Automation'],
-      linkedArtifactIds: ['artifact-1'],
+      linkedArtifactIds: [linkedArtifactId],
     });
 
     expect(result).toEqual({
       assetId: 'project-1',
       title: 'Ops Assistant',
+      confluencePageId: 'hack-page-1',
+      confluencePageUrl: 'https://example.atlassian.net/wiki/spaces/IS/pages/hack-page-1',
+      outputPageIds: ['output-page-1'],
     });
     expect(upsert).toHaveBeenCalledWith(
       'ShowcaseHack',
       expect.objectContaining({
         project_id: 'project-1',
         demo_url: 'https://demo.example.com/ops-assistant',
+        confluence_page_id: 'hack-page-1',
+        output_page_ids: ['output-page-1'],
         tags: ['ops-automation'],
         team_members: ['Alice', 'Ben'],
       }),

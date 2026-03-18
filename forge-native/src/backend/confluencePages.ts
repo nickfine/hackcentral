@@ -542,8 +542,11 @@ async function createPageUnderParentWithStorage(input: {
   title: string;
   storageValue: string;
   nonBlockingFullWidth?: boolean;
+  parentMetadata?: {
+    spaceId: string;
+  };
 }): Promise<{ pageId: string; pageUrl: string }> {
-  const parentMetadata = await getParentPageMetadata(input.parentPageId);
+  const parentMetadata = input.parentMetadata ?? await getParentPageMetadata(input.parentPageId);
   let payload: ConfluencePage | null = null;
   let lastFailure = '';
 
@@ -1072,6 +1075,9 @@ export async function createChildPageUnderParent(input: {
   return createPageUnderParentWithStorage({
     parentPageId: input.parentPageId,
     title: input.title,
+    parentMetadata: {
+      spaceId: parentMetadata.spaceId,
+    },
     // Keep child pages visually clean; the macro renders the real event hero/title.
     storageValue: macroSnippet,
     nonBlockingFullWidth: input.nonBlockingFullWidth,

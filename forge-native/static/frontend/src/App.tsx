@@ -101,7 +101,7 @@ import {
 import { PipelineHero } from './components/pipeline';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.82';
+const HACKCENTRAL_UI_VERSION = '0.6.83';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -141,6 +141,26 @@ const HOME_FEED_RECOMMENDATION_LABELS: Record<HomeFeedRecommendationType, string
 };
 const HACKDAY_EXTRACTION_UI_DEFAULT_LIMIT = 50;
 const HACKDAY_EXTRACTION_UI_MAX_LIMIT = 200;
+
+function normalizeRecognitionPersonKey(value: string): string {
+  return value.trim().toLowerCase().replace(/\./g, '');
+}
+
+function buildRecognitionPersonKeys(value: string): string[] {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return [];
+  const parts = normalizedValue.split(/\s+/).filter(Boolean);
+  const keys = new Set<string>([normalizeRecognitionPersonKey(normalizedValue)]);
+  if (parts.length >= 2) {
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1]?.[0];
+    if (firstName && lastInitial) {
+      keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}`));
+      keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}.`));
+    }
+  }
+  return Array.from(keys);
+}
 
 type PathwayEditorMode = 'create' | 'edit';
 type HackdaySortBy = 'recent' | 'oldest' | 'name_asc' | 'name_desc' | 'status';
@@ -4144,23 +4164,6 @@ export function App(): JSX.Element {
   const frontline = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'frontline').length;
   const leaders = allPeople.filter((person) => classifyExperience(person.experienceLevel) === 'leader').length;
   const others = Math.max(0, allPeople.length - frontline - leaders);
-
-  const normalizeRecognitionPersonKey = (value: string): string => value.trim().toLowerCase().replace(/\./g, '');
-  const buildRecognitionPersonKeys = (value: string): string[] => {
-    const normalizedValue = value.trim();
-    if (!normalizedValue) return [];
-    const parts = normalizedValue.split(/\s+/).filter(Boolean);
-    const keys = new Set<string>([normalizeRecognitionPersonKey(normalizedValue)]);
-    if (parts.length >= 2) {
-      const firstName = parts[0];
-      const lastInitial = parts[parts.length - 1]?.[0];
-      if (firstName && lastInitial) {
-        keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}`));
-        keys.add(normalizeRecognitionPersonKey(`${firstName} ${lastInitial}.`));
-      }
-    }
-    return Array.from(keys);
-  };
 
   const personLabelByName = useMemo(() => {
     const labelMap = new Map<string, string>();

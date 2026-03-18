@@ -302,25 +302,6 @@ async function getHomeFeedFromConvex(viewer: ViewerContext, input: GetHomeFeedIn
   };
 }
 
-async function createHackInConvex(viewer: ViewerContext, input: CreateHackInput): Promise<CreateHackResult> {
-  const config = getConvexConfig();
-  const client = asConvexInvoker(getConvexClient());
-  return (await client.mutation(config.createHack, {
-    forgeAccountId: viewer.accountId,
-    forgeSiteUrl: viewer.siteUrl,
-    title: input.title,
-    description: input.description,
-    assetType: input.assetType,
-    visibility: input.visibility,
-    content: input.content,
-    demoUrl: input.demoUrl,
-    teamMembers: input.teamMembers,
-    sourceEventId: input.sourceEventId,
-    tags: input.tags,
-    linkedArtifactIds: input.linkedArtifactIds,
-  })) as CreateHackResult;
-}
-
 async function createProjectInConvex(
   viewer: ViewerContext,
   input: CreateProjectInput

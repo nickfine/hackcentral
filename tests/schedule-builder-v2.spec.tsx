@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildOutputPayload } from '../forge-native/static/frontend/src/components/schedule-builder-v2';
+import { buildOutputPayload } from '../forge-native/static/frontend/src/components/schedule-builder-v2/buildOutputPayload';
 import { initializeEventStates } from '../forge-native/static/frontend/src/schedule-builder-v2/scheduleEvents';
 import { buildBuilderInitialState } from '../forge-native/static/runtime-frontend/src/components/Schedule';
 

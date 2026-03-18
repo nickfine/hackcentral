@@ -18,8 +18,10 @@ test('runtime resolver defines hero image signed-upload endpoint with validation
   assert.match(source, /resolveEventBrandingAdminContext\(req\)/);
   assert.match(source, /EVENT_BRANDING_UPLOAD_ALLOWED_TYPES\s*=\s*new Set\(\["image\/jpeg", "image\/png", "image\/webp"\]\)/);
   assert.match(source, /fileSizeBytes > EVENT_BRANDING_UPLOAD_MAX_BYTES/);
-  assert.match(source, /imageWidth > EVENT_BRANDING_UPLOAD_MAX_WIDTH/);
-  assert.match(source, /imageHeight !== EVENT_BRANDING_UPLOAD_REQUIRED_HEIGHT/);
+  assert.match(source, /imageWidth > EVENT_BRANDING_BANNER_MAX_WIDTH/);
+  assert.match(source, /imageHeight !== EVENT_BRANDING_BANNER_REQUIRED_HEIGHT/);
+  assert.match(source, /imageWidth !== EVENT_BRANDING_ICON_REQUIRED_WIDTH/);
+  assert.match(source, /imageHeight !== EVENT_BRANDING_ICON_REQUIRED_HEIGHT/);
   assert.match(source, /createSignedUploadUrl\(objectPath\)/);
   assert.match(source, /getPublicUrl\(objectPath\)/);
 });

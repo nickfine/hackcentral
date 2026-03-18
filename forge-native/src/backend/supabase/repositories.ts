@@ -3003,19 +3003,33 @@ export class SupabaseRepository {
   }
 
   async getUserByAccountId(accountId: string): Promise<DbUser | null> {
+    const selectOne = this.client.selectOne?.bind(this.client);
+    const selectMany = this.client.selectMany?.bind(this.client);
+    const select =
+      'id,email,full_name,atlassian_account_id,role,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags';
+    const legacySelect =
+      'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags';
+    const filters: QueryFilter[] = [{ field: 'atlassian_account_id', op: 'eq', value: accountId }];
+
+    if (typeof selectOne !== 'function') {
+      if (typeof selectMany !== 'function') {
+        return null;
+      }
+      try {
+        const rows = await selectMany<DbUser>(USER_TABLE, select, filters);
+        return rows.find((row) => row.atlassian_account_id === accountId) ?? rows[0] ?? null;
+      } catch (error) {
+        if (!hasMissingUserRoleColumn(error)) throw error;
+        const rows = await selectMany<DbUser>(USER_TABLE, legacySelect, filters);
+        return rows.find((row) => row.atlassian_account_id === accountId) ?? rows[0] ?? null;
+      }
+    }
+
     try {
-      return await this.client.selectOne<DbUser>(
-        USER_TABLE,
-        'id,email,full_name,atlassian_account_id,role,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
-        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
-      );
+      return await selectOne<DbUser>(USER_TABLE, select, filters);
     } catch (error) {
       if (!hasMissingUserRoleColumn(error)) throw error;
-      return this.client.selectOne<DbUser>(
-        USER_TABLE,
-        'id,email,full_name,atlassian_account_id,experience_level,mentor_capacity,mentor_sessions_used,happy_to_mentor,seeking_mentor,capability_tags',
-        [{ field: 'atlassian_account_id', op: 'eq', value: accountId }]
-      );
+      return selectOne<DbUser>(USER_TABLE, legacySelect, filters);
     }
   }
 
@@ -3230,6 +3244,22 @@ export class SupabaseRepository {
     isAdmin: boolean;
     tags: string[];
   }> {
+    if (typeof this.client.selectOne !== 'function') {
+      const fallbackUser = await this.getUserByAccountId(accountId);
+      if (!fallbackUser) {
+        return {
+          userId: null,
+          isAdmin: false,
+          tags: [],
+        };
+      }
+      return {
+        userId: fallbackUser.id,
+        isAdmin: isAdminRole(fallbackUser.role),
+        tags: normalizeCapabilityTags(fallbackUser.capability_tags),
+      };
+    }
+
     try {
       const row = await this.client.selectOne<DbExtractionAccessLookup>(
         USER_TABLE,
@@ -5792,10 +5822,6 @@ export class SupabaseRepository {
     const normalizedTeamMembers = normalizeShowcaseTeamMembers(input.teamMembers ?? []);
     const linkedArtifactIds = normalizeShowcaseLinkedArtifactIds(input.linkedArtifactIds ?? []);
     const linkedArtifacts: DbArtifact[] = [];
-    const hdcParentPageId = normalizeConfluenceParentPageId(process.env.CONFLUENCE_HDC_PARENT_PAGE_ID);
-    if (!hdcParentPageId) {
-      throw createShowcaseValidationError('CONFLUENCE_HDC_PARENT_PAGE_ID must be configured for hack page creation.');
-    }
 
     if (!demoUrl) {
       throw createShowcaseValidationError('demoUrl is required.');
@@ -5807,6 +5833,11 @@ export class SupabaseRepository {
       }
     } catch {
       throw createShowcaseValidationError('demoUrl must be a valid https URL.');
+    }
+
+    const hdcParentPageId = normalizeConfluenceParentPageId(process.env.CONFLUENCE_HDC_PARENT_PAGE_ID);
+    if (!hdcParentPageId) {
+      throw createShowcaseValidationError('CONFLUENCE_HDC_PARENT_PAGE_ID must be configured for hack page creation.');
     }
 
     if (linkedArtifactIds.length > 0) {

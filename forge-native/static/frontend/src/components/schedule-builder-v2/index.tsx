@@ -12,7 +12,6 @@ import type {
   EventSignal,
   PhaseKey,
   ScheduleBuilderState,
-  ScheduleBuilderOutput,
   ScheduleBuilderV2Props,
   CustomEvent,
 } from '../../types/scheduleBuilderV2';
@@ -22,7 +21,6 @@ import {
   ensureEventStatesForDuration,
   getEventStateKey,
   getEventsForPhase,
-  EVENT_TO_OUTPUT_FIELD,
   PRE_EVENT_MILESTONES,
   HACK_DAY_EVENTS,
 } from '../../schedule-builder-v2/scheduleEvents';
@@ -31,6 +29,7 @@ import { ConfigStrip } from './ConfigStrip';
 import { PhaseTabBar } from './PhaseTabBar';
 import { PhaseContent } from './PhaseContent';
 import { TimelineMinimap } from './TimelineMinimap';
+import { buildOutputPayload, isPhaseKeyWithinDuration, parseHackPhaseDayIndex } from './buildOutputPayload';
 import './styles.css';
 
 /** Default anchor date: 2 weeks from today */
@@ -40,175 +39,12 @@ function getDefaultAnchorDate(): string {
   return date.toISOString().split('T')[0];
 }
 
-function parseHackPhaseDayIndex(phaseKey: PhaseKey): number | null {
-  if (!phaseKey.startsWith('hack-')) {
-    return null;
-  }
-
-  const parsed = parseInt(phaseKey.split('-')[1], 10);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function getHackDayEventPresentation(
-  event: (typeof HACK_DAY_EVENTS)[number],
-  dayIndex: number
-): { name: string; description: string } {
-  if (event.id === 'opening' && dayIndex > 0) {
-    return {
-      name: 'Morning Kickoff',
-      description: 'Daily standup and updates',
-    };
-  }
-
-  return {
-    name: event.name,
-    description: event.description,
-  };
-}
-
-function isPhaseKeyWithinDuration(phaseKey: PhaseKey, duration: EventDuration): boolean {
-  if (phaseKey === 'pre') {
-    return true;
-  }
-
-  const dayIndex = parseHackPhaseDayIndex(phaseKey);
-  return dayIndex !== null && dayIndex >= 0 && dayIndex < duration;
-}
-
 function createCustomEventId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
 
   return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * Build the output payload from the current state.
- */
-export function buildOutputPayload(
-  duration: EventDuration,
-  anchorDate: string,
-  anchorTime: string,
-  timezone: string,
-  eventStates: Record<string, EventState>,
-  customEvents: CustomEvent[]
-): ScheduleBuilderOutput {
-  // Helper to create ISO timestamp
-  const toISOTimestamp = (date: string, time: string): string => {
-    return new Date(`${date}T${time}:00`).toISOString();
-  };
-
-  // Helper to calculate date from anchor + offset
-  const calculateDateFromOffset = (offsetDays: number): string => {
-    const date = new Date(anchorDate);
-    date.setDate(date.getDate() + offsetDays);
-    return date.toISOString().split('T')[0];
-  };
-
-  // Build output with dynamic fields
-  const selectedEvents = new Set<string>();
-  const timestamps: Record<string, string> = {};
-  const syntheticCustomEvents: NonNullable<ScheduleBuilderOutput['customEvents']> = [];
-
-  // Process pre-event milestones
-  PRE_EVENT_MILESTONES.forEach((event) => {
-    const state = eventStates[event.id];
-    if (state?.enabled) {
-      const outputField = EVENT_TO_OUTPUT_FIELD[event.id];
-      if (outputField && state.offsetDays !== undefined) {
-        const eventDate = calculateDateFromOffset(state.offsetDays);
-        // Pre-event milestones use 09:00 as default time
-        timestamps[outputField] = toISOTimestamp(eventDate, '09:00');
-        selectedEvents.add(event.id);
-      }
-    }
-  });
-
-  // Process hack day events - iterate through each day with composite keys
-  for (let dayIndex = 0; dayIndex < duration; dayIndex++) {
-    const isLastDay = dayIndex === duration - 1;
-    const phaseKey = `hack-${dayIndex}`;
-
-    HACK_DAY_EVENTS.forEach((event) => {
-      // Skip lastDayOnly events on non-last days
-      if (event.lastDayOnly && !isLastDay) return;
-
-      // Try composite key first, fall back to flat key for backwards compatibility
-      const compositeKey = `${phaseKey}:${event.id}`;
-      const state = eventStates[compositeKey] ?? eventStates[event.id];
-
-      // Use state if available, otherwise default to enabled with default time
-      const enabled = state?.enabled ?? true;
-      const time = state?.time ?? event.defaultTime;
-
-      if (enabled && time) {
-        const outputField = EVENT_TO_OUTPUT_FIELD[event.id];
-        if (outputField) {
-          const eventDate = calculateDateFromOffset(dayIndex);
-          // For multi-day events, we use the event from its specific day
-          // Opening ceremony: Day 1 time goes to openingCeremonyAt
-          // Hacking begins: Day 1 time goes to hackingStartsAt
-          // lastDayOnly events always use the last day
-          if (event.lastDayOnly || dayIndex === 0) {
-            // For first day (or lastDayOnly on last day), use standard field
-            timestamps[outputField] = toISOTimestamp(eventDate, time);
-          } else {
-            const presentation = getHackDayEventPresentation(event, dayIndex);
-            syntheticCustomEvents.push({
-              name: presentation.name,
-              description: presentation.description,
-              timestamp: toISOTimestamp(eventDate, time),
-              signal: event.signal,
-              sourceEventId: event.id,
-              sourcePhaseKey: phaseKey,
-            });
-          }
-          // Note: For multi-day, we could add Day2/Day3 specific fields later if needed
-          selectedEvents.add(event.id);
-        }
-      }
-    });
-  }
-
-  // Process custom events
-  let customEventOutput: ScheduleBuilderOutput['customEvents'];
-  const activeCustomEvents = customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration));
-  if (activeCustomEvents.length > 0 || syntheticCustomEvents.length > 0) {
-    customEventOutput = [
-      ...activeCustomEvents.map((ce) => {
-      let timestamp: string;
-      if (ce.phase === 'pre' && ce.offsetDays !== undefined) {
-        const eventDate = calculateDateFromOffset(ce.offsetDays);
-        timestamp = toISOTimestamp(eventDate, '09:00');
-      } else if (ce.time) {
-        // Extract day index from phase key (e.g., 'hack-1' -> 1)
-        const dayIndex = parseHackPhaseDayIndex(ce.phase) ?? 0;
-        const eventDate = calculateDateFromOffset(dayIndex);
-        timestamp = toISOTimestamp(eventDate, ce.time);
-      } else {
-        timestamp = toISOTimestamp(anchorDate, '12:00');
-      }
-
-      return {
-        name: ce.name,
-        description: ce.description,
-        timestamp,
-        signal: ce.signal,
-      };
-      }),
-      ...syntheticCustomEvents,
-    ];
-  }
-
-  // Combine into final output
-  return {
-    timezone,
-    duration,
-    selectedEvents: Array.from(selectedEvents),
-    ...timestamps,
-    ...(customEventOutput && { customEvents: customEventOutput }),
-  } as ScheduleBuilderOutput;
 }
 
 type PreviewSignal = EventSignal;

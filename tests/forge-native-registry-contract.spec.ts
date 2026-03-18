@@ -119,7 +119,8 @@ describe('SupabaseRepository registry contracts', () => {
   });
 
   it('returns alreadyMarked when duplicate artifact reuse rows are attempted', async () => {
-    const selectOne = vi.fn().mockResolvedValue({ id: 'artifact-1', reuse_count: 2 });
+    const artifactId = '11111111-1111-4111-8111-111111111111';
+    const selectOne = vi.fn().mockResolvedValue({ id: artifactId, reuse_count: 2 });
     const insert = vi
       .fn()
       .mockRejectedValue(
@@ -132,10 +133,10 @@ describe('SupabaseRepository registry contracts', () => {
       ensureUser: vi.fn().mockResolvedValue({ id: 'user-1' }),
     };
 
-    const result = await SupabaseRepository.prototype.markArtifactReuse.call(fakeRepo, viewer, 'artifact-1');
+    const result = await SupabaseRepository.prototype.markArtifactReuse.call(fakeRepo, viewer, artifactId);
 
     expect(result).toEqual({
-      artifactId: 'artifact-1',
+      artifactId,
       reuseCount: 2,
       alreadyMarked: true,
     });

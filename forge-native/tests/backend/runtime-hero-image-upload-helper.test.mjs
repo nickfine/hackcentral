@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const helperModulePath = path.resolve(__dirname, '../../static/runtime-frontend/src/lib/heroImageUpload.js');
-const dashboardPath = path.resolve(__dirname, '../../static/runtime-frontend/src/components/Dashboard.jsx');
+const adminPanelPath = path.resolve(__dirname, '../../static/runtime-frontend/src/components/AdminPanel.jsx');
 
 const { uploadHeroImageInline, HERO_IMAGE_MAX_FILE_SIZE_BYTES } = await import(pathToFileURL(helperModulePath).href);
 
@@ -240,7 +240,8 @@ test('runtime hero helper crops very wide images to max 1200x400', async () => {
   );
 });
 
-test('runtime dashboard applies uploaded hero public URL to branding config path', async () => {
-  const source = await fs.readFile(dashboardPath, 'utf8');
-  assert.match(source, /configMode\?\.\s*setFieldValue\?\.\('branding\.bannerImageUrl',\s*uploaded\.publicUrl\)/);
+test('runtime admin branding save persists uploaded hero asset URLs into config-mode draft fields', async () => {
+  const source = await fs.readFile(adminPanelPath, 'utf8');
+  assert.match(source, /configMode\.setFieldValue\('branding\.bannerImageUrl',\s*bannerImageUrl\)/);
+  assert.match(source, /configMode\.setFieldValue\('branding\.heroIconImageUrl',\s*heroIconImageUrl\)/);
 });
