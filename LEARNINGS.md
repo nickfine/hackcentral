@@ -5212,6 +5212,89 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - tag-hackday Tenant Provisioned And Validated (Mar 19, 2026 18:51 UTC)
+
+### What Changed
+- Bootstrapped a dedicated Supabase tenant for `tag-hackday` at `easooezlgwbiiqqlpvpb.supabase.co`, applied the canonical HackCentral bootstrap plus supplemental registry/problem support, then completed the remaining migrations.
+- Published the dedicated parent page in `HDP` space on `tag-hackday.atlassian.net`:
+  - parent pageId `131530754`
+  - title `HackDay Central Parent Host - 2026-03-19`
+- Set the full Forge env contract for isolated HackCentral and HD26Forge staging/production tenants, then redeployed both apps.
+- Validated real create flow from the parent page and created two child pages:
+  - `132087809` -> `TAG HackDay Tenant Smoke 2026-03-19 18:44`
+  - `131596290` -> `TAG HackDay Tenant Smoke 2026-03-19 18:48 B`
+
+### Architecture Note
+- With `HDC_RUNTIME_OWNER=hackcentral`, created child pages now render HackCentral `hackday-runtime-macro` / `runtime-ui-frontend`.
+- Older tenant/template runbooks that still say “child page contains the HD26Forge macro” are stale legacy-owner guidance and should only be read that way when `HDC_RUNTIME_OWNER=hd26forge`.
+
+### Validation / Evidence
+- Parent page macro rendered in parent mode with the create wizard and empty registry baseline.
+- Supabase verification for child page `132087809`:
+  - `Event.runtime_type = hackday_template`
+  - `Event.template_target = hackday`
+  - `HackdayTemplateSeed.provision_status = provisioned`
+- Runtime telemetry on child-page loads succeeded from `seed_mapping`:
+  - page `132087809` -> event `f000ed27-4149-4b56-8f3e-91dfa2f68f5b`
+  - page `131596290` -> event `ba8a46b0-67c1-4853-ba66-43e2473a5e06`
+- Parallel child-page loads proved page-scoped isolation because the runtime resolved distinct `eventId` / `pageId` pairs for each page.
+- Evidence captured in:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-2026-03-19T18-50-13-121Z.md`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-TAG-HACKDAY-parent-page-20260319.png`
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-TAG-HACKDAY-child-page-20260319.png`
+
+### Follow-up
+- Child runtime loaded successfully, but Config Mode preload emitted `Only platform admins or event admins can use Config Mode` for the seeded primary admin on first load.
+- Treat that as a follow-up on Config Mode admin resolution, not a blocker for parent provisioning, child-page creation, or base runtime bootstrap.
+
+## Session Update - Tag HackDay Isolated Tenant Bootstrap Prepared And Installed (Mar 19, 2026 11:03 GMT)
+
+### What Changed
+- Updated HackCentral tenant ops docs/scripts for isolated multi-tenant install support:
+  - declared `FORGE_SITE_URL` and `CONFLUENCE_HDC_PARENT_PAGE_URL` in `forge-native/manifest.yml`
+  - added `forge-native/set-tenant-forge-vars.sh`
+  - added `docs/HDC-TENANT-INSTALL-RUNBOOK.md`
+  - generalized `DEPLOY.md`, `TESTING_GUIDE.md`, `README.md`, `forge-native/deploy-new-app-id.sh`, and `forge-native/set-forge-create-urls.sh`
+- Registered a dedicated HackCentral Forge app for `tag-hackday.atlassian.net` in an isolated temp copy:
+  - app id `22696465-0692-48af-9741-323e1cfc2631`
+  - staging env `15ac566f-3a62-4ffd-9fd6-1e50e5a47c9b`
+  - production env `1c797890-3b54-448e-85da-4ecbe9e9e777`
+- Registered a dedicated HD26Forge Forge app for `tag-hackday.atlassian.net` in an isolated temp copy:
+  - app id `4aaba451-2b35-4b5e-b903-ccd0dc325574`
+  - staging env `2384fc12-3537-49a6-8b81-fb776ed795cc`
+  - production env `e0f6d935-5f35-4005-95cd-fe9baf95a621`
+- Deployed and installed both isolated apps to `tag-hackday.atlassian.net` in staging and production.
+
+### Validation / Evidence
+- Local validation passed:
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native`
+  - `./scripts/with-node22.sh npm run test:backend --prefix forge-native`
+  - `cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build`
+- HackCentral tenant installs confirmed:
+  - staging install id `a74ace0f-d13e-4bd3-b798-fc2478e89519`
+  - production install id `0f8b4d2f-e541-4cf0-aaab-f770596e1a31`
+- HD26Forge tenant installs confirmed:
+  - staging install id `4a1ec33c-2b3a-4bc9-8970-b6b67e92b596`
+  - production install id `c60d4b19-6ac8-4186-967d-a8212a854f93`
+- Rollout artifact:
+  - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-TAG-HACKDAY-TENANT-BOOTSTRAP-20260319T110332Z.md`
+
+### Regressions / Gotchas
+- Dedicated Supabase provisioning is still blocked from this machine:
+  - `supabase projects list` returned `Unauthorized`
+  - no tenant-specific `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` could be set yet
+- `tag-hackday.atlassian.net` browser access is not ready from this desktop session:
+  - opening the site redirected to Atlassian login / join-user-access flow
+  - parent page creation, macro placement, and end-to-end create-flow smoke remain blocked
+- Production first-install required `forge install` without `--upgrade`; `--upgrade` failed because there was no existing production installation on the new site.
+
+### Next Recommended Step
+- Complete tenant configuration once the remaining access is available:
+  - provision the dedicated Supabase project and capture `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
+  - obtain Confluence access to `tag-hackday.atlassian.net`, create the parent page, and capture `CONFLUENCE_HDC_PARENT_PAGE_ID` + `CONFLUENCE_HDC_PARENT_PAGE_URL`
+  - run `set-tenant-forge-vars.sh` in the HackCentral tenant copy for staging and production
+  - validate parent mode, child page creation, seed/event writes, HD26 runtime load, and page-scoped isolation
+
 ## Session Update - Branding Runtime Hosted Hotfix And Validation Closure (Mar 8, 2026 15:17 GMT)
 
 ### What Changed
@@ -5455,10 +5538,87 @@ Use this template at the end of every work session:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
 
+## Session Update - tag-hackday Config Mode Permission Fix Deployed (Mar 19, 2026 19:13 UTC)
+
+### What Changed
+- Fixed the remaining `tag-hackday.atlassian.net` runtime admin regression in [`forge-native/src/runtime/index.js`](/Users/nickster/Downloads/HackCentral/forge-native/src/runtime/index.js).
+- Config Mode, runtime capabilities, and branding admin access now resolve event-admin privileges from persisted `EventAdmin` membership first, then fall back to seed-email matching for compatibility.
+- Added regression coverage in [`forge-native/tests/backend/runtime-config-mode-access-contract.test.mjs`](/Users/nickster/Downloads/HackCentral/forge-native/tests/backend/runtime-config-mode-access-contract.test.mjs).
+
+### Validation / Evidence
+- Local:
+  - `./scripts/with-node22.sh node --test forge-native/tests/backend/runtime-config-mode-access-contract.test.mjs` ✅
+  - `./scripts/with-node22.sh npm run typecheck --prefix forge-native` ✅
+  - `./scripts/with-node22.sh npm run test:backend --prefix forge-native`
+    - new Config Mode test passed
+    - one unrelated pre-existing failure remains in `supabase-security-integrity-contract.test.mjs` against migration `20260304023500_phase9_security_policy_search_path_hardening.sql`
+- Isolated tenant deploy:
+  - staging predeploy snapshot + deploy/install ✅
+  - production predeploy snapshot + deploy/install ✅
+  - tenant checkout used: `/private/tmp/HackCentral-tag-hackday.MzsiuS`
+- Hosted validation on child page `132087809` with saved Atlassian auth state:
+  - runtime iframe loaded successfully
+  - Config Mode toggle rendered with `CONFIG OFF`
+  - toggling switched the page to `CONFIG ON`
+  - `Show Actions` appeared
+  - `Only platform admins or event admins can use Config Mode` was no longer present
+  - `forge logs --environment production --since 5m --limit 200 | rg "Only platform admins or event admins can use Config Mode"` returned no matches after validation
+
+### Artifact
+- [`docs/artifacts/HDC-TAG-HACKDAY-CONFIG-MODE-FIX-2026-03-19T19-13-53Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-TAG-HACKDAY-CONFIG-MODE-FIX-2026-03-19T19-13-53Z.md)
+
 ### Current state
 - Production is updated to the regression-fix release.
 - `main` now matches the deployed bundle at commit `89c6d94`.
 - Worktree is clean and ready for the next chat.
+
+## Session Update - tag-hackday Event-Admin Simulation Controls Restored (Mar 19, 2026 22:23 UTC)
+
+### What Changed
+- Restored the old runtime header/admin-panel simulation controls for event admins on `tag-hackday.atlassian.net` production without turning on global dev mode.
+- Root cause was a frontend-only gate mismatch:
+  - backend/runtime access already allowed persisted `EventAdmin` membership
+  - the `DEV` dropdown still rendered only for `ENABLE_DEV_MODE=true` or `user.role === 'admin'`
+  - this left production event admins able to enter Config Mode but unable to see the role/phase simulation controls
+- Updated runtime frontend gates so event admins can use the existing local simulation controls:
+  - [`forge-native/static/runtime-frontend/src/components/AppLayout.jsx`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/components/AppLayout.jsx)
+  - [`forge-native/static/runtime-frontend/src/App.jsx`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/App.jsx)
+- Added regression coverage in [`tests/forge-native-runtime-simulation-controls.spec.ts`](/Users/nickster/Downloads/HackCentral/tests/forge-native-runtime-simulation-controls.spec.ts).
+
+### Validation / Evidence
+- Canonical workspace:
+  - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-simulation-controls.spec.ts tests/forge-native-runtime-branding-surface.spec.ts tests/forge-native-runtime-hook-imports.spec.ts` ✅
+  - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+- Isolated tenant deploy checkout: `/private/tmp/HackCentral-tag-hackday.MzsiuS`
+  - `./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site tag-hackday.atlassian.net` ✅
+  - `../scripts/with-node22.sh npm run custom-ui:build` ✅
+  - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+  - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site tag-hackday.atlassian.net --product confluence` ✅
+  - Forge reported: `Site is already at the latest version`
+- Fresh predeploy snapshot artifacts:
+  - `/private/tmp/HackCentral-tag-hackday.MzsiuS/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260319-222210Z.json`
+  - `/private/tmp/HackCentral-tag-hackday.MzsiuS/docs/artifacts/HDC-P10-PREDEPLOY-BACKUP-active-events-20260319-222210Z.md`
+- Deploy note artifact:
+  - [`docs/artifacts/HDC-TAG-HACKDAY-DEV-CONTROLS-RESTORE-2026-03-19T22-23-24Z.md`](/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-TAG-HACKDAY-DEV-CONTROLS-RESTORE-2026-03-19T22-23-24Z.md)
+
+### Hosted Validation Status
+- Hosted UI validation from this session is still pending:
+  - desktop Chrome redirected to Atlassian login / join-user-access for `tag-hackday.atlassian.net`
+  - the saved auth state file exists (`/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`), but the isolated tenant checkout did not have a Playwright runtime installed to replay it directly here
+- Expected live outcome after deploy:
+  - event admins on child page `132087809` should see the `DEV` dropdown again
+  - role impersonation and local phase simulation should be restored
+  - backend admin-only operations remain unchanged
+- Follow-up runtime hotfix deployed immediately after user report:
+  - simulated `Participant - Needs Signup` was still forcing `dashboard -> signup` through the global `isNewUser` redirect
+  - patched [`forge-native/static/runtime-frontend/src/App.jsx`](/Users/nickster/Downloads/HackCentral/forge-native/static/runtime-frontend/src/App.jsx) so the auto-redirect is skipped while `devRoleOverride` is active
+  - added source coverage in [`tests/forge-native-runtime-effective-phase.spec.ts`](/Users/nickster/Downloads/HackCentral/tests/forge-native-runtime-effective-phase.spec.ts)
+  - validated in canonical workspace:
+    - `./scripts/with-node22.sh npm run test:run -- tests/forge-native-runtime-effective-phase.spec.ts tests/forge-native-runtime-simulation-controls.spec.ts` ✅
+    - `./scripts/with-node22.sh npm run build --prefix forge-native/static/runtime-frontend` ✅
+  - rebuilt and redeployed the isolated tenant copy to `tag-hackday.atlassian.net` production:
+    - `../scripts/with-node22.sh forge deploy --environment production --no-verify` ✅
+    - `../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site tag-hackday.atlassian.net --product confluence` ✅
 
 ## Session Update - Config Drawer Regression Remediation Deployed (Mar 7, 2026 16:30 GMT)
 
@@ -5929,3 +6089,60 @@ Use this template at the end of every work session:
 - Forge CLI again emitted the recurring local warnings during deploy:
   - CLI update available (`12.14.1` -> `12.15.0`)
   - non-blocking packaging warning resolving `utf-8-validate` from Convex browser output
+
+## Session Update - v0.6.85 Platform Admin Event Access Fix (Mar 19, 2026 22:55 GMT)
+
+### What Changed
+- Fixed critical regression on tag-hackday.atlassian.net where platform admins were:
+  - Redirected to Signup page instead of Dashboard
+  - Unable to access Admin Panel (redirected to Dashboard)
+
+### Root Cause
+- **Backend gap**: Platform admins (users with `role=ADMIN` in User table) were NOT automatically granted `isEventAdmin` access
+- The `isEventAdmin` flag only checked:
+  1. EventAdmin table (by user ID)
+  2. Seed email matching (requires email resolution)
+- If email resolution failed (e.g., Confluence API privacy settings), platform admins couldn't be recognized as event admins
+
+### Fixes Applied
+1. **Backend** (`forge-native/src/runtime/index.js`):
+   - Platform admins now automatically get `isEventAdmin: true` in `getEventPhase` resolver
+   
+2. **Frontend** (`forge-native/static/runtime-frontend/src/App.jsx`):
+   - Skip signup auto-redirect for admins, judges, and event admins
+   - Allow event admins to access Admin Panel without redirect
+
+### Tenant Migration Notes
+- Migrated active site from `hackdaytemp.atlassian.net` to `tag-hackday.atlassian.net`
+- Uninstalled staging environment from hackdaytemp
+- Production only on tag-hackday going forward
+
+### HD26Forge Clarification
+- **HD26Forge (HackDay 2026) is NOT required** when `HDC_RUNTIME_OWNER=hackcentral`
+- HackCentral has its own built-in runtime (`hackday-runtime-macro`)
+- The `runtime_type: 'hackday_template'` in Event table is a legacy field
+- Safe to uninstall: HD26Forge (production & staging) from tag-hackday
+
+### Apps to Remove from tag-hackday (for instance admin)
+- HackCentral (Staging)
+- HackCentral Runtime (Internal) (Staging)
+- HackDay 2026 (Staging)
+- HackDay 2026 (Production) - not needed
+
+### Apps to Keep on tag-hackday
+- HackCentral (Production)
+- HackCentral Runtime (Internal) (Production)
+
+### Validation / Evidence
+- Build: `npm run custom-ui:build` ✅
+- Tests: `forge-native-runtime-effective-phase.spec.ts` (10 passed) ✅
+- Tests: `forge-native-runtime-simulation-controls.spec.ts` (2 passed) ✅
+- Deploy: `forge deploy --environment production` ✅
+- Install: `forge install -e production --site tag-hackday.atlassian.net` ✅
+- User confirmed: "this is great, i think you've restored it"
+
+### Version
+- Root: 0.6.84 → **0.6.85**
+- Forge-native: 0.3.62 → **0.3.63**
+- Runtime frontend: 1.2.93 → **1.2.94**
+- Commit: `7d30c1a`
