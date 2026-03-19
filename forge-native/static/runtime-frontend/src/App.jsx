@@ -393,6 +393,7 @@ function App() {
   const [devRoleOverride, setDevRoleOverride] = useState(null);
   const [devParticipantGuestNeedsSignup, setDevParticipantGuestNeedsSignup] = useState(false);
   const autoOpenAppViewAttemptedRef = useRef(false);
+  const canUseSimulationControls = devMode || isEventAdmin || user?.role === 'admin';
 
   const isMacroHost = useMemo(() => {
     const extensionType = String(context?.extension?.type || '').toLowerCase();
@@ -1499,22 +1500,27 @@ function App() {
     }
   }, [currentView, viewParams.teamId, loadTeamDetails]);
 
-  // Auto-redirect new users to signup
+  // Auto-redirect new users to signup (skip for admins, event admins, and judges)
   useEffect(() => {
+    if (devRoleOverride) return;
+    if (isEventAdmin) return;
+    if (user?.role === 'admin' || user?.role === 'judge') return;
     if (!loading && isNewUser && currentView === 'dashboard') {
       handleNavigate('signup', {}, { replace: true });
     }
-  }, [loading, isNewUser, currentView, handleNavigate]);
+  }, [loading, isNewUser, currentView, handleNavigate, devRoleOverride, isEventAdmin, user?.role]);
 
   // If role changes away from admin while on the admin view, redirect to dashboard.
   // This avoids trapping users on an access-denied page during role-switch testing.
+  // Also allow access if user is an event admin (via EventAdmin table or seed emails).
   useEffect(() => {
     if (currentView !== 'admin') return;
     if (!effectiveUser) return;
     if (effectiveUser.role === 'admin') return;
+    if (isEventAdmin) return;
 
     handleNavigate('dashboard', {}, { replace: true });
-  }, [currentView, effectiveUser, handleNavigate]);
+  }, [currentView, effectiveUser, handleNavigate, isEventAdmin]);
 
   useEffect(() => {
     if (currentView === 'admin') return;
@@ -1711,7 +1717,7 @@ function App() {
           <AdminPanel
             {...commonProps}
             eventPhase={eventPhase}
-            onPhaseChange={devMode ? handlePhaseChange : null}
+            onPhaseChange={canUseSimulationControls ? handlePhaseChange : null}
             onEventSettingsUpdate={handleEventSettingsUpdate}
             onIdeaSummaryChange={refreshTeamsAndFreeAgents}
             savedBrandingBaseline={persistedBrandingBaseline}

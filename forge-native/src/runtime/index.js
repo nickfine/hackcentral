@@ -2114,6 +2114,88 @@ async function getCurrentEvent(supabase, req) {
   return context?.event || null;
 }
 
+function getSeedAdminEmails(seed) {
+  const primary = normalizeEmail(String(seed?.primary_admin_email || "").trim());
+  const coAdmins = Array.isArray(seed?.co_admin_emails)
+    ? seed.co_admin_emails.map((raw) => normalizeEmail(String(raw || "").trim())).filter(Boolean)
+    : [];
+  return { primary, coAdmins };
+}
+
+function hasSeedEmailAdminAccess(seed, email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!seed || !normalizedEmail) {
+    return false;
+  }
+  const { primary, coAdmins } = getSeedAdminEmails(seed);
+  return normalizedEmail === primary || coAdmins.includes(normalizedEmail);
+}
+
+async function getRuntimeActorPermissionContext(supabase, accountId, { logScope = "runtime" } = {}) {
+  const { data: userRows, error: userError } = await supabase
+    .from("User")
+    .select("id, role, name, callsign, email, atlassian_account_id")
+    .eq("atlassian_account_id", accountId)
+    .limit(1);
+  if (userError) {
+    throw new Error(`Failed to resolve user permissions: ${userError.message}`);
+  }
+
+  const userRow = userRows?.[0] || null;
+  let email = normalizeEmail(userRow?.email || "");
+  let displayName = userRow?.name || userRow?.callsign || null;
+
+  if (!email || !displayName) {
+    try {
+      const profile = await fetchUserProfile(accountId);
+      email = email || normalizeEmail(profile?.email || "");
+      displayName = displayName || profile?.displayName || null;
+    } catch (err) {
+      logDebug(`[${logScope}] fetchUserProfile failed:`, err.message);
+    }
+  }
+
+  return {
+    userRow,
+    email,
+    displayName,
+    isPlatformAdmin: userRow?.role === "ADMIN",
+  };
+}
+
+async function resolveRuntimeEventAdminAccess(supabase, {
+  eventId,
+  userRow,
+  seed,
+  email,
+  logScope = "runtime",
+} = {}) {
+  if (eventId && isUuidLike(userRow?.id)) {
+    try {
+      const { data: eventAdminRows, error: eventAdminError } = await supabase
+        .from("EventAdmin")
+        .select("id, role")
+        .eq("event_id", eventId)
+        .eq("user_id", userRow.id)
+        .limit(1);
+      if (eventAdminError) {
+        throw new Error(eventAdminError.message);
+      }
+      if (eventAdminRows?.length) {
+        return { isEventAdmin: true, eventAdminSource: "event_admin" };
+      }
+    } catch (err) {
+      logDebug(`[${logScope}] EventAdmin lookup failed:`, err.message);
+    }
+  }
+
+  const isSeedAdmin = hasSeedEmailAdminAccess(seed, email);
+  return {
+    isEventAdmin: isSeedAdmin,
+    eventAdminSource: isSeedAdmin ? "seed_email" : "none",
+  };
+}
+
 async function resolveConfigModeAccess(supabase, req) {
   const accountId = getCallerAccountId(req);
   const instanceContext = isAppModeRequest(req)
@@ -2129,40 +2211,18 @@ async function resolveConfigModeAccess(supabase, req) {
     throw new Error("No event context for this page");
   }
 
-  const { data: userRows, error: userError } = await supabase
-    .from("User")
-    .select("id, role, name, callsign, email, atlassian_account_id")
-    .eq("atlassian_account_id", accountId)
-    .limit(1);
-  if (userError) {
-    throw new Error(`Failed to resolve user permissions: ${userError.message}`);
-  }
-  const userRow = userRows?.[0] || null;
-  const isPlatformAdmin = userRow?.role === "ADMIN";
-
   const pageId = instanceContext?.pageId || null;
   const seed = pageId ? await getTemplateSeedByPageId(supabase, pageId) : null;
-
-  let email = normalizeEmail(userRow?.email || "");
-  let displayName = userRow?.name || userRow?.callsign || null;
-  if (!email) {
-    try {
-      const profile = await fetchUserProfile(accountId);
-      email = normalizeEmail(profile?.email || "");
-      displayName = displayName || profile?.displayName || null;
-    } catch (err) {
-      logDebug("[resolveConfigModeAccess] fetchUserProfile failed:", err.message);
-    }
-  }
-
-  let isEventAdmin = false;
-  if (seed) {
-    const primary = normalizeEmail(String(seed.primary_admin_email || "").trim());
-    const coAdmins = Array.isArray(seed.co_admin_emails)
-      ? seed.co_admin_emails.map((raw) => normalizeEmail(String(raw || "").trim())).filter(Boolean)
-      : [];
-    isEventAdmin = Boolean(email && (email === primary || coAdmins.includes(email)));
-  }
+  const { userRow, email, displayName, isPlatformAdmin } = await getRuntimeActorPermissionContext(supabase, accountId, {
+    logScope: "resolveConfigModeAccess",
+  });
+  const { isEventAdmin, eventAdminSource } = await resolveRuntimeEventAdminAccess(supabase, {
+    eventId: event.id,
+    userRow,
+    seed,
+    email,
+    logScope: "resolveConfigModeAccess",
+  });
 
   const canUseConfigMode = Boolean(isPlatformAdmin || isEventAdmin);
   assertConfigModeAccessAllowed({ isPlatformAdmin, isEventAdmin });
@@ -2181,6 +2241,7 @@ async function resolveConfigModeAccess(supabase, req) {
     },
     isPlatformAdmin,
     isEventAdmin,
+    eventAdminSource,
     canUseConfigMode,
   };
 }
@@ -6494,48 +6555,30 @@ resolver.define("getEventPhase", async (req) => {
   }
 
   let isEventAdmin = false;
-  if (seed && pageId) {
-    try {
-      const accountId = req.context?.accountId;
-      const profile = accountId ? await fetchUserProfile(accountId) : null;
-      let email = profile?.email || (accountId ? `${accountId}@atlassian.local` : "");
-      if (!email || email.endsWith("@atlassian.local")) {
-        const { data: userRow } = await supabase
-          .from("User")
-          .select("email")
-          .eq("atlassian_account_id", accountId)
-          .limit(1);
-        const storedEmail = userRow?.[0]?.email;
-        if (storedEmail && typeof storedEmail === "string" && !storedEmail.endsWith("@atlassian.local")) {
-          email = storedEmail;
-        }
-      }
-      const cur = normalizeEmail(email);
-      if (cur) {
-        const primary = normalizeEmail(String(seed.primary_admin_email || "").trim());
-        const co = Array.isArray(seed.co_admin_emails)
-          ? seed.co_admin_emails.map((e) => normalizeEmail(String(e).trim())).filter(Boolean)
-          : [];
-        isEventAdmin = cur === primary || co.includes(cur);
-      }
-    } catch (err) {
-      logDebug("[getEventPhase] isEventAdmin check failed:", err.message);
-    }
-  }
-
   let isPlatformAdmin = false;
   try {
     const accountId = req.context?.accountId;
     if (accountId) {
-      const { data: userRows } = await supabase
-        .from("User")
-        .select("role")
-        .eq("atlassian_account_id", accountId)
-        .limit(1);
-      isPlatformAdmin = userRows?.[0]?.role === "ADMIN";
+      const accessContext = await getRuntimeActorPermissionContext(supabase, accountId, {
+        logScope: "getEventPhase",
+      });
+      isPlatformAdmin = accessContext.isPlatformAdmin;
+      // Platform admins automatically have event admin access
+      if (isPlatformAdmin) {
+        isEventAdmin = true;
+      } else {
+        const eventAdminAccess = await resolveRuntimeEventAdminAccess(supabase, {
+          eventId: event.id,
+          userRow: accessContext.userRow,
+          seed,
+          email: accessContext.email,
+          logScope: "getEventPhase",
+        });
+        isEventAdmin = eventAdminAccess.isEventAdmin;
+      }
     }
   } catch (err) {
-    logDebug("[getEventPhase] platform admin lookup failed:", err.message);
+    logDebug("[getEventPhase] access lookup failed:", err.message);
   }
 
   const contentOverrides = await getStoredEventContentOverrides(event.id);
@@ -7088,25 +7131,16 @@ async function resolveEventBrandingAdminContext(req) {
     throw new Error("This event does not support branding updates");
   }
 
-  const profile = await fetchUserProfile(accountId);
-  let email = profile?.email || `${accountId}@atlassian.local`;
-  if (!email || email.endsWith("@atlassian.local")) {
-    const { data: userRow } = await supabase
-      .from("User")
-      .select("email")
-      .eq("atlassian_account_id", accountId)
-      .limit(1);
-    const storedEmail = userRow?.[0]?.email;
-    if (storedEmail && typeof storedEmail === "string" && !storedEmail.endsWith("@atlassian.local")) {
-      email = storedEmail;
-    }
-  }
-  const normalizedEmail = normalizeEmail(email);
-  const primary = normalizeEmail(String(seed.primary_admin_email || "").trim());
-  const coAdmins = Array.isArray(seed.co_admin_emails)
-    ? seed.co_admin_emails.map((candidate) => normalizeEmail(String(candidate).trim())).filter(Boolean)
-    : [];
-  const isEventAdmin = Boolean(normalizedEmail && (normalizedEmail === primary || coAdmins.includes(normalizedEmail)));
+  const actorAccess = await getRuntimeActorPermissionContext(supabase, accountId, {
+    logScope: "resolveEventBrandingAdminContext",
+  });
+  const { isEventAdmin } = await resolveRuntimeEventAdminAccess(supabase, {
+    eventId: event.id,
+    userRow: actorAccess.userRow,
+    seed,
+    email: actorAccess.email,
+    logScope: "resolveEventBrandingAdminContext",
+  });
   if (!isEventAdmin) {
     throw new Error("Only the event creator or co-admins can update branding");
   }
