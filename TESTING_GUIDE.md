@@ -1,4 +1,52 @@
-# Testing Guide: HackDay Duration & Schedule Events Feature
+# Testing Guide: Forge Validation and Tenant Rollout
+
+## Tenant rollout baseline
+
+Run these from `/Users/nickster/Downloads/HackCentral` before any tenant deploy:
+
+```bash
+./scripts/with-node22.sh npm run typecheck --prefix forge-native
+./scripts/with-node22.sh npm run test:backend --prefix forge-native
+cd /Users/nickster/Downloads/HackCentral/forge-native && ../scripts/with-node22.sh npm run custom-ui:build
+```
+
+Predeploy snapshot against the target site:
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --dry-run --environment <environment> --site <site>
+```
+
+Example for the new `tag-hackday` tenant:
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --dry-run --environment production --site tag-hackday.atlassian.net
+```
+
+## Full tenant smoke checklist
+
+Use this when validating a new isolated tenant:
+
+1. Confirm the HackCentral global page loads on the target Confluence site.
+2. Confirm the designated parent page renders HackCentral in parent mode.
+3. Create one HackDay instance from the parent page.
+4. Confirm redirect to the child page.
+5. Confirm the child page renders the HD26Forge macro without manual intervention.
+6. Confirm the dedicated tenant Supabase project contains:
+   - `Event.runtime_type = hackday_template`
+   - `Event.template_target = hackday`
+   - `HackdayTemplateSeed.confluence_page_id = <child page id>`
+7. Create a second child page and confirm page-scoped isolation.
+8. Generate and complete a template provision smoke artifact.
+
+Detailed operator runbook:
+
+- [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md)
+- [`docs/HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md`](./docs/HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md)
+- [`docs/HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md`](./docs/HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md)
+
+## Legacy feature validation notes
 
 ## Phase 8 Validation Commands
 
@@ -20,13 +68,13 @@ Run these from `/Users/nickster/Downloads/HackCentral`:
 npm run typecheck --prefix forge-native/static/frontend
 npm run typecheck --prefix forge-native
 npm run test:backend --prefix forge-native
-npm run qa:backup:predeploy-snapshot -- --dry-run --environment production --site hackdaytemp.atlassian.net
+npm run qa:backup:predeploy-snapshot -- --dry-run --environment production --site <site>
 ```
 
 Optional targeted predeploy snapshot:
 
 ```bash
-npm run qa:backup:predeploy-snapshot -- --apply --environment production --site hackdaytemp.atlassian.net --event-id <event-id>
+npm run qa:backup:predeploy-snapshot -- --apply --environment production --site <site> --event-id <event-id>
 ```
 
 Phase 8 ops wrappers (write JSON + Markdown artifacts to `docs/artifacts/`):

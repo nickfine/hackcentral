@@ -36,6 +36,7 @@ Planning docs (optional): `../HDC-PRODUCT-EXECUTION-PLAN.md`, `../ROADMAP.md`.
 | `HDC-HACKDAY-TEMPLATE-OPS-RUNBOOK.md` | Ops runbook for template provisioning. |
 | `HDC-HACKDAY-TEMPLATE-RELEASE-CHECKLIST.md` | Release checklist. |
 | `HDC-HACKDAY-TEMPLATE-PROVISION-SMOKE-TEMPLATE.md` | Smoke test template. |
+| `HDC-TENANT-INSTALL-RUNBOOK.md` | Multi-tenant Forge install runbook, including `tag-hackday.atlassian.net`. |
 | `HDC-V2-PHASE*.md` | Historical phase plans and runbooks. |
 | `HackDay_Design_system.md` | Design system reference. |
 

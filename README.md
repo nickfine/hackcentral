@@ -18,7 +18,7 @@ Default repo mode is operational maintenance (stack/context/test/deploy first), 
 - **UI Components**: Custom components with Framer Motion animations
 - **Icons**: Lucide React
 - **Testing**: Vitest + React Testing Library
-- **Deployment**: Forge (Confluence apps on hackdaytemp.atlassian.net)
+- **Deployment**: Forge (canonical tenant `hackdaytemp.atlassian.net`, plus isolated per-tenant app installs)
 
 ## Prerequisites
 
@@ -157,16 +157,18 @@ npm run convex:deploy
 
 This creates a production Convex deployment. Update your production environment with the new URL.
 
-### Deploy Confluence App (hackdaytemp)
+### Deploy Confluence App
 
 From **forge-native**: build Custom UI first, then deploy and install:
 
 ```bash
 cd forge-native
 npm run custom-ui:build
-forge deploy -e production --non-interactive
-forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
+forge deploy -e <environment> --non-interactive
+forge install -e <environment> --upgrade --non-interactive --site <site>.atlassian.net --product confluence
 ```
+
+For isolated tenant installs such as `tag-hackday.atlassian.net`, use a separate checkout plus a separate Forge app registration. See [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md).
 
 ### Monitoring & feedback (Phase 4)
 

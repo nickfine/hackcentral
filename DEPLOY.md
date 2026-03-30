@@ -1,14 +1,30 @@
-# Deploy HackCentral — Confluence on hackdaytemp
-
-**This is a Confluence Forge app. All deployment is via Forge to hackdaytemp.atlassian.net.**
+# Deploy HackCentral — Confluence Forge
 
 **Directory:** `/Users/nickster/Downloads/HackCentral/forge-native`
 
 ---
 
-## Deploy (do this every time)
+## Current canonical tenant
 
-**You must build the Custom UI first. Forge does not build it.**
+- Current production tenant: `hackdaytemp.atlassian.net`
+- Current canonical app id in this checkout: `f828e0d4-e9d0-451d-b818-533bc3e95680`
+
+If you are deploying a new isolated tenant, use a separate checkout and register a new Forge app first. See [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md).
+
+## Standard deploy (same app, any site/environment)
+
+You must build the Custom UI first. Forge does not build it.
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment <environment> --site <site>
+cd /Users/nickster/Downloads/HackCentral/forge-native
+../scripts/with-node22.sh npm run custom-ui:build
+../scripts/with-node22.sh forge deploy --environment <environment> --no-verify
+../scripts/with-node22.sh forge install -e <environment> --upgrade --non-interactive --site <site> --product confluence
+```
+
+Example for the existing `hackdaytemp` production tenant:
 
 ```bash
 cd /Users/nickster/Downloads/HackCentral
@@ -19,7 +35,23 @@ cd /Users/nickster/Downloads/HackCentral/forge-native
 ../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site hackdaytemp.atlassian.net --product confluence
 ```
 
-Open Confluence on hackdaytemp → HackCentral. Done.
+## Install a new isolated tenant
+
+For a new site such as `tag-hackday.atlassian.net`:
+
+1. Create a tenant-specific copy of the repo.
+2. Register a new Forge app in that copy.
+3. Set the full tenant Forge env contract, including:
+   - `FORGE_SITE_URL`
+   - `CONFLUENCE_HDC_PARENT_PAGE_ID`
+   - `CONFLUENCE_HDC_PARENT_PAGE_URL`
+   - `HACKDAY_TEMPLATE_*`
+4. Deploy staging first, then production.
+5. Install a matching HD26Forge tenant on the same Confluence site.
+
+Reference runbook:
+
+- [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md)
 
 ---
 
@@ -46,8 +78,8 @@ Staging has no CDN cache, so you see the bundle you just deployed.
 ```bash
 cd /Users/nickster/Downloads/HackCentral/forge-native
 ../scripts/with-node22.sh npm run custom-ui:build
-../scripts/with-node22.sh forge deploy --environment staging --no-verify
-../scripts/with-node22.sh forge install -e staging --non-interactive --site hackdaytemp.atlassian.net --product confluence
+../scripts/with-node22.sh forge deploy --environment <environment> --no-verify
+../scripts/with-node22.sh forge install -e <environment> --non-interactive --site <site> --product confluence
 ```
 
 Get the staging environment ID:
@@ -59,7 +91,7 @@ forge environments list
 Open the app via the **staging URL** (replace `STAGING_ENV_ID`):
 
 ```
-https://hackdaytemp.atlassian.net/forge-apps/a/f828e0d4-e9d0-451d-b818-533bc3e95680/e/STAGING_ENV_ID/r/hackday-central
+https://<site>.atlassian.net/forge-apps/a/<app-uuid>/e/STAGING_ENV_ID/r/hackday-central
 ```
 
 ---
