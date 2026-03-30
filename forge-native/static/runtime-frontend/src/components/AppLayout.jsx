@@ -561,11 +561,11 @@ function AppLayout({
     ? 'min-h-screen overflow-x-clip'
     : (isMacroHost ? 'min-h-0 overflow-visible' : 'min-h-0 overflow-x-clip');
 
-  // DEV MODE - Always visible when dev mode is active.
-  // In non-dev mode, only real admins can see controls.
+  // Test/simulation controls stay available to event admins even in production.
+  // They only affect local UI state unless a real backend admin action is invoked elsewhere.
   const isRealAdmin = (realUserRole || user?.role) === 'admin';
-  const showDevControls = isDevMode || isRealAdmin;
-  const devModeActive = showDevControls && (devRoleOverride || isDevMode);
+  const canUseDevControls = isDevMode || isRealAdmin || isEventAdmin;
+  const devModeActive = canUseDevControls && Boolean(devRoleOverride || isDevMode);
 
   // Memoize expensive calculations
   const captainedTeam = useMemo(() =>
@@ -804,8 +804,8 @@ function AppLayout({
                 </div>
               )}
 
-              {/* DEV MODE TOGGLE - Always visible for real admins (even when impersonating) */}
-              {isRealAdmin && (
+              {/* DEV MODE TOGGLE - Available to runtime admins and event admins for local simulation */}
+              {canUseDevControls && (
                 <div className="relative z-[60]">
                   <button
                     type="button"

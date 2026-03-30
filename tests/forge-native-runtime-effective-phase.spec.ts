@@ -112,6 +112,14 @@ describe('runtime effective phase app-shell contract', () => {
     expect(source).toContain("if (devRoleOverride === 'participant_guest' && hasCompletedRegistration(nextUser)) {");
   });
 
+  it('does not force dashboard back to signup while a role simulation is active', async () => {
+    const source = await readSource('forge-native/static/runtime-frontend/src/App.jsx');
+
+    expect(source).toContain('// Auto-redirect new users to signup');
+    expect(source).toContain('if (devRoleOverride) return;');
+    expect(source).toContain("handleNavigate('signup', {}, { replace: true });");
+  });
+
   it('redirects completed participants out of the signup route without interrupting the success handoff', async () => {
     const source = await readSource('forge-native/static/runtime-frontend/src/components/Signup.jsx');
 
