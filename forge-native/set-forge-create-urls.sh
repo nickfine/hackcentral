@@ -4,7 +4,7 @@
 #
 # Usage:
 #   export HACKDAY_CREATE_APP_URL='https://your-hackcentral-app.example.com'
-#   export CONFLUENCE_HDC_PARENT_PAGE_URL='https://hackdaytemp.atlassian.net/wiki/...?pageId=123'
+#   export CONFLUENCE_HDC_PARENT_PAGE_URL='https://tag-hackday.atlassian.net/wiki/...?pageId=123'
 #   ./set-forge-create-urls.sh
 #
 # Or inline:
@@ -20,12 +20,12 @@ if [[ -z "$HACKDAY_CREATE_APP_URL" && -z "$CONFLUENCE_HDC_PARENT_PAGE_URL" ]]; t
 fi
 
 if [[ -n "$HACKDAY_CREATE_APP_URL" ]]; then
-  forge variables set $ENV_FLAG HACKDAY_CREATE_APP_URL "$HACKDAY_CREATE_APP_URL"
+  ../scripts/with-node22.sh forge variables set $ENV_FLAG HACKDAY_CREATE_APP_URL "$HACKDAY_CREATE_APP_URL"
   echo "Set HACKDAY_CREATE_APP_URL"
 fi
 
 if [[ -n "$CONFLUENCE_HDC_PARENT_PAGE_URL" ]]; then
-  forge variables set $ENV_FLAG CONFLUENCE_HDC_PARENT_PAGE_URL "$CONFLUENCE_HDC_PARENT_PAGE_URL"
+  ../scripts/with-node22.sh forge variables set $ENV_FLAG CONFLUENCE_HDC_PARENT_PAGE_URL "$CONFLUENCE_HDC_PARENT_PAGE_URL"
   echo "Set CONFLUENCE_HDC_PARENT_PAGE_URL"
 fi
 

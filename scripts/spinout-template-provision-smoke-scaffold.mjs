@@ -100,9 +100,9 @@ Notes:
 
 Notes:
 
-## Step 3: HD26 Bootstrap
+## Step 3: Runtime Bootstrap
 
-- [ ] Child macro iframe renders.
+- [ ] Child runtime iframe renders.
 - [ ] App resolves page-scoped context.
 - [ ] No forbidden context warning signatures in sampled logs.
 
@@ -183,4 +183,3 @@ try {
   console.error(`Error: ${message}`);
   process.exit(1);
 }
-

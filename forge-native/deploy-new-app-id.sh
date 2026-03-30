@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Run this AFTER you have run: forge register HackCentral -y
-# (and selected your Developer Space when prompted).
-# That updates manifest.yml with a new app ID so Confluence gets a fresh CDN bundle.
+# Run this AFTER you have run: forge register "<tenant app name>" -y
+# in a tenant-specific checkout. That updates manifest.yml with a new app ID.
+# Do not run this in the canonical hackdaytemp checkout if you want to preserve
+# the existing production app ID.
 
 set -e
 cd "$(dirname "$0")"
 
+SITE="${SITE:-tag-hackday.atlassian.net}"
+ENVIRONMENT="${ENVIRONMENT:-production}"
+PRODUCT="${PRODUCT:-confluence}"
+FORGE="../scripts/with-node22.sh forge"
+NPM="../scripts/with-node22.sh npm"
+
 echo "=== Build Custom UI ==="
-npm run custom-ui:build
+$NPM run custom-ui:build
 
 echo ""
-echo "=== Deploy to production ==="
-forge deploy -e production --non-interactive
+echo "=== Deploy to ${ENVIRONMENT} ==="
+$FORGE deploy -e "$ENVIRONMENT" --non-interactive
 
 echo ""
-echo "=== Install on hackdaytemp ==="
-forge install -e production --non-interactive --site hackdaytemp.atlassian.net --product confluence
+echo "=== Install on ${SITE} ==="
+$FORGE install -e "$ENVIRONMENT" --upgrade --non-interactive --site "$SITE" --product "$PRODUCT"
 
 echo ""
 echo "Done. Open HackCentral in Confluence (Your apps) — you should see the new UI."
@@ -27,7 +34,7 @@ echo "  CONVEX_URL, CONVEX_FORGE_QUERY, CONVEX_FORGE_CREATE_HACK, CONVEX_FORGE_C
 echo "  CONVEX_FORGE_UPDATE_MENTOR, FORGE_APP_ID (use the NEW app ID from manifest),"
 echo "  FORGE_MACRO_KEY, HDC_RUNTIME_OWNER, HDC_RUNTIME_APP_ID, HDC_RUNTIME_ENVIRONMENT_ID,"
 echo "  HDC_RUNTIME_MACRO_KEY, HACKDAY_TEMPLATE_APP_ID, HACKDAY_TEMPLATE_ENVIRONMENT_ID,"
-echo "  HACKDAY_TEMPLATE_MACRO_KEY, CONFLUENCE_HDC_PARENT_PAGE_ID, HACKDAY_CREATE_WEB_SECRET,"
-echo "  HACKDAY_CREATE_APP_URL"
+echo "  HACKDAY_TEMPLATE_MACRO_KEY, CONFLUENCE_HDC_PARENT_PAGE_ID, CONFLUENCE_HDC_PARENT_PAGE_URL,"
+echo "  HACKDAY_CREATE_WEB_SECRET, HACKDAY_CREATE_APP_URL, FORGE_SITE_URL"
 echo ""
-echo "To remove the OLD app from the site, see OLD_APP_ID_FOR_UNINSTALL.txt"
+echo "Use ./set-tenant-forge-vars.sh in this directory to set the full tenant contract."

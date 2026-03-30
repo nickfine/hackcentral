@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Runbook for the Spinout Phase 6 operational path. For the **basic “create child HackDay” user flow** (parent page → wizard → child page → HD26Forge), see **`HDC-CREATE-CHILD-HACKDAY-FLOW.md`**.
+Runbook for the Spinout Phase 6 operational path. For the **basic “create child HackDay” user flow** (parent page → wizard → child page runtime), see **`HDC-CREATE-CHILD-HACKDAY-FLOW.md`**.
 
 Runbook focus:
 1. Provision template from HDC parent macro.
@@ -48,7 +48,9 @@ npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod
 
 1. Parent provisioning check
 - Open parent page and run create wizard for `hackday_template`.
-- Confirm child page opens and renders HackDay macro iframe.
+- Confirm child page opens and renders the expected HackDay runtime iframe for the configured runtime owner.
+- For `HDC_RUNTIME_OWNER=hackcentral`, expect HackCentral `hackday-runtime-macro` / `runtime-ui-frontend`.
+- For `HDC_RUNTIME_OWNER=hd26forge`, expect the legacy HD26Forge child macro path.
 
 2. Seed/mapping contract check
 - Confirm `Event` row is present with:
@@ -57,7 +59,7 @@ npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod
 - Confirm `HackdayTemplateSeed` row is present with:
   - `confluence_page_id = child pageId`
   - expected `hdc_event_id`, `template_name`, `primary_admin_email`
-  - `provision_status` at least `provisioned` (or `initialized` after first HD26 load)
+  - `provision_status` at least `provisioned` (or `initialized` after first runtime load)
 
 3. HackDay bootstrap check
 - Load child page as primary admin.
@@ -86,4 +88,3 @@ npm -C /Users/nickster/Downloads/HD26Forge run qa:health:prod
 - Disable new template creation path in release channel (if feature-flagged).
 - Revert to last known-good deploy line for affected app.
 - Keep artifact and log links in incident notes.
-
