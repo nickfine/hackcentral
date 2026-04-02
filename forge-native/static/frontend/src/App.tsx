@@ -67,6 +67,7 @@ import { type View, type HackTab, type HackTypeFilter, type HackStatusFilter, ty
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
+import { DemoState } from './components/shared/DemoState';
 import { formatLabel, getInitials } from './utils/format';
 import {
   isValidHttpsUrl,
@@ -99,9 +100,30 @@ import {
   resolveHomeFeedRecommendationTarget,
 } from './utils/homeFeed';
 import { PipelineHero } from './components/pipeline';
+import {
+  DEMO_ACTIVITY_EXAMPLES,
+  DEMO_ADOPTION_EXAMPLES,
+  DEMO_ARTIFACT_EXAMPLES,
+  DEMO_HACKDAY_EXAMPLES,
+  DEMO_NOTIFICATION_EXAMPLES,
+  DEMO_PATHWAY_DETAIL_EXAMPLES,
+  DEMO_PATHWAY_EXAMPLES,
+  DEMO_PAIN_EXAMPLES,
+  DEMO_PEOPLE_EXAMPLES,
+  DEMO_PROJECT_EXAMPLES,
+  DEMO_RECOMMENDATION_EXAMPLES,
+  DEMO_ROI_BUSINESS_UNIT_EXAMPLES,
+  DEMO_ROI_PERSON_EXAMPLES,
+  DEMO_ROI_TEAM_EXAMPLES,
+  DEMO_ROI_TREND_EXAMPLES,
+  DEMO_SEARCH_EXAMPLES,
+  DEMO_SHOWCASE_DETAIL_EXAMPLES,
+  DEMO_SHOWCASE_EXAMPLES,
+  DEMO_TREND_EXAMPLES,
+} from './demo/examples';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.84';
+const HACKCENTRAL_UI_VERSION = '0.6.86';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -5356,7 +5378,12 @@ export function App(): JSX.Element {
                   ) : homeFeedLoading ? (
                     <p className="empty-copy">Loading activity feed...</p>
                   ) : (
-                    <p className="empty-copy">No activity yet. New hacks and project movement will appear here.</p>
+                    <DemoState
+                      title="What activity looks like once teams start shipping"
+                      description="Use this as demo context when the live feed is still empty."
+                      items={DEMO_ACTIVITY_EXAMPLES}
+                      compact
+                    />
                   )}
                   {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.activities.status}</p>
@@ -5413,7 +5440,12 @@ export function App(): JSX.Element {
                   ) : homeFeedLoading ? (
                     <p className="empty-copy">Loading recommendations...</p>
                   ) : (
-                    <p className="empty-copy">Recommendations will appear once activity signals are available.</p>
+                    <DemoState
+                      title="Example recommendations"
+                      description="These are the kinds of next-best actions HackDay Central will surface."
+                      items={DEMO_RECOMMENDATION_EXAMPLES}
+                      compact
+                    />
                   )}
                   {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.recommendations.status}</p>
@@ -5730,7 +5762,11 @@ export function App(): JSX.Element {
                             );
                           })}
                           {featuredShowcaseItems.length === 0 ? (
-                            <p className="empty-copy">No featured hacks in this filter set yet.</p>
+                            <DemoState
+                              title="Featured hack examples"
+                              description="A sample mix of prompts, skills, and apps for demos while the showcase fills up."
+                              items={DEMO_SHOWCASE_EXAMPLES}
+                            />
                           ) : null}
                         </div>
                       </article>
@@ -5846,7 +5882,11 @@ export function App(): JSX.Element {
                       })}
                     </section>
                     {!showcaseLoading && standardShowcaseItems.length === 0 && featuredShowcaseItems.length === 0 && showcaseLoaded ? (
-                      <p className="empty-copy">No showcase hacks match your filters.</p>
+                      <DemoState
+                        title="Sample showcase results"
+                        description="If live results are empty, use these examples to show what a healthy showcase looks like."
+                        items={DEMO_SHOWCASE_EXAMPLES}
+                      />
                     ) : null}
                     {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
                   </div>
@@ -5896,7 +5936,12 @@ export function App(): JSX.Element {
                         </button>
                       </div>
                     ) : (
-                      <p className="empty-copy">Select a hack card to inspect team context, outputs, and solved pains.</p>
+                      <DemoState
+                        title="Sample hack detail"
+                        description="Selecting a hack normally opens the evidence, artifacts, and pains linked to the project."
+                        items={DEMO_SHOWCASE_DETAIL_EXAMPLES}
+                        compact
+                      />
                     )}
 
                     {showcaseDetailLoading ? <p className="empty-copy">Loading hack detail...</p> : null}
@@ -5925,7 +5970,11 @@ export function App(): JSX.Element {
                               ))}
                             </ul>
                           ) : (
-                            <p className="empty-copy">No linked artifacts yet.</p>
+                            <DemoState
+                              title="Example linked artifacts"
+                              items={DEMO_ARTIFACT_EXAMPLES}
+                              compact
+                            />
                           )}
                           <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                           {showcaseDetail.problemsSolved.length > 0 ? (
@@ -5937,7 +5986,11 @@ export function App(): JSX.Element {
                               ))}
                             </ul>
                           ) : (
-                            <p className="empty-copy">No linked solved pains yet.</p>
+                            <DemoState
+                              title="Example solved pains"
+                              items={DEMO_PAIN_EXAMPLES}
+                              compact
+                            />
                           )}
                         </div>
                       </div>
@@ -5957,7 +6010,13 @@ export function App(): JSX.Element {
                             <HackCard item={hack} />
                           </article>
                         ))}
-                        {featuredTop.length === 0 ? <p className="empty-copy">No featured hacks in this filter set yet.</p> : null}
+                        {featuredTop.length === 0 ? (
+                          <DemoState
+                            title="Featured hack examples"
+                            description="Use these examples to keep the showcase lively in demos."
+                            items={DEMO_SHOWCASE_EXAMPLES}
+                          />
+                        ) : null}
                       </div>
                     </article>
                   ) : null}
@@ -6027,7 +6086,11 @@ export function App(): JSX.Element {
                     ))}
                   </section>
                   {!showcaseLoading && standardShowcaseItems.length === 0 && featuredTop.length === 0 && showcaseLoaded ? (
-                    <p className="empty-copy">No showcase hacks match your filters.</p>
+                    <DemoState
+                      title="Sample showcase results"
+                      description="Use these examples for demos until live showcase data is available."
+                      items={DEMO_SHOWCASE_EXAMPLES}
+                    />
                   ) : null}
                   {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
 
@@ -6086,7 +6149,11 @@ export function App(): JSX.Element {
                                 ))}
                               </ul>
                             ) : (
-                              <p className="empty-copy">No linked artifacts yet.</p>
+                              <DemoState
+                                title="Example linked artifacts"
+                                items={DEMO_ARTIFACT_EXAMPLES}
+                                compact
+                              />
                             )}
                             <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                             {showcaseDetail.problemsSolved.length > 0 ? (
@@ -6098,7 +6165,11 @@ export function App(): JSX.Element {
                                 ))}
                               </ul>
                             ) : (
-                              <p className="empty-copy">No linked solved pains yet.</p>
+                              <DemoState
+                                title="Example solved pains"
+                                items={DEMO_PAIN_EXAMPLES}
+                                compact
+                              />
                             )}
                           </div>
                         </div>
@@ -6202,7 +6273,13 @@ export function App(): JSX.Element {
                   {hackers.map((person) => (
                     <PersonCard key={person.id} item={person} />
                   ))}
-                  {hackers.length === 0 ? <p className="empty-copy">No people match your filters.</p> : null}
+                  {hackers.length === 0 ? (
+                    <DemoState
+                      title="Example people you could team up with"
+                      description="A realistic bench of mentors, builders, and analysts for demos."
+                      items={DEMO_PEOPLE_EXAMPLES}
+                    />
+                  ) : null}
                 </div>
               </section>
             </section>
@@ -6272,8 +6349,8 @@ export function App(): JSX.Element {
                     </>
                   ) : (
                     <>
-                      <p className="metric-empty-state">No cross-team reuse recorded yet.</p>
-                      <small>When a team adopts an artifact from another team, it appears here.</small>
+                      <p className="metric-value">9</p>
+                      <small>Demo snapshot: cross-team reuse between Platform Enablement, Risk Ops, and Delivery Ops.</small>
                     </>
                   )}
                 </article>
@@ -6281,8 +6358,8 @@ export function App(): JSX.Element {
                   <h3>TIME TO FIRST HACK</h3>
                   {timeToFirstHackMedianDays === null ? (
                     <>
-                      <p className="metric-empty-state">Not enough data yet.</p>
-                      <small>Time to first hack is calculated once at least one member submits a hack.</small>
+                      <p className="metric-value">5.4d</p>
+                      <small>Demo snapshot: median time from join to first hack after onboarding changes.</small>
                     </>
                   ) : (
                     <>
@@ -6304,8 +6381,8 @@ export function App(): JSX.Element {
                     </>
                   ) : (
                     <>
-                      <p className="metric-empty-state">No pains have been solved by a hack yet.</p>
-                      <small>Link a hack to a pain when submitting to start tracking conversion.</small>
+                      <p className="metric-value">41.7%</p>
+                      <small>Demo snapshot: solved pains linked to shipped hacks and artifacts.</small>
                     </>
                   )}
                 </article>
@@ -6335,21 +6412,11 @@ export function App(): JSX.Element {
                       </tbody>
                     </table>
                   ) : (
-                    <div className="pulse-empty-state">
-                      <p className="empty-copy">No cross-team reuse events recorded yet.</p>
-                      {!viewerHasPublishedArtifacts ? (
-                        <button
-                          type="button"
-                          className="text-link pulse-empty-link"
-                          onClick={() => {
-                            setView('library');
-                            setShowCreateArtifactForm(true);
-                          }}
-                        >
-                          Publish your first artifact
-                        </button>
-                      ) : null}
-                    </div>
+                    <DemoState
+                      title="Cross-team adoption examples"
+                      description="This matrix fills with the strongest team-to-team reuse flows."
+                      items={DEMO_ADOPTION_EXAMPLES}
+                    />
                   )}
                 </article>
 
@@ -6375,7 +6442,12 @@ export function App(): JSX.Element {
                       })}
                     </div>
                   ) : (
-                    <p className="empty-copy">Not enough first-hack history to chart a trend yet.</p>
+                    <DemoState
+                      title="Time-to-first-hack examples"
+                      description="A demo trend view showing how onboarding can improve over time."
+                      items={DEMO_TREND_EXAMPLES}
+                      compact
+                    />
                   )}
                   <div className="split-grid">
                     <div>
@@ -6419,7 +6491,12 @@ export function App(): JSX.Element {
                       </div>
                     ))
                   ) : (
-                    <p className="empty-copy">{recognitionEmptyCopy[recognitionTab]}</p>
+                    <DemoState
+                      title={`${recognitionTabLabel[recognitionTab]} examples`}
+                      description={recognitionEmptyCopy[recognitionTab]}
+                      items={DEMO_PEOPLE_EXAMPLES}
+                      compact
+                    />
                   )}
                 </div>
               </article>
@@ -6577,7 +6654,12 @@ export function App(): JSX.Element {
                               })}
                             </div>
                           ) : (
-                            <p className="empty-copy">No trend points available for this filter set.</p>
+                            <DemoState
+                              title="Sample ROI trend"
+                              description="Illustrative period snapshots for demo walkthroughs."
+                              items={DEMO_ROI_TREND_EXAMPLES}
+                              compact
+                            />
                           )}
                         </article>
                       </section>
@@ -6612,7 +6694,11 @@ export function App(): JSX.Element {
                               </tbody>
                             </table>
                           ) : (
-                            <p className="empty-copy">No team rows for current filters.</p>
+                            <DemoState
+                              title="Sample team breakdown"
+                              items={DEMO_ROI_TEAM_EXAMPLES}
+                              compact
+                            />
                           )}
                         </article>
 
@@ -6645,7 +6731,11 @@ export function App(): JSX.Element {
                               </tbody>
                             </table>
                           ) : (
-                            <p className="empty-copy">No person rows for current filters.</p>
+                            <DemoState
+                              title="Sample person breakdown"
+                              items={DEMO_ROI_PERSON_EXAMPLES}
+                              compact
+                            />
                           )}
                         </article>
 
@@ -6678,7 +6768,11 @@ export function App(): JSX.Element {
                               </tbody>
                             </table>
                           ) : (
-                            <p className="empty-copy">No business-unit rows for current filters.</p>
+                            <DemoState
+                              title="Sample business-unit breakdown"
+                              items={DEMO_ROI_BUSINESS_UNIT_EXAMPLES}
+                              compact
+                            />
                           )}
                         </article>
                       </section>
@@ -7007,7 +7101,11 @@ export function App(): JSX.Element {
                 </section>
               ) : (
                 !registryLoading && registryLoaded ? (
-                  <p className="empty-copy">No AI Tooling artifacts match these filters yet.</p>
+                  <DemoState
+                    title="AI Tooling examples"
+                    description="A realistic mix of prompts, templates, and learning assets for demo mode."
+                    items={DEMO_ARTIFACT_EXAMPLES}
+                  />
                 ) : null
               )}
             </section>
@@ -7428,7 +7526,11 @@ export function App(): JSX.Element {
                 </section>
               ) : (
                 !problemLoading && problemLoaded ? (
-                  <p className="empty-copy">No pains match these filters yet.</p>
+                  <DemoState
+                    title="Pain examples"
+                    description="Example problem statements so the exchange still feels active in demos."
+                    items={DEMO_PAIN_EXAMPLES}
+                  />
                 ) : null
               )}
             </section>
@@ -7542,14 +7644,24 @@ export function App(): JSX.Element {
                   <section className="card hackdays-empty-card">
                     <div className="hackdays-empty-icon" aria-hidden>🔎</div>
                     <p className="hackdays-empty-title">No HackDays match this search</p>
-                    <p className="empty-copy">Try a different search term or sort mode.</p>
+                    <DemoState
+                      title="Sample HackDays"
+                      description="Use these example events to show the registry in action during demos."
+                      items={DEMO_HACKDAY_EXAMPLES}
+                      compact
+                    />
                   </section>
                 )
               ) : (
                 <section className="card hackdays-empty-card">
                   <div className="hackdays-empty-icon" aria-hidden>🚀</div>
                   <p className="hackdays-empty-title">No HackDays yet</p>
-                  <p className="empty-copy">Use “Create HackDay” above to create your first event.</p>
+                  <DemoState
+                    title="Example HackDays"
+                    description="A sample event mix to make the registry feel lived in for walkthroughs."
+                    items={DEMO_HACKDAY_EXAMPLES}
+                    compact
+                  />
                 </section>
               )}
 
@@ -7756,7 +7868,12 @@ export function App(): JSX.Element {
                               ))}
                             </div>
                           ) : (
-                            <p className="meta">No extraction candidates for the selected event and limit.</p>
+                            <DemoState
+                              title="Example extraction candidates"
+                              description="Typical showcase-ready submissions that appear after a HackDay wraps."
+                              items={DEMO_SHOWCASE_EXAMPLES}
+                              compact
+                            />
                           )}
                         </>
                       ) : null}
@@ -7999,7 +8116,12 @@ export function App(): JSX.Element {
                                 })}
                               </div>
                             ) : (
-                              <p className="meta">No import candidates match the current threshold yet.</p>
+                              <DemoState
+                                title="Example pain import candidates"
+                                description="Illustrative pains that usually qualify for import into a new HackDay."
+                                items={DEMO_PAIN_EXAMPLES}
+                                compact
+                              />
                             )
                           ) : null}
                         </div>
@@ -8124,7 +8246,14 @@ export function App(): JSX.Element {
                           </article>
                         ))}
                       </div>
-                    ) : <p className="empty-copy">No hacks match.</p>}
+                    ) : <p className="empty-copy">No live hack matches. Demo examples are shown below.</p>}
+                    {globalSearchResults.hacks.length === 0 ? (
+                      <DemoState
+                        title="Example hack matches"
+                        items={DEMO_SHOWCASE_EXAMPLES}
+                        compact
+                      />
+                    ) : null}
                   </section>
                   <section>
                     <h2 className="list-title">People ({globalSearchResults.people.length})</h2>
@@ -8134,7 +8263,14 @@ export function App(): JSX.Element {
                           <PersonCard key={person.id} item={person} />
                         ))}
                       </div>
-                    ) : <p className="empty-copy">No people match.</p>}
+                    ) : <p className="empty-copy">No live people matches. Demo examples are shown below.</p>}
+                    {globalSearchResults.people.length === 0 ? (
+                      <DemoState
+                        title="Example people matches"
+                        items={DEMO_PEOPLE_EXAMPLES}
+                        compact
+                      />
+                    ) : null}
                   </section>
                   <section>
                     <h2 className="list-title">Projects ({globalSearchResults.projects.length})</h2>
@@ -8144,11 +8280,22 @@ export function App(): JSX.Element {
                           <ProjectCard key={project.id} item={project} />
                         ))}
                       </div>
-                    ) : <p className="empty-copy">No projects match.</p>}
+                    ) : <p className="empty-copy">No live project matches. Demo examples are shown below.</p>}
+                    {globalSearchResults.projects.length === 0 ? (
+                      <DemoState
+                        title="Example project matches"
+                        items={DEMO_PROJECT_EXAMPLES}
+                        compact
+                      />
+                    ) : null}
                   </section>
                 </>
               ) : (
-                <p className="empty-copy">Type in the header search and press Enter to search.</p>
+                <DemoState
+                  title="Search examples"
+                  description="Try a team, person, or workflow phrase from the examples below."
+                  items={DEMO_SEARCH_EXAMPLES}
+                />
               )}
             </section>
           ) : null}
@@ -8299,7 +8446,12 @@ export function App(): JSX.Element {
                   {pathwayLoading ? <p className="empty-copy">Loading pathways…</p> : null}
                   {!pathwayLoading && pathwayError ? <p className="error">{pathwayError}</p> : null}
                   {!pathwayLoading && !pathwayError && pathwayItems.length === 0 ? (
-                    <p className="empty-copy">No pathways matched your filters.</p>
+                    <DemoState
+                      title="Example pathways"
+                      description="Illustrative pathways for demos when live guide content is still sparse."
+                      items={DEMO_PATHWAY_EXAMPLES}
+                      compact
+                    />
                   ) : null}
                   {!pathwayLoading && !pathwayError && pathwayItems.length > 0 ? (
                     <div className="guide-list">
@@ -8370,7 +8522,11 @@ export function App(): JSX.Element {
                     </>
                   ) : null}
                   {!pathwayDetailLoading && !pathwayDetailError && !pathwayDetail && pathwayLoaded ? (
-                    <p className="empty-copy">Select a pathway to view details.</p>
+                    <DemoState
+                      title="Example pathway detail"
+                      description="Selecting a pathway normally reveals steps, progress, and linked build tasks."
+                      items={DEMO_PATHWAY_DETAIL_EXAMPLES}
+                    />
                   ) : null}
                   <div className="guide-actions">
                     <button type="button" className="btn btn-primary" onClick={() => setView('dashboard')}>
@@ -8609,7 +8765,11 @@ export function App(): JSX.Element {
                 </div>
               </section>
               <article className="card">
-                <p className="empty-copy">No notifications yet. When mentor requests are accepted or completed, they&apos;ll appear here.</p>
+                <DemoState
+                  title="Example notifications"
+                  description="Sample activity so the notifications center feels active during demos."
+                  items={DEMO_NOTIFICATION_EXAMPLES}
+                />
               </article>
             </section>
           ) : null}

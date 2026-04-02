@@ -2,6 +2,7 @@ import React, { useRef, useState, type ReactNode, type Ref } from 'react';
 import type { EventRegistryItem } from '../types';
 import { isNavigableRegistryItem, runSwitcherNavigation, switcherRowMetaText } from '../appSwitcher';
 import { OVERFLOW_NAV_ITEMS, PRIMARY_NAV_ITEMS, type View } from '../constants/nav';
+import { DEMO_SWITCHER_EMPTY_EXAMPLES } from '../demo/examples';
 
 export interface SwitcherGroup {
   title: string;
@@ -178,7 +179,7 @@ export function Layout({
                       <section key={group.title} className="switcher-section" aria-label={group.title}>
                         <p className="switcher-section-title">{group.title}</p>
                         {group.items.length === 0 ? (
-                          <p className="switcher-empty">No events</p>
+                          <p className="switcher-empty">No live events yet. {DEMO_SWITCHER_EMPTY_EXAMPLES}</p>
                         ) : (
                           group.items.map((item) => (
                             <button

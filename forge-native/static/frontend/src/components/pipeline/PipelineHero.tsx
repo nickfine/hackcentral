@@ -1,5 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import type { PipelineBoardItem, PipelineMetrics, PipelineStage, PipelineStageCriteria, ProblemListItem } from '../../types';
+import { DEMO_PIPELINE_STAGE_EXAMPLES } from '../../demo/examples';
+import { DemoState } from '../shared/DemoState';
 import { ConversionArrow } from './ConversionArrow';
 import { StageDetail } from './StageDetail';
 import { StageNode } from './StageNode';
@@ -153,7 +155,14 @@ export function PipelineHero({
       {!selectedStage ? (
         <section className="pipeline-detail-empty" aria-label="No selected stage">
           <span className="pipeline-detail-empty-icon" aria-hidden>📈</span>
-          <p className="pipeline-detail-empty-copy">Select a stage to see what&apos;s in it and what&apos;s blocking progress.</p>
+          <div className="pipeline-detail-empty-copy">
+            <DemoState
+              title="Pipeline examples"
+              description="Select a stage to inspect live items. Until then, here is what healthy pipeline activity can look like."
+              items={DEMO_PIPELINE_STAGE_EXAMPLES}
+              compact
+            />
+          </div>
         </section>
       ) : null}
     </section>

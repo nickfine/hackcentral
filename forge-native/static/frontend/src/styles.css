@@ -3595,6 +3595,76 @@ button {
   font-weight: 400;
 }
 
+.demo-state {
+  margin-top: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(242, 250, 247, 0.9) 0%, rgba(255, 255, 255, 0.96) 100%);
+  padding: 14px;
+}
+
+.demo-state-compact {
+  padding: 12px;
+}
+
+.demo-state-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.demo-state-head h3 {
+  margin: 0;
+  font-size: var(--tier3-size);
+}
+
+.demo-state-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.demo-state-description {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--tier4-size);
+}
+
+.demo-state-list {
+  display: grid;
+  gap: 10px;
+}
+
+.demo-state-item {
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 11px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.demo-state-item strong {
+  font-size: var(--tier4-size);
+  color: var(--text);
+}
+
+.demo-state-item p,
+.demo-state-item small {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.demo-state-item-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
 /* Design system: primary rounded-lg (no pill); teal only */
 .btn {
   border-radius: var(--radius-lg);
@@ -4662,7 +4732,7 @@ button {
 
 .pipeline-detail-empty-copy {
   margin: 0;
-  max-width: 320px;
+  max-width: 420px;
   font-size: var(--tier4-size);
   color: #9ca3af;
   line-height: 1.5;

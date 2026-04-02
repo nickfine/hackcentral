@@ -1,4 +1,6 @@
 import type { PipelineBoardItem, PipelineStage, PipelineStageCriteria, ProblemListItem } from '../../types';
+import { DEMO_PIPELINE_ITEM_EXAMPLES, DEMO_PIPELINE_PAIN_EXAMPLES } from '../../demo/examples';
+import { DemoState } from '../shared/DemoState';
 import { getInitials } from '../../utils/format';
 import type { HeroStageDefinition } from './types';
 
@@ -91,7 +93,16 @@ export function StageDetail({
       <section className="pipeline-detail-section">
         <h4>{isPainsStage ? 'Pains' : 'Items'}</h4>
         {(isPainsStage ? visiblePainItems.length === 0 : visibleProjectItems.length === 0) ? (
-          <p className="empty-copy">{isPainsStage ? 'No pains in this stage.' : 'No items in this stage.'}</p>
+          <DemoState
+            title={isPainsStage ? 'Example pains in this stage' : 'Example items in this stage'}
+            description={
+              isPainsStage
+                ? 'A good pains stage usually has clearly scoped issues with owners and measurable impact.'
+                : 'Healthy stages tend to have active items with owners, notes, and a clear next move.'
+            }
+            items={isPainsStage ? DEMO_PIPELINE_PAIN_EXAMPLES : DEMO_PIPELINE_ITEM_EXAMPLES}
+            compact
+          />
         ) : (
           <div className="pipeline-detail-items">
             {isPainsStage ? (
