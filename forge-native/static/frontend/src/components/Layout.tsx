@@ -61,7 +61,7 @@ export function Layout({
 
   return (
     <div className="app-shell">
-      <header className="topbar" style={{ height: 'auto', display: 'block', padding: '0 18px' }}>
+      <header className="topbar">
         <div className="topbar-main">
           <button type="button" className="brand-home" onClick={() => setView('dashboard')} aria-label="Go to Home">
             <span className="brand-mark" aria-hidden>H</span>
@@ -284,7 +284,7 @@ export function Layout({
           </nav>
         </div>
       </header>
-      <div className="shell-body" style={{ paddingTop: '132px' }}>
+      <div className="shell-body">
         <main className="content">
           {switcherWarning ? <section className="message message-preview">{switcherWarning}</section> : null}
           {hasNonNavigableSwitcherItems ? (
