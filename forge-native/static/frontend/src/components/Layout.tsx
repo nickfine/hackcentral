@@ -1,8 +1,7 @@
 import React, { useRef, useState, type ReactNode, type Ref } from 'react';
-import adaptaLogo from '../assets/adaptalogo.jpg';
 import type { EventRegistryItem } from '../types';
 import { isNavigableRegistryItem, runSwitcherNavigation, switcherRowMetaText } from '../appSwitcher';
-import { NAV_ITEMS, type View } from '../constants/nav';
+import { OVERFLOW_NAV_ITEMS, PRIMARY_NAV_ITEMS, type View } from '../constants/nav';
 
 export interface SwitcherGroup {
   title: string;
@@ -54,186 +53,238 @@ export function Layout({
   children,
 }: LayoutProps): JSX.Element {
   const [searchSuggestionsOpen, setSearchSuggestionsOpen] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
+  const overflowRef = useRef<HTMLDivElement | null>(null);
   const visibleSearchExamples = searchExampleQueries.filter(Boolean).slice(0, 3);
+  const overflowIsActive = OVERFLOW_NAV_ITEMS.some((item) => item.id === view);
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-wrap">
-          <img src={adaptaLogo} alt="Adaptavist" className="brand-logo" />
-        </div>
-        <div
-          className="top-search"
-          ref={searchRef}
-          onBlur={(event) => {
-            if (!searchRef.current?.contains(event.relatedTarget as Node | null)) {
-              setSearchSuggestionsOpen(false);
-            }
-          }}
-        >
-          <span className="search-icon" aria-hidden>🔍</span>
-          <input
-            type="search"
-            placeholder="Search hacks, people, and pains..."
-            aria-label="Search hacks, people, and pains"
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            onFocus={() => {
-              if (visibleSearchExamples.length > 0) {
-                setSearchSuggestionsOpen(true);
+      <header className="topbar" style={{ height: 'auto', display: 'block', padding: '0 18px' }}>
+        <div className="topbar-main">
+          <button type="button" className="brand-home" onClick={() => setView('dashboard')} aria-label="Go to Home">
+            <span className="brand-mark" aria-hidden>H</span>
+            <span className="brand-title">HackDay Central</span>
+          </button>
+          <div
+            className="top-search"
+            ref={searchRef}
+            onBlur={(event) => {
+              if (!searchRef.current?.contains(event.relatedTarget as Node | null)) {
+                setSearchSuggestionsOpen(false);
               }
             }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setSearchSuggestionsOpen(false);
-                return;
-              }
-              if (e.key === 'Enter') {
-                setSearchSuggestionsOpen(false);
-                setView('search');
-              }
-            }}
-          />
-          {searchSuggestionsOpen && visibleSearchExamples.length > 0 ? (
-            <div className="search-suggestions" role="listbox" aria-label="Example search queries">
-              {visibleSearchExamples.map((query) => (
-                <button
-                  key={query}
-                  type="button"
-                  className="search-suggestion"
-                  onClick={() => {
-                    setGlobalSearch(query);
-                    setSearchSuggestionsOpen(false);
-                    setView('search');
-                  }}
-                >
-                  Try: {query}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="top-actions">
-          <div className="app-switcher" ref={switcherRef as React.RefObject<HTMLDivElement>}>
+          >
+            <span className="search-icon" aria-hidden>🔍</span>
+            <input
+              type="search"
+              placeholder="Search hacks, people, and pains..."
+              aria-label="Search hacks, people, and pains"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              onFocus={() => {
+                if (visibleSearchExamples.length > 0) {
+                  setSearchSuggestionsOpen(true);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchSuggestionsOpen(false);
+                  return;
+                }
+                if (e.key === 'Enter') {
+                  setSearchSuggestionsOpen(false);
+                  setView('search');
+                }
+              }}
+            />
+            {searchSuggestionsOpen && visibleSearchExamples.length > 0 ? (
+              <div className="search-suggestions" role="listbox" aria-label="Example search queries">
+                {visibleSearchExamples.map((query) => (
+                  <button
+                    key={query}
+                    type="button"
+                    className="search-suggestion"
+                    onClick={() => {
+                      setGlobalSearch(query);
+                      setSearchSuggestionsOpen(false);
+                      setView('search');
+                    }}
+                  >
+                    Try: {query}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <div className="top-actions">
+            <button type="button" className="btn btn-primary top-primary-cta" onClick={() => setView('create_hackday')}>
+              Create HackDay
+            </button>
             <button
               type="button"
-              className="switcher-trigger"
-              aria-expanded={switcherOpen}
-              aria-haspopup="menu"
-              aria-controls="global-app-switcher-menu"
-              onClick={() => setSwitcherOpen((open: boolean) => !open)}
-              onKeyDown={(e) => {
-                if (!switcherOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
-                  e.preventDefault();
-                  setSwitcherOpen(true);
+              className="icon-btn top-action-btn"
+              aria-label="Notifications"
+              onClick={() => setView('notifications')}
+            >
+              <span aria-hidden>🔔</span>
+            </button>
+            <div className="app-switcher" ref={switcherRef as React.RefObject<HTMLDivElement>}>
+              <button
+                type="button"
+                className="switcher-trigger"
+                aria-expanded={switcherOpen}
+                aria-haspopup="menu"
+                aria-controls="global-app-switcher-menu"
+                onClick={() => setSwitcherOpen((open: boolean) => !open)}
+                onKeyDown={(e) => {
+                  if (!switcherOpen && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) {
+                    e.preventDefault();
+                    setSwitcherOpen(true);
+                  }
+                }}
+              >
+                <span className="switcher-trigger-label">Events</span>
+                <span className="switcher-trigger-caret" aria-hidden>▾</span>
+              </button>
+              {switcherOpen ? (
+                <>
+                  <button
+                    type="button"
+                    className="switcher-overlay"
+                    aria-label="Close app switcher"
+                    onClick={() => setSwitcherOpen(false)}
+                  />
+                  <div
+                    id="global-app-switcher-menu"
+                    className="switcher-menu"
+                    role="menu"
+                    aria-label="HackDay app switcher"
+                    ref={switcherMenuRef as React.RefObject<HTMLDivElement>}
+                    onKeyDown={onSwitcherMenuKeyDown}
+                  >
+                    <section className="switcher-section" aria-label="Home">
+                      <p className="switcher-section-title">Home</p>
+                      <button type="button" data-switcher-option="true" className="switcher-row current" disabled>
+                        <span className="switcher-row-main">
+                          <span className="switcher-row-title">HackDay Central</span>
+                          <span className="switcher-row-meta">Current page</span>
+                        </span>
+                        <span className="switcher-row-status">Home</span>
+                      </button>
+                    </section>
+                    {switcherGroups.map((group) => (
+                      <section key={group.title} className="switcher-section" aria-label={group.title}>
+                        <p className="switcher-section-title">{group.title}</p>
+                        {group.items.length === 0 ? (
+                          <p className="switcher-empty">No events</p>
+                        ) : (
+                          group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              data-switcher-option="true"
+                              className="switcher-row"
+                              disabled={!isNavigableRegistryItem(item)}
+                              onClick={() => {
+                                runSwitcherNavigation(item, (targetPageId) => {
+                                  void navigateToSwitcherPage(targetPageId);
+                                });
+                              }}
+                            >
+                              <span className="switcher-row-main">
+                                <span className="switcher-row-title">{item.icon || '🚀'} {item.eventName}</span>
+                                <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
+                              </span>
+                              <span className="switcher-row-status">{item.lifecycleStatus.replace('_', ' ')}</span>
+                            </button>
+                          ))
+                        )}
+                      </section>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="profile-chip"
+              title={accountId}
+              onClick={() => setView('profile')}
+              aria-label="Open profile"
+            >
+              {profileInitial}
+            </button>
+          </div>
+        </div>
+        <div className="tab-strip">
+          <nav className="tab-nav" aria-label="Primary navigation">
+            {PRIMARY_NAV_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`tab-link ${view === item.id ? 'tab-link-active' : ''}`}
+                onClick={() => {
+                  setOverflowOpen(false);
+                  setView(item.id);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+            <div
+              className="overflow-nav"
+              ref={overflowRef}
+              onBlur={(event) => {
+                if (!overflowRef.current?.contains(event.relatedTarget as Node | null)) {
+                  setOverflowOpen(false);
                 }
               }}
             >
-              <span className="switcher-trigger-icon" aria-hidden>🏠</span>
-              <span className="switcher-trigger-label">HackDay Central</span>
-              <span className="switcher-trigger-caret" aria-hidden>▾</span>
-            </button>
-            {switcherOpen ? (
-              <>
-                <button
-                  type="button"
-                  className="switcher-overlay"
-                  aria-label="Close app switcher"
-                  onClick={() => setSwitcherOpen(false)}
-                />
-                <div
-                  id="global-app-switcher-menu"
-                  className="switcher-menu"
-                  role="menu"
-                  aria-label="HackDay app switcher"
-                  ref={switcherMenuRef as React.RefObject<HTMLDivElement>}
-                  onKeyDown={onSwitcherMenuKeyDown}
-                >
-                  <section className="switcher-section" aria-label="Home">
-                    <p className="switcher-section-title">Home</p>
-                    <button type="button" data-switcher-option="true" className="switcher-row current" disabled>
-                      <span className="switcher-row-main">
-                        <span className="switcher-row-title">🏠 HackDay Central</span>
-                        <span className="switcher-row-meta">Current page</span>
-                      </span>
-                      <span className="switcher-row-status">Home</span>
+              <button
+                type="button"
+                className={`tab-link overflow-trigger ${overflowIsActive ? 'tab-link-active' : ''}`}
+                aria-haspopup="menu"
+                aria-expanded={overflowOpen}
+                aria-controls="overflow-nav-menu"
+                aria-label="More sections"
+                onClick={() => setOverflowOpen((open) => !open)}
+                onKeyDown={(event) => {
+                  if (!overflowOpen && (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown')) {
+                    event.preventDefault();
+                    setOverflowOpen(true);
+                  }
+                  if (event.key === 'Escape') {
+                    setOverflowOpen(false);
+                  }
+                }}
+              >
+                ···
+              </button>
+              {overflowOpen ? (
+                <div id="overflow-nav-menu" className="overflow-menu" role="menu" aria-label="More sections">
+                  {OVERFLOW_NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="menuitem"
+                      className={`overflow-link ${view === item.id ? 'overflow-link-active' : ''}`}
+                      onClick={() => {
+                        setOverflowOpen(false);
+                        setView(item.id);
+                      }}
+                    >
+                      {item.label}
                     </button>
-                  </section>
-                  {switcherGroups.map((group) => (
-                    <section key={group.title} className="switcher-section" aria-label={group.title}>
-                      <p className="switcher-section-title">{group.title}</p>
-                      {group.items.length === 0 ? (
-                        <p className="switcher-empty">No events</p>
-                      ) : (
-                        group.items.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            data-switcher-option="true"
-                            className="switcher-row"
-                            disabled={!isNavigableRegistryItem(item)}
-                            onClick={() => {
-                              runSwitcherNavigation(item, (targetPageId) => {
-                                void navigateToSwitcherPage(targetPageId);
-                              });
-                            }}
-                          >
-                            <span className="switcher-row-main">
-                              <span className="switcher-row-title">{item.icon || '🚀'} {item.eventName}</span>
-                              <span className="switcher-row-meta">{switcherRowMetaText(item)}</span>
-                            </span>
-                            <span className="switcher-row-status">{item.lifecycleStatus.replace('_', ' ')}</span>
-                          </button>
-                        ))
-                      )}
-                    </section>
                   ))}
                 </div>
-              </>
-            ) : null}
-          </div>
-          <button type="button" className="icon-btn top-action-btn" aria-label="Notifications">
-            <span aria-hidden>🔔</span>
-            <span className="icon-btn-label">Alerts</span>
-          </button>
-          <button type="button" className="icon-btn top-action-btn" aria-label="Messages">
-            <span aria-hidden>💬</span>
-            <span className="icon-btn-label">Messages</span>
-          </button>
-          <button type="button" className="profile-chip" title={accountId} onClick={() => setView('profile')} aria-label="Open profile">{profileInitial}</button>
+              ) : null}
+            </div>
+          </nav>
         </div>
       </header>
-      <div className="frame">
-        <aside className="sidebar">
-          <nav className="side-nav" aria-label="Primary">
-            {NAV_ITEMS.map((item) => (
-              <React.Fragment key={item.id}>
-                {item.groupLabel ? (
-                  <p className="nav-group-label">{item.groupLabel}</p>
-                ) : null}
-                <button
-                  type="button"
-                  className={`side-link ${view === item.id ? 'side-link-active' : ''}`}
-                  onClick={() => setView(item.id)}
-                >
-                  <span className="side-icon" aria-hidden>{item.icon}</span>
-                  {item.label}
-                </button>
-              </React.Fragment>
-            ))}
-          </nav>
-          <div className="sidebar-utility">
-            <button
-              type="button"
-              className={`side-link ${view === 'profile' ? 'side-link-active' : ''}`}
-              onClick={() => setView('profile')}
-            >
-              <span className="side-icon" aria-hidden>👤</span>
-              Profile
-            </button>
-          </div>
-        </aside>
+      <div className="shell-body" style={{ paddingTop: '132px' }}>
         <main className="content">
           {switcherWarning ? <section className="message message-preview">{switcherWarning}</section> : null}
           {hasNonNavigableSwitcherItems ? (

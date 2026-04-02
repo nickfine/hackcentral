@@ -29,20 +29,20 @@ export interface NavItem {
   groupLabel?: string;
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  // Discover
-  { id: 'dashboard',   label: 'Home',       icon: '🏠', groupLabel: 'Discover' },
-  { id: 'hacks',       label: 'Hacks',      icon: '⚡' },
-  { id: 'library',     label: 'AI Tooling', icon: '📚' },
+export const PRIMARY_NAV_ITEMS: NavItem[] = [
+  { id: 'dashboard', label: 'Home', icon: '🏠' },
+  { id: 'hacks', label: 'Hacks', icon: '⚡' },
   { id: 'problem_exchange', label: 'Pains', icon: '🧩' },
-  { id: 'hackdays',    label: 'HackDays',   icon: '🚀' },
-  { id: 'pipeline',    label: 'Pipeline',   icon: '📈' },
-
-  // Collaborate
-  { id: 'team_up',     label: 'Team Up',    icon: '🤝', groupLabel: 'Collaborate' },
-  { id: 'team_pulse',  label: 'Team Pulse', icon: '📊' },
-
-  // Learn
-  { id: 'guide',       label: 'Guide',      icon: '📖' },
-  { id: 'onboarding',  label: 'Get Started', icon: '✨' },
+  { id: 'hackdays', label: 'HackDays', icon: '🚀' },
+  { id: 'pipeline', label: 'Pipeline', icon: '📈' },
 ];
+
+export const OVERFLOW_NAV_ITEMS: NavItem[] = [
+  { id: 'library', label: 'AI Tooling', icon: '📚' },
+  { id: 'team_up', label: 'Team Up', icon: '🤝' },
+  { id: 'team_pulse', label: 'Team Pulse', icon: '📊' },
+  { id: 'guide', label: 'Guide', icon: '📖' },
+  { id: 'onboarding', label: 'Get Started', icon: '✨' },
+];
+
+export const NAV_ITEMS: NavItem[] = [...PRIMARY_NAV_ITEMS, ...OVERFLOW_NAV_ITEMS];
