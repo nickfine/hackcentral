@@ -1,10 +1,22 @@
 # CONTINUATION.md
 
-Last updated: 2026-03-14 00:00 GMT
+Last updated: 2026-04-03 00:45 BST
 
 ## Current Snapshot
 
 - Branch: `main`
+- Active live tenant: `tag-hackday.atlassian.net`
+- Safe live-tenant deploy copy:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Legacy source checkout:
+  - `/Users/nickster/Downloads/HackCentral`
+  - still wired to `hackdaytemp` Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
+- Dedicated `tag-hackday` Forge app:
+  - app id `22696465-0692-48af-9741-323e1cfc2631`
+  - production env id `1c797890-3b54-448e-85da-4ecbe9e9e777`
+  - staging env id `15ac566f-3a62-4ffd-9fd6-1e50e5a47c9b`
+- Canonical live global page URL:
+  - `https://tag-hackday.atlassian.net/wiki/apps/22696465-0692-48af-9741-323e1cfc2631/1c797890-3b54-448e-85da-4ecbe9e9e777/hackday-central`
 - Product source of truth for operations mode: `STARTUP.md` + `LEARNINGS.md` + latest `CONTINUATION.md` entry
 - Planning docs (`ROADMAP.md`, `HDC-PRODUCT-EXECUTION-PLAN.md`) are only used when explicitly requested for planning/rescoping.
 - Runtime owner: `HDC_RUNTIME_OWNER=hackcentral`
@@ -100,6 +112,51 @@ Last updated: 2026-03-14 00:00 GMT
     - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-app?pageId=24510466`
   - reusable hosted validation commands remain available for staging:
     - `npm run qa:runtime:branding:staging`
+
+## Session Update - Tenant Guardrail + tag-hackday Deploy Recovery (Apr 3, 2026 00:45 BST)
+
+### What changed
+
+- Diagnosed a false deploy assumption caused by deploying the current checkout to `hackdaytemp` while the live tenant had already migrated to `tag-hackday`.
+- Confirmed the current source checkout `/Users/nickster/Downloads/HackCentral` is still wired to the legacy `hackdaytemp` Forge app id in `forge-native/manifest.yml`.
+- Updated deploy guardrails in:
+  - `DEPLOY.md`
+  - `.claude/instructions.md`
+  - `STARTUP.md`
+- Created a stable isolated tenant copy for future live deploys:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Retargeted that isolated copy to the dedicated `tag-hackday` Forge app id:
+  - `22696465-0692-48af-9741-323e1cfc2631`
+- Deployed the current HackCentral bundle to `tag-hackday` production from the isolated copy.
+
+### Validation / Evidence
+
+- Local frontend and Forge typecheck passed in the isolated copy after installing dependencies:
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native run typecheck`
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native/static/frontend run typecheck`
+  - `npm --prefix /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native/static/macro-frontend run typecheck`
+- Production deploy completed on the dedicated `tag-hackday` app:
+  - `forge deploy --environment production --no-verify` ✅
+  - `forge install -e production --upgrade --non-interactive --site tag-hackday.atlassian.net --product confluence` ✅
+- Forge deployment table confirms latest `tag-hackday` production deploy:
+  - `2026-04-03T00:26:00.629Z`
+- Forge install table confirms the live tenant is current:
+  - installation id `0f8b4d2f-e541-4cf0-aaab-f770596e1a31`
+  - site `tag-hackday.atlassian.net`
+  - status `Up-to-date`
+- Browser console confirmation from the live tenant:
+  - `[HackCentral Confluence UI] loaded 0.6.87`
+  - `[hdc-switcher-telemetry] {"source":"global.bootstrap.live","total":3,"nonNavigable":0,"withMissingPageId":0}`
+- Demo data is now visible in the live tenant per user confirmation.
+
+### Operational note for the next chat
+
+- If the next task includes any live deploy to `tag-hackday`, start in:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Do not deploy `tag-hackday` from:
+  - `/Users/nickster/Downloads/HackCentral`
+- Forge CLI was upgraded successfully in this session:
+  - `forge --version` → `12.17.0`
 
 ## Session Update - v0.6.81 New To HackDay Branding Artwork Released (Mar 9, 2026 23:35 GMT)
 

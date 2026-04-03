@@ -1,9 +1,18 @@
 # HackCentral Startup Ritual
 
-Last updated: 2026-03-03
+Last updated: 2026-04-03
 
 Use this as the single startup/shutdown checklist for work in this repo.
 Current mode: operations and maintenance.
+
+## Active Tenant Guardrail
+
+- Active live tenant: `tag-hackday.atlassian.net`
+- Safe deploy copy for the live tenant:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Legacy/canonical source checkout:
+  - `/Users/nickster/Downloads/HackCentral`
+  - this checkout is still wired to the `hackdaytemp` Forge app and should not be used for `tag-hackday` deploys
 
 ## Startup (required)
 
@@ -25,6 +34,7 @@ Read these files in order:
 Then confirm:
 
 - Target environment (`localhost`, `staging`, or `production`)
+- Target tenant (`tag-hackday` or `hackdaytemp`) before any Forge deploy/install command
 - Validation command(s) for the change
 - Deployment path if shipping to Confluence
 - Supabase verification path (`MCP-first`; service-role SQL fallback if MCP listing is empty in this workspace)
@@ -32,6 +42,7 @@ Then confirm:
   - prefer authenticated local Playwright runs using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
   - use frame-aware selectors for HackDay runtime checks because the UI is inside a Confluence iframe
   - only treat hosted validation as blocked after the stored-auth Playwright path fails
+  - for `tag-hackday`, use the canonical `wiki/apps` URL from `DEPLOY.md`
 
 ## Shutdown (required)
 
