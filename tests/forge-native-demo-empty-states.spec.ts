@@ -24,13 +24,16 @@ describe('HackCentral demo empty states', () => {
   it('wires demo-state content into the main app empty branches', () => {
     const appSource = fs.readFileSync(appPath, 'utf8');
 
-    expect(appSource).toContain('What activity looks like once teams start shipping');
-    expect(appSource).toContain('Example recommendations');
+    expect(appSource).toContain('Activity will appear here once hacks are submitted and HackDays are running.');
+    expect(appSource).toContain("Recommendations will appear once there&apos;s activity in your space.");
+    expect(appSource).toContain('Nothing shipped yet — be the first. Submit a Hack');
     expect(appSource).toContain('Featured hack examples');
     expect(appSource).toContain('AI Tooling examples');
     expect(appSource).toContain('Pain examples');
     expect(appSource).toContain('Search examples');
     expect(appSource).toContain('Example notifications');
+    expect(appSource).not.toContain('What activity looks like once teams start shipping');
+    expect(appSource).not.toContain('Example recommendations');
   });
 
   it('covers the switcher and pipeline empty states too', () => {

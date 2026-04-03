@@ -31,19 +31,19 @@ export const DEMO_RECOMMENDATION_EXAMPLES: DemoExampleItem[] = [
     eyebrow: 'Recommended',
     title: 'Prompt QA checklist for release managers',
     description: 'Popular with teams shipping customer-facing automation and scored highly for reuse.',
-    meta: 'score 94',
+    meta: '94% match',
   },
   {
     eyebrow: 'Recommended',
     title: 'Guide pathway: From pain intake to first prototype',
     description: 'Best match for analysts and product managers submitting their first hack this month.',
-    meta: 'score 91',
+    meta: '91% match',
   },
   {
     eyebrow: 'Recommended',
     title: 'Meeting notes summariser skill pack',
     description: 'Frequently forked by delivery teams working across Confluence and Jira.',
-    meta: 'score 88',
+    meta: '88% match',
   },
 ];
 

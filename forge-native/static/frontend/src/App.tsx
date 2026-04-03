@@ -70,6 +70,11 @@ import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { DemoState } from './components/shared/DemoState';
 import { formatLabel, getInitials } from './utils/format';
 import {
+  formatHomeRecommendationMatch,
+  hasAnyNonZeroSummaryStat,
+  selectHomeHeroSignal,
+} from './utils/homeDashboard';
+import {
   isValidHttpsUrl,
   mapFeaturedHackToArtifact,
   parseRegistryTags,
@@ -101,7 +106,6 @@ import {
 } from './utils/homeFeed';
 import { PipelineHero } from './components/pipeline';
 import {
-  DEMO_ACTIVITY_EXAMPLES,
   DEMO_ADOPTION_EXAMPLES,
   DEMO_ARTIFACT_EXAMPLES,
   DEMO_HACKDAY_EXAMPLES,
@@ -111,7 +115,6 @@ import {
   DEMO_PAIN_EXAMPLES,
   DEMO_PEOPLE_EXAMPLES,
   DEMO_PROJECT_EXAMPLES,
-  DEMO_RECOMMENDATION_EXAMPLES,
   DEMO_ROI_BUSINESS_UNIT_EXAMPLES,
   DEMO_ROI_PERSON_EXAMPLES,
   DEMO_ROI_TEAM_EXAMPLES,
@@ -123,7 +126,7 @@ import {
 } from './demo/examples';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.87';
+const HACKCENTRAL_UI_VERSION = '0.6.88';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -2489,7 +2492,7 @@ export function App(): JSX.Element {
           type: 'team_artifact' as const,
           title: hack.title,
           reason: 'Preview recommendation from featured hack activity.',
-          score: 4 - index,
+          score: [94, 91, 88, 84][index] ?? 80,
           relatedId: hack.id,
           context: [hack.assetType],
         }));
@@ -2659,6 +2662,16 @@ export function App(): JSX.Element {
     });
     setQuickActionsOpen(false);
     setView('guide');
+  }, []);
+
+  const handleHomeNotify = useCallback(() => {
+    logHomeTelemetry({
+      metric: 'home_secondary_cta_click',
+      targetView: 'notifications',
+      source: 'hero_notify',
+    });
+    setQuickActionsOpen(false);
+    setView('notifications');
   }, []);
 
   const handleHomeFeedItemClick = useCallback(
@@ -4126,6 +4139,11 @@ export function App(): JSX.Element {
   const homeFeedItems = homeFeedSnapshot?.items ?? [];
   const homeFeedRecommendations = homeFeedSnapshot?.recommendations ?? [];
   const showHomeFeedDebugMeta = HDC_HOME_UX_V1 && previewMode;
+  const homeSummaryHasValues = bootstrap ? hasAnyNonZeroSummaryStat(bootstrap.summary) : false;
+  const homeHeroSignal = useMemo(
+    () => (bootstrap ? selectHomeHeroSignal({ registry, featuredHacks }) : { kind: 'loading' as const }),
+    [bootstrap, featuredHacks, registry]
+  );
 
   const teamPulse = bootstrap?.teamPulse ?? null;
   const reuseRatePct = teamPulse?.reuseRatePct ?? 0;
@@ -5232,8 +5250,17 @@ export function App(): JSX.Element {
 
   if (loading) {
     return (
-      <main className="state-shell">
-        <section className="state-card">Loading HackDay Central...</section>
+      <main className="state-shell state-shell-home-loading">
+        <section className="page-stack state-page-stack">
+          <WelcomeHero
+            onSubmitHack={() => undefined}
+            onBrowseFeaturedHacks={() => undefined}
+            onRequestMentor={() => undefined}
+            signal={{ kind: 'loading' }}
+            ctaDisabled
+          />
+          <section className="state-card">Loading HackDay Central...</section>
+        </section>
       </main>
     );
   }
@@ -5285,38 +5312,19 @@ export function App(): JSX.Element {
                 onSubmitHack={handleHomePrimaryCta}
                 onBrowseFeaturedHacks={HDC_HOME_UX_V1 ? handleHomeBrowseFeatured : undefined}
                 onRequestMentor={HDC_HOME_UX_V1 ? handleHomeRequestMentor : undefined}
+                onNotify={handleHomeNotify}
+                signal={homeHeroSignal}
               />
-              <StatCards summary={bootstrap.summary} />
-
-              <section className="card section-head-row dashboard-section-head">
-                <div>
-                  <h2>Latest Hacks</h2>
-                  <p>Built by us, for us</p>
-                </div>
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    logHomeTelemetry({
-                      metric: 'home_secondary_cta_click',
-                      targetView: 'hacks',
-                      source: 'latest_hacks_header',
-                    });
-                    setView('hacks');
-                    setHackTab('completed');
-                  }}
-                >
-                  Browse Featured Hacks
-                </button>
-              </section>
-
-              <section className="grid hacks-grid">
-                {featuredHacks.slice(0, 8).map((hack) => (
-                  <article key={hack.id} className="card">
-                    <HackCard item={hack} />
-                  </article>
-                ))}
-              </section>
+              {homeSummaryHasValues ? (
+                <StatCards summary={bootstrap.summary} />
+              ) : (
+                <section className="card home-prompt-card">
+                  <button type="button" className="home-prompt-action" onClick={handleHomePrimaryCta}>
+                    <span>Nothing shipped yet — be the first. Submit a Hack</span>
+                    <span aria-hidden>→</span>
+                  </button>
+                </section>
+              )}
 
               <section className="grid home-feed-grid">
                 <article className="card home-feed-card">
@@ -5378,12 +5386,9 @@ export function App(): JSX.Element {
                   ) : homeFeedLoading ? (
                     <p className="empty-copy">Loading activity feed...</p>
                   ) : (
-                    <DemoState
-                      title="What activity looks like once teams start shipping"
-                      description="Use this as demo context when the live feed is still empty."
-                      items={DEMO_ACTIVITY_EXAMPLES}
-                      compact
-                    />
+                    <section className="home-feed-empty-state">
+                      <p>Activity will appear here once hacks are submitted and HackDays are running.</p>
+                    </section>
                   )}
                   {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.activities.status}</p>
@@ -5420,7 +5425,7 @@ export function App(): JSX.Element {
                             </div>
                             <div className="home-feed-row-meta">
                               <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
-                              <span>score {item.score}</span>
+                              <span>{formatHomeRecommendationMatch(item.score)}</span>
                             </div>
                           </button>
                         ) : (
@@ -5431,7 +5436,7 @@ export function App(): JSX.Element {
                             </div>
                             <div className="home-feed-row-meta">
                               <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
-                              <span>score {item.score}</span>
+                              <span>{formatHomeRecommendationMatch(item.score)}</span>
                             </div>
                           </div>
                         )
@@ -5440,12 +5445,9 @@ export function App(): JSX.Element {
                   ) : homeFeedLoading ? (
                     <p className="empty-copy">Loading recommendations...</p>
                   ) : (
-                    <DemoState
-                      title="Example recommendations"
-                      description="These are the kinds of next-best actions HackDay Central will surface."
-                      items={DEMO_RECOMMENDATION_EXAMPLES}
-                      compact
-                    />
+                    <section className="home-feed-empty-state">
+                      <p>Recommendations will appear once there&apos;s activity in your space.</p>
+                    </section>
                   )}
                   {showHomeFeedDebugMeta && homeFeedSnapshot ? (
                     <p className="caption">Source: {homeFeedSnapshot.sources.recommendations.status}</p>

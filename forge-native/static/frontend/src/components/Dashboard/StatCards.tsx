@@ -23,10 +23,16 @@ const METRIC_ITEMS: Array<{
  * StatCards — metric cards for dashboard (icon + label, large number).
  * ECD: 3-column grid, icon-first, bigger number typography.
  */
-export function StatCards({ summary }: StatCardsProps): JSX.Element {
+export function StatCards({ summary }: StatCardsProps): JSX.Element | null {
+  const visibleItems = METRIC_ITEMS.filter(({ getValue }) => getValue(summary) > 0);
+
+  if (visibleItems.length === 0) {
+    return null;
+  }
+
   return (
     <section className="grid metric-grid dashboard-metric-grid" aria-label="Summary metrics">
-      {METRIC_ITEMS.map(({ key, label, icon, tone, getValue }) => (
+      {visibleItems.map(({ key, label, icon, tone, getValue }) => (
         <article key={key} className="card metric-tile dashboard-metric-card">
           <div className="metric-tile-head dashboard-metric-head">
             <span className="metric-icon" aria-hidden>{icon}</span>
