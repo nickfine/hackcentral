@@ -594,46 +594,46 @@ button {
 }
 
 .dashboard-hero-card {
-  padding: 20px;
-  border-left: 2px solid #14b8a6;
-  background: color-mix(in srgb, var(--brand) 4%, var(--surface));
+  padding: 32px;
+  border-bottom: 2px solid var(--brand);
 }
 
 .dashboard-hero-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.95fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 360px);
   align-items: stretch;
-  gap: 16px;
+  gap: 28px;
 }
 
 .dashboard-hero-copy {
   min-width: 0;
   display: grid;
-  gap: 10px;
+  gap: 0;
   align-content: start;
+  max-width: 720px;
 }
 
 .dashboard-hero-content {
   min-width: 0;
   display: grid;
-  gap: 12px;
+  gap: 24px;
   align-content: start;
 }
 
-.dashboard-hero-title {
+.dashboard-hero-card h1.dashboard-hero-title {
   margin: 0;
-  font-size: var(--tier1-size);
+  font-size: clamp(48px, 4.4vw, 56px);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
   color: var(--text);
 }
 
 .dashboard-hero-sub {
-  margin: 8px 0 0;
+  margin: 16px 0 0;
   color: var(--text-soft);
-  font-size: var(--tier4-size);
-  line-height: 1.4;
+  font-size: 18px;
+  line-height: 1.45;
 }
 
 .dashboard-hero-actions {
@@ -641,26 +641,27 @@ button {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dashboard-hero-text-link {
-  color: #0f766e;
+  color: var(--brand-strong);
   font-weight: 600;
   padding: 8px 0;
 }
 
 .dashboard-hero-signal-card {
   width: 100%;
-  min-height: 132px;
+  min-height: 208px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(242, 250, 247, 0.9) 0%, rgba(255, 255, 255, 0.98) 100%);
-  padding: 16px;
+  border-left: 3px solid var(--brand);
+  background: var(--surface);
+  padding: 18px 18px 20px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   align-content: start;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  box-shadow: var(--shadow-sm);
   text-align: left;
 }
 
@@ -676,21 +677,35 @@ button {
   border-style: dashed;
 }
 
+.dashboard-hero-signal-card-hackday {
+  gap: 14px;
+}
+
+.dashboard-hero-signal-card-hack {
+  min-height: 164px;
+  align-content: center;
+}
+
+.dashboard-hero-signal-card-notify {
+  min-height: 164px;
+  align-content: center;
+}
+
 .dashboard-hero-signal-header {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dashboard-hero-signal-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--brand) 12%, var(--surface));
-  color: #0f766e;
-  font-size: 16px;
+  color: var(--brand-strong);
+  font-size: 17px;
   flex-shrink: 0;
 }
 
@@ -703,29 +718,31 @@ button {
 .dashboard-hero-signal-kicker {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--brand-strong);
+  color: var(--text-soft);
 }
 
 .dashboard-hero-signal-title {
   margin: 0;
-  font-size: var(--tier2-size);
+  font-size: 16px;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--text);
 }
 
 .dashboard-hero-signal-detail {
   margin: 0;
   color: var(--text-soft);
-  font-size: var(--tier4-size);
+  font-size: 13px;
   line-height: 1.5;
 }
 
 .dashboard-hero-signal-skeleton {
   display: grid;
-  gap: 10px;
+  gap: 14px;
+  align-content: center;
+  min-height: 100%;
 }
 
 .hero-skeleton {
@@ -736,23 +753,79 @@ button {
   animation: hero-skeleton-pulse 1.8s ease-in-out infinite;
 }
 
-.hero-skeleton-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-}
-
 .hero-skeleton-line {
   height: 12px;
 }
 
-.hero-skeleton-line-title {
-  width: 72%;
-  height: 18px;
+.hero-skeleton-line-eyebrow {
+  width: 46%;
+  height: 12px;
 }
 
-.hero-skeleton-line-body {
-  width: 56%;
+.hero-skeleton-value {
+  width: 96px;
+  height: 58px;
+  border-radius: var(--radius-md);
+}
+
+.hero-skeleton-line-label {
+  width: 68%;
+}
+
+.dashboard-hero-signal-live-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 20px;
+}
+
+.dashboard-hero-signal-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--brand);
+  flex-shrink: 0;
+  animation: hero-signal-pulse 1.8s ease-in-out infinite;
+}
+
+.dashboard-hero-signal-event-name {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.dashboard-hero-signal-value {
+  margin: 0;
+  color: var(--brand);
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.dashboard-hero-signal-label {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@keyframes hero-signal-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
 }
 
 @keyframes hero-skeleton-pulse {
@@ -762,6 +835,12 @@ button {
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-hero-signal-pulse {
+    animation: none;
   }
 }
 
@@ -864,6 +943,10 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
+}
+
+.card.dashboard-hero-card {
+  border-bottom: 2px solid var(--brand);
 }
 
 .hack-card,
@@ -4079,10 +4162,6 @@ button {
 }
 
 @media (max-width: 980px) {
-  .dashboard-hero-row {
-    grid-template-columns: 1fr;
-  }
-
   .topbar {
     padding: 10px 12px;
   }
@@ -4171,6 +4250,35 @@ button {
   }
 }
 
+@media (max-width: 768px) {
+  .dashboard-hero-card {
+    padding: 24px;
+  }
+
+  .dashboard-hero-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .dashboard-hero-content {
+    gap: 20px;
+  }
+
+  .dashboard-hero-card h1.dashboard-hero-title {
+    font-size: clamp(32px, 9vw, 36px);
+    line-height: 1.12;
+  }
+
+  .dashboard-hero-sub {
+    margin-top: 16px;
+    font-size: 16px;
+  }
+
+  .dashboard-hero-signal-card {
+    min-height: 188px;
+  }
+}
+
 @media (max-width: 640px) {
   .topbar {
     padding: 10px 12px 0;
@@ -4235,6 +4343,10 @@ button {
   .dashboard-hero-text-link {
     width: 100%;
     text-align: left;
+  }
+
+  .dashboard-hero-text-link {
+    padding: 4px 0;
   }
 
   .tab-nav {

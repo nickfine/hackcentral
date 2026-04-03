@@ -89,9 +89,8 @@ describe('home dashboard utilities', () => {
 
     expect(signal).toEqual({
       kind: 'hackday',
-      title: 'Q2 Innovation Sprint',
-      detail: 'Hacking starts in 9 days',
-      icon: '⚡',
+      eventName: 'Q2 Innovation Sprint',
+      daysUntil: 9,
     });
   });
 
@@ -105,8 +104,7 @@ describe('home dashboard utilities', () => {
     expect(signal).toEqual({
       kind: 'hack',
       title: 'Meeting Notes Summariser',
-      detail: 'Most recently submitted by Priya Shah',
-      icon: '⚡',
+      authorName: 'Priya Shah',
     });
   });
 
@@ -138,10 +136,19 @@ describe('Home tab component contracts', () => {
   it('shows a loading skeleton in WelcomeHero without hardcoding the resolved-empty fallback copy', () => {
     const source = fs.readFileSync(welcomeHeroPath, 'utf8');
 
-    expect(source).toContain("signal.kind === 'loading' ? (");
+    expect(source).toContain("if (signal.kind === 'loading') {");
     expect(source).toContain('aria-label="Loading live signal"');
     expect(source).toContain('Where AI ideas become shipped work.');
     expect(source).toContain('Submit a pain, form a team, run a hack.');
     expect(source).not.toContain('First HackDay coming soon — get notified');
+  });
+
+  it('renders a pulse dot only for the HackDay live-signal state', () => {
+    const source = fs.readFileSync(welcomeHeroPath, 'utf8');
+
+    expect(source).toContain("signal.kind === 'hackday'");
+    expect(source).toContain('dashboard-hero-signal-pulse');
+    expect(source).toContain("signal.kind === 'hack'");
+    expect(source).toContain('Submitted by {signal.authorName}');
   });
 });

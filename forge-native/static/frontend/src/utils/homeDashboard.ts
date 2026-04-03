@@ -2,8 +2,8 @@ import type { EventRegistryItem, FeaturedHack, SummaryStats } from '../types';
 
 export type HomeHeroSignal =
   | { kind: 'loading' }
-  | { kind: 'hackday'; title: string; detail: string; icon: string }
-  | { kind: 'hack'; title: string; detail: string; icon: string }
+  | { kind: 'hackday'; eventName: string; daysUntil: number }
+  | { kind: 'hack'; title: string; authorName: string }
   | { kind: 'notify'; title: string; icon: string };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -14,12 +14,8 @@ function parseIsoToMs(value: string | null | undefined): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function formatDaysUntilHackday(startMs: number, nowMs: number): string {
-  const diffDays = Math.max(0, Math.ceil((startMs - nowMs) / DAY_MS));
-
-  if (diffDays === 0) return 'Hacking starts today';
-  if (diffDays === 1) return 'Hacking starts in 1 day';
-  return `Hacking starts in ${diffDays} days`;
+function calculateDaysUntilHackday(startMs: number, nowMs: number): number {
+  return Math.max(0, Math.ceil((startMs - nowMs) / DAY_MS));
 }
 
 export function hasAnyNonZeroSummaryStat(summary: SummaryStats): boolean {
@@ -47,9 +43,8 @@ export function selectHomeHeroSignal(input: {
   if (nextHackday) {
     return {
       kind: 'hackday',
-      title: nextHackday.event.eventName,
-      detail: formatDaysUntilHackday(nextHackday.startMs, nowMs),
-      icon: nextHackday.event.icon || '🚀',
+      eventName: nextHackday.event.eventName,
+      daysUntil: calculateDaysUntilHackday(nextHackday.startMs, nowMs),
     };
   }
 
@@ -58,8 +53,7 @@ export function selectHomeHeroSignal(input: {
     return {
       kind: 'hack',
       title: latestHack.title,
-      detail: `Most recently submitted by ${latestHack.authorName}`,
-      icon: '⚡',
+      authorName: latestHack.authorName,
     };
   }
 

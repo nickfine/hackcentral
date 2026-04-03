@@ -20,19 +20,48 @@ export function WelcomeHero({
   const signalCardClasses = [
     'dashboard-hero-signal-card',
     signal.kind === 'loading' ? 'dashboard-hero-signal-card-loading' : '',
+    signal.kind === 'hackday' ? 'dashboard-hero-signal-card-hackday' : '',
+    signal.kind === 'hack' ? 'dashboard-hero-signal-card-hack' : '',
+    signal.kind === 'notify' ? 'dashboard-hero-signal-card-notify' : '',
     signal.kind === 'notify' && onNotify ? 'dashboard-hero-signal-card-action' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const signalContent =
-    signal.kind === 'loading' ? (
+  let signalContent: JSX.Element;
+
+  if (signal.kind === 'loading') {
+    signalContent = (
       <div className="dashboard-hero-signal-skeleton" aria-label="Loading live signal">
-        <span className="hero-skeleton hero-skeleton-icon" aria-hidden />
-        <span className="hero-skeleton hero-skeleton-line hero-skeleton-line-title" aria-hidden />
-        <span className="hero-skeleton hero-skeleton-line hero-skeleton-line-body" aria-hidden />
+        <span className="hero-skeleton hero-skeleton-line hero-skeleton-line-eyebrow" aria-hidden />
+        <span className="hero-skeleton hero-skeleton-value" aria-hidden />
+        <span className="hero-skeleton hero-skeleton-line hero-skeleton-line-label" aria-hidden />
       </div>
-    ) : (
+    );
+  } else if (signal.kind === 'hackday') {
+    const dayLabel = `${signal.daysUntil} day${signal.daysUntil === 1 ? '' : 's'} until hacking starts`;
+
+    signalContent = (
+      <>
+        <div className="dashboard-hero-signal-live-row">
+          <span className="dashboard-hero-signal-pulse" aria-hidden />
+          <p className="dashboard-hero-signal-event-name">{signal.eventName}</p>
+        </div>
+        <p className="dashboard-hero-signal-value" aria-label={dayLabel}>
+          {signal.daysUntil}
+        </p>
+        <p className="dashboard-hero-signal-label">Days until hacking starts</p>
+      </>
+    );
+  } else if (signal.kind === 'hack') {
+    signalContent = (
+      <>
+        <h2 className="dashboard-hero-signal-title">{signal.title}</h2>
+        <p className="dashboard-hero-signal-detail">Submitted by {signal.authorName}</p>
+      </>
+    );
+  } else {
+    signalContent = (
       <>
         <div className="dashboard-hero-signal-header">
           <span className="dashboard-hero-signal-icon" aria-hidden>
@@ -43,9 +72,9 @@ export function WelcomeHero({
             <h2 className="dashboard-hero-signal-title">{signal.title}</h2>
           </div>
         </div>
-        {'detail' in signal ? <p className="dashboard-hero-signal-detail">{signal.detail}</p> : null}
       </>
     );
+  }
 
   return (
     <section className="card dashboard-hero-card" aria-label="HackDay Central">
