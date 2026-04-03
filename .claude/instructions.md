@@ -40,11 +40,28 @@ Planning references are optional and only used if explicitly requested:
 4. Keep docs synchronized in the same session as meaningful process changes.
 5. Do not open `ROADMAP.md` or `HDC-PRODUCT-EXECUTION-PLAN.md` unless planning/rescoping is explicitly requested.
 
-## Current Operational Notes (2026-03-09 00:09 GMT)
+## Current Operational Notes (2026-04-03 11:35 BST)
 
-- Atlassian MCP target remains:
+- Active live tenant is `tag-hackday.atlassian.net`.
+- This checkout is still wired to the older `hackdaytemp` Forge app:
   - site: `https://hackdaytemp.atlassian.net`
-  - cloudId: `fa506321-b5f3-4087-9b5f-8bc611d72ba1`
+  - app id: `f828e0d4-e9d0-451d-b818-533bc3e95680`
+  - production env id: `86632806-eb9b-42b5-ae6d-ee09339702b6`
+  - staging env id: `17778174-f2aa-4f73-a34a-985afd5fa4e2`
+- The dedicated `tag-hackday` HackCentral tenant is a separate Forge app and must be deployed from its isolated tenant copy:
+  - site: `https://tag-hackday.atlassian.net`
+  - app id: `22696465-0692-48af-9741-323e1cfc2631`
+  - production env id: `1c797890-3b54-448e-85da-4ecbe9e9e777`
+  - staging env id: `15ac566f-3a62-4ffd-9fd6-1e50e5a47c9b`
+- Guardrail:
+  - do not run `forge deploy` for `tag-hackday` from this checkout unless you have intentionally switched the repo to the isolated tenant app id
+  - if the user says "deploy production", first confirm which tenant they mean
+  - if the target is `tag-hackday`, use the isolated tenant runbook in `docs/HDC-TENANT-INSTALL-RUNBOOK.md`
+- Canonical validation URLs use `wiki/apps`, not `forge-apps`:
+  - `hackdaytemp` production global page:
+    - `https://hackdaytemp.atlassian.net/wiki/apps/f828e0d4-e9d0-451d-b818-533bc3e95680/86632806-eb9b-42b5-ae6d-ee09339702b6/hackday-central`
+  - `tag-hackday` production global page:
+    - `https://tag-hackday.atlassian.net/wiki/apps/22696465-0692-48af-9741-323e1cfc2631/1c797890-3b54-448e-85da-4ecbe9e9e777/hackday-central`
 - Runtime hero image upload is live in production:
   - draft preview updates immediately when uploaded
   - Supabase-hosted hero images are allowed via manifest `external.images` policy.
@@ -82,7 +99,11 @@ Planning references are optional and only used if explicitly requested:
 - For Supabase access, keep MCP-first checks; if MCP project listing is empty in this workspace, use the documented service-role SQL fallback and record evidence in `LEARNINGS.md`.
 - Child HackDay schedule ownership is now in the runtime `Schedule` page under Config Mode; HackCentral creation no longer owns schedule setup.
 - The latest production follow-up fixed published schedule card contrast in dark mode.
-- Forge production is currently deployed from repo `0.6.69` / forge-native `0.3.47` / runtime `1.2.81`.
+- Do not trust the checkout alone to identify the live tenant. Confirm:
+  - site
+  - Forge app id
+  - environment id
+  - the browser console marker on the canonical `wiki/apps` page
 - Hosted Confluence browser validation guardrail:
   - before claiming Playwright/Chrome-hosted validation is blocked, first try the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
   - use frame-aware selectors because the HackDay runtime UI is rendered inside a Confluence iframe
