@@ -42,7 +42,9 @@ Then confirm:
 - Deployment path if shipping to Confluence
 - Supabase verification path (`MCP-first`; service-role SQL fallback if MCP listing is empty in this workspace)
 - Hosted Confluence validation path:
-  - prefer authenticated local Playwright runs using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - for `tag-hackday`, prefer authenticated local Playwright runs using `/Users/nickster/Downloads/HackCentral/.auth/tag-hackday-storage.json`
+  - for `hackdaytemp`, prefer authenticated local Playwright runs using `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - make sure the auth-state file matches the target tenant before treating hosted validation as blocked
   - use frame-aware selectors for HackDay runtime checks because the UI is inside a Confluence iframe
   - only treat hosted validation as blocked after the stored-auth Playwright path fails
   - for `tag-hackday`, use the canonical `wiki/apps` URL from `DEPLOY.md`

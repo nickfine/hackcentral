@@ -105,7 +105,9 @@ Planning references are optional and only used if explicitly requested:
   - environment id
   - the browser console marker on the canonical `wiki/apps` page
 - Hosted Confluence browser validation guardrail:
-  - before claiming Playwright/Chrome-hosted validation is blocked, first try the saved authenticated Playwright storage state at `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - for `tag-hackday`, first try `/Users/nickster/Downloads/HackCentral/.auth/tag-hackday-storage.json`
+  - for `hackdaytemp`, first try `/Users/nickster/Downloads/HackCentral/.auth/hackdaytemp-storage.json`
+  - make sure the storage state matches the target tenant before claiming hosted validation is blocked
   - use frame-aware selectors because the HackDay runtime UI is rendered inside a Confluence iframe
   - authoritative prior auth/frame-aware smoke evidence lives in:
     - `/Users/nickster/Downloads/HackCentral/docs/artifacts/HDC-P8-PLAYWRIGHT-SMOKE-FRAMEAWARE-2026-03-04T01-19-07-301Z.json`
