@@ -10,6 +10,8 @@ Current mode: operations and maintenance.
 - Active live tenant: `tag-hackday.atlassian.net`
 - Safe deploy copy for the live tenant:
   - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+  - this is now a git-native clone on the local-only branch `tenant/tag-hackday`
+  - do shared product work in the canonical repo first, then pull/rebase into this clone before deploy
 - Legacy/canonical source checkout:
   - `/Users/nickster/Downloads/HackCentral`
   - this checkout is still wired to the `hackdaytemp` Forge app and should not be used for `tag-hackday` deploys
@@ -35,6 +37,7 @@ Then confirm:
 
 - Target environment (`localhost`, `staging`, or `production`)
 - Target tenant (`tag-hackday` or `hackdaytemp`) before any Forge deploy/install command
+- If targeting `tag-hackday`, verify the current working copy is `/Users/nickster/Downloads/HackCentral-tag-hackday` on branch `tenant/tag-hackday`
 - Validation command(s) for the change
 - Deployment path if shipping to Confluence
 - Supabase verification path (`MCP-first`; service-role SQL fallback if MCP listing is empty in this workspace)

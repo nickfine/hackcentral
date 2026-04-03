@@ -39,24 +39,31 @@ Use this isolation model instead:
 
 ### 1. Create a tenant-specific working copy
 
-Use a separate checkout or temporary copy so the registered app ID for `tag-hackday` does not replace the canonical repo app ID for `hackdaytemp`.
+Use a separate git clone so the registered app ID for `tag-hackday` does not replace the canonical repo app ID for `hackdaytemp`.
 
 Example:
 
 ```bash
-rsync -a --delete \
-  --exclude .git \
-  --exclude node_modules \
-  /Users/nickster/Downloads/HackCentral/ \
-  /private/tmp/HackCentral-tag-hackday/
+git clone https://github.com/nickfine/hackcentral.git /Users/nickster/Downloads/HackCentral-tag-hackday
+cd /Users/nickster/Downloads/HackCentral-tag-hackday
+git checkout -b tenant/<tenant-name> origin/main
 ```
+
+Rules for the tenant branch:
+
+- keep it local-only; do not push `tenant/<tenant-name>` to origin
+- keep tenant-only changes minimal, ideally:
+  - `forge-native/manifest.yml`
+  - `TENANT-README.md`
+  - untracked local env files such as `.env.local`
+- land shared product changes in `/Users/nickster/Downloads/HackCentral` first, then `git fetch && git rebase origin/main` in the tenant clone before deploy
 
 ### 2. Register a dedicated Forge app
 
-From the tenant copy:
+From the tenant clone:
 
 ```bash
-cd /private/tmp/HackCentral-tag-hackday/forge-native
+cd /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native
 ../scripts/with-node22.sh forge register "HackCentral (tag-hackday)" -y
 ```
 
@@ -68,9 +75,9 @@ Record the new Forge app ID written into `manifest.yml`. That value becomes:
 ### 3. Build and deploy staging first
 
 ```bash
-cd /private/tmp/HackCentral-tag-hackday
+cd /Users/nickster/Downloads/HackCentral-tag-hackday
 ./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment staging --site tag-hackday.atlassian.net
-cd /private/tmp/HackCentral-tag-hackday/forge-native
+cd /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native
 ../scripts/with-node22.sh npm run custom-ui:build
 ../scripts/with-node22.sh forge deploy --environment staging --no-verify
 ../scripts/with-node22.sh forge install -e staging --non-interactive --site tag-hackday.atlassian.net --product confluence
@@ -81,7 +88,7 @@ cd /private/tmp/HackCentral-tag-hackday/forge-native
 Export the tenant values, then run:
 
 ```bash
-cd /private/tmp/HackCentral-tag-hackday/forge-native
+cd /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native
 ENVIRONMENT=staging ./set-tenant-forge-vars.sh
 ENVIRONMENT=production ./set-tenant-forge-vars.sh
 ```
@@ -110,9 +117,9 @@ Required values:
 ### 5. Deploy production
 
 ```bash
-cd /private/tmp/HackCentral-tag-hackday
+cd /Users/nickster/Downloads/HackCentral-tag-hackday
 ./scripts/with-node22.sh npm run qa:backup:predeploy-snapshot -- --apply --environment production --site tag-hackday.atlassian.net
-cd /private/tmp/HackCentral-tag-hackday/forge-native
+cd /Users/nickster/Downloads/HackCentral-tag-hackday/forge-native
 ../scripts/with-node22.sh npm run custom-ui:build
 ../scripts/with-node22.sh forge deploy --environment production --no-verify
 ../scripts/with-node22.sh forge install -e production --upgrade --non-interactive --site tag-hackday.atlassian.net --product confluence

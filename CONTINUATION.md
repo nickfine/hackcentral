@@ -1,6 +1,6 @@
 # CONTINUATION.md
 
-Last updated: 2026-04-03 00:45 BST
+Last updated: 2026-04-03 22:30 BST
 
 ## Current Snapshot
 
@@ -8,6 +8,7 @@ Last updated: 2026-04-03 00:45 BST
 - Active live tenant: `tag-hackday.atlassian.net`
 - Safe live-tenant deploy copy:
   - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+  - now a git-native clone on local-only branch `tenant/tag-hackday`
 - Legacy source checkout:
   - `/Users/nickster/Downloads/HackCentral`
   - still wired to `hackdaytemp` Forge app id `f828e0d4-e9d0-451d-b818-533bc3e95680`
@@ -157,6 +158,33 @@ Last updated: 2026-04-03 00:45 BST
   - `/Users/nickster/Downloads/HackCentral`
 - Forge CLI was upgraded successfully in this session:
   - `forge --version` → `12.17.0`
+
+## Session Update - Git-Native tag-hackday Tenant Checkout Cleanup (Apr 3, 2026 22:30 BST)
+
+### What changed
+
+- Replaced the unmanaged `tag-hackday` tenant folder with a proper git clone at:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Preserved the previous unmanaged folder as a backup at:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday.backup-20260403-222213`
+- Created the local-only tenant branch:
+  - `tenant/tag-hackday`
+- Restored tenant-local state into the new clone:
+  - `forge-native/manifest.yml` retargeted to Forge app id `22696465-0692-48af-9741-323e1cfc2631`
+  - `TENANT-README.md` recreated with tenant-specific deploy and sync guardrails
+  - `.env.local` copied forward as an untracked local file
+- Updated the canonical operational docs to describe the clone-and-rebase workflow instead of the old temp-copy / `rsync` pattern.
+
+### Operational note for the next chat
+
+- Shared product work still starts in:
+  - `/Users/nickster/Downloads/HackCentral`
+- Live `tag-hackday` deploys still run from:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Before a live tenant deploy, pull shared changes into the tenant clone with:
+  - `git fetch origin && git rebase origin/main`
+- Never push:
+  - `tenant/tag-hackday`
 
 ## Session Update - v0.6.81 New To HackDay Branding Artwork Released (Mar 9, 2026 23:35 GMT)
 

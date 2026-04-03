@@ -15,7 +15,7 @@
 
 ## Tenant guardrail
 
-Do not deploy `tag-hackday.atlassian.net` from this checkout unless you have first moved into the isolated `tag-hackday` repo copy or replaced the Forge app registration intentionally.
+Do not deploy `tag-hackday.atlassian.net` from this checkout unless you have first moved into the isolated `tag-hackday` tenant clone or replaced the Forge app registration intentionally.
 
 This repo's `forge-native/manifest.yml` points at the `hackdaytemp` app id, so `forge deploy` from here updates `hackdaytemp`, not the live `tag-hackday` tenant.
 
@@ -25,8 +25,30 @@ The dedicated `tag-hackday` HackCentral tenant uses a different Forge app:
 - app id: `22696465-0692-48af-9741-323e1cfc2631`
 - production env id: `1c797890-3b54-448e-85da-4ecbe9e9e777`
 - staging env id: `15ac566f-3a62-4ffd-9fd6-1e50e5a47c9b`
+- tenant clone path: `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- tenant branch: `tenant/tag-hackday` (local-only; never push)
 
-If you are deploying a new isolated tenant, use a separate checkout and register a new Forge app first. See [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md).
+If you are deploying a new isolated tenant, use a separate git clone and register a new Forge app there first. See [`docs/HDC-TENANT-INSTALL-RUNBOOK.md`](./docs/HDC-TENANT-INSTALL-RUNBOOK.md).
+
+## `tag-hackday` sync workflow
+
+Keep shared code in the canonical repo, then pull it into the tenant clone before deploy:
+
+```bash
+cd /Users/nickster/Downloads/HackCentral
+git fetch origin
+git pull --ff-only
+
+cd /Users/nickster/Downloads/HackCentral-tag-hackday
+git fetch origin
+git rebase origin/main
+```
+
+Allowed tenant-local diffs in `/Users/nickster/Downloads/HackCentral-tag-hackday`:
+
+- `forge-native/manifest.yml`
+- `TENANT-README.md`
+- untracked local env files such as `.env.local`
 
 ## Standard deploy (same app, any site/environment)
 
@@ -56,7 +78,7 @@ cd /Users/nickster/Downloads/HackCentral/forge-native
 
 For a new site such as `tag-hackday.atlassian.net`:
 
-1. Create a tenant-specific copy of the repo.
+1. Create a tenant-specific git clone of the repo.
 2. Register a new Forge app in that copy.
 3. Set the full tenant Forge env contract, including:
    - `FORGE_SITE_URL`
