@@ -44,7 +44,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="hidden lg:flex flex-col fixed top-14 left-0 bottom-0 z-40 w-64 bg-background pt-6">
+    <aside className="hidden lg:flex flex-col fixed top-14 left-0 bottom-0 z-40 w-64 border-r border-border pt-6" style={{ background: 'rgba(247, 242, 234, 0.7)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
       {/* 8pt spacing: py-6 px-4 for nav breathing room */}
       <div className="flex-1 overflow-y-auto py-6 px-4">
         <nav className="space-y-1">
@@ -56,7 +56,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4">
-        <div className="card p-3 bg-primary/5 border-primary/20">
+        <div className="soft-panel" style={{ background: 'rgba(221, 110, 66, 0.06)', borderColor: 'rgba(221, 110, 66, 0.2)' }}>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Get Started</span>
@@ -96,12 +96,16 @@ function NavItem({ to, label, icon: Icon }: NavItemProps) {
       to={to}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-          'hover:bg-accent hover:text-accent-foreground',
+          'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors',
           isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         )
+      }
+      style={({ isActive }) =>
+        isActive
+          ? { background: 'rgba(221, 110, 66, 0.10)', borderLeft: '2.5px solid #dd6e42', paddingLeft: '0.625rem' }
+          : {}
       }
     >
       <Icon className="h-4 w-4" />
