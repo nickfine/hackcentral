@@ -1,96 +1,107 @@
 /**
  * HackDay Central Design System
- * Design tokens for consistent styling across the application
+ * FH-inspired warm editorial language:
+ * soft paper-toned backgrounds · dark navy typography · terracotta accenting
+ * Display: Fraunces · Body: Manrope
  */
 
 export const designTokens = {
   colors: {
-    // Primary - teal only (HackDay Design System)
+    // Terracotta primary
     primary: {
-      50: '#f0fdfa',
-      100: '#ccfbf1',
-      200: '#99f6e4',
-      300: '#5eead4',
-      400: '#2dd4bf',
-      500: '#14b8a6',
-      600: '#0d9488',
-      700: '#0f766e',
-      800: '#115e59',
-      900: '#134e4a',
-      950: '#042f2e',
+      50:  '#fdf4ef',
+      100: '#fbe4d4',
+      200: '#f6c6a8',
+      300: '#efa076',
+      400: '#e8834d',
+      500: '#dd6e42',
+      600: '#b9552d',
+      700: '#9a431f',
+      800: '#7d3519',
+      900: '#672c16',
+      950: '#3f1809',
     },
-    // Secondary: same as primary (no second accent)
+    // Navy secondary (ink)
     secondary: {
-      50: '#f0fdfa',
-      100: '#ccfbf1',
-      200: '#99f6e4',
-      300: '#5eead4',
-      400: '#2dd4bf',
-      500: '#14b8a6',
-      600: '#0d9488',
-      700: '#0f766e',
-      800: '#115e59',
-      900: '#134e4a',
-      950: '#042f2e',
+      50:  '#eef1f7',
+      100: '#d4daea',
+      200: '#aab5d5',
+      300: '#7e90be',
+      400: '#556ea8',
+      500: '#3a5490',
+      600: '#2c4078',
+      700: '#1f2f5c',
+      800: '#14213d',
+      900: '#0d1628',
+      950: '#070d17',
     },
-    // Neutral - Tailwind gray only
+    // Neutral — warm paper tones
     neutral: {
-      50: '#f9fafb',
-      100: '#f3f4f6',
-      200: '#e5e7eb',
-      300: '#d1d5db',
-      400: '#9ca3af',
-      500: '#6b7280',
-      600: '#4b5563',
-      700: '#374151',
-      800: '#1f2937',
-      900: '#111827',
-      950: '#030712',
+      50:  '#faf7f3',
+      100: '#f7f2ea',
+      200: '#ece6db',
+      300: '#ddd4c5',
+      400: '#c4b8a5',
+      500: '#9e9183',
+      600: '#7a6e62',
+      700: '#5f6b7a',
+      800: '#3a3530',
+      900: '#1e1a16',
+      950: '#0f0d0b',
     },
-    // Status - emerald/amber/red only
+    // Status
     status: {
       success: {
-        light: '#d1fae5',
-        DEFAULT: '#10b981',
-        dark: '#047857',
+        light:   '#d1ede7',
+        DEFAULT: '#2f6f5e',
+        dark:    '#1a4f43',
       },
       warning: {
-        light: '#fef3c7',
-        DEFAULT: '#f59e0b',
-        dark: '#b45309',
+        light:   '#fef3c7',
+        DEFAULT: '#b45309',
+        dark:    '#78350f',
       },
       error: {
-        light: '#fee2e2',
-        DEFAULT: '#ef4444',
-        dark: '#b91c1c',
+        light:   '#f9e4e4',
+        DEFAULT: '#a63d40',
+        dark:    '#7b1d20',
       },
       info: {
-        light: '#ccfbf1',
-        DEFAULT: '#14b8a6',
-        dark: '#0f766e',
+        light:   '#fdf4ef',
+        DEFAULT: '#dd6e42',
+        dark:    '#b9552d',
       },
     },
-    // Quality gate - amber/emerald/gray
+    // Semantic surfaces
+    background: '#f7f2ea',
+    foreground:  '#14213d',
+    muted:       'rgba(247, 242, 234, 0.6)',
+    mutedForeground: '#5f6b7a',
+    accent:      'rgba(20, 33, 61, 0.06)',
+    border:      'rgba(20, 33, 61, 0.12)',
+    card:        'rgba(255, 251, 246, 0.92)',
+    ring:        '#dd6e42',
+    // Quality gate
     qualityGates: {
-      draft: '#f59e0b',
-      in_progress: '#f59e0b',
-      verified: '#10b981',
-      deprecated: '#6b7280',
+      draft:      '#b45309',
+      in_progress:'#b45309',
+      verified:   '#2f6f5e',
+      deprecated: '#5f6b7a',
     },
-    // Maturity - amber/emerald/gray
+    // Maturity
     maturity: {
-      experimenting: '#f59e0b',
-      repeating: '#6b7280',
-      scaling: '#6b7280',
-      transforming: '#10b981',
+      experimenting: '#b45309',
+      repeating:     '#5f6b7a',
+      scaling:       '#5f6b7a',
+      transforming:  '#2f6f5e',
     },
-    // Experience - gray/emerald only
+    // Experience
     experience: {
-      newbie: '#9ca3af',
-      curious: '#6b7280',
-      comfortable: '#10b981',
-      power_user: '#6b7280',
-      expert: '#6b7280',
+      newbie:     '#9ca3af',
+      curious:    '#5f6b7a',
+      comfortable:'#2f6f5e',
+      power_user: '#5f6b7a',
+      expert:     '#14213d',
     },
   },
 
@@ -123,9 +134,7 @@ export const designTokens = {
     40: '10rem',
     44: '11rem',
     48: '12rem',
-    52: '13rem',
     56: '14rem',
-    60: '15rem',
     64: '16rem',
     72: '18rem',
     80: '20rem',
@@ -134,124 +143,125 @@ export const designTokens = {
 
   typography: {
     fontFamily: {
-      sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      display: ['Fraunces', 'Georgia', 'serif'],
+      sans:    ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
+      mono:    ['JetBrains Mono', 'Fira Code', 'monospace'],
     },
     fontSize: {
-      xs: ['0.75rem', { lineHeight: '1rem' }],
-      sm: ['0.875rem', { lineHeight: '1.25rem' }],
-      base: ['1rem', { lineHeight: '1.5rem' }],
-      lg: ['1.125rem', { lineHeight: '1.75rem' }],
-      xl: ['1.25rem', { lineHeight: '1.75rem' }],
-      '2xl': ['1.5rem', { lineHeight: '2rem' }],
-      '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-      '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-      '5xl': ['3rem', { lineHeight: '1' }],
-      '6xl': ['3.75rem', { lineHeight: '1' }],
+      xs:   ['0.75rem',   { lineHeight: '1rem' }],
+      sm:   ['0.875rem',  { lineHeight: '1.25rem' }],
+      base: ['1rem',      { lineHeight: '1.5rem' }],
+      lg:   ['1.125rem',  { lineHeight: '1.75rem' }],
+      xl:   ['1.25rem',   { lineHeight: '1.75rem' }],
+      '2xl':['1.5rem',    { lineHeight: '2rem' }],
+      '3xl':['1.875rem',  { lineHeight: '2.25rem' }],
+      '4xl':['2.25rem',   { lineHeight: '2.5rem' }],
+      '5xl':['3rem',      { lineHeight: '1' }],
+      '6xl':['3.75rem',   { lineHeight: '1' }],
     },
     fontWeight: {
-      thin: '100',
+      thin:       '100',
       extralight: '200',
-      light: '300',
-      normal: '400',
-      medium: '500',
-      semibold: '600',
-      bold: '700',
-      extrabold: '800',
-      black: '900',
+      light:      '300',
+      normal:     '400',
+      medium:     '500',
+      semibold:   '600',
+      bold:       '700',
+      extrabold:  '800',
+      black:      '900',
     },
   },
 
   animations: {
     duration: {
-      fast: '150ms',
+      fast:   '150ms',
       normal: '300ms',
-      slow: '500ms',
+      slow:   '500ms',
     },
     easing: {
-      ease: 'ease',
-      easeIn: 'ease-in',
-      easeOut: 'ease-out',
+      ease:      'ease',
+      easeIn:    'ease-in',
+      easeOut:   'ease-out',
       easeInOut: 'ease-in-out',
-      spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      spring:    'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
     },
   },
 
   breakpoints: {
-    sm: '640px',
-    md: '768px',
-    lg: '1024px',
-    xl: '1280px',
+    sm:  '640px',
+    md:  '768px',
+    lg:  '1024px',
+    xl:  '1280px',
     '2xl': '1536px',
   },
 
   borderRadius: {
-    none: '0',
-    sm: '0.125rem',
-    DEFAULT: '0.25rem',
-    md: '0.375rem',
-    lg: '0.5rem',
-    xl: '0.75rem',
-    '2xl': '1rem',
-    '3xl': '1.5rem',
-    full: '9999px',
+    none:  '0',
+    sm:    '0.375rem',
+    DEFAULT:'0.5rem',
+    md:    '0.5rem',
+    lg:    '0.75rem',
+    xl:    '1.25rem',
+    '2xl': '1.75rem',
+    '3xl': '2.5rem',
+    full:  '9999px',
   },
 
   shadows: {
-    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-    xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-    inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-    none: 'none',
+    sm:     '0 1px 3px rgba(20, 33, 61, 0.08)',
+    DEFAULT:'0 4px 16px rgba(20, 33, 61, 0.1)',
+    md:     '0 4px 16px rgba(20, 33, 61, 0.1)',
+    lg:     '0 12px 40px rgba(20, 33, 61, 0.12)',
+    xl:     '0 24px 70px rgba(20, 33, 61, 0.08)',
+    card:   '0 24px 70px rgba(20, 33, 61, 0.08)',
+    inner:  'inset 0 2px 4px rgba(20, 33, 61, 0.06)',
+    none:   'none',
   },
 } as const
 
-// Experience level display labels (mapped from internal codes)
+// Experience level display labels
 export const experienceLevelLabels: Record<string, string> = {
-  newbie: 'AI Newbie',
-  curious: 'AI Curious',
-  comfortable: 'AI Comfortable',
+  newbie:     'AI Newbie',
+  curious:    'AI Curious',
+  comfortable:'AI Comfortable',
   power_user: 'AI Power User',
-  expert: 'AI Expert',
+  expert:     'AI Expert',
 }
 
-// Hack type display labels (library item types: prompt, skill, app)
+// Hack type display labels
 export const assetTypeLabels: Record<string, string> = {
   prompt: 'Prompt',
-  skill: 'Skill',
-  app: 'App',
+  skill:  'Skill',
+  app:    'App',
 }
 
 // Project status display labels
 export const projectStatusLabels: Record<string, string> = {
-  idea: 'Idea',
-  building: 'Building',
+  idea:       'Idea',
+  building:   'Building',
   incubation: 'Incubation',
-  completed: 'Completed',
-  archived: 'Archived',
+  completed:  'Completed',
+  archived:   'Archived',
 }
 
 // Maturity stage display labels
 export const maturityStageLabels: Record<string, string> = {
   experimenting: 'Experimenting',
-  repeating: 'Repeating',
-  scaling: 'Scaling',
-  transforming: 'Transforming',
+  repeating:     'Repeating',
+  scaling:       'Scaling',
+  transforming:  'Transforming',
 }
 
-// Quality gate status labels (Completed Hacks)
+// Quality gate status labels
 export const qualityGateLabels: Record<string, string> = {
-  draft: 'In progress',      // legacy
+  draft:       'In progress',
   in_progress: 'In progress',
-  verified: 'Verified',
-  deprecated: 'Deprecated',
+  verified:    'Verified',
+  deprecated:  'Deprecated',
 }
 
-export type ExperienceLevel = keyof typeof experienceLevelLabels
-export type AssetType = keyof typeof assetTypeLabels
-export type ProjectStatus = keyof typeof projectStatusLabels
-export type MaturityStage = keyof typeof maturityStageLabels
-export type QualityGateStatus = keyof typeof qualityGateLabels
+export type ExperienceLevel  = keyof typeof experienceLevelLabels
+export type AssetType        = keyof typeof assetTypeLabels
+export type ProjectStatus    = keyof typeof projectStatusLabels
+export type MaturityStage    = keyof typeof maturityStageLabels
+export type QualityGateStatus= keyof typeof qualityGateLabels

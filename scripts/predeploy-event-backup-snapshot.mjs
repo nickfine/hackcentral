@@ -7,11 +7,14 @@ import { resolveRepoRoot } from './lib/repo-root.mjs';
 const ROOT = resolveRepoRoot(import.meta.url);
 const FORGE_DIR = path.join(ROOT, 'forge-native');
 const FUNCTION_KEY = 'event-backup-ops-wt';
+const TAG_HACKDAY_APP_ID = '22696465-0692-48af-9741-323e1cfc2631';
+const TAG_HACKDAY_SITE = 'tag-hackday.atlassian.net';
+const LEGACY_DEFAULT_SITE = 'hackdaytemp.atlassian.net';
 
 function parseArgs(argv) {
   const args = {
     environment: 'production',
-    site: 'hackdaytemp.atlassian.net',
+    site: null,
     product: 'Confluence',
     dryRun: false,
     maxEvents: null,
@@ -74,6 +77,26 @@ function parseArgs(argv) {
 
   args.eventIds = Array.from(new Set(args.eventIds));
   return args;
+}
+
+async function inferDefaultSite() {
+  const tenantReadmePath = path.join(ROOT, 'TENANT-README.md');
+  try {
+    const tenantReadme = await fs.readFile(tenantReadmePath, 'utf8');
+    if (tenantReadme.includes(TAG_HACKDAY_SITE)) {
+      return TAG_HACKDAY_SITE;
+    }
+  } catch {}
+
+  const manifestPath = path.join(FORGE_DIR, 'manifest.yml');
+  try {
+    const manifest = await fs.readFile(manifestPath, 'utf8');
+    if (manifest.includes(TAG_HACKDAY_APP_ID)) {
+      return TAG_HACKDAY_SITE;
+    }
+  } catch {}
+
+  return LEGACY_DEFAULT_SITE;
 }
 
 function runForgeCommand(args) {
@@ -210,6 +233,7 @@ async function invokeBackupOps(args, payload) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  args.site = args.site || (await inferDefaultSite());
   const report = await invokeBackupOps(args, {
     action: 'predeploy_snapshot',
     dryRun: args.dryRun,

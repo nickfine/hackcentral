@@ -130,6 +130,23 @@ export const getGlobalPageData = query({
       })
       .slice(0, 8);
 
+    const latestHackAsset = visibleAssets
+      .slice()
+      .sort((a, b) => b._creationTime - a._creationTime)[0];
+
+    const latestHackSubmission = latestHackAsset
+      ? {
+          id: latestHackAsset._id,
+          title: latestHackAsset.title,
+          authorName: latestHackAsset.isAnonymous
+            ? "Anonymous"
+            : profileById.get(latestHackAsset.authorId)?.fullName ??
+              profileById.get(latestHackAsset.authorId)?.email ??
+              "Unknown",
+          submittedAt: new Date(latestHackAsset._creationTime).toISOString(),
+        }
+      : null;
+
     const visibleProjects = projects.filter((project) => project.visibility !== "private");
     const projectAssetCountById = new Map<Id<"projects">, number>();
     for (const link of projectAssets) {
@@ -212,6 +229,7 @@ export const getGlobalPageData = query({
         activeMentors,
       },
       featuredHacks,
+      latestHackSubmission,
       recentProjects,
       people,
     };

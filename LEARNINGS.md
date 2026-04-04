@@ -26,6 +26,42 @@ When users create a HackDay in HackCentral:
 **Forge Native Package:** 0.3.60
 **Runtime Bundle Version:** 1.2.93
 
+## Session Update - Git-Native tag-hackday Tenant Checkout Cleanup (Apr 3, 2026 22:30 BST)
+
+### Completed
+
+- Replaced the unmanaged `/Users/nickster/Downloads/HackCentral-tag-hackday` folder with a proper git clone of `https://github.com/nickfine/hackcentral.git`.
+- Preserved the pre-cleanup tenant folder at:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday.backup-20260403-222213`
+- Created a local-only tenant branch in the new clone:
+  - `tenant/tag-hackday`
+- Reapplied the live tenant Forge app id in the tenant clone manifest:
+  - `22696465-0692-48af-9741-323e1cfc2631`
+- Restored `.env.local` into the tenant clone as an untracked local file.
+- Replaced the old temp-copy / `rsync` documentation path with the new clone-and-rebase workflow in:
+  - `STARTUP.md`
+  - `DEPLOY.md`
+  - `CONTINUATION.md`
+  - `docs/HDC-TENANT-INSTALL-RUNBOOK.md`
+
+### Validation
+
+- Tenant clone is now a real git checkout:
+  - `/Users/nickster/Downloads/HackCentral-tag-hackday`
+- Current tenant branch:
+  - `tenant/tag-hackday`
+- Canonical repo manifest remains on the legacy `hackdaytemp` Forge app id:
+  - `f828e0d4-e9d0-451d-b818-533bc3e95680`
+- Tenant clone manifest is restored to the dedicated `tag-hackday` Forge app id:
+  - `22696465-0692-48af-9741-323e1cfc2631`
+
+### Operational Note
+
+- Ongoing workflow is now:
+  - shared work in `/Users/nickster/Downloads/HackCentral`
+  - pull/rebase into `/Users/nickster/Downloads/HackCentral-tag-hackday`
+  - deploy `tag-hackday` only from the tenant clone
+
 ## Session Update - v0.6.81 New To HackDay Branding Artwork Released To Production (Mar 9, 2026 23:35 GMT)
 
 ### Completed

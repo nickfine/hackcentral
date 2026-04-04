@@ -126,7 +126,7 @@ import {
 } from './demo/examples';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.89';
+const HACKCENTRAL_UI_VERSION = '0.6.91';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -989,14 +989,27 @@ const LOCAL_PREVIEW_DATA: BootstrapData = {
       },
     },
   ],
+  latestHackSubmission: {
+    id: 'hack-pr-description-writer',
+    title: 'Bitbucket PR Description Writer',
+    authorName: 'Lena M.',
+    submittedAt: '2026-03-28T14:30:00.000Z',
+  },
 };
 
-function shouldFallbackToPreviewOnBootstrapError(error: unknown): boolean {
+function isBootstrapPermissionError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
   if (message.includes('permission denied for schema public')) return true;
   if (message.includes('supabase permission error')) return true;
   return message.includes('supabase') && message.includes('(403)');
+}
+
+function getBootstrapLoadErrorMessage(error: unknown): string {
+  if (isBootstrapPermissionError(error)) {
+    return 'Live data is temporarily unavailable due to a permissions issue. Please try again later.';
+  }
+  return error instanceof Error ? error.message : 'Failed to load bootstrap data.';
 }
 
 function percent(value: number, total: number): number {
@@ -1611,23 +1624,16 @@ export function App(): JSX.Element {
       setPreviewMode(false);
       setSwitcherWarning('');
     } catch (error) {
-      if (shouldFallbackToPreviewOnBootstrapError(error)) {
-        setBootstrap(LOCAL_PREVIEW_DATA);
-        setPreviewMode(true);
-        setErrorMessage(
-          'Live data is temporarily unavailable due to a Supabase permission issue (403). Showing fallback preview data.'
-        );
-      } else {
-        if (siteUrlForCache) {
-          const cachedRegistry = readSwitcherRegistryCache(siteUrlForCache);
-          if (cachedRegistry) {
-            setBootstrap((current) => (current ? { ...current, registry: cachedRegistry } : current));
-            logSwitcherNavigabilityTelemetry('global.bootstrap.cache', cachedRegistry);
-            setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
-          }
+      setPreviewMode(false);
+      if (siteUrlForCache) {
+        const cachedRegistry = readSwitcherRegistryCache(siteUrlForCache);
+        if (cachedRegistry) {
+          setBootstrap((current) => (current ? { ...current, registry: cachedRegistry } : current));
+          logSwitcherNavigabilityTelemetry('global.bootstrap.cache', cachedRegistry);
+          setSwitcherWarning('Using cached app switcher entries; live refresh failed.');
         }
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load bootstrap data.');
       }
+      setErrorMessage(getBootstrapLoadErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -1649,6 +1655,10 @@ export function App(): JSX.Element {
   }, [loadBootstrap]);
 
   const featuredHacks = useMemo(() => bootstrap?.featuredHacks ?? [], [bootstrap?.featuredHacks]);
+  const latestHackSubmission = useMemo(
+    () => bootstrap?.latestHackSubmission ?? null,
+    [bootstrap?.latestHackSubmission]
+  );
   const allProjects = useMemo(() => bootstrap?.recentProjects ?? [], [bootstrap?.recentProjects]);
   const allPeople = useMemo(() => bootstrap?.people ?? [], [bootstrap?.people]);
   const registry = useMemo(() => bootstrap?.registry ?? [], [bootstrap?.registry]);
@@ -4141,8 +4151,8 @@ export function App(): JSX.Element {
   const showHomeFeedDebugMeta = HDC_HOME_UX_V1 && previewMode;
   const homeSummaryHasValues = bootstrap ? hasAnyNonZeroSummaryStat(bootstrap.summary) : false;
   const homeHeroSignal = useMemo(
-    () => (bootstrap ? selectHomeHeroSignal({ registry, featuredHacks }) : { kind: 'loading' as const }),
-    [bootstrap, featuredHacks, registry]
+    () => (bootstrap ? selectHomeHeroSignal({ registry, latestHackSubmission }) : { kind: 'loading' as const }),
+    [bootstrap, latestHackSubmission, registry]
   );
 
   const teamPulse = bootstrap?.teamPulse ?? null;

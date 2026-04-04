@@ -6,7 +6,7 @@ import {
   hasAnyNonZeroSummaryStat,
   selectHomeHeroSignal,
 } from '../forge-native/static/frontend/src/utils/homeDashboard';
-import type { FeaturedHack, SummaryStats } from '../forge-native/static/frontend/src/types';
+import type { LatestHackSubmission, SummaryStats } from '../forge-native/static/frontend/src/types';
 
 const statCardsPath = path.resolve(process.cwd(), 'forge-native/static/frontend/src/components/Dashboard/StatCards.tsx');
 const welcomeHeroPath = path.resolve(process.cwd(), 'forge-native/static/frontend/src/components/Dashboard/WelcomeHero.tsx');
@@ -29,21 +29,11 @@ const populatedSummary: SummaryStats = {
   activeMentors: 2,
 };
 
-const featuredHack: FeaturedHack = {
-  id: 'hack-1',
-  title: 'Meeting Notes Summariser',
-  description: 'Summarises long threads into action items.',
-  assetType: 'prompt',
-  status: 'verified',
-  reuseCount: 8,
-  authorName: 'Priya Shah',
-  visibility: 'org',
-  intendedUser: null,
-  context: null,
-  limitations: null,
-  riskNotes: null,
-  sourceRepoUrl: null,
-  demoUrl: null,
+const latestHackSubmission: LatestHackSubmission = {
+  id: 'hack-latest',
+  title: 'Workflow Summariser',
+  authorName: 'Jamie Rivera',
+  submittedAt: '2026-04-02T15:30:00.000Z',
 };
 
 describe('home dashboard utilities', () => {
@@ -83,7 +73,7 @@ describe('home dashboard utilities', () => {
           },
         },
       ],
-      featuredHacks: [featuredHack],
+      latestHackSubmission,
       now: new Date('2026-04-03T10:00:00.000Z'),
     });
 
@@ -94,24 +84,24 @@ describe('home dashboard utilities', () => {
     });
   });
 
-  it('falls back to the most recent featured hack when there is no future HackDay', () => {
+  it('falls back to the latest submitted hack when there is no future HackDay', () => {
     const signal = selectHomeHeroSignal({
       registry: [],
-      featuredHacks: [featuredHack],
+      latestHackSubmission,
       now: new Date('2026-04-03T10:00:00.000Z'),
     });
 
     expect(signal).toEqual({
       kind: 'hack',
-      title: 'Meeting Notes Summariser',
-      authorName: 'Priya Shah',
+      title: 'Workflow Summariser',
+      authorName: 'Jamie Rivera',
     });
   });
 
   it('uses the notify fallback only after resolved-empty data', () => {
     const signal = selectHomeHeroSignal({
       registry: [],
-      featuredHacks: [],
+      latestHackSubmission: null,
       now: new Date('2026-04-03T10:00:00.000Z'),
     });
 
@@ -138,7 +128,7 @@ describe('Home tab component contracts', () => {
 
     expect(source).toContain("if (signal.kind === 'loading') {");
     expect(source).toContain('aria-label="Loading live signal"');
-    expect(source).toContain('Where AI ideas become shipped work.');
+    expect(source).toContain('Where AI ideas become products.');
     expect(source).toContain('Submit a pain, form a team, run a hack.');
     expect(source).not.toContain('First HackDay coming soon — get notified');
   });
@@ -150,5 +140,13 @@ describe('Home tab component contracts', () => {
     expect(source).toContain('dashboard-hero-signal-pulse');
     expect(source).toContain("signal.kind === 'hack'");
     expect(source).toContain('Submitted by {signal.authorName}');
+  });
+
+  it('uses latestHackSubmission instead of featuredHacks ordering for the hero fallback', () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'forge-native/static/frontend/src/utils/homeDashboard.ts'), 'utf8');
+
+    expect(source).toContain('latestHackSubmission: LatestHackSubmission | null');
+    expect(source).toContain('const latestHack = input.latestHackSubmission;');
+    expect(source).not.toContain('const latestHack = input.featuredHacks[0];');
   });
 });

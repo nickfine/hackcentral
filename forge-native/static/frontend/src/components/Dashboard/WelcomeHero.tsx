@@ -81,7 +81,7 @@ export function WelcomeHero({
       <div className="dashboard-hero-row">
         <div className="dashboard-hero-content">
           <div className="dashboard-hero-copy">
-            <h1 className="dashboard-hero-title">Where AI ideas become shipped work.</h1>
+            <h1 className="dashboard-hero-title">Where AI ideas become products.</h1>
             <p className="dashboard-hero-sub">Submit a pain, form a team, run a hack.</p>
           </div>
           <div className="dashboard-hero-actions">

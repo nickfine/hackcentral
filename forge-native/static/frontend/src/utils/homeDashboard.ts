@@ -1,4 +1,4 @@
-import type { EventRegistryItem, FeaturedHack, SummaryStats } from '../types';
+import type { EventRegistryItem, LatestHackSubmission, SummaryStats } from '../types';
 
 export type HomeHeroSignal =
   | { kind: 'loading' }
@@ -28,7 +28,7 @@ export function formatHomeRecommendationMatch(score: number): string {
 
 export function selectHomeHeroSignal(input: {
   registry: EventRegistryItem[];
-  featuredHacks: FeaturedHack[];
+  latestHackSubmission: LatestHackSubmission | null;
   now?: Date;
 }): HomeHeroSignal {
   const nowMs = input.now?.getTime() ?? Date.now();
@@ -48,7 +48,7 @@ export function selectHomeHeroSignal(input: {
     };
   }
 
-  const latestHack = input.featuredHacks[0];
+  const latestHack = input.latestHackSubmission;
   if (latestHack) {
     return {
       kind: 'hack',

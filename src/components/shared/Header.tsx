@@ -42,7 +42,7 @@ export function Header() {
   const closeMobileSearch = () => setMobileSearchOpen(false)
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 shrink-0 w-full bg-background">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 shrink-0 w-full bg-card backdrop-blur-md border-b border-border" style={{ boxShadow: '0 1px 16px rgba(20, 33, 61, 0.06)' }}>
       <div className="flex h-14 items-center px-4 lg:px-6 gap-3">
         {/* Mobile menu button - hidden when search expanded */}
         <button
@@ -188,7 +188,7 @@ function FeedbackModal({ onClose, onSubmit }: FeedbackModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/20 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -264,8 +264,8 @@ interface MobileNavProps {
 
 function MobileNav({ onClose, onOpenFeedback }: MobileNavProps) {
   return (
-    <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-y-0 left-0 w-64 bg-background border-r p-4">
+    <div className="lg:hidden fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm">
+      <div className="fixed inset-y-0 left-0 w-64 bg-card border-r border-border p-4" style={{ backdropFilter: 'blur(16px)', boxShadow: '4px 0 40px rgba(20, 33, 61, 0.12)' }}>
         <div className="flex items-center justify-between mb-6">
           <span className="font-semibold">Menu</span>
           <button

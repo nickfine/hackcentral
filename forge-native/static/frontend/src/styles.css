@@ -1,40 +1,62 @@
-/* HackDay 2026 Design System - docs/HackDay_Design_system.md
-   Teal-only primary #14b8a6; Tailwind gray neutrals; four-tier typography; rounded-lg buttons (no pills) */
+/* FH Design System — warm editorial product language
+   Soft paper-toned backgrounds · dark navy typography · terracotta accenting
+   Display: Fraunces · Body: Manrope */
 :root {
-  --bg: #f9fafb;
-  --surface: #ffffff;
-  --surface-muted: #f3f4f6;
-  --text: #111827;
-  --text-soft: #6b7280;
-  --text-meta: #6b7280;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
-  --brand: #14b8a6;
-  --brand-hover: #0d9488;
-  --brand-strong: #0d9488;
-  --brand-soft: #ccfbf1;
-  --success: #10b981;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 14px 36px rgba(15, 41, 76, 0.12);
-  --radius-xl: 12px;
-  --radius-lg: 10px;
-  --radius-md: 10px;
+  /* ── Backgrounds ── */
+  --bg: #f7f2ea;
+  --surface: rgba(255, 251, 246, 0.95);
+  --surface-muted: rgba(247, 242, 234, 0.6);
+
+  /* ── Typography ── */
+  --text: #14213d;
+  --text-soft: #5f6b7a;
+  --text-meta: #5f6b7a;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Manrope', 'Segoe UI', sans-serif;
+
+  /* ── Borders ── */
+  --line: rgba(20, 33, 61, 0.12);
+  --line-strong: rgba(20, 33, 61, 0.22);
+
+  /* ── Brand / accent — terracotta ── */
+  --brand: #dd6e42;
+  --brand-hover: #b9552d;
+  --brand-strong: #b9552d;
+  --brand-soft: rgba(221, 110, 66, 0.10);
+
+  /* ── Status ── */
+  --success: #2f6f5e;
+  --danger: #a63d40;
+
+  /* ── Shadows — long soft navy-tinted ── */
+  --shadow-sm: 0 1px 3px rgba(20, 33, 61, 0.08);
+  --shadow-md: 0 24px 70px rgba(20, 33, 61, 0.08);
+
+  /* ── Border radius — generous ── */
+  --radius-xl: 20px;
+  --radius-lg: 14px;
+  --radius-md: 12px;
   --radius-sm: 8px;
-  /* Four-tier typography */
+  --radius-pill: 9999px;
+
+  /* ── Four-tier typography ── */
   --tier1-size: 1.5rem;
-  --tier1-size-lg: 1.5rem;
+  --tier1-size-lg: 1.75rem;
   --tier2-size: 1.125rem;
   --tier3-size: 1rem;
   --tier4-size: 0.875rem;
+
   --spacing-section: 24px;
   --spacing-card: 20px;
-  --hdc-ink: #0a0a0a;
-  --hdc-mint: #00e5a0;
-  --hdc-mint-dark: #052b1e;
-  --hdc-parchment: #f5f4f0;
-  --hdc-linen: #edebe5;
-  --hdc-stone: #d4d2c8;
-  --hdc-ash: #6b6963;
+
+  /* ── HDC semantic aliases — mapped to FH tokens ── */
+  --hdc-ink: #14213d;
+  --hdc-mint: #dd6e42;
+  --hdc-mint-dark: #672c16;
+  --hdc-parchment: #f7f2ea;
+  --hdc-linen: #ece6db;
+  --hdc-stone: rgba(20, 33, 61, 0.18);
+  --hdc-ash: #5f6b7a;
 }
 
 * {
@@ -50,8 +72,20 @@ body,
 
 body {
   color: var(--text);
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 15% 8%,  rgba(221, 110, 66, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 85%, rgba(20,  33,  61, 0.07) 0%, transparent 50%),
+    linear-gradient(170deg, #f7f2ea 0%, #ece6db 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--text);
 }
 
 input,
@@ -67,7 +101,7 @@ button {
 
 .app-shell {
   min-height: 100vh;
-  background: var(--bg);
+  background: transparent;
 }
 
 .topbar {
@@ -77,8 +111,11 @@ button {
   right: 0;
   display: block;
   padding: 0 18px;
-  background: #ffffff;
-  border-bottom: 0.5px solid var(--hdc-stone);
+  background: rgba(255, 251, 246, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 16px rgba(20, 33, 61, 0.06);
   z-index: 40;
 }
 
@@ -106,8 +143,8 @@ button {
   border-radius: 6px;
   display: grid;
   place-items: center;
-  background: var(--hdc-mint);
-  color: var(--hdc-mint-dark);
+  background: var(--brand);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 700;
 }
@@ -197,9 +234,9 @@ button {
 .switcher-trigger {
   height: 34px;
   margin: 0;
-  border-radius: 8px;
-  border: 0.5px solid var(--hdc-stone);
-  background: #ffffff;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
   color: var(--hdc-ink);
   display: inline-flex;
   align-items: center;
@@ -379,25 +416,27 @@ button {
 
 .top-primary-cta {
   min-height: 34px;
-  padding: 9px 20px;
-  border-radius: 8px;
+  padding: 7px 18px;
+  border-radius: var(--radius-pill);
   border: 0;
-  background: var(--hdc-mint);
-  color: var(--hdc-mint-dark);
+  background: var(--hdc-ink);
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
+  font-family: var(--font-sans);
   box-shadow: none;
 }
 
 .top-primary-cta:hover {
-  background: color-mix(in srgb, var(--hdc-mint) 90%, black);
+  background: #1e3060;
 }
 
 .tab-strip {
   min-height: 40px;
-  background: var(--hdc-parchment);
-  border-top: 0.5px solid var(--hdc-stone);
-  border-bottom: 0.5px solid var(--hdc-stone);
+  background: rgba(247, 242, 234, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: flex-end;
 }
@@ -412,13 +451,14 @@ button {
 
 .tab-link {
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2.5px solid transparent;
   background: transparent;
-  color: var(--hdc-ash);
+  color: var(--text-soft);
   padding: 8px 16px;
   min-height: 40px;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 500;
+  font-family: var(--font-sans);
   cursor: pointer;
 }
 
@@ -427,9 +467,9 @@ button {
 }
 
 .tab-link-active {
-  color: var(--hdc-ink);
-  font-weight: 500;
-  border-bottom-color: var(--hdc-mint);
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--brand);
 }
 
 .overflow-nav {
@@ -449,9 +489,9 @@ button {
   display: grid;
   gap: 2px;
   padding: 8px;
-  background: #ffffff;
-  border: 0.5px solid var(--hdc-stone);
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   z-index: 55;
 }
@@ -3925,13 +3965,15 @@ button {
 
 /* Design system: primary rounded-lg (no pill); teal only */
 .btn {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
-  min-height: 40px;
-  padding: 0 14px;
-  font-size: var(--tier3-size);
-  font-weight: 600;
+  min-height: 36px;
+  padding: 0 16px;
+  font-size: var(--tier4-size);
+  font-weight: 700;
+  font-family: var(--font-sans);
   cursor: pointer;
+  letter-spacing: 0.01em;
 }
 
 .btn-primary {
