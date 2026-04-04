@@ -5,7 +5,8 @@
 /* --------------------------------------------------------------------------- */
 
 :root {
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
   color: #111827;
   background: #f9fafb;
   /* Primary accent – teal only */
