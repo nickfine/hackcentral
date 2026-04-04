@@ -76,6 +76,7 @@ const PHASE3_FEED_RECOMMENDATION_COVERAGE_MIN_PCT = 67;
 interface ConvexBootstrapPayload {
   summary: BootstrapData['summary'];
   featuredHacks: BootstrapData['featuredHacks'];
+  latestHackSubmission?: BootstrapData['latestHackSubmission'];
   recentProjects: BootstrapData['recentProjects'];
   people: BootstrapData['people'];
   registry?: BootstrapData['registry'];
@@ -217,6 +218,7 @@ async function getBootstrapDataFromConvex(viewer: ViewerContext): Promise<Bootst
     },
     summary: payload.summary,
     featuredHacks: payload.featuredHacks,
+    latestHackSubmission: payload.latestHackSubmission ?? null,
     recentProjects: payload.recentProjects,
     people: payload.people,
     registry: (payload.registry ?? []).map(normalizeRegistryItemNavigability),

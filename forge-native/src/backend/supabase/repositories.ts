@@ -3842,7 +3842,7 @@ export class SupabaseRepository {
       .sort((a, b) => {
         const aFeatured = showcaseByProjectId.get(a.id)?.featured === true;
         const bFeatured = showcaseByProjectId.get(b.id)?.featured === true;
-        if (aFeatured !== bFeatured) return aFeatured ? 1 : -1;
+        if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
         return (b.created_at || '').localeCompare(a.created_at || '');
       })
       .slice(0, 8)
@@ -3865,6 +3865,22 @@ export class SupabaseRepository {
           demoUrl: metadata?.demo_url ?? null,
         };
       });
+
+    const latestHackProject = hackRows
+      .filter((project) => Boolean(project.created_at))
+      .slice()
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0];
+
+    const latestHackSubmission = latestHackProject
+      ? {
+          id: latestHackProject.id,
+          title: latestHackProject.title,
+          authorName: latestHackProject.owner_id
+            ? userNameById.get(latestHackProject.owner_id) ?? 'Unknown'
+            : 'Unknown',
+          submittedAt: latestHackProject.created_at as string,
+        }
+      : null;
 
     const recentProjects = projectRows
       .slice()
@@ -3980,6 +3996,7 @@ export class SupabaseRepository {
       teamPulse,
       recognition,
       featuredHacks,
+      latestHackSubmission,
       recentProjects,
       people,
       registry,

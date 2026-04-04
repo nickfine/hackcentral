@@ -338,6 +338,13 @@ export interface FeaturedHack {
   demoUrl: string | null;
 }
 
+export interface LatestHackSubmission {
+  id: string;
+  title: string;
+  authorName: string;
+  submittedAt: string;
+}
+
 export interface ProjectSnapshot {
   id: string;
   title: string;
@@ -377,6 +384,7 @@ export interface BootstrapData {
   recognition?: RecognitionSnapshot | null;
   homeFeed?: HomeFeedSnapshot | null;
   featuredHacks: FeaturedHack[];
+  latestHackSubmission: LatestHackSubmission | null;
   recentProjects: ProjectSnapshot[];
   people: PersonSnapshot[];
   registry: EventRegistryItem[];
