@@ -38,7 +38,7 @@
   --color-border: rgba(20, 33, 61, 0.12);
   --color-input: rgba(20, 33, 61, 0.15);
   --color-ring: #dd6e42;
-  --color-card: rgba(255, 251, 246, 0.92);
+  --color-card: rgba(255, 251, 246, 0.95);
   --color-card-foreground: #14213d;
 
   /* ── Status ── */
@@ -87,6 +87,7 @@
   --shadow-sm: 0 1px 3px rgba(20, 33, 61, 0.08);
   --shadow-md: 0 4px 16px rgba(20, 33, 61, 0.1);
   --shadow-lg: 0 12px 40px rgba(20, 33, 61, 0.12);
+  --shadow-section: 0 8px 32px rgba(20, 33, 61, 0.08);
 
   /* ── Animation ── */
   --duration-fast: 150ms;

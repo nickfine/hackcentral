@@ -66,6 +66,14 @@ import { invokeTyped } from './hooks/useForgeData';
 import { type View, type HackTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
+import {
+  HeroNav,
+  HeroSection,
+  PainPointsSection,
+  PipelineFunnel,
+  EventsToolsRow,
+  MentoringSection,
+} from './components/Homepage';
 import { HackCard, ProjectCard, PersonCard } from './components/shared/Cards';
 import { DemoState } from './components/shared/DemoState';
 import { formatLabel, getInitials } from './utils/format';
@@ -4155,6 +4163,85 @@ export function App(): JSX.Element {
     [bootstrap, latestHackSubmission, registry]
   );
 
+  // ── Homepage v3 data loading ──
+  const [hpProblems, setHpProblems] = useState<import('./types').ProblemListItem[]>([]);
+  const [hpProblemCount, setHpProblemCount] = useState<number | null>(null);
+  const [hpProblemsLoading, setHpProblemsLoading] = useState(false);
+  const [hpArtifacts, setHpArtifacts] = useState<import('./types').ArtifactListItem[]>([]);
+  const [hpArtifactsLoading, setHpArtifactsLoading] = useState(false);
+  const [hpPipelineMetrics, setHpPipelineMetrics] = useState<import('./types').PipelineMetrics | null>(null);
+  const [hpPipelineLoading, setHpPipelineLoading] = useState(false);
+
+  useEffect(() => {
+    if (view !== 'dashboard') return;
+    let cancelled = false;
+
+    // Load trending problems (sorted by votes)
+    (async () => {
+      setHpProblemsLoading(true);
+      try {
+        const result = await invokeTyped('hdcListProblems', { sortBy: 'votes', limit: 20 });
+        if (!cancelled) {
+          setHpProblems(result.items);
+          setHpProblemCount(result.items.length + (result.nextCursor ? 99 : 0));
+        }
+      } catch { /* non-blocking */ }
+      finally { if (!cancelled) setHpProblemsLoading(false); }
+    })();
+
+    // Load recent artifacts
+    (async () => {
+      setHpArtifactsLoading(true);
+      try {
+        const result = await invokeTyped('hdcListArtifacts', { sortBy: 'newest', limit: 4 });
+        if (!cancelled) setHpArtifacts(result.items);
+      } catch { /* non-blocking */ }
+      finally { if (!cancelled) setHpArtifactsLoading(false); }
+    })();
+
+    // Load pipeline metrics
+    (async () => {
+      setHpPipelineLoading(true);
+      try {
+        const result = await invokeTyped('hdcGetPipelineBoard', {});
+        if (!cancelled) setHpPipelineMetrics(result.metrics);
+      } catch { /* non-blocking */ }
+      finally { if (!cancelled) setHpPipelineLoading(false); }
+    })();
+
+    return () => { cancelled = true; };
+  }, [view]);
+
+  const hpHacksActive = hpPipelineMetrics
+    ? (hpPipelineMetrics.itemsPerStage.find((s) => s.stage === 'hack')?.count ?? 0)
+    : (bootstrap?.summary.inProgressProjects ?? 0);
+  const hpPrototypes = hpPipelineMetrics
+    ? (hpPipelineMetrics.itemsPerStage.find((s) => s.stage === 'validated_prototype')?.count ?? 0)
+    : (bootstrap?.summary.completedProjects ?? 0);
+  const hpEventsComing = registry.length;
+
+  const handleHpScrollTo = useCallback((section: string) => {
+    document.getElementById(`hp-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleHpCreateProblem = useCallback(async (title: string) => {
+    try {
+      await invokeTyped('hdcCreateProblem', {
+        title,
+        description: '',
+        frequency: 'daily',
+        estimatedTimeWastedHours: 1,
+        team: 'Unknown',
+        domain: 'Unknown',
+        contactDetails: '',
+      } as any);
+      // Reload problems
+      const result = await invokeTyped('hdcListProblems', { sortBy: 'votes', limit: 20 });
+      setHpProblems(result.items);
+      setHpProblemCount(result.items.length + (result.nextCursor ? 99 : 0));
+    } catch { /* handled silently for now */ }
+  }, []);
+
   const teamPulse = bootstrap?.teamPulse ?? null;
   const reuseRatePct = teamPulse?.reuseRatePct ?? 0;
   const crossTeamAdoptionCount = teamPulse?.crossTeamAdoptionCount ?? 0;
@@ -5318,205 +5405,42 @@ export function App(): JSX.Element {
 
       {view === 'dashboard' ? (
             <section className="page-stack">
-              <WelcomeHero
-                onSubmitHack={handleHomePrimaryCta}
-                onBrowseFeaturedHacks={HDC_HOME_UX_V1 ? handleHomeBrowseFeatured : undefined}
-                onRequestMentor={HDC_HOME_UX_V1 ? handleHomeRequestMentor : undefined}
-                onNotify={handleHomeNotify}
-                signal={homeHeroSignal}
+              <HeroNav
+                onNavigate={handleHpScrollTo}
+                onCreateHackDay={() => setView('create_hackday')}
               />
-              {homeSummaryHasValues ? (
-                <StatCards summary={bootstrap.summary} />
-              ) : (
-                <section className="card home-prompt-card">
-                  <button type="button" className="home-prompt-action" onClick={handleHomePrimaryCta}>
-                    <span>Nothing shipped yet — be the first. Submit a Hack</span>
-                    <span aria-hidden>→</span>
-                  </button>
-                </section>
-              )}
-
-              <section className="grid home-feed-grid">
-                <article className="card home-feed-card">
-                  <div className="section-head-row">
-                    <div>
-                      <h2>What&apos;s happening</h2>
-                      <p>{HDC_HOME_UX_V1 ? HOME_FEED_ACTIVITY_SUBCOPY : 'R12.1 activity feed across hacks, pains, artifacts, pipeline, and upcoming events.'}</p>
-                    </div>
-                    <div className="section-head-actions">
-                      {HDC_HOME_UX_V1 ? (
-                        <button type="button" className="text-link home-feed-view-all" onClick={handleHomeViewAllActivity}>
-                          View all
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        onClick={() => void loadHomeFeed()}
-                        disabled={homeFeedLoading}
-                      >
-                        {homeFeedLoading ? 'Refreshing...' : 'Refresh'}
-                      </button>
-                    </div>
-                  </div>
-                  {homeFeedError ? <p className="message message-error">{homeFeedError}</p> : null}
-                  {homeFeedItems.length > 0 ? (
-                    <div className="home-feed-list">
-                      {homeFeedItems.slice(0, 8).map((item) => (
-                        HDC_HOME_UX_V1 ? (
-                          <button
-                            key={item.id}
-                            type="button"
-                            className="list-row home-feed-row home-feed-action"
-                            onClick={() => handleHomeFeedItemClick(item)}
-                          >
-                            <div>
-                              <div className="home-feed-row-title">{item.title}</div>
-                              <div className="caption">{item.description}</div>
-                            </div>
-                            <div className="home-feed-row-meta">
-                              <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
-                              <span>{formatFeedOccurredAt(item.occurredAt)}</span>
-                            </div>
-                          </button>
-                        ) : (
-                          <div key={item.id} className="list-row home-feed-row">
-                            <div>
-                              <div className="home-feed-row-title">{item.title}</div>
-                              <div className="caption">{item.description}</div>
-                            </div>
-                            <div className="home-feed-row-meta">
-                              <span className="pill pill-outline">{HOME_FEED_ACTIVITY_LABELS[item.type]}</span>
-                              <span>{formatFeedOccurredAt(item.occurredAt)}</span>
-                            </div>
-                          </div>
-                        )
-                      ))}
-                    </div>
-                  ) : homeFeedLoading ? (
-                    <p className="empty-copy">Loading activity feed...</p>
-                  ) : (
-                    <section className="home-feed-empty-state">
-                      <p>Activity will appear here once hacks are submitted and HackDays are running.</p>
-                    </section>
-                  )}
-                  {showHomeFeedDebugMeta && homeFeedSnapshot ? (
-                    <p className="caption">Source: {homeFeedSnapshot.sources.activities.status}</p>
-                  ) : null}
-                </article>
-
-                <article className="card home-feed-card">
-                  <div className="section-head-row">
-                    <div>
-                      <h2>Recommended for you</h2>
-                      <p className="caption">
-                        {HDC_HOME_UX_V1 ? HOME_FEED_RECOMMENDATION_SUBCOPY : 'R12.2 includes domain pains, team artifact usage, and role pathways.'}
-                      </p>
-                    </div>
-                    {HDC_HOME_UX_V1 ? (
-                      <button type="button" className="text-link home-feed-view-all" onClick={handleHomeViewAllRecommendations}>
-                        View all
-                      </button>
-                    ) : null}
-                  </div>
-                  {homeFeedRecommendations.length > 0 ? (
-                    <div className="home-feed-list">
-                      {homeFeedRecommendations.slice(0, 8).map((item) => (
-                        HDC_HOME_UX_V1 ? (
-                          <button
-                            key={item.id}
-                            type="button"
-                            className="list-row home-feed-row home-feed-action"
-                            onClick={() => handleHomeRecommendationClick(item)}
-                          >
-                            <div>
-                              <div className="home-feed-row-title">{item.title}</div>
-                              <div className="caption">{item.reason}</div>
-                            </div>
-                            <div className="home-feed-row-meta">
-                              <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
-                              <span>{formatHomeRecommendationMatch(item.score)}</span>
-                            </div>
-                          </button>
-                        ) : (
-                          <div key={item.id} className="list-row home-feed-row">
-                            <div>
-                              <div className="home-feed-row-title">{item.title}</div>
-                              <div className="caption">{item.reason}</div>
-                            </div>
-                            <div className="home-feed-row-meta">
-                              <span className="pill pill-outline">{HOME_FEED_RECOMMENDATION_LABELS[item.type]}</span>
-                              <span>{formatHomeRecommendationMatch(item.score)}</span>
-                            </div>
-                          </div>
-                        )
-                      ))}
-                    </div>
-                  ) : homeFeedLoading ? (
-                    <p className="empty-copy">Loading recommendations...</p>
-                  ) : (
-                    <section className="home-feed-empty-state">
-                      <p>Recommendations will appear once there&apos;s activity in your space.</p>
-                    </section>
-                  )}
-                  {showHomeFeedDebugMeta && homeFeedSnapshot ? (
-                    <p className="caption">Source: {homeFeedSnapshot.sources.recommendations.status}</p>
-                  ) : null}
-                </article>
-              </section>
-
-              <section className="grid dashboard-pods">
-                <article className="card quote-card dashboard-quote-card">
-                  <p className="quote-mark">❞</p>
-                  <p className="quote-body">"The Jira Epic Breakdown prompt alone saved our whole team a full planning day."</p>
-                  <p className="quote-meta">Priya S. · Product Manager</p>
-                </article>
-
-                <article className="card recognition-card dashboard-recognition-card">
-                  <h3>Your recognition</h3>
-                  <p>Publish artifacts, solve pains, mentor others, and complete pathways to earn badges.</p>
-                  <div className="badge-wrap">
-                    {dashboardBadges.map((badge) => (
-                      <span key={badge.id} className="badge-pill" data-badge={badge.badgeVariant ?? undefined}>
-                        {badge.label}
-                        {badge.count ? <span className="badge-count">x{badge.count}</span> : null}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              </section>
-
-                <button
-                  type="button"
-                  className="fab dashboard-fab"
-                  aria-label={quickActionsOpen ? 'Close quick actions' : 'Open quick actions'}
-                  onClick={() => setQuickActionsOpen((open) => !open)}
-                >
-                {quickActionsOpen ? '×' : '+'}
-              </button>
-
-              {quickActionsOpen ? (
-                <section className="card quick-actions dashboard-quick-actions">
-                  <h3>Quick Actions</h3>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
-                    Submit your first hack
-                  </button>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalView('mentor_profile')}>
-                    Request a 15-min mentor
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => {
-                      setView('hacks');
-                      setHackTab('completed');
-                      setQuickActionsOpen(false);
-                    }}
-                  >
-                    Browse Featured Hacks
-                  </button>
-                </section>
-              ) : null}
+              <HeroSection
+                painCount={hpProblemCount}
+                hacksActive={hpHacksActive}
+                prototypes={hpPrototypes}
+                eventsComing={hpEventsComing}
+                onGetStarted={() => setView('onboarding')}
+                onExploreHacks={() => { setHackTab('completed'); setView('hacks'); }}
+              />
+              <PainPointsSection
+                problems={hpProblems}
+                totalCount={hpProblemCount ?? 0}
+                loading={hpProblemsLoading}
+                onSubmit={handleHpCreateProblem}
+              />
+              <PipelineFunnel
+                metrics={hpPipelineMetrics}
+                painCount={hpProblemCount}
+                loading={hpPipelineLoading}
+              />
+              <EventsToolsRow
+                events={registry}
+                artifacts={hpArtifacts}
+                eventsLoading={!bootstrap}
+                artifactsLoading={hpArtifactsLoading}
+                onProposeHackDay={() => setView('create_hackday')}
+                onViewArtifact={(id) => { setView('library'); }}
+              />
+              <MentoringSection
+                onNavigateGuide={() => setView('guide')}
+                onNavigateMentors={() => setView('team_up')}
+              />
+              {/* Old dashboard sections removed — replaced by Homepage v3 components above */}
             </section>
           ) : null}
 
