@@ -65,7 +65,14 @@ export function Layout({
       <header className="topbar">
         <div className="topbar-main">
           <button type="button" className="brand-home" onClick={() => setView('dashboard')} aria-label="Go to Home">
-            <span className="brand-mark" aria-hidden>H</span>
+            <img
+              src="/adaptlogo.png"
+              alt=""
+              className="brand-logo"
+              width={32}
+              height={32}
+              decoding="async"
+            />
             <span className="brand-title">HackDay Central</span>
           </button>
           <div
