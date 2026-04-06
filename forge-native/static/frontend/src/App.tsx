@@ -67,7 +67,6 @@ import { type View, type HackTab, type HackTypeFilter, type HackStatusFilter, ty
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import {
-  HeroNav,
   HeroSection,
   PainPointsSection,
   PipelineFunnel,
@@ -4220,10 +4219,6 @@ export function App(): JSX.Element {
     : (bootstrap?.summary.completedProjects ?? 0);
   const hpEventsComing = registry.length;
 
-  const handleHpScrollTo = useCallback((section: string) => {
-    document.getElementById(`hp-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
-
   const handleHpCreateProblem = useCallback(async (title: string) => {
     try {
       await invokeTyped('hdcCreateProblem', {
@@ -5405,10 +5400,6 @@ export function App(): JSX.Element {
 
       {view === 'dashboard' ? (
             <section className="page-stack">
-              <HeroNav
-                onNavigate={handleHpScrollTo}
-                onCreateHackDay={() => setView('create_hackday')}
-              />
               <HeroSection
                 painCount={hpProblemCount}
                 hacksActive={hpHacksActive}
