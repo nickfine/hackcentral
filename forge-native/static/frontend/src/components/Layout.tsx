@@ -1,4 +1,5 @@
 import React, { useRef, useState, type ReactNode, type Ref } from 'react';
+import adaptLogoUrl from '../assets/adaptlogo.png';
 import type { EventRegistryItem } from '../types';
 import { isNavigableRegistryItem, runSwitcherNavigation, switcherRowMetaText } from '../appSwitcher';
 import { OVERFLOW_NAV_ITEMS, PRIMARY_NAV_ITEMS, type View } from '../constants/nav';
@@ -66,7 +67,7 @@ export function Layout({
         <div className="topbar-main">
           <button type="button" className="brand-home" onClick={() => setView('dashboard')} aria-label="Go to Home">
             <img
-              src="/adaptlogo.png"
+              src={adaptLogoUrl}
               alt=""
               className="brand-logo"
               width={32}
