@@ -2,12 +2,11 @@
  * Dashboard Page — HackDay Central Homepage (Firsthand design system v3)
  *
  * Sections:
- * 1. HeroNav — pill-shaped in-page navigation
- * 2. HeroSection — two-column hero with stats + feature pills
- * 3. PainPointsSection — pain submission + trending (placeholder until data model exists)
- * 4. PipelineFunnel — five-stage funnel from pain to product candidate
- * 5. EventsToolsRow — upcoming events + recently added tools
- * 6. MentoringSection — support & mentoring CTAs
+ * 1. HeroSection — two-column hero with stats + feature pills
+ * 2. PainPointsSection — pain submission + trending (placeholder until data model exists)
+ * 3. PipelineFunnel — five-stage funnel from pain to product candidate
+ * 4. EventsToolsRow — upcoming events + recently added tools
+ * 5. MentoringSection — support & mentoring CTAs
  */
 
 import { useState, useEffect } from 'react';
@@ -19,7 +18,6 @@ import type { HackDayEventItem } from '../../convex/hackdays';
 import { useAuth } from '@/hooks/useAuth';
 import { ModalWrapper } from '@/components/shared';
 import {
-  HeroNav,
   HeroSection,
   PainPointsSection,
   PipelineFunnel,
@@ -102,7 +100,6 @@ export default function Dashboard() {
   return (
     <>
       <div className="min-w-0 space-y-5">
-        <HeroNav />
         <HeroSection
           hacksActive={hacksActive}
           prototypes={prototypes}

@@ -1,4 +1,3 @@
-export { HeroNav } from './HeroNav';
 export { HeroSection } from './HeroSection';
 export { FeaturePills } from './FeaturePills';
 export { HeroStatRow } from './HeroStatRow';
