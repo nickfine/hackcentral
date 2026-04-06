@@ -57,9 +57,16 @@ export function Header() {
 
         {/* Logo - hidden when mobile search expanded */}
         {!mobileSearchOpen && (
-          <Link to="/dashboard" className="flex items-center gap-2 shrink-0" aria-label="HackDay Central home">
-            <img src="/adaptalogo.jpg" alt="" className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-semibold text-lg hidden sm:inline-block">
+          <Link to="/dashboard" className="flex items-center gap-2.5 shrink-0" aria-label="HackDay Central home">
+            <img
+              src="/adaptlogo.png"
+              alt=""
+              className="h-8 w-8 object-contain shrink-0"
+              width={32}
+              height={32}
+              decoding="async"
+            />
+            <span className="font-semibold text-xl tracking-tight hidden sm:inline-block">
               HackDay Central
             </span>
           </Link>
