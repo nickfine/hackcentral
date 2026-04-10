@@ -118,17 +118,17 @@ function SubmitForm({ onSubmit }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
       <input
         type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Your name *"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Describe the pain point *"
         className={inputClass}
         required
       />
       <input
         type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Describe the pain point *"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Your name *"
         className={inputClass}
         required
       />
