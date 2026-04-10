@@ -35,7 +35,7 @@ const ADMIN_RESET_LOCK_KEY_PREFIX = "adminResetLock:v1:";
 const ADMIN_RESET_SEED_META_KEY_PREFIX = "adminResetSeedMeta:v1:";
 const ACTIVE_APP_MODE_CONTEXT_STORAGE_KEY_PREFIX = "activeAppModeContext:v1:";
 const MOTD_PRIORITIES = new Set(["info", "warning", "urgent"]);
-const HACKDAY_OWNER_EMAILS = new Set(["jmort@adaptavist.com"]);
+const HACKDAY_OWNER_EMAILS = new Set(["jmort@adaptavist.com", "nfine@adaptavist.com"]);
 const HACKDAY_OWNER_ACCOUNT_IDS = new Set([]);
 const HACKDAY_OWNER_NAMES = new Set(["jon mort"]);
 const HACKDAY_OWNER_TITLE = "CTO & HackDay Owner";
@@ -617,6 +617,11 @@ function isHackdayOwnerIdentity({ email, accountId, displayName, name } = {}) {
     return true;
   }
   return typeof accountId === "string" && HACKDAY_OWNER_ACCOUNT_IDS.has(accountId);
+}
+
+function isAdminOrOwner(userOrCaller, accountId) {
+  if (userOrCaller?.role === "ADMIN") return true;
+  return isHackdayOwnerIdentity({ email: userOrCaller?.email, accountId });
 }
 
 function logDebug(...args) {
@@ -4178,8 +4183,8 @@ resolver.define("adminUpdateUserRole", async (req) => {
   const supabase = getSupabaseClient();
 
   try {
-    const caller = await getUserByAccountId(supabase, accountId, "id, role");
-    if (caller.role !== "ADMIN") {
+    const caller = await getUserByAccountId(supabase, accountId, "id, role, email");
+    if (!isAdminOrOwner(caller, accountId)) {
       throw new Error("Only admins can update user roles");
     }
 
@@ -4213,8 +4218,8 @@ resolver.define("adminDeleteRegistration", async (req) => {
 
   try {
     // Verify caller is admin
-    const caller = await getUserByAccountId(supabase, accountId, "id, role");
-    if (caller.role !== "ADMIN") {
+    const caller = await getUserByAccountId(supabase, accountId, "id, role, email");
+    if (!isAdminOrOwner(caller, accountId)) {
       throw new Error("Only admins can delete user registrations");
     }
 
@@ -4437,8 +4442,8 @@ resolver.define("getIdeaSummary", async (req) => {
   }
 
   try {
-    const caller = await getUserByAccountId(supabase, accountId, "id, role, name");
-    if (caller.role !== "ADMIN") {
+    const caller = await getUserByAccountId(supabase, accountId, "id, role, name, email");
+    if (!isAdminOrOwner(caller, accountId)) {
       throw new Error("Admin access required");
     }
 
@@ -4540,8 +4545,8 @@ resolver.define("markIdeaNotViable", async (req) => {
   }
 
   try {
-    const caller = await getUserByAccountId(supabase, accountId, "id, role, name");
-    if (caller.role !== "ADMIN") {
+    const caller = await getUserByAccountId(supabase, accountId, "id, role, name, email");
+    if (!isAdminOrOwner(caller, accountId)) {
       throw new Error("Admin access required");
     }
 
@@ -7328,7 +7333,7 @@ resolver.define("setEventPhase", async (req) => {
     }
 
     // Verify user is admin
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can change event phase");
     }
     
@@ -7640,7 +7645,7 @@ resolver.define("exportResults", async (req) => {
       throw new Error("User not found");
     }
 
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can export results");
     }
 
@@ -7969,7 +7974,7 @@ resolver.define("getEventSettings", async (req) => {
       throw new Error("User not found");
     }
 
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can view event settings");
     }
 
@@ -8022,7 +8027,7 @@ resolver.define("updateEventSettings", async (req) => {
       throw new Error("User not found");
     }
 
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can update event settings");
     }
 
@@ -8127,7 +8132,7 @@ resolver.define("adminResetEventData", async (req) => {
     if (userError || !caller) {
       throw new Error("User not found");
     }
-    if (caller.role !== "ADMIN") {
+    if (!isAdminOrOwner(caller, accountId)) {
       throw new Error("Only admins can reset event data");
     }
 
@@ -8216,7 +8221,7 @@ resolver.define("getAnalytics", async (req) => {
       throw new Error("User not found");
     }
 
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can view analytics");
     }
 
@@ -8524,7 +8529,7 @@ resolver.define("getTelemetryAnalytics", async (req) => {
 
   const { data: userData, error: userError } = await supabase
     .from("User")
-    .select("id, role")
+    .select("id, role, email")
     .eq("atlassian_account_id", accountId)
     .limit(1);
 
@@ -8533,7 +8538,7 @@ resolver.define("getTelemetryAnalytics", async (req) => {
     throw new Error("User not found");
   }
 
-  if (user.role !== "ADMIN") {
+  if (!isAdminOrOwner(user, accountId)) {
     throw new Error("Only admins can view telemetry analytics");
   }
 
@@ -9060,7 +9065,7 @@ resolver.define("devCreateTestSubmission", async (req) => {
     // Verify user is admin
     const { data: userData, error: userError } = await supabase
       .from("User")
-      .select("id, role")
+      .select("id, role, email")
       .eq("atlassian_account_id", accountId)
       .limit(1);
 
@@ -9069,7 +9074,7 @@ resolver.define("devCreateTestSubmission", async (req) => {
       throw new Error("User not found");
     }
 
-    if (user.role !== "ADMIN") {
+    if (!isAdminOrOwner(user, accountId)) {
       throw new Error("Only admins can create test submissions");
     }
 
