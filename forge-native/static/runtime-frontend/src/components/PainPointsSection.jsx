@@ -120,7 +120,7 @@ function SubmitForm({ onSubmit }) {
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Describe the pain point *"
+        placeholder="e.g. Our weekly status reports take 3 hours but nobody reads them *"
         className={inputClass}
         required
       />
