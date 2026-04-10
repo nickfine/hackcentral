@@ -223,13 +223,19 @@ export default function PainPointsSection({ appModeResolverPayload }) {
       data-testid="dashboard-pain-points"
       className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm"
     >
-      <div className="dashboard-card-header flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
-          <p className="mt-0.5 text-sm font-semibold text-text-primary">What would you fix at work if you had the time?</p>
+      <div className="dashboard-card-header">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
+        <p className="mt-0.5 text-sm font-semibold text-text-primary">What would you fix at work if you had the time?</p>
+      </div>
+
+      <div className="dashboard-card-body space-y-3">
+        {/* Submit form — always visible */}
+        <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
+          <SubmitForm onSubmit={handleSubmit} />
         </div>
+
         {/* Sort toggle */}
-        <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px]">
+        <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px] self-start w-fit">
           <button
             type="button"
             onClick={() => setSortBy('reactions')}
@@ -244,13 +250,6 @@ export default function PainPointsSection({ appModeResolverPayload }) {
           >
             ✨ New
           </button>
-        </div>
-      </div>
-
-      <div className="dashboard-card-body space-y-3">
-        {/* Submit form — always visible */}
-        <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
-          <SubmitForm onSubmit={handleSubmit} />
         </div>
 
         {loading ? (
