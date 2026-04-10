@@ -19,6 +19,7 @@ const LibraryAssetDetail = lazy(() => import('@/pages/LibraryAssetDetail').then(
 const Hacks = lazy(() => import('@/pages/Hacks').then((m) => ({ default: m.default })))
 const HackDays = lazy(() => import('@/pages/HackDays').then((m) => ({ default: m.default })))
 const CreateHackDay = lazy(() => import('@/pages/CreateHackDay').then((m) => ({ default: m.default })))
+const PainPoints = lazy(() => import('@/pages/PainPoints').then((m) => ({ default: m.default })))
 
 /**
  * Redirect component that preserves query params and adds tab param.
@@ -167,6 +168,14 @@ function App() {
               element={
                 <Suspense fallback={<PageFallback />}>
                   <CreateHackDay />
+                </Suspense>
+              }
+            />
+            <Route
+              path="pain-points"
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <PainPoints />
                 </Suspense>
               }
             />

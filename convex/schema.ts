@@ -34,6 +34,7 @@ export default defineSchema({
       v.literal("public")
     ),
     capabilityTags: v.array(v.id("capabilityTags")), // References to capability tags
+    isAdmin: v.optional(v.boolean()), // Set manually in Convex dashboard
   })
     .index("by_user_id", ["userId"])
     .index("by_email", ["email"])
@@ -330,6 +331,36 @@ export default defineSchema({
     .index("by_asset", ["assetId"])
     .index("by_project", ["projectId"])
     .index("by_featured", ["featured"]),
+
+  // ============================================================================
+  // PAIN POINTS
+  // ============================================================================
+  painPoints: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    submitterName: v.string(),
+    submittedByUserId: v.optional(v.id("profiles")),
+    effortEstimate: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+    ),
+    impactEstimate: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+    ),
+    reactionCount: v.number(),
+    isHidden: v.boolean(),
+  })
+    .index("by_reactions", ["reactionCount"])
+    .index("by_hidden", ["isHidden"]),
+
+  // Many-to-many: teams (Supabase) <-> pain points (Convex)
+  teamPainPoints: defineTable({
+    teamId: v.string(),
+    eventId: v.string(),
+    painPointId: v.id("painPoints"),
+    assignedByUserId: v.optional(v.id("profiles")),
+  })
+    .index("by_team", ["teamId"])
+    .index("by_pain_point", ["painPointId"]),
 
   // ============================================================================
   // HELP REQUESTS (Bulletin Board)
