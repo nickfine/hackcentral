@@ -1179,45 +1179,7 @@ function Dashboard({
         </section>
       )}
 
-      <section data-testid="dashboard-row2-readiness">
-        <div className={`dashboard-main-card rounded-xl border p-0 shadow-sm transition-colors ${readinessCardToneClass}`}>
-          <div className="dashboard-card-header">
-            <p className="dashboard-card-label">Your Readiness</p>
-          </div>
-          <div className="dashboard-card-body">
-            <div className="dashboard-readiness-strip rounded-lg border p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              {readinessItems.map((item) => (
-                <ReadinessPill
-                  key={item.id}
-                  testId={item.testId}
-                  label={item.pillLabel}
-                  value={item.value}
-                  tone={item.tone}
-                  title={item.detail}
-                />
-              ))}
-              </div>
-            </div>
-
-            <div className="mt-3 border-t border-arena-border pt-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p data-testid="dashboard-readiness-count" className="dashboard-meta-text text-xs font-normal">
-                {readinessCompleteCount} of {readinessTotalCount} ready
-                </p>
-                <p className="dashboard-meta-text text-xs font-normal">{readinessProgressPercent}%</p>
-              </div>
-              <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">
-                <div
-                  data-testid="dashboard-readiness-progress-fill"
-                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
-                  style={{ width: `${readinessProgressPercent}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <PainPointsSection appModeResolverPayload={appModeResolverPayload} />
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-testid="dashboard-below-fold">
         <div className="lg:col-span-3" data-testid="dashboard-live-activity">
@@ -1366,7 +1328,45 @@ function Dashboard({
         </div>
       </section>
 
-      <PainPointsSection appModeResolverPayload={appModeResolverPayload} />
+      <section data-testid="dashboard-row2-readiness">
+        <div className={`dashboard-main-card rounded-xl border p-0 shadow-sm transition-colors ${readinessCardToneClass}`}>
+          <div className="dashboard-card-header">
+            <p className="dashboard-card-label">Your Readiness</p>
+          </div>
+          <div className="dashboard-card-body">
+            <div className="dashboard-readiness-strip rounded-lg border p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {readinessItems.map((item) => (
+                <ReadinessPill
+                  key={item.id}
+                  testId={item.testId}
+                  label={item.pillLabel}
+                  value={item.value}
+                  tone={item.tone}
+                  title={item.detail}
+                />
+              ))}
+              </div>
+            </div>
+
+            <div className="mt-3 border-t border-arena-border pt-3">
+              <div className="mb-1 flex items-center justify-between">
+                <p data-testid="dashboard-readiness-count" className="dashboard-meta-text text-xs font-normal">
+                {readinessCompleteCount} of {readinessTotalCount} ready
+                </p>
+                <p className="dashboard-meta-text text-xs font-normal">{readinessProgressPercent}%</p>
+              </div>
+              <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">
+                <div
+                  data-testid="dashboard-readiness-progress-fill"
+                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
+                  style={{ width: `${readinessProgressPercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <footer className="pt-1" data-testid="dashboard-footer">
         <p className="dashboard-meta-text text-xs font-normal">
