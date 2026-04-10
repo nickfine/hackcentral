@@ -226,7 +226,7 @@ export default function PainPointsSection({ appModeResolverPayload }) {
       <div className="dashboard-card-header flex items-center justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
-          <p className="mt-0.5 text-sm font-semibold text-text-primary">What&rsquo;s slowing your team down?</p>
+          <p className="mt-0.5 text-sm font-semibold text-text-primary">What would you fix at work if you had the time?</p>
         </div>
         {/* Sort toggle */}
         <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px]">
