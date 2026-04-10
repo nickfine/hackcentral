@@ -20,6 +20,7 @@ import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
+import PainPointsSection from './PainPointsSection';
 
 // ============================================================================
 // MOCK DATA (fallback when resolver data is unavailable)
@@ -1364,6 +1365,8 @@ function Dashboard({
           </div>
         </div>
       </section>
+
+      <PainPointsSection appModeResolverPayload={appModeResolverPayload} />
 
       <footer className="pt-1" data-testid="dashboard-footer">
         <p className="dashboard-meta-text text-xs font-normal">

@@ -9132,4 +9132,69 @@ resolver.define("devCreateTestSubmission", async (req) => {
   }
 });
 
+// ─── Pain Points (Convex) ─────────────────────────────────────────────────────
+
+async function convexQuery(path, args) {
+  const url = process.env.CONVEX_URL;
+  if (!url) throw new Error("CONVEX_URL not configured");
+  const res = await fetch(`${url}/api/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, args, format: "json" }),
+  });
+  if (!res.ok) throw new Error(`Convex query failed: ${res.status}`);
+  const data = await res.json();
+  return data.value;
+}
+
+async function convexMutation(path, args) {
+  const url = process.env.CONVEX_URL;
+  if (!url) throw new Error("CONVEX_URL not configured");
+  const res = await fetch(`${url}/api/mutation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, args, format: "json" }),
+  });
+  if (!res.ok) throw new Error(`Convex mutation failed: ${res.status}`);
+  const data = await res.json();
+  return data.value;
+}
+
+resolver.define("getPainPoints", async (req) => {
+  const { sortBy = "reactions", limit = 10 } = req.payload || {};
+  try {
+    const painPoints = await convexQuery("painPoints:list", { sortBy, limit });
+    return { painPoints: painPoints ?? [] };
+  } catch (err) {
+    console.error("getPainPoints error:", err);
+    return { painPoints: [] };
+  }
+});
+
+resolver.define("submitPainPoint", async (req) => {
+  const { title, submitterName, description, effortEstimate, impactEstimate } = req.payload || {};
+  if (!title?.trim()) throw new Error("Title is required");
+  if (!submitterName?.trim()) throw new Error("Name is required");
+  const id = await convexMutation("painPoints:submit", {
+    title: title.trim(),
+    submitterName: submitterName.trim(),
+    description: description?.trim() || undefined,
+    effortEstimate: effortEstimate || undefined,
+    impactEstimate: impactEstimate || undefined,
+  });
+  return { id };
+});
+
+resolver.define("reactToPainPoint", async (req) => {
+  const { painPointId } = req.payload || {};
+  if (!painPointId) return { ok: false };
+  try {
+    await convexMutation("painPoints:react", { painPointId });
+    return { ok: true };
+  } catch (err) {
+    console.error("reactToPainPoint error:", err);
+    return { ok: false };
+  }
+});
+
 export const handler = resolver.getDefinitions();
