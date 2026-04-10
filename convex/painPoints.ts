@@ -61,10 +61,25 @@ export const submit = mutation({
 });
 
 export const react = mutation({
-  args: { painPointId: v.id("painPoints") },
-  handler: async (ctx, { painPointId }) => {
+  args: {
+    painPointId: v.id("painPoints"),
+    reactorId: v.optional(v.string()),
+  },
+  handler: async (ctx, { painPointId, reactorId }) => {
     const painPoint = await ctx.db.get(painPointId);
     if (!painPoint || painPoint.isHidden) return null;
+
+    if (reactorId) {
+      const existing = await ctx.db
+        .query("painPointReactions")
+        .withIndex("by_pain_point_reactor", (q) =>
+          q.eq("painPointId", painPointId).eq("reactorId", reactorId)
+        )
+        .first();
+      if (existing) return null; // already reacted — no-op
+      await ctx.db.insert("painPointReactions", { painPointId, reactorId });
+    }
+
     await ctx.db.patch(painPointId, {
       reactionCount: painPoint.reactionCount + 1,
     });
@@ -81,8 +96,9 @@ export const list = query({
   args: {
     sortBy: v.optional(v.union(v.literal("reactions"), v.literal("newest"))),
     limit: v.optional(v.number()),
+    reactorId: v.optional(v.string()),
   },
-  handler: async (ctx, { sortBy = "reactions", limit = 50 }) => {
+  handler: async (ctx, { sortBy = "reactions", limit = 50, reactorId }) => {
     let rows = await ctx.db
       .query("painPoints")
       .withIndex("by_hidden", (q) => q.eq("isHidden", false))
@@ -94,7 +110,22 @@ export const list = query({
       rows = rows.sort((a, b) => b._creationTime - a._creationTime);
     }
 
-    return rows.slice(0, limit);
+    const page = rows.slice(0, limit);
+
+    if (!reactorId) return page.map((r) => ({ ...r, hasReacted: false }));
+
+    const reacted = await Promise.all(
+      page.map((r) =>
+        ctx.db
+          .query("painPointReactions")
+          .withIndex("by_pain_point_reactor", (q) =>
+            q.eq("painPointId", r._id).eq("reactorId", reactorId)
+          )
+          .first()
+      )
+    );
+
+    return page.map((r, i) => ({ ...r, hasReacted: !!reacted[i] }));
   },
 });
 

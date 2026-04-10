@@ -352,6 +352,14 @@ export default defineSchema({
     .index("by_reactions", ["reactionCount"])
     .index("by_hidden", ["isHidden"]),
 
+  // Per-user reactions (one per accountId per pain point)
+  painPointReactions: defineTable({
+    painPointId: v.id("painPoints"),
+    reactorId: v.string(), // Atlassian account ID
+  })
+    .index("by_pain_point_reactor", ["painPointId", "reactorId"])
+    .index("by_pain_point", ["painPointId"]),
+
   // Many-to-many: teams (Supabase) <-> pain points (Convex)
   teamPainPoints: defineTable({
     teamId: v.string(),

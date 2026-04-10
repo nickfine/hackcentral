@@ -9162,8 +9162,11 @@ async function convexMutation(path, args) {
 
 resolver.define("getPainPoints", async (req) => {
   const { sortBy = "reactions", limit = 10 } = req.payload || {};
+  const accountId = req.context?.accountId || null;
   try {
-    const painPoints = await convexQuery("painPoints:list", { sortBy, limit });
+    const args = { sortBy, limit };
+    if (accountId) args.reactorId = accountId;
+    const painPoints = await convexQuery("painPoints:list", args);
     return { painPoints: painPoints ?? [] };
   } catch (err) {
     console.error("getPainPoints error:", err);
@@ -9187,9 +9190,12 @@ resolver.define("submitPainPoint", async (req) => {
 
 resolver.define("reactToPainPoint", async (req) => {
   const { painPointId } = req.payload || {};
+  const accountId = req.context?.accountId || null;
   if (!painPointId) return { ok: false };
   try {
-    await convexMutation("painPoints:react", { painPointId });
+    const args = { painPointId };
+    if (accountId) args.reactorId = accountId;
+    await convexMutation("painPoints:react", args);
     return { ok: true };
   } catch (err) {
     console.error("reactToPainPoint error:", err);

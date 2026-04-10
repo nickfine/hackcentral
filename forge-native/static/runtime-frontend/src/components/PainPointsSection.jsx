@@ -21,15 +21,18 @@ function Pill({ children }) {
 function PainPointRow({ pp, onReact }) {
   const [reacting, setReacting] = useState(false);
   const [localCount, setLocalCount] = useState(pp.reactionCount);
+  const [reacted, setReacted] = useState(pp.hasReacted ?? false);
 
   const handleReact = async () => {
-    if (reacting) return;
+    if (reacting || reacted) return;
     setReacting(true);
     setLocalCount((c) => c + 1);
+    setReacted(true);
     try {
       await onReact(pp._id);
     } catch {
       setLocalCount((c) => c - 1);
+      setReacted(false);
     } finally {
       setReacting(false);
     }
@@ -51,9 +54,13 @@ function PainPointRow({ pp, onReact }) {
       <button
         type="button"
         onClick={handleReact}
-        disabled={reacting}
-        className="flex shrink-0 items-center gap-1 rounded-full border border-arena-border bg-arena-bg px-2.5 py-1 text-[12px] text-text-secondary hover:border-brand/40 hover:text-text-primary transition-colors disabled:opacity-60"
-        aria-label="React to this pain point"
+        disabled={reacting || reacted}
+        className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed ${
+          reacted
+            ? 'border-brand/40 bg-brand/10 text-brand'
+            : 'border-arena-border bg-arena-bg text-text-secondary hover:border-brand/40 hover:text-text-primary'
+        }`}
+        aria-label={reacted ? 'Already reacted' : 'React to this pain point'}
       >
         <span>🔥</span>
         <span className="tabular-nums">{localCount}</span>
@@ -63,7 +70,7 @@ function PainPointRow({ pp, onReact }) {
 }
 
 // ─── Submit form ──────────────────────────────────────────────────────────────
-function SubmitForm({ onSubmit, onCancel }) {
+function SubmitForm({ onSubmit }) {
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -72,6 +79,7 @@ function SubmitForm({ onSubmit, onCancel }) {
   const [showDetail, setShowDetail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const canSubmit = name.trim() && title.trim() && !submitting;
 
@@ -94,7 +102,8 @@ function SubmitForm({ onSubmit, onCancel }) {
       setEffort('');
       setImpact('');
       setShowDetail(false);
-      onCancel();
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
     } catch {
       setError('Failed to submit. Please try again.');
     } finally {
@@ -159,23 +168,15 @@ function SubmitForm({ onSubmit, onCancel }) {
       )}
 
       {error && <p className="text-[12px] text-status-error">{error}</p>}
+      {submitted && <p className="text-[12px] text-status-success">Pain point submitted!</p>}
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
-          {submitting ? 'Submitting…' : 'Submit'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg border border-arena-border px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        className="self-start rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+      >
+        {submitting ? 'Submitting…' : 'Submit'}
+      </button>
     </form>
   );
 }
@@ -184,7 +185,6 @@ function SubmitForm({ onSubmit, onCancel }) {
 export default function PainPointsSection({ appModeResolverPayload }) {
   const [painPoints, setPainPoints] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [sortBy, setSortBy] = useState('reactions');
 
   const load = useCallback(async () => {
@@ -228,40 +228,30 @@ export default function PainPointsSection({ appModeResolverPayload }) {
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
           <p className="mt-0.5 text-sm font-semibold text-text-primary">What&rsquo;s slowing your team down?</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Sort toggle */}
-          <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setSortBy('reactions')}
-              className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'reactions' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
-            >
-              🔥 Top
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortBy('newest')}
-              className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'newest' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
-            >
-              ✨ New
-            </button>
-          </div>
+        {/* Sort toggle */}
+        <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px]">
           <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-[12px] font-medium text-brand hover:bg-brand/20 transition-colors"
+            onClick={() => setSortBy('reactions')}
+            className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'reactions' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
           >
-            {showForm ? 'Cancel' : '+ Submit'}
+            🔥 Top
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('newest')}
+            className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'newest' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
+          >
+            ✨ New
           </button>
         </div>
       </div>
 
       <div className="dashboard-card-body space-y-3">
-        {showForm && (
-          <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
-            <SubmitForm onSubmit={handleSubmit} onCancel={() => setShowForm(false)} />
-          </div>
-        )}
+        {/* Submit form — always visible */}
+        <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
+          <SubmitForm onSubmit={handleSubmit} />
+        </div>
 
         {loading ? (
           <div className="space-y-2">
