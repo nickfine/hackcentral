@@ -165,7 +165,7 @@ function Marketplace({
             Ideas Marketplace
           </p>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Hack Ideas &amp; Teams
+            Teams
           </h1>
           <p className="text-sm font-normal text-gray-700 dark:text-gray-300 max-w-2xl">
             Browse innovative ideas or discover talented free agents to build your dream team.

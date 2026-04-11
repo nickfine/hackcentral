@@ -1423,7 +1423,7 @@ function AdminPanel({
             Branding
           </Tabs.Tab>
           <Tabs.Tab value="idea-summary" icon={<Users className="w-4 h-4" />}>
-            Idea Summary
+            Team Summary
           </Tabs.Tab>
           <Tabs.Tab value="analytics" icon={<Activity className="w-4 h-4" />}>
             Analytics
@@ -1442,10 +1442,10 @@ function AdminPanel({
           </Tabs.Tab>
         </Tabs.List>
 
-        {/* Idea Summary Panel */}
+        {/* Team Summary Panel */}
         <Tabs.Panel value="idea-summary">
           <Card padding="md" className={ADMIN_CARD_CLASS}>
-            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Idea Summary</Card.Title>
+            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Team Summary</Card.Title>
             <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
               At-a-glance view of all ideas/teams and their current viability for this hackday.
             </p>

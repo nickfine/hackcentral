@@ -485,7 +485,7 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
 
   baseItems.push(
     { id: 'new-to-hackday', label: 'New to HackDay?', icon: Sparkles },
-    { id: 'marketplace', label: 'Hack Ideas & Teams', icon: Users },
+    { id: 'marketplace', label: 'Teams', icon: Users },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'rules', label: 'Rules', icon: BookOpen },
   );
