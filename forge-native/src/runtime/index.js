@@ -3843,14 +3843,16 @@ resolver.define("getCurrentUser", async (req) => {
     const existingUser = existingUserByAtlassianId || existingUserByEmail;
 
     if (existingUser) {
-      // User exists - link Atlassian ID if not already linked
-      if (!existingUser.atlassian_account_id) {
+      // User exists - link Atlassian ID and/or backfill email if missing
+      const realEmail = profile?.email ? email : null;
+      const needsUpdate = !existingUser.atlassian_account_id || (!existingUser.email && realEmail);
+      if (needsUpdate) {
+        const updateFields = { updatedAt: new Date().toISOString() };
+        if (!existingUser.atlassian_account_id) updateFields.atlassian_account_id = accountId;
+        if (!existingUser.email && realEmail) updateFields.email = realEmail;
         await supabase
           .from("User")
-          .update({ 
-            atlassian_account_id: accountId,
-            updatedAt: new Date().toISOString()
-          })
+          .update(updateFields)
           .eq("id", existingUser.id);
       }
 
