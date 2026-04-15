@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { cn, DESIGN_SYSTEM_CARD } from '../lib/design-system';
 import { hasCompletedRegistration } from '../lib/registrationState';
-import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import {
   Button,
@@ -29,6 +28,8 @@ import {
 } from './ui';
 import { BackButton } from './shared';
 import { SKILLS } from '../data/constants';
+import DeleteTeamModal from './teamDetail/DeleteTeamModal';
+import PainPointsPanel from './teamDetail/PainPointsPanel';
 
 const CONTENT_HELPERS = {
   goal: 'What are you building? Describe it in one sentence',
@@ -268,12 +269,6 @@ function TeamDetail({
   const [isLeavingTeam, setIsLeavingTeam] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // Pain point assignment state
-  const [teamPainPoints, setTeamPainPoints] = useState([]);
-  const [allPainPoints, setAllPainPoints] = useState([]);
-  const [painPointsLoading, setPainPointsLoading] = useState(false);
-  const [painPointSearch, setPainPointSearch] = useState('');
-  const [painPointStatus, setPainPointStatus] = useState(null);
 
   // TODO(hd26-pass4): Persist team vibe on Team.team_vibe when backend schema support is added.
   const [teamVibe, setTeamVibe] = useState(team?.teamVibe || 'building');
@@ -327,63 +322,6 @@ function TeamDetail({
     setProblemInput(team?.problem || '');
     setMoreInfoText(team?.moreInfo || '');
   }, [team?.id, team?.lookingFor, team?.maxMembers, team?.name, team?.description, team?.problem, team?.moreInfo]);
-
-  // Load pain points for this team + all available pain points
-  useEffect(() => {
-    if (!team?.id || !appModeResolverPayload) return;
-    let cancelled = false;
-    setPainPointsLoading(true);
-    (async () => {
-      try {
-        const { invoke } = await import('@forge/bridge');
-        const [teamResult, allResult] = await Promise.all([
-          invokeEventScopedResolver(invoke, 'getTeamPainPoints', appModeResolverPayload, { teamId: team.id }),
-          invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, { sortBy: 'reactions', limit: 1000 }),
-        ]);
-        if (!cancelled) {
-          setTeamPainPoints(teamResult?.painPoints ?? []);
-          setAllPainPoints(allResult?.painPoints ?? []);
-        }
-      } catch {
-        // silent
-      } finally {
-        if (!cancelled) setPainPointsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [team?.id, appModeResolverPayload]);
-
-  const handleLinkPainPoint = async (painPointId) => {
-    if (!team?.id) return;
-    try {
-      const { invoke } = await import('@forge/bridge');
-      await invokeEventScopedResolver(invoke, 'assignPainPointsToTeam', appModeResolverPayload, {
-        teamId: team.id,
-        eventId: team.eventId || '',
-        painPointIds: [painPointId],
-      });
-      const pp = allPainPoints.find((p) => p._id === painPointId);
-      if (pp) setTeamPainPoints((prev) => [...prev, pp]);
-      setPainPointStatus({ type: 'success', message: 'Pain point linked.' });
-      setTimeout(() => setPainPointStatus(null), 3000);
-    } catch {
-      setPainPointStatus({ type: 'error', message: 'Failed to link pain point.' });
-    }
-  };
-
-  const handleUnlinkPainPoint = async (painPointId) => {
-    if (!team?.id) return;
-    try {
-      const { invoke } = await import('@forge/bridge');
-      await invokeEventScopedResolver(invoke, 'unassignPainPointFromTeam', appModeResolverPayload, {
-        teamId: team.id,
-        painPointId,
-      });
-      setTeamPainPoints((prev) => prev.filter((p) => p._id !== painPointId));
-    } catch {
-      setPainPointStatus({ type: 'error', message: 'Failed to unlink pain point.' });
-    }
-  };
 
   if (!team) {
     return (
@@ -1145,86 +1083,12 @@ function TeamDetail({
             </section>
 
             {/* Pain Points Section */}
-            <section className="px-5 py-4 border-b border-arena-border">
-              <h3 className={SECTION_LABEL_CLASS}>Pain Points</h3>
-              <p className="text-xs text-text-secondary mb-2">Problems this team is tackling.</p>
-
-              {painPointStatus && (
-                <div className={`mb-2 rounded-lg px-3 py-2 text-xs ${painPointStatus.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400'}`}>
-                  {painPointStatus.message}
-                </div>
-              )}
-
-              {/* Linked pain points */}
-              {teamPainPoints.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {teamPainPoints.map((pp) => (
-                    <span key={pp._id} className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 text-xs text-teal-700 dark:text-teal-300">
-                      🔥 {pp.title}
-                      {isCaptain && (
-                        <button
-                          type="button"
-                          onClick={() => handleUnlinkPainPoint(pp._id)}
-                          className="ml-0.5 text-teal-500 hover:text-teal-700 dark:hover:text-teal-200"
-                          aria-label="Remove"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Add pain point (captain only) */}
-              {isCaptain && (
-                <div>
-                  <input
-                    type="text"
-                    value={painPointSearch}
-                    onChange={(e) => setPainPointSearch(e.target.value)}
-                    placeholder="Search pain points to link…"
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 mb-1"
-                  />
-                  {painPointsLoading ? (
-                    <div className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />
-                  ) : painPointSearch ? (
-                    <ul className="max-h-36 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                      {allPainPoints
-                        .filter((pp) => {
-                          const linked = teamPainPoints.some((t) => t._id === pp._id);
-                          const q = painPointSearch.toLowerCase();
-                          return !linked && (pp.title?.toLowerCase().includes(q) || pp.submitterName?.toLowerCase().includes(q));
-                        })
-                        .slice(0, 20)
-                        .map((pp) => (
-                          <li key={pp._id}>
-                            <button
-                              type="button"
-                              onClick={() => { handleLinkPainPoint(pp._id); setPainPointSearch(''); }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm bg-white dark:bg-gray-800 text-text-primary hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-                            >
-                              <span className="flex-1 truncate">{pp.title}</span>
-                              <span className="text-[10px] text-text-secondary">🔥 {pp.reactionCount}</span>
-                            </button>
-                          </li>
-                        ))}
-                      {allPainPoints.filter((pp) => {
-                        const linked = teamPainPoints.some((t) => t._id === pp._id);
-                        const q = painPointSearch.toLowerCase();
-                        return !linked && (pp.title?.toLowerCase().includes(q) || pp.submitterName?.toLowerCase().includes(q));
-                      }).length === 0 && (
-                        <li className="px-3 py-2 text-sm text-text-secondary text-center">No matches</li>
-                      )}
-                    </ul>
-                  ) : null}
-                </div>
-              )}
-
-              {!painPointsLoading && teamPainPoints.length === 0 && !isCaptain && (
-                <p className="text-sm text-text-secondary italic">No pain points linked yet.</p>
-              )}
-            </section>
+            <PainPointsPanel
+              teamId={team?.id}
+              eventId={team?.eventId}
+              isCaptain={isCaptain}
+              appModeResolverPayload={appModeResolverPayload}
+            />
 
             <section className="px-5 py-4">
               <h3 className={SECTION_LABEL_CLASS}>
@@ -1653,53 +1517,19 @@ function TeamDetail({
       </Modal>
 
       {/* Delete Team Modal */}
-      <Modal
+      <DeleteTeamModal
         isOpen={showDeleteModal}
-        onClose={() => {
+        teamName={team.name}
+        confirmText={deleteConfirmText}
+        setConfirmText={setDeleteConfirmText}
+        onConfirm={handleDeleteTeam}
+        onCancel={() => {
           setShowDeleteModal(false);
           setDeleteConfirmText('');
         }}
-        title="Delete Team"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-text-primary">
-            This will permanently delete{' '}
-            <strong className="text-text-primary">{team.name}</strong>
-            , including members, pending requests, invites, and linked project data.
-          </p>
-          <Alert variant="warning">
-            This action cannot be undone.
-          </Alert>
-          <Input
-            label={`Type "${team.name}" to confirm`}
-            value={deleteConfirmText}
-            onChange={(event) => setDeleteConfirmText(event.target.value)}
-            placeholder={team.name}
-          />
-        </div>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            className="border border-gray-300 dark:border-gray-600 rounded-lg"
-            onClick={() => {
-              setShowDeleteModal(false);
-              setDeleteConfirmText('');
-            }}
-            disabled={isDeletingTeam}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleDeleteTeam}
-            loading={isDeletingTeam}
-            disabled={isDeletingTeam || deleteConfirmText !== team.name}
-          >
-            Delete Team
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        isDeletingTeam={isDeletingTeam}
+        teamActionStatus={teamActionStatus}
+      />
 
       {/* Edit Max Team Size Modal */}
       <Modal

@@ -18,13 +18,12 @@ import {
   Vote,
   Star,
   Download,
-  Trash2,
   Upload,
   ImagePlus,
   X,
 } from 'lucide-react';
 import { cn } from '../lib/design-system';
-import { Card, Button, Badge, Input, TextArea, SearchInput, Select, Alert, Tabs, Progress, Modal } from './ui';
+import { Card, Button, Badge, Input, TextArea, Select, Alert, Tabs, Progress, Modal } from './ui';
 import { BackButton } from './shared';
 import { HStack, VStack } from './layout';
 import { EmptyState } from './ui/ErrorState';
@@ -44,20 +43,6 @@ import {
 // ROLE CONFIGURATION
 // ============================================================================
 
-/** Doc: primary accent teal only; no green/amber/red as decoration (roles are not status). */
-const ROLE_CONFIG = {
-  participant: { label: 'Participant', icon: Users, color: 'gray' },
-  ambassador: { label: 'Ambassador', icon: Megaphone, color: 'gray' },
-  judge: { label: 'Judge', icon: Gavel, color: 'gray' },
-  admin: { label: 'Admin', icon: Shield, color: 'teal' },
-};
-
-const MESSAGE_PRIORITY_OPTIONS = [
-  { value: 'info', label: 'Info' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'urgent', label: 'Urgent' },
-];
-
 /** HackDay Design System: section labels (inside cards), doc §4 */
 const ADMIN_SECTION_LABEL =
   'text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase pb-2';
@@ -76,6 +61,9 @@ const ADMIN_METRIC_LABEL = 'text-sm font-normal text-[var(--text-secondary)]';
 const ADMIN_METRIC_NUMBER = 'text-sm font-semibold text-[var(--text-primary)]';
 
 import { normalizeAdminMessage } from '../lib/normalizeAdminMessage';
+import PhasesPanel from './adminPanel/PhasesPanel';
+import UsersPanel from './adminPanel/UsersPanel';
+import MessagingPanel from './adminPanel/MessagingPanel';
 
 const isForgeHost = () => {
   try {
@@ -299,7 +287,6 @@ function AdminPanel({
 }) {
   const configMode = useConfigMode();
   const [activeSection, setActiveSection] = useState('overview');
-  const [userSearch, setUserSearch] = useState('');
   const [settings, setSettings] = useState({
     maxTeamSize: 6,
     maxVotesPerUser: 1,
@@ -358,11 +345,6 @@ function AdminPanel({
     }
     return 'light';
   });
-  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-  const [deleteUserConfirmText, setDeleteUserConfirmText] = useState('');
-  const [isDeletingUser, setIsDeletingUser] = useState(false);
-  const [deleteUserStatus, setDeleteUserStatus] = useState(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState('');
   const brandingBannerImageInputRef = useRef(null);
   const brandingHeroIconInputRef = useRef(null);
@@ -424,18 +406,6 @@ function AdminPanel({
       totalJudgeScores,
     };
   }, [teams, allUsers]);
-
-  // Filter users by search
-  const filteredUsers = useMemo(() => {
-    if (!userSearch) return allUsers;
-    const search = userSearch.toLowerCase();
-    return allUsers.filter(
-      (u) =>
-        u.name?.toLowerCase().includes(search) ||
-        u.email?.toLowerCase().includes(search) ||
-        u.role?.toLowerCase().includes(search)
-    );
-  }, [allUsers, userSearch]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -1109,37 +1079,6 @@ function AdminPanel({
       link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-
-    if (deleteUserConfirmText !== 'DELETE') {
-      setDeleteUserStatus({ type: 'error', message: 'Type DELETE exactly to confirm this action.' });
-      return;
-    }
-
-    setDeleteUserStatus(null);
-    setIsDeletingUser(true);
-
-    try {
-      if (forgeHost) {
-        const { invoke } = await import('@forge/bridge');
-        await invoke('adminDeleteRegistration', { userId: userToDelete.id });
-      }
-
-      setDeleteUserStatus({ type: 'success', message: `User "${userToDelete.name}" has been deleted successfully.` });
-      setShowDeleteUserModal(false);
-      setUserToDelete(null);
-      setDeleteUserConfirmText('');
-
-      // Refresh users list
-      await onRefreshUsers?.();
-    } catch (err) {
-      setDeleteUserStatus({ type: 'error', message: err?.message || 'Failed to delete user registration.' });
-    } finally {
-      setIsDeletingUser(false);
     }
   };
 
@@ -2116,248 +2055,30 @@ function AdminPanel({
 
         {/* Phases Panel */}
         <Tabs.Panel value="phases">
-          <Card padding="md" className={ADMIN_CARD_CLASS}>
-            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event Phases</Card.Title>
-            <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-              Move the event forward deliberately. Phase updates apply to all participants immediately.
-            </p>
-            <Alert variant="warning" className="mb-4">
-              Changing the event phase affects all participants. Make sure you're ready before proceeding.
-            </Alert>
-            
-            <VStack gap="3">
-              {EVENT_PHASE_ORDER.map((phaseKey, index) => {
-                const phase = EVENT_PHASES[phaseKey];
-                const isCurrent = eventPhase === phaseKey;
-                const isPast = EVENT_PHASE_ORDER.indexOf(eventPhase) > index;
-                
-                return (
-                  <button
-                    key={phaseKey}
-                    onClick={() => handlePhaseChange(phaseKey)}
-                    className={cn(
-                      'w-full flex items-center gap-4 p-5 rounded-lg border transition-all text-left',
-                      isCurrent
-                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] border-[var(--accent)]'
-                        : isPast
-                          ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
-                          : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-10 h-10 rounded-full flex items-center justify-center font-bold text-base',
-                      isCurrent
-                        ? 'bg-[var(--accent)] text-[var(--accent-on)]'
-                        : isPast
-                          ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                    )}>
-                      {isPast ? '✓' : index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className={cn(
-                        'font-bold',
-                        isCurrent ? 'text-[var(--accent)]' : 'text-gray-900 dark:text-white'
-                      )}>
-                        {phase.label}
-                      </p>
-                      <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{phase.description}</p>
-                    </div>
-                    {isCurrent && (
-                      <Badge className="!bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] !text-[var(--accent)] border-0">Current</Badge>
-                    )}
-                  </button>
-                );
-              })}
-            </VStack>
-          </Card>
+          <PhasesPanel eventPhase={eventPhase} onPhaseChange={handlePhaseChange} />
         </Tabs.Panel>
 
         {/* Users Panel */}
         <Tabs.Panel value="users">
-          <Card padding="md" className={ADMIN_CARD_CLASS}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <div>
-                <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-1">User Management</Card.Title>
-                <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300">
-                  Search by name, email, or role, then update user permissions.
-                </p>
-              </div>
-              <SearchInput
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                onClear={() => setUserSearch('')}
-                placeholder="Search users..."
-                className="w-full sm:w-72"
-              />
-            </div>
-            
-            {filteredUsers.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className={cn('text-left py-3 px-4', ADMIN_SECTION_LABEL)}>Name</th>
-                      <th className={cn('text-left py-3 px-4', ADMIN_SECTION_LABEL)}>Email</th>
-                      <th className={cn('text-left py-3 px-4', ADMIN_SECTION_LABEL)}>Role</th>
-                      <th className={cn('text-right py-3 px-4', ADMIN_SECTION_LABEL)}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.slice(0, 20).map((u) => (
-                      <tr key={u.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-800/50">
-                        <td className="py-4 px-4 text-base font-semibold text-gray-900 dark:text-white">{u.name}</td>
-                        <td className="py-4 px-4 text-sm sm:text-base text-gray-700 dark:text-gray-300">{u.email}</td>
-                        <td className="py-4 px-4">
-                          <Badge variant="default" size="sm" className="capitalize">
-                            {u.role}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <Select
-                              value={u.role}
-                              onChange={(newRole) => onUpdateUserRole?.(u.id, newRole)}
-                              options={Object.entries(ROLE_CONFIG).map(([key, config]) => ({
-                                value: key,
-                                label: config.label,
-                              }))}
-                              size="sm"
-                              className="w-32"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setUserToDelete(u);
-                                setShowDeleteUserModal(true);
-                                setDeleteUserConfirmText('');
-                                setDeleteUserStatus(null);
-                              }}
-                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              aria-label="Delete user"
-                              title="Delete user registration"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filteredUsers.length > 20 && (
-                  <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center py-4">
-                    Showing 20 of {filteredUsers.length} users. Use search to filter.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <EmptyState
-                icon={Users}
-                title="No Users Found"
-                message={userSearch ? 'Try a different search term' : 'No users registered yet'}
-                compact
-              />
-            )}
-          </Card>
+          <UsersPanel
+            allUsers={allUsers}
+            onUpdateUserRole={onUpdateUserRole}
+            onRefreshUsers={onRefreshUsers}
+            forgeHost={forgeHost}
+          />
         </Tabs.Panel>
 
         {/* Messaging Panel */}
         <Tabs.Panel value="messaging">
-          <Card padding="md" className={ADMIN_CARD_CLASS}>
-            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Participant Messaging</Card.Title>
-            <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
-              Publish an admin message to show in a dedicated dashboard pod for all participants.
-            </p>
-
-            {settingsError && (
-              <Alert variant="warning" className="mb-4">
-                {settingsError}
-              </Alert>
-            )}
-
-            {messagingStatus && (
-              <Alert variant={messagingStatus.type} className="mb-4">
-                {messagingStatus.message}
-              </Alert>
-            )}
-
-            <VStack gap="5">
-              <Input
-                label="Message Title"
-                value={motdMessage.title}
-                onChange={(e) => setMotdMessage((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Optional short title..."
-                helperText="Shown as the heading in the participant message panel."
-                disabled={isSavingMotd || isLoadingSettings}
-              />
-
-              <Select
-                label="Priority"
-                value={motdMessage.priority}
-                onChange={(value) => setMotdMessage((prev) => ({ ...prev, priority: value || 'info' }))}
-                options={MESSAGE_PRIORITY_OPTIONS}
-                disabled={isSavingMotd || isLoadingSettings}
-              />
-
-              <TextArea
-                label="Message of the Day"
-                value={motdMessage.message}
-                onChange={(e) => setMotdMessage((prev) => ({ ...prev, message: e.target.value }))}
-                placeholder="Share updates, reminders, or announcements for all participants..."
-                helperText="This appears in a dashboard message pod only when a message is set."
-                rows={4}
-                disabled={isSavingMotd || isLoadingSettings}
-              />
-
-              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <span>Leave blank and save to hide the message pod.</span>
-                <span className={motdMessage.message.length > 500 ? 'text-error font-semibold' : ''}>
-                  {motdMessage.message.length}/500
-                </span>
-              </div>
-
-              {motdMessage.message.trim() && (
-                <div className="p-5 rounded-xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className={ADMIN_SECTION_LABEL}>
-                      Preview
-                    </p>
-                    <Badge
-                      variant={
-                        motdMessage.priority === 'urgent'
-                          ? 'error'
-                          : motdMessage.priority === 'warning'
-                            ? 'warning'
-                            : 'default'
-                      }
-                    >
-                      {(motdMessage.priority || 'info').toUpperCase()}
-                    </Badge>
-                  </div>
-                  {(motdMessage.title || '').trim() && (
-                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">{motdMessage.title.trim()}</p>
-                  )}
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{motdMessage.message.trim()}</p>
-                  {(motdMessage.updatedAt || motdMessage.updatedBy) && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Last update: {motdMessage.updatedBy || 'Admin'}
-                      {motdMessage.updatedAt ? ` • ${new Date(motdMessage.updatedAt).toLocaleString()}` : ''}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <Button
-                className={cn('mt-2', ADMIN_PRIMARY_BUTTON)}
-                onClick={handleSaveMessaging}
-                loading={isSavingMotd}
-                disabled={isLoadingSettings || motdMessage.message.length > 500 || motdMessage.title.length > 80}
-              >
-                {isSavingMotd ? 'Saving...' : 'Save Message'}
-              </Button>
-            </VStack>
-          </Card>
+          <MessagingPanel
+            motdMessage={motdMessage}
+            setMotdMessage={setMotdMessage}
+            settingsError={settingsError}
+            messagingStatus={messagingStatus}
+            isSavingMotd={isSavingMotd}
+            isLoadingSettings={isLoadingSettings}
+            onSave={handleSaveMessaging}
+          />
         </Tabs.Panel>
 
         {/* Settings Panel */}
@@ -2996,74 +2717,6 @@ function AdminPanel({
           </Tabs.Panel>
       </Tabs>
 
-      {/* Delete User Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteUserModal}
-        onClose={() => {
-          setShowDeleteUserModal(false);
-          setUserToDelete(null);
-          setDeleteUserConfirmText('');
-          setDeleteUserStatus(null);
-        }}
-        title="Delete User Registration"
-        size="md"
-      >
-        <div className="space-y-4">
-          {deleteUserStatus && (
-            <Alert variant={deleteUserStatus.type === 'error' ? 'error' : 'success'}>
-              {deleteUserStatus.message}
-            </Alert>
-          )}
-
-          <p className="text-sm text-text-primary">
-            This will permanently delete the registration for{' '}
-            <strong className="text-text-primary">{userToDelete?.name}</strong>
-            {' '}({userToDelete?.email}) and remove them from:
-          </p>
-
-          <ul className="text-sm text-text-primary list-disc list-inside space-y-1 ml-2">
-            <li>All team memberships and pending join requests</li>
-            <li>All notifications</li>
-            <li>Team captain roles (if applicable)</li>
-            <li>Judge scores and votes (if applicable)</li>
-          </ul>
-
-          <Alert variant="error">
-            This action cannot be undone. The user will need to re-register to participate.
-          </Alert>
-
-          <Input
-            label='Type "DELETE" to confirm'
-            value={deleteUserConfirmText}
-            onChange={(e) => setDeleteUserConfirmText(e.target.value)}
-            placeholder="DELETE"
-          />
-        </div>
-
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            className="border border-[var(--border-default)] rounded-lg"
-            onClick={() => {
-              setShowDeleteUserModal(false);
-              setUserToDelete(null);
-              setDeleteUserConfirmText('');
-              setDeleteUserStatus(null);
-            }}
-            disabled={isDeletingUser}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleDeleteUser}
-            loading={isDeletingUser}
-            disabled={isDeletingUser || deleteUserConfirmText !== 'DELETE'}
-          >
-            Delete User
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 }
