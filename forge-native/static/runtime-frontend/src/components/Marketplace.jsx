@@ -3,7 +3,7 @@
  * Browse and manage Ideas (teams) and Free Agents
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Users,
   Plus,
@@ -13,7 +13,9 @@ import {
   User,
   Grid3x3,
   Rows,
+  Flame,
 } from 'lucide-react';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { cn, getSkillClasses, DESIGN_SYSTEM_CARD } from '../lib/design-system';
 import { SKILLS } from '../data/constants';
 import {
@@ -34,6 +36,67 @@ import {
 import { HStack, VStack } from './layout';
 import { BackButton, StatusBanner, TeamCard } from './shared';
 
+const PAIN_ITEMS_PER_PAGE = 10;
+const ESTIMATE_LABEL = { low: 'Low', med: 'Med', medium: 'Med', high: 'High' };
+
+function PainPointRow({ pp, onReact }) {
+  const [reacting, setReacting] = useState(false);
+  const [localCount, setLocalCount] = useState(pp.reactionCount);
+  const [reacted, setReacted] = useState(pp.hasReacted ?? false);
+
+  const handleReact = async () => {
+    if (reacting || reacted) return;
+    setReacting(true);
+    setLocalCount((c) => c + 1);
+    setReacted(true);
+    try {
+      await onReact(pp._id);
+    } catch {
+      setLocalCount((c) => c - 1);
+      setReacted(false);
+    } finally {
+      setReacting(false);
+    }
+  };
+
+  return (
+    <li className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{pp.title}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-gray-500 dark:text-gray-400">{pp.submitterName}</span>
+          {pp.effortEstimate && (
+            <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+              Effort: {ESTIMATE_LABEL[pp.effortEstimate]}
+            </span>
+          )}
+          {pp.impactEstimate && (
+            <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+              Impact: {ESTIMATE_LABEL[pp.impactEstimate]}
+            </span>
+          )}
+        </div>
+        {pp.description && (
+          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">{pp.description}</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={handleReact}
+        disabled={reacting || reacted}
+        className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed ${
+          reacted
+            ? 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-400'
+            : 'border-gray-200 dark:border-gray-600 text-gray-500 hover:border-teal-500/40 hover:text-gray-700 dark:hover:text-gray-300'
+        }`}
+      >
+        <span>🔥</span>
+        <span className="tabular-nums">{localCount}</span>
+      </button>
+    </li>
+  );
+}
+
 function Marketplace({
   user,
   teams = [],
@@ -45,6 +108,7 @@ function Marketplace({
   maxTeamSize = 5,
   userInvites = [],
   isLoading = false,
+  appModeResolverPayload,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -59,6 +123,55 @@ function Marketplace({
     lookingFor: [],
     maxMembers: maxTeamSize,
   });
+
+  // Pain points state
+  const [painPoints, setPainPoints] = useState([]);
+  const [painPointsLoading, setPainPointsLoading] = useState(false);
+  const [painSearch, setPainSearch] = useState('');
+  const [painPage, setPainPage] = useState(1);
+  const [painSort, setPainSort] = useState('reactions');
+
+  useEffect(() => {
+    if (activeTab !== 'pains') return;
+    let cancelled = false;
+    setPainPointsLoading(true);
+    (async () => {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
+          sortBy: painSort,
+          limit: 1000,
+        });
+        if (!cancelled) setPainPoints(result?.painPoints ?? []);
+      } catch {
+        if (!cancelled) setPainPoints([]);
+      } finally {
+        if (!cancelled) setPainPointsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, painSort, appModeResolverPayload]);
+
+  const handlePainReact = async (painPointId) => {
+    const { invoke } = await import('@forge/bridge');
+    await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
+  };
+
+  const filteredPainPoints = useMemo(() => {
+    const q = painSearch.toLowerCase();
+    return painPoints.filter(
+      (pp) =>
+        pp.title?.toLowerCase().includes(q) ||
+        pp.submitterName?.toLowerCase().includes(q) ||
+        pp.description?.toLowerCase().includes(q)
+    );
+  }, [painPoints, painSearch]);
+
+  const painTotalPages = Math.ceil(filteredPainPoints.length / PAIN_ITEMS_PER_PAGE);
+  const paginatedPainPoints = useMemo(() => {
+    const start = (painPage - 1) * PAIN_ITEMS_PER_PAGE;
+    return filteredPainPoints.slice(start, start + PAIN_ITEMS_PER_PAGE);
+  }, [filteredPainPoints, painPage]);
 
   const itemsPerPage = 12;
 
@@ -289,13 +402,16 @@ function Marketplace({
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onChange={setActiveTab} variant="teal" className="mb-6">
+      <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); setPainPage(1); }} variant="teal" className="mb-6">
         <Tabs.List>
           <Tabs.Tab value="teams" count={filteredTeams.length}>
-            Ideas
+            Teams
           </Tabs.Tab>
           <Tabs.Tab value="agents" count={filteredAgents.length}>
             Free Agents
+          </Tabs.Tab>
+          <Tabs.Tab value="pains" count={painPoints.length || undefined}>
+            Pains
           </Tabs.Tab>
         </Tabs.List>
 
@@ -369,6 +485,87 @@ function Marketplace({
               }}
               actionText={userTeam ? 'View My Idea' : 'Create Idea'}
             />
+          )}
+        </Tabs.Panel>
+
+        <Tabs.Panel value="pains">
+          {/* Search + sort bar */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <SearchInput
+                value={painSearch}
+                onChange={(e) => { setPainSearch(e.target.value); setPainPage(1); }}
+                onClear={() => { setPainSearch(''); setPainPage(1); }}
+                placeholder="Search pain points..."
+                inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                leftIconClassName="text-gray-400"
+              />
+            </div>
+            <div className="flex rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-0.5 text-[11px] self-start">
+              <button
+                type="button"
+                onClick={() => { setPainSort('reactions'); setPainPage(1); }}
+                className={`rounded-full px-3 py-1 transition-colors ${painSort === 'reactions' ? 'bg-teal-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                🔥 Top
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPainSort('newest'); setPainPage(1); }}
+                className={`rounded-full px-3 py-1 transition-colors ${painSort === 'newest' ? 'bg-teal-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                ✨ New
+              </button>
+            </div>
+          </div>
+
+          {painPointsLoading ? (
+            <div className="space-y-2">
+              {[1,2,3,4,5].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700" />
+              ))}
+            </div>
+          ) : filteredPainPoints.length === 0 ? (
+            <EmptyState
+              icon={Flame}
+              title="No Pain Points Found"
+              message={painSearch ? 'Try a different search term' : 'No pain points have been submitted yet.'}
+            />
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {paginatedPainPoints.map((pp) => (
+                  <PainPointRow key={pp._id} pp={pp} onReact={handlePainReact} />
+                ))}
+              </ul>
+              {painTotalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg"
+                    onClick={() => setPainPage((p) => Math.max(1, p - 1))}
+                    disabled={painPage === 1}
+                    leftIcon={<ChevronLeft className="w-4 h-4" />}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Page {painPage} of {painTotalPages}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg"
+                    onClick={() => setPainPage((p) => Math.min(painTotalPages, p + 1))}
+                    disabled={painPage === painTotalPages}
+                    rightIcon={<ChevronRight className="w-4 h-4" />}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Tabs.Panel>
 

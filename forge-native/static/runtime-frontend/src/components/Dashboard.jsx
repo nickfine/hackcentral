@@ -1179,7 +1179,7 @@ function Dashboard({
         </section>
       )}
 
-      <PainPointsSection appModeResolverPayload={appModeResolverPayload} />
+      <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-testid="dashboard-below-fold">
         <div className="lg:col-span-3" data-testid="dashboard-live-activity">

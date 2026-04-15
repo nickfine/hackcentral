@@ -257,6 +257,17 @@ export const CONTENT_REGISTRY = [
     helpText: 'Second line under the hero title.',
   },
   {
+    key: 'dashboard.painPoints.title',
+    page: 'dashboard',
+    section: 'painPoints',
+    fieldType: CONFIG_FIELD_TYPES.TEXT,
+    sourceKind: CONFIG_SOURCE_KINDS.CONTENT_OVERRIDE,
+    editablePhase: 1,
+    maxLength: 100,
+    label: 'Pain Points Question',
+    helpText: 'The question shown above the pain points submission form.',
+  },
+  {
     key: 'rules.header.title',
     page: 'rules',
     section: 'header',

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
+import EditableText from '../configMode/EditableText';
 
 const ESTIMATE_LABEL = { low: 'Low', med: 'Med', medium: 'Med', high: 'High' };
 
@@ -182,10 +183,11 @@ function SubmitForm({ onSubmit }) {
 }
 
 // ─── Main section ─────────────────────────────────────────────────────────────
-export default function PainPointsSection({ appModeResolverPayload }) {
+export default function PainPointsSection({ appModeResolverPayload, onNavigate }) {
   const [painPoints, setPainPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('reactions');
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -195,7 +197,7 @@ export default function PainPointsSection({ appModeResolverPayload }) {
         invoke,
         'getPainPoints',
         appModeResolverPayload,
-        { sortBy, limit: 10 }
+        { sortBy, limit: 5 }
       );
       setPainPoints(result?.painPoints ?? []);
     } catch {
@@ -224,8 +226,13 @@ export default function PainPointsSection({ appModeResolverPayload }) {
       className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm"
     >
       <div className="dashboard-card-header">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
-        <p className="mt-1 text-xl font-bold text-text-primary">What would you fix at work if you had the time?</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Pain points</p>
+        <EditableText
+          contentKey="dashboard.painPoints.title"
+          fallback="What would you fix at work if you had the time?"
+          as="p"
+          className="mt-1 text-xl font-bold text-text-primary"
+        />
       </div>
 
       <div className="dashboard-card-body">
@@ -265,11 +272,22 @@ export default function PainPointsSection({ appModeResolverPayload }) {
                 No pain points yet — be the first to submit one!
               </p>
             ) : (
-              <ul className="space-y-2">
-                {painPoints.map((pp) => (
-                  <PainPointRow key={pp._id} pp={pp} onReact={handleReact} />
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2">
+                  {painPoints.map((pp) => (
+                    <PainPointRow key={pp._id} pp={pp} onReact={handleReact} />
+                  ))}
+                </ul>
+                {onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('marketplace', { tab: 'pains' })}
+                    className="mt-1 text-[11px] text-brand hover:underline self-start"
+                  >
+                    See all pain points →
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
