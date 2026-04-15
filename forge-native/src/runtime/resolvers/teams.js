@@ -41,17 +41,20 @@ resolver.define("getTeams", async (req) => {
 
   try {
     const startedAt = Date.now();
-    const { data: teams, error: teamsError } = await supabase
-      .from("Team")
-      .select("id, eventId, name, description, lookingFor, maxSize, createdAt")
-      .eq("eventId", event.id)
-      // Include legacy rows where isPublic was never set (null)
-      .or("isPublic.eq.true,isPublic.is.null")
-      .order("createdAt", { ascending: false });
+    const [teamsQueryResult, notViableIdeas] = await Promise.all([
+      supabase
+        .from("Team")
+        .select("id, eventId, name, description, lookingFor, maxSize, createdAt")
+        .eq("eventId", event.id)
+        // Include legacy rows where isPublic was never set (null)
+        .or("isPublic.eq.true,isPublic.is.null")
+        .order("createdAt", { ascending: false }),
+      getStoredNotViableIdeas(event.id),
+    ]);
 
+    const { data: teams, error: teamsError } = teamsQueryResult;
     if (teamsError) throw teamsError;
     const teamRows = teams || [];
-    const notViableIdeas = await getStoredNotViableIdeas(event.id);
     const filteredTeamRows = teamRows.filter((team) => !notViableIdeas[team.id]);
     if (filteredTeamRows.length === 0) {
       return { teams: [] };
@@ -124,13 +127,12 @@ resolver.define("getTeams", async (req) => {
         projectByTeam.get(team.id) ? submissionLinksByProjectId.get(projectByTeam.get(team.id).id) : null
       )
     );
-    const teamsWithDetails = await Promise.all(
-      baseTeams.map((team) => hydrateTeamDetailFields(team))
-    );
 
+    // problem/moreInfo are only needed in TeamDetail (getTeam), not the list view.
+    // Skipping hydrateTeamDetailFields here removes N storage.get() calls from the hot path.
     logDebug(`[getTeams] event=${event.id} rows=${teamRows.length} ms=${Date.now() - startedAt}`);
 
-    return { teams: teamsWithDetails };
+    return { teams: baseTeams };
   } catch (error) {
     console.error("getTeams error:", error);
     throw new Error(`Failed to get teams: ${error.message}`);
@@ -371,35 +373,21 @@ resolver.define("getTeam", async (req) => {
   const supabase = getSupabaseClient();
 
   try {
-    // Fetch team
-    const { data: teamData, error: teamError } = await supabase
-      .from("Team")
-      .select("*")
-      .eq("id", teamId)
-      .limit(1);
+    // Fetch team, members, and project in parallel
+    const [teamResult, membersResult, projectResult] = await Promise.all([
+      supabase.from("Team").select("*").eq("id", teamId).limit(1),
+      supabase.from("TeamMember").select(`*, user:User(*)`).eq("teamId", teamId),
+      supabase.from("Project").select("*").eq("teamId", teamId).limit(1),
+    ]);
 
+    const { data: teamData, error: teamError } = teamResult;
     const team = teamData?.[0];
     if (teamError || !team) {
       throw new Error("Team not found");
     }
 
-    // Fetch all team members (including pending requests)
-    const { data: members } = await supabase
-      .from("TeamMember")
-      .select(`
-        *,
-        user:User(*)
-      `)
-      .eq("teamId", teamId);
-
-    // Fetch project
-    const { data: project } = await supabase
-      .from("Project")
-      .select("*")
-      .eq("teamId", teamId)
-      .limit(1);
-
-    const projectRow = project?.[0];
+    const members = membersResult.data;
+    const projectRow = projectResult.data?.[0];
     let submissionLinkRow = null;
     if (projectRow?.id) {
       try {

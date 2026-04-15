@@ -1667,6 +1667,7 @@ export async function resolveInstanceContext(
       pageId: null,
       eventId: null,
       event: null,
+      seed: null,
       setupRequired: false,
       runtimeSource: "missing_page_context",
     };
@@ -1680,6 +1681,7 @@ export async function resolveInstanceContext(
         pageId,
         eventId: pageMappedEvent.id || null,
         event: pageMappedEvent,
+        seed: null,
         setupRequired: false,
         runtimeSource: "event_page_mapping",
       };
@@ -1689,6 +1691,7 @@ export async function resolveInstanceContext(
       pageId,
       eventId: null,
       event: null,
+      seed: null,
       setupRequired: false,
       runtimeSource: "unmapped_page",
     };
@@ -1758,6 +1761,7 @@ export async function resolveInstanceContext(
       pageId,
       eventId: null,
       event: null,
+      seed,
       setupRequired: true,
       runtimeSource: "seed_pending_bootstrap",
     };
@@ -1773,6 +1777,7 @@ export async function resolveInstanceContext(
     pageId,
     eventId: event?.id || null,
     event: event || null,
+    seed,
     setupRequired: !event,
     runtimeSource,
   };
@@ -1833,6 +1838,11 @@ export async function getCurrentEventContext(
   req,
   { allowBootstrapWrites = !HDC_PERF_RUNTIME_BOOTSTRAP_V2 } = {}
 ) {
+  // Reuse pre-resolved context from bootstrap to avoid redundant lookups.
+  if (req._bootstrapContext) {
+    return req._bootstrapContext;
+  }
+
   try {
     if (isAppModeRequest(req)) {
       // 1) Always resolve trusted Confluence page context first.

@@ -395,7 +395,7 @@ export async function buildEventBackupScope({
   const eventAdmins = await selectByEqFieldCandidates(
     supabase,
     'EventAdmin',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );
@@ -403,7 +403,7 @@ export async function buildEventBackupScope({
   const eventSyncState = await selectByEqFieldCandidates(
     supabase,
     'EventSyncState',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );
@@ -411,7 +411,7 @@ export async function buildEventBackupScope({
   const milestones = await selectByEqFieldCandidates(
     supabase,
     'Milestone',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );
@@ -419,7 +419,7 @@ export async function buildEventBackupScope({
   const projects = await selectByEqFieldCandidates(
     supabase,
     'Project',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );
@@ -427,14 +427,14 @@ export async function buildEventBackupScope({
   const teams = await selectByEqFieldCandidates(
     supabase,
     'Team',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );
 
   const teamIds = dedupeValues([
     ...teams.rows.map((row) => readFirstValue(row, ['id'])),
-    ...projects.rows.map((row) => readFirstValue(row, ['team_id', 'teamId'])),
+    ...projects.rows.map((row) => readFirstValue(row, ['teamId', 'team_id'])),
   ]);
 
   const projectIds = dedupeValues(projects.rows.map((row) => readFirstValue(row, ['id'])));
@@ -442,7 +442,7 @@ export async function buildEventBackupScope({
   const teamMembers = await selectByInFieldCandidates(
     supabase,
     'TeamMember',
-    ['team_id', 'teamId'],
+    ['teamId', 'team_id'],
     teamIds,
     warnings
   );
@@ -450,7 +450,7 @@ export async function buildEventBackupScope({
   const registrations = await selectByEqFieldCandidates(
     supabase,
     'EventRegistration',
-    ['event_id', 'eventId'],
+    ['eventId', 'event_id'],
     eventId,
     warnings
   );

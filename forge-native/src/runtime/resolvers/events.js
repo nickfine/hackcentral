@@ -33,6 +33,7 @@ import {
   getStoredEventConfigDraft,
   getRuntimeActorPermissionContext,
   resolveRuntimeEventAdminAccess,
+  resolveConfigModeAccess,
   buildConfigModeStateResponse,
   checkAndSendFreeAgentReminders,
   autoAssignFreeAgentsToObservers,
@@ -86,12 +87,6 @@ resolver.define("getEventPhase", async (req) => {
     };
   }
 
-  const storedMotd = await getStoredEventMotd(event.id);
-  const fallbackMotd = normalizeMotdMessage(event.motd || "");
-  const hasStoredMotd = storedMotd !== undefined;
-  const effectiveMotd = hasStoredMotd
-    ? storedMotd
-    : (fallbackMotd.message ? fallbackMotd : null);
   const eventName =
     (typeof event.name === "string" && event.name.trim()) ||
     (typeof event.title === "string" && event.title.trim()) ||
@@ -119,7 +114,28 @@ resolver.define("getEventPhase", async (req) => {
       ? event.event_branding
       : {};
   const pageId = instanceContext?.pageId || getConfluencePageId(req);
-  let seed = pageId ? await getTemplateSeedByPageId(supabase, pageId) : null;
+  const accountId = req.context?.accountId;
+
+  // Fetch storage/DB reads that are independent of each other in parallel.
+  const [storedMotd, seed, accessContextResult, contentOverrides, configDraft] = await Promise.all([
+    getStoredEventMotd(event.id),
+    'seed' in (instanceContext || {}) ? Promise.resolve(instanceContext.seed) : (pageId ? getTemplateSeedByPageId(supabase, pageId) : Promise.resolve(null)),
+    accountId
+      ? getRuntimeActorPermissionContext(supabase, accountId, { logScope: "getEventPhase" }).catch((err) => {
+          logDebug("[getEventPhase] access lookup failed:", err.message);
+          return null;
+        })
+      : Promise.resolve(null),
+    getStoredEventContentOverrides(event.id),
+    getStoredEventConfigDraft(event.id),
+  ]);
+
+  const fallbackMotd = normalizeMotdMessage(event.motd || "");
+  const hasStoredMotd = storedMotd !== undefined;
+  const effectiveMotd = hasStoredMotd
+    ? storedMotd
+    : (fallbackMotd.message ? fallbackMotd : null);
+
   const isCreatedHackDay = Boolean(
     seed ||
     (typeof event.runtime_type === "string" && event.runtime_type.trim().toLowerCase() === "hackday_template")
@@ -141,21 +157,17 @@ resolver.define("getEventPhase", async (req) => {
   let isEventAdmin = false;
   let isPlatformAdmin = false;
   try {
-    const accountId = req.context?.accountId;
-    if (accountId) {
-      const accessContext = await getRuntimeActorPermissionContext(supabase, accountId, {
-        logScope: "getEventPhase",
-      });
-      isPlatformAdmin = accessContext.isPlatformAdmin;
+    if (accountId && accessContextResult) {
+      isPlatformAdmin = accessContextResult.isPlatformAdmin;
       // Platform admins automatically have event admin access
       if (isPlatformAdmin) {
         isEventAdmin = true;
       } else {
         const eventAdminAccess = await resolveRuntimeEventAdminAccess(supabase, {
           eventId: event.id,
-          userRow: accessContext.userRow,
+          userRow: accessContextResult.userRow,
           seed,
-          email: accessContext.email,
+          email: accessContextResult.email,
           logScope: "getEventPhase",
         });
         isEventAdmin = eventAdminAccess.isEventAdmin;
@@ -164,9 +176,6 @@ resolver.define("getEventPhase", async (req) => {
   } catch (err) {
     logDebug("[getEventPhase] access lookup failed:", err.message);
   }
-
-  const contentOverrides = await getStoredEventContentOverrides(event.id);
-  const configDraft = await getStoredEventConfigDraft(event.id);
 
   return {
     phase: PHASE_MAP[event.phase] || "signup",
@@ -582,13 +591,33 @@ resolver.define("getAnalytics", async (req) => {
       throw new Error("No current event found");
     }
 
-    // Get signups by date
-    const { data: users, error: usersError } = await supabase
-      .from("User")
-      .select("createdAt")
-      .order("createdAt", { ascending: true });
+    // Run all independent queries in parallel
+    const [
+      usersResult,
+      teamsResult,
+      allUsersResult,
+      teamMembersResult,
+      votesResult,
+      projectsResult,
+    ] = await Promise.all([
+      supabase.from("User").select("createdAt").order("createdAt", { ascending: true }),
+      supabase.from("Team").select("createdAt").eq("eventId", event.id).eq("isPublic", true).order("createdAt", { ascending: true }),
+      supabase.from("User").select("role"),
+      supabase.from("TeamMember").select("userId").eq("status", "ACCEPTED"),
+      supabase.from("Vote").select("userId"),
+      supabase.from("Project").select("teamId").not("submittedAt", "is", null),
+    ]);
 
-    if (usersError) throw usersError;
+    if (usersResult.error) throw usersResult.error;
+    if (teamsResult.error) throw teamsResult.error;
+    if (allUsersResult.error) throw allUsersResult.error;
+
+    const users = usersResult.data;
+    const teams = teamsResult.data;
+    const allUsers = allUsersResult.data;
+    const teamMembers = teamMembersResult.data;
+    const votes = votesResult.data;
+    const projects = projectsResult.data;
 
     const signupsByDate = {};
     (users || []).forEach(user => {
@@ -596,28 +625,11 @@ resolver.define("getAnalytics", async (req) => {
       signupsByDate[date] = (signupsByDate[date] || 0) + 1;
     });
 
-    // Get teams created by date
-    const { data: teams, error: teamsError } = await supabase
-      .from("Team")
-      .select("createdAt")
-      .eq("eventId", event.id)
-      .eq("isPublic", true)
-      .order("createdAt", { ascending: true });
-
-    if (teamsError) throw teamsError;
-
     const teamsByDate = {};
     (teams || []).forEach(team => {
       const date = new Date(team.createdAt).toISOString().split('T')[0];
       teamsByDate[date] = (teamsByDate[date] || 0) + 1;
     });
-
-    // Get participation by role
-    const { data: allUsers, error: allUsersError } = await supabase
-      .from("User")
-      .select("role");
-
-    if (allUsersError) throw allUsersError;
 
     const participationByRole = {};
     (allUsers || []).forEach(user => {
@@ -625,26 +637,10 @@ resolver.define("getAnalytics", async (req) => {
       participationByRole[appRole] = (participationByRole[appRole] || 0) + 1;
     });
 
-    // Get user engagement metrics
-    const { data: teamMembers } = await supabase
-      .from("TeamMember")
-      .select("userId")
-      .eq("status", "ACCEPTED");
-
-    const { data: votes } = await supabase
-      .from("Vote")
-      .select("userId");
-
-    const { data: projects } = await supabase
-      .from("Project")
-      .select("teamId")
-      .not("submittedAt", "is", null);
-
-    const { data: teamsWithProjects } = await supabase
-      .from("TeamMember")
-      .select("userId")
-      .in("teamId", (projects || []).map(p => p.teamId))
-      .eq("status", "ACCEPTED");
+    const projectTeamIds = (projects || []).map(p => p.teamId);
+    const { data: teamsWithProjects } = projectTeamIds.length > 0
+      ? await supabase.from("TeamMember").select("userId").in("teamId", projectTeamIds).eq("status", "ACCEPTED")
+      : { data: [] };
 
     const uniqueVoters = new Set((votes || []).map(v => v.userId));
     const uniqueTeamMembers = new Set((teamMembers || []).map(m => m.userId));

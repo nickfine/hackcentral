@@ -41,59 +41,32 @@ resolver.define("getCurrentUser", async (req) => {
     throw new Error("No accountId in Forge context");
   }
 
-  // Fetch profile from Confluence API
-  const profile = await fetchUserProfile(accountId);
-  const email = profile?.email || `${accountId}@atlassian.local`;
-  const displayName = profile?.displayName || email.split("@")[0];
-
   const supabase = getSupabaseClient();
-  const event = await getCurrentEvent(supabase, req);
+
+  // Fire event lookup + user-by-atlassian-id in parallel (both independent, both fast).
+  const [event, { data: existingUserByAtlassianIdData }] = await Promise.all([
+    getCurrentEvent(supabase, req),
+    supabase.from("User").select("*").eq("atlassian_account_id", accountId).limit(1),
+  ]);
 
   try {
-    // Try to find user by Atlassian ID or email
-    const { data: existingUserByAtlassianIdData } = await supabase
-      .from("User")
-      .select("*")
-      .eq("atlassian_account_id", accountId)
-      .limit(1);
-
-    const { data: existingUserByEmailData } = await supabase
-      .from("User")
-      .select("*")
-      .eq("email", email)
-      .limit(1);
-
     const existingUserByAtlassianId = existingUserByAtlassianIdData?.[0];
-    const existingUserByEmail = existingUserByEmailData?.[0];
 
-    const existingUser = existingUserByAtlassianId || existingUserByEmail;
-
-    if (existingUser) {
-      // User exists - link Atlassian ID and/or backfill email if missing
-      const realEmail = profile?.email ? email : null;
-      const needsUpdate = !existingUser.atlassian_account_id || (!existingUser.email && realEmail);
-      if (needsUpdate) {
-        const updateFields = { updatedAt: new Date().toISOString() };
-        if (!existingUser.atlassian_account_id) updateFields.atlassian_account_id = accountId;
-        if (!existingUser.email && realEmail) updateFields.email = realEmail;
-        await supabase
-          .from("User")
-          .update(updateFields)
-          .eq("id", existingUser.id);
-      }
+    // Fast path: user found with complete profile — skip Confluence API entirely.
+    if (existingUserByAtlassianId?.email && existingUserByAtlassianId?.name) {
+      const existingUser = existingUserByAtlassianId;
+      const email = existingUser.email;
+      const displayName = existingUser.name;
 
       // Ensure user is registered for current event
       if (event) {
         const { data: registrationData } = await supabase
           .from("EventRegistration")
-          .select("*")
+          .select("id")
           .eq("eventId", event.id)
           .eq("userId", existingUser.id)
           .limit(1);
-
-        const registration = registrationData?.[0];
-
-        if (!registration) {
+        if (!registrationData?.[0]) {
           await supabase.from("EventRegistration").insert({
             id: makeId("reg"),
             eventId: event.id,
@@ -103,11 +76,100 @@ resolver.define("getCurrentUser", async (req) => {
       }
 
       const user = transformUser(existingUser);
-      // User is "new" if they haven't set their name (or name is just email prefix)
-      const isNewUser = !existingUser.name || 
+      const isNewUser = !existingUser.skills;
+      const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
+      return {
+        ...user,
+        isHackdayOwner,
+        ownerDisplayTitle: isHackdayOwner ? HACKDAY_OWNER_TITLE : null,
+        isNewUser,
+      };
+    }
+
+    // Slow path: need Confluence API for missing email/name or to find user by email.
+    const profile = await fetchUserProfile(accountId);
+    const email = profile?.email || `${accountId}@atlassian.local`;
+    const displayName = profile?.displayName || email.split("@")[0];
+
+    // If found by atlassian_id but missing email/name, backfill and return.
+    if (existingUserByAtlassianId) {
+      const realEmail = profile?.email ? email : null;
+      const needsUpdate = !existingUserByAtlassianId.email && realEmail;
+      if (needsUpdate) {
+        await supabase
+          .from("User")
+          .update({ email: realEmail, updatedAt: new Date().toISOString() })
+          .eq("id", existingUserByAtlassianId.id);
+      }
+
+      if (event) {
+        const { data: registrationData } = await supabase
+          .from("EventRegistration")
+          .select("id")
+          .eq("eventId", event.id)
+          .eq("userId", existingUserByAtlassianId.id)
+          .limit(1);
+        if (!registrationData?.[0]) {
+          await supabase.from("EventRegistration").insert({
+            id: makeId("reg"),
+            eventId: event.id,
+            userId: existingUserByAtlassianId.id,
+          });
+        }
+      }
+
+      const user = transformUser(existingUserByAtlassianId);
+      const isNewUser = !existingUserByAtlassianId.name ||
+                        existingUserByAtlassianId.name === email.split("@")[0] ||
+                        !existingUserByAtlassianId.skills;
+      const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
+      return {
+        ...user,
+        isHackdayOwner,
+        ownerDisplayTitle: isHackdayOwner ? HACKDAY_OWNER_TITLE : null,
+        isNewUser,
+      };
+    }
+
+    // Not found by atlassian_id — try email lookup.
+    const { data: existingUserByEmailData } = await supabase
+      .from("User")
+      .select("*")
+      .eq("email", email)
+      .limit(1);
+
+    const existingUser = existingUserByEmailData?.[0];
+
+    if (existingUser) {
+      // User exists - link Atlassian ID and/or backfill email if missing
+      const updateFields = { atlassian_account_id: accountId, updatedAt: new Date().toISOString() };
+      if (!existingUser.email && profile?.email) updateFields.email = email;
+      await supabase
+        .from("User")
+        .update(updateFields)
+        .eq("id", existingUser.id);
+
+      // Ensure user is registered for current event
+      if (event) {
+        const { data: registrationData } = await supabase
+          .from("EventRegistration")
+          .select("id")
+          .eq("eventId", event.id)
+          .eq("userId", existingUser.id)
+          .limit(1);
+        if (!registrationData?.[0]) {
+          await supabase.from("EventRegistration").insert({
+            id: makeId("reg"),
+            eventId: event.id,
+            userId: existingUser.id,
+          });
+        }
+      }
+
+      const user = transformUser(existingUser);
+      const isNewUser = !existingUser.name ||
                         existingUser.name === email.split("@")[0] ||
                         !existingUser.skills;
-      
       const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
       return {
         ...user,

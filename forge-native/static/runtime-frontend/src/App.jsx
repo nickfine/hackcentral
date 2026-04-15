@@ -479,14 +479,12 @@ function App() {
 
         const bootstrapAppModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
         if (bootstrapAppModePageId) {
-          setLoadingStage('Preparing page context...');
+          // Fire-and-forget: save context for future requests.
+          // Bootstrap already has pageId in its payload, so this doesn't block it.
           const activationStartedAt = Date.now();
-          try {
-            await invoke('activateAppModeContext', { pageId: bootstrapAppModePageId });
-          } catch (activationError) {
-            console.warn('Failed to activate app-mode context:', activationError);
-          }
-          markStage('activate_context', activationStartedAt);
+          invoke('activateAppModeContext', { pageId: bootstrapAppModePageId })
+            .catch((err) => console.warn('Failed to activate app-mode context:', err))
+            .finally(() => markStage('activate_context', activationStartedAt));
         }
 
         const bootstrapAppModeResolverPayload = buildAppModeResolverPayload(bootstrapAppModePageId);

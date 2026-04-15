@@ -41,6 +41,8 @@ resolver.define("getRuntimeBootstrap", async (req) => {
         allowBootstrapWrites: true,
       });
       markStage("context_bootstrap", contextBootstrapStartedAt);
+      // Share resolved context with child resolvers to avoid 5x redundant lookups.
+      req._bootstrapContext = bootstrapContext;
     }
 
     const runStage = async (functionKey, stageName) => {
