@@ -225,7 +225,7 @@ export default function PainPointsSection({ appModeResolverPayload }) {
     >
       <div className="dashboard-card-header">
         <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Pain points</p>
-        <p className="mt-0.5 text-sm font-semibold text-text-primary">What would you fix at work if you had the time?</p>
+        <p className="mt-1 text-xl font-bold text-text-primary">What would you fix at work if you had the time?</p>
       </div>
 
       <div className="dashboard-card-body">
