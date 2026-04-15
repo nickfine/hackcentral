@@ -280,9 +280,33 @@ function Marketplace({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Teams
           </h1>
-          <p className="text-sm font-normal text-gray-700 dark:text-gray-300 max-w-2xl">
+          <p className="text-sm font-normal text-gray-700 dark:text-gray-300 max-w-2xl mb-4">
             Browse innovative ideas or discover talented free agents to build your dream team.
           </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={!!userTeam}
+              className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => {
+                setCreateTeamStatus(null);
+                setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
+                setShowCreateTeamModal(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Create Team
+            </button>
+            {userTeam?.id && (
+              <Button
+                variant="secondary"
+                className="border border-gray-300 dark:border-gray-600 rounded-lg"
+                onClick={() => onNavigate('team-detail', { teamId: userTeam.id })}
+              >
+                View My Team
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -325,78 +349,44 @@ function Marketplace({
           />
         </div>
 
-        <HStack gap="2">
-          {/* View Mode Toggle */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2 rounded-lg transition-colors',
-                viewMode === 'grid'
-                  ? 'bg-teal-500/10 text-teal-500'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              )}
-              aria-label="Grid view"
-              aria-pressed={viewMode === 'grid'}
-            >
-              <Grid3x3 className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('row')}
-              className={cn(
-                'p-2 rounded-lg transition-colors',
-                viewMode === 'row'
-                  ? 'bg-teal-500/10 text-teal-500'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              )}
-              aria-label="List view"
-              aria-pressed={viewMode === 'row'}
-            >
-              <Rows className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Always-visible idea actions */}
-          <HStack gap="2" className="flex-wrap">
-            <button
-              type="button"
-              disabled={!!userTeam}
-              className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ borderRadius: '0.5rem' }}
-              onClick={() => {
-                setCreateTeamStatus(null);
-                setNewTeam({
-                  name: '',
-                  description: '',
-                  lookingFor: [],
-                  maxMembers: maxTeamSize,
-                });
-                setShowCreateTeamModal(true);
-              }}
-            >
-              <Plus className="w-4 h-4" />
-              Create Idea
-            </button>
-            {userTeam?.id && (
-              <Button
-                variant="secondary"
-                className="border border-gray-300 dark:border-gray-600 rounded-lg"
-                onClick={() => onNavigate('team-detail', { teamId: userTeam.id })}
-              >
-                View My Idea
-              </Button>
+        {/* View Mode Toggle */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              viewMode === 'grid'
+                ? 'bg-teal-500/10 text-teal-500'
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
             )}
-          </HStack>
-        </HStack>
+            aria-label="Grid view"
+            aria-pressed={viewMode === 'grid'}
+          >
+            <Grid3x3 className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('row')}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              viewMode === 'row'
+                ? 'bg-teal-500/10 text-teal-500'
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+            )}
+            aria-label="List view"
+            aria-pressed={viewMode === 'row'}
+          >
+            <Rows className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {userTeam && (
         <Alert variant="info" className="mb-6">
-          You already have an active idea/team for this event. Open it with
+          You already have an active team for this event. Open it with
           {' '}
-          <strong>View My Idea</strong>
+          <strong>View My Team</strong>
           .
         </Alert>
       )}
@@ -483,7 +473,7 @@ function Marketplace({
                 }
                 setShowCreateTeamModal(true);
               }}
-              actionText={userTeam ? 'View My Idea' : 'Create Idea'}
+              actionText={userTeam ? 'View My Team' : 'Create Team'}
             />
           )}
         </Tabs.Panel>
@@ -623,7 +613,7 @@ function Marketplace({
       <Modal
         isOpen={showCreateTeamModal}
         onClose={() => setShowCreateTeamModal(false)}
-        title="Create New Idea"
+        title="Create New Team"
         description="Share your idea and find teammates"
         size="lg"
         panelClassName={DESIGN_SYSTEM_CARD}
@@ -720,7 +710,7 @@ function Marketplace({
             loading={isCreatingTeam}
             disabled={!newTeam.name.trim()}
           >
-            Create Idea
+            Create Team
           </Button>
         </Modal.Footer>
       </Modal>
