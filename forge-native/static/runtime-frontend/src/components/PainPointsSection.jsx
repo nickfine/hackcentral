@@ -228,47 +228,51 @@ export default function PainPointsSection({ appModeResolverPayload }) {
         <p className="mt-0.5 text-sm font-semibold text-text-primary">What would you fix at work if you had the time?</p>
       </div>
 
-      <div className="dashboard-card-body space-y-3">
-        {/* Submit form — always visible */}
-        <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
-          <SubmitForm onSubmit={handleSubmit} />
-        </div>
-
-        {/* Sort toggle */}
-        <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px] self-start w-fit">
-          <button
-            type="button"
-            onClick={() => setSortBy('reactions')}
-            className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'reactions' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            🔥 Top
-          </button>
-          <button
-            type="button"
-            onClick={() => setSortBy('newest')}
-            className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'newest' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            ✨ New
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 animate-pulse rounded-lg bg-arena-elevated" />
-            ))}
+      <div className="dashboard-card-body">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Left — Submit form */}
+          <div className="rounded-lg border border-arena-border bg-arena-elevated p-3">
+            <SubmitForm onSubmit={handleSubmit} />
           </div>
-        ) : painPoints.length === 0 ? (
-          <p className="py-4 text-center text-sm text-text-muted">
-            No pain points yet — be the first to submit one!
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {painPoints.map((pp) => (
-              <PainPointRow key={pp._id} pp={pp} onReact={handleReact} />
-            ))}
-          </ul>
-        )}
+
+          {/* Right — Sort toggle + list */}
+          <div className="flex flex-col gap-2">
+            <div className="flex rounded-full border border-arena-border bg-arena-bg p-0.5 text-[11px] self-start w-fit">
+              <button
+                type="button"
+                onClick={() => setSortBy('reactions')}
+                className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'reactions' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
+              >
+                🔥 Top
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy('newest')}
+                className={`rounded-full px-2.5 py-0.5 transition-colors ${sortBy === 'newest' ? 'bg-brand text-white' : 'text-text-muted hover:text-text-primary'}`}
+              >
+                ✨ New
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 animate-pulse rounded-lg bg-arena-elevated" />
+                ))}
+              </div>
+            ) : painPoints.length === 0 ? (
+              <p className="py-4 text-center text-sm text-text-muted">
+                No pain points yet — be the first to submit one!
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {painPoints.map((pp) => (
+                  <PainPointRow key={pp._id} pp={pp} onReact={handleReact} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );
