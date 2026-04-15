@@ -21,6 +21,10 @@ dist-ssr
 .convex/
 convex/_generated/
 
+# Supabase
+supabase/.temp/
+forge-native/supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
