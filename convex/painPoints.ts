@@ -301,6 +301,29 @@ export const listForPainPoint = query({
   },
 });
 
+/** Batch fetch team links for multiple pain points in a single query. */
+export const listForPainPoints = query({
+  args: { painPointIds: v.array(v.id("painPoints")) },
+  handler: async (ctx, { painPointIds }) => {
+    const allLinks = await Promise.all(
+      painPointIds.map((id) =>
+        ctx.db
+          .query("teamPainPoints")
+          .withIndex("by_pain_point", (q) => q.eq("painPointId", id))
+          .collect()
+      )
+    );
+    const grouped: Record<string, Array<{ teamId: string; eventId: string }>> = {};
+    for (let i = 0; i < painPointIds.length; i++) {
+      grouped[painPointIds[i]] = allLinks[i].map((l) => ({
+        teamId: l.teamId,
+        eventId: l.eventId,
+      }));
+    }
+    return grouped;
+  },
+});
+
 export const listForTeam = query({
   args: { teamId: v.string() },
   handler: async (ctx, { teamId }) => {

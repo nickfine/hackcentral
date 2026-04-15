@@ -1640,28 +1640,43 @@ function App() {
     setEventThemePreference(null);
   }, []);
 
+  const commonProps = useMemo(() => ({
+    user: effectiveUser,
+    teams,
+    onNavigate: handleNavigate,
+    onTrackEvent: handleTrackEvent,
+    onSubmitProject: handleSubmitProject,
+    eventPhase: effectiveEventPhase,
+    realEventPhase: eventPhase,
+    maxVotesPerUser,
+    maxTeamSize,
+    eventMotd,
+    eventAdminMessage: effectiveEventAdminMessage,
+    eventMeta,
+    eventPageId,
+    appModeResolverPayload,
+    eventBranding: effectiveEventBranding,
+    isEventAdmin,
+    onRefreshEventPhase: refreshEventPhase,
+    viewParams,
+    useAdaptavistLogo,
+  }), [effectiveUser, teams, handleNavigate, handleTrackEvent, handleSubmitProject,
+    effectiveEventPhase, eventPhase, maxVotesPerUser, maxTeamSize, eventMotd,
+    effectiveEventAdminMessage, eventMeta, eventPageId, appModeResolverPayload,
+    effectiveEventBranding, isEventAdmin, refreshEventPhase, viewParams, useAdaptavistLogo]);
+
+  const handleUpdateUserRole = useCallback(async (userId, newRole) => {
+    if (devMode) return;
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invoke('adminUpdateUserRole', { targetUserId: userId, role: newRole });
+      refreshRegistrations();
+    } catch (err) {
+      console.error('Failed to update user role:', err);
+    }
+  }, [devMode, refreshRegistrations]);
+
   const renderView = () => {
-    const commonProps = {
-      user: effectiveUser,
-      teams,
-      onNavigate: handleNavigate,
-      onTrackEvent: handleTrackEvent,
-      onSubmitProject: handleSubmitProject,
-      eventPhase: effectiveEventPhase,
-      realEventPhase: eventPhase,
-      maxVotesPerUser,
-      maxTeamSize,
-      eventMotd,
-      eventAdminMessage: effectiveEventAdminMessage,
-      eventMeta,
-      eventPageId,
-      appModeResolverPayload,
-      eventBranding: effectiveEventBranding,
-      isEventAdmin,
-      onRefreshEventPhase: refreshEventPhase,
-      viewParams,
-      useAdaptavistLogo,
-    };
 
     switch (currentView) {
       case 'dashboard':
@@ -1726,16 +1741,7 @@ function App() {
             onBrandingSaved={handleAdminBrandingSaved}
             allUsers={allUsers}
             onRefreshUsers={refreshRegistrations}
-            onUpdateUserRole={async (userId, newRole) => {
-              if (devMode) return;
-              try {
-                const { invoke } = await import('@forge/bridge');
-                await invoke('adminUpdateUserRole', { targetUserId: userId, role: newRole });
-                refreshRegistrations();
-              } catch (err) {
-                console.error('Failed to update user role:', err);
-              }
-            }}
+            onUpdateUserRole={handleUpdateUserRole}
           />
         );
 

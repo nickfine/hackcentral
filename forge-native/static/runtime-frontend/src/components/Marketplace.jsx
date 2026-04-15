@@ -34,78 +34,9 @@ import {
   Alert,
 } from './ui';
 import { HStack, VStack } from './layout';
-import { BackButton, StatusBanner, TeamCard } from './shared';
+import { BackButton, StatusBanner, TeamCard, PainPointRow } from './shared';
 
 const PAIN_ITEMS_PER_PAGE = 10;
-const ESTIMATE_LABEL = { low: 'Low', med: 'Med', medium: 'Med', high: 'High' };
-
-function PainPointRow({ pp, onReact }) {
-  const [reacting, setReacting] = useState(false);
-  const [localCount, setLocalCount] = useState(pp.reactionCount);
-  const [reacted, setReacted] = useState(pp.hasReacted ?? false);
-
-  const handleReact = async () => {
-    if (reacting || reacted) return;
-    setReacting(true);
-    setLocalCount((c) => c + 1);
-    setReacted(true);
-    try {
-      await onReact(pp._id);
-    } catch {
-      setLocalCount((c) => c - 1);
-      setReacted(false);
-    } finally {
-      setReacting(false);
-    }
-  };
-
-  return (
-    <li className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{pp.title}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-gray-500 dark:text-gray-400">{pp.submitterName}</span>
-          {pp.effortEstimate && (
-            <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
-              Effort: {ESTIMATE_LABEL[pp.effortEstimate]}
-            </span>
-          )}
-          {pp.impactEstimate && (
-            <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-600 px-2 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
-              Impact: {ESTIMATE_LABEL[pp.impactEstimate]}
-            </span>
-          )}
-        </div>
-        {pp.description && (
-          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">{pp.description}</p>
-        )}
-        {pp.claimingTeams && pp.claimingTeams.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1">
-            <span className="text-[10px] text-gray-400">Claimed by:</span>
-            {pp.claimingTeams.map((t) => (
-              <span key={t.id} className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 px-2 py-0.5 text-[10px] text-teal-700 dark:text-teal-300">
-                {t.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={handleReact}
-        disabled={reacting || reacted}
-        className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed ${
-          reacted
-            ? 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-400'
-            : 'border-gray-200 dark:border-gray-600 text-gray-500 hover:border-teal-500/40 hover:text-gray-700 dark:hover:text-gray-300'
-        }`}
-      >
-        <span>🔥</span>
-        <span className="tabular-nums">{localCount}</span>
-      </button>
-    </li>
-  );
-}
 
 function Marketplace({
   user,
@@ -190,10 +121,10 @@ function Marketplace({
     return () => { cancelled = true; };
   }, [showCreateTeamModal, appModeResolverPayload]);
 
-  const handlePainReact = async (painPointId) => {
+  const handlePainReact = useCallback(async (painPointId) => {
     const { invoke } = await import('@forge/bridge');
     await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
-  };
+  }, [appModeResolverPayload]);
 
   const filteredPainPoints = useMemo(() => {
     const q = painSearch.toLowerCase();
@@ -212,11 +143,6 @@ function Marketplace({
   }, [filteredPainPoints, painPage]);
 
   const itemsPerPage = 12;
-
-  // Show skeleton while loading
-  if (isLoading) {
-    return <MarketplaceSkeleton />;
-  }
 
   // Find user's team
   const userTeam = useMemo(() => {
@@ -261,6 +187,11 @@ function Marketplace({
           ))
     );
   }, [freeAgents, searchTerm, user?.id]);
+
+  // Show skeleton while loading (after all hooks)
+  if (isLoading) {
+    return <MarketplaceSkeleton />;
+  }
 
   const handleCreateTeam = async () => {
     if (!newTeam.name.trim()) return;

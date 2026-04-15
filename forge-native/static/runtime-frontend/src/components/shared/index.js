@@ -8,3 +8,4 @@ export { default as FreeAgentReminderBanner } from './FreeAgentReminderBanner';
 export { default as UserBadge, UserList } from './UserBadge';
 export { default as MotdBanner } from './MotdBanner';
 export { default as NotificationCenter } from './NotificationCenter';
+export { default as PainPointRow, ESTIMATE_LABEL } from './PainPointRow';

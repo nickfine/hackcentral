@@ -565,7 +565,6 @@ function TeamDetail({
     try {
       await onDeleteTeam(team.id);
       setShowDeleteModal(false);
-      setShowCaptainActionMenu(false);
       setDeleteConfirmText('');
       onNavigate('marketplace', { tab: 'teams' });
     } catch (error) {

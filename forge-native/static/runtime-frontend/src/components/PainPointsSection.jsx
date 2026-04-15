@@ -6,69 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import EditableText from '../configMode/EditableText';
-
-const ESTIMATE_LABEL = { low: 'Low', med: 'Med', medium: 'Med', high: 'High' };
-
-// ─── Pill badge ───────────────────────────────────────────────────────────────
-function Pill({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-arena-border bg-arena-bg px-2 py-0.5 text-[10px] text-text-muted">
-      {children}
-    </span>
-  );
-}
-
-// ─── Single pain point row ────────────────────────────────────────────────────
-function PainPointRow({ pp, onReact }) {
-  const [reacting, setReacting] = useState(false);
-  const [localCount, setLocalCount] = useState(pp.reactionCount);
-  const [reacted, setReacted] = useState(pp.hasReacted ?? false);
-
-  const handleReact = async () => {
-    if (reacting || reacted) return;
-    setReacting(true);
-    setLocalCount((c) => c + 1);
-    setReacted(true);
-    try {
-      await onReact(pp._id);
-    } catch {
-      setLocalCount((c) => c - 1);
-      setReacted(false);
-    } finally {
-      setReacting(false);
-    }
-  };
-
-  return (
-    <li className="flex items-start justify-between gap-3 rounded-lg border border-arena-border bg-arena-elevated px-3 py-2.5">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-primary">{pp.title}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-text-muted">{pp.submitterName}</span>
-          {pp.effortEstimate && <Pill>Effort: {ESTIMATE_LABEL[pp.effortEstimate]}</Pill>}
-          {pp.impactEstimate && <Pill>Impact: {ESTIMATE_LABEL[pp.impactEstimate]}</Pill>}
-        </div>
-        {pp.description && (
-          <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-text-muted">{pp.description}</p>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={handleReact}
-        disabled={reacting || reacted}
-        className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed ${
-          reacted
-            ? 'border-brand/40 bg-brand/10 text-brand'
-            : 'border-arena-border bg-arena-bg text-text-secondary hover:border-brand/40 hover:text-text-primary'
-        }`}
-        aria-label={reacted ? 'Already reacted' : 'React to this pain point'}
-      >
-        <span>🔥</span>
-        <span className="tabular-nums">{localCount}</span>
-      </button>
-    </li>
-  );
-}
+import { PainPointRow } from './shared';
 
 // ─── Submit form ──────────────────────────────────────────────────────────────
 function SubmitForm({ onSubmit }) {
