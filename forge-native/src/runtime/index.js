@@ -3606,6 +3606,7 @@ function transformTeam(team, members, project, submissionLink = null) {
 
   return {
     id: team.id,
+    eventId: team.eventId || "",
     name: team.name,
     description: team.description || "",
     problem: typeof teamProblem === "string" ? teamProblem : "",
@@ -4969,7 +4970,7 @@ resolver.define("createTeam", async (req) => {
     // Update user to not be free agent
     await supabase.from("User").update({ isFreeAgent: false }).eq("id", user.id);
 
-    return { teamId };
+    return { teamId, eventId: event.id };
   } catch (error) {
     console.error("createTeam error:", error);
     throw new Error(`Failed to create team: ${error.message}`);
@@ -9168,13 +9169,46 @@ async function convexMutation(path, args) {
 }
 
 resolver.define("getPainPoints", async (req) => {
-  const { sortBy = "reactions", limit = 10 } = req.payload || {};
+  const { sortBy = "reactions", limit = 10, includeTeams = false } = req.payload || {};
   const accountId = req.context?.accountId || null;
   try {
     const args = { sortBy, limit };
     if (accountId) args.reactorId = accountId;
     const painPoints = await convexQuery("painPoints:list", args);
-    return { painPoints: painPoints ?? [] };
+    const list = painPoints ?? [];
+
+    if (!includeTeams || list.length === 0) return { painPoints: list };
+
+    // Enrich each pain point with the teams that claimed it
+    const teamLinks = await Promise.all(
+      list.map((pp) => convexQuery("painPoints:listForPainPoint", { painPointId: pp._id }))
+    );
+
+    // Collect all unique teamIds and fetch names from Supabase
+    const allTeamIds = [...new Set(teamLinks.flat().map((l) => l.teamId))];
+    let teamNameMap = {};
+    if (allTeamIds.length > 0) {
+      try {
+        const { data: teamRows } = await supabase
+          .from("Team")
+          .select("id,name")
+          .in("id", allTeamIds);
+        if (teamRows) {
+          teamRows.forEach((t) => { teamNameMap[t.id] = t.name; });
+        }
+      } catch {
+        // non-fatal
+      }
+    }
+
+    const enriched = list.map((pp, i) => ({
+      ...pp,
+      claimingTeams: (teamLinks[i] ?? []).map((l) => ({
+        id: l.teamId,
+        name: teamNameMap[l.teamId] || l.teamId,
+      })),
+    }));
+    return { painPoints: enriched };
   } catch (err) {
     console.error("getPainPoints error:", err);
     return { painPoints: [] };
@@ -9207,6 +9241,46 @@ resolver.define("reactToPainPoint", async (req) => {
   } catch (err) {
     console.error("reactToPainPoint error:", err);
     return { ok: false };
+  }
+});
+
+resolver.define("assignPainPointsToTeam", async (req) => {
+  const { teamId, eventId = '', painPointIds = [] } = req.payload || {};
+  if (!teamId) return { ok: false };
+  try {
+    await Promise.all(
+      painPointIds.map((painPointId) =>
+        convexMutation("painPoints:linkToTeam", { teamId, eventId, painPointId })
+      )
+    );
+    return { ok: true };
+  } catch (err) {
+    console.error("assignPainPointsToTeam error:", err);
+    return { ok: false };
+  }
+});
+
+resolver.define("unassignPainPointFromTeam", async (req) => {
+  const { teamId, painPointId } = req.payload || {};
+  if (!teamId || !painPointId) return { ok: false };
+  try {
+    await convexMutation("painPoints:unlinkFromTeam", { teamId, painPointId });
+    return { ok: true };
+  } catch (err) {
+    console.error("unassignPainPointFromTeam error:", err);
+    return { ok: false };
+  }
+});
+
+resolver.define("getTeamPainPoints", async (req) => {
+  const { teamId } = req.payload || {};
+  if (!teamId) return { painPoints: [] };
+  try {
+    const painPoints = await convexQuery("painPoints:listForTeam", { teamId });
+    return { painPoints: painPoints ?? [] };
+  } catch (err) {
+    console.error("getTeamPainPoints error:", err);
+    return { painPoints: [] };
   }
 });
 

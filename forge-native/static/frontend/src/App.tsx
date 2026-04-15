@@ -5342,17 +5342,15 @@ export function App(): JSX.Element {
 
   if (loading) {
     return (
-      <main className="state-shell state-shell-home-loading">
-        <section className="page-stack state-page-stack">
-          <WelcomeHero
-            onSubmitHack={() => undefined}
-            onBrowseFeaturedHacks={() => undefined}
-            onRequestMentor={() => undefined}
-            signal={{ kind: 'loading' }}
-            ctaDisabled
-          />
-          <section className="state-card">Loading HackDay Central...</section>
-        </section>
+      <main className="state-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg, #f8f7f4)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
+            <circle cx="20" cy="20" r="17" stroke="#e5e7eb" strokeWidth="4" />
+            <path d="M20 3a17 17 0 0 1 17 17" stroke="#14b8a6" strokeWidth="4" strokeLinecap="round" />
+          </svg>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <p style={{ fontSize: '14px', color: '#6b7280', fontFamily: 'inherit', margin: 0 }}>Loading…</p>
+        </div>
       </main>
     );
   }

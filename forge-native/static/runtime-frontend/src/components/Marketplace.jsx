@@ -79,6 +79,16 @@ function PainPointRow({ pp, onReact }) {
         {pp.description && (
           <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">{pp.description}</p>
         )}
+        {pp.claimingTeams && pp.claimingTeams.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            <span className="text-[10px] text-gray-400">Claimed by:</span>
+            {pp.claimingTeams.map((t) => (
+              <span key={t.id} className="inline-flex items-center rounded-full bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 px-2 py-0.5 text-[10px] text-teal-700 dark:text-teal-300">
+                {t.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <button
         type="button"
@@ -123,6 +133,10 @@ function Marketplace({
     lookingFor: [],
     maxMembers: maxTeamSize,
   });
+  const [selectedPainPointIds, setSelectedPainPointIds] = useState([]);
+  const [modalPainSearch, setModalPainSearch] = useState('');
+  const [modalPainPoints, setModalPainPoints] = useState([]);
+  const [modalPainsLoading, setModalPainsLoading] = useState(false);
 
   // Pain points state
   const [painPoints, setPainPoints] = useState([]);
@@ -131,6 +145,7 @@ function Marketplace({
   const [painPage, setPainPage] = useState(1);
   const [painSort, setPainSort] = useState('reactions');
 
+  // Load pain points for Pains tab
   useEffect(() => {
     if (activeTab !== 'pains') return;
     let cancelled = false;
@@ -141,6 +156,7 @@ function Marketplace({
         const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
           sortBy: painSort,
           limit: 1000,
+          includeTeams: true,
         });
         if (!cancelled) setPainPoints(result?.painPoints ?? []);
       } catch {
@@ -151,6 +167,28 @@ function Marketplace({
     })();
     return () => { cancelled = true; };
   }, [activeTab, painSort, appModeResolverPayload]);
+
+  // Load pain points for Create Team modal
+  useEffect(() => {
+    if (!showCreateTeamModal) return;
+    let cancelled = false;
+    setModalPainsLoading(true);
+    (async () => {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
+          sortBy: 'reactions',
+          limit: 1000,
+        });
+        if (!cancelled) setModalPainPoints(result?.painPoints ?? []);
+      } catch {
+        if (!cancelled) setModalPainPoints([]);
+      } finally {
+        if (!cancelled) setModalPainsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showCreateTeamModal, appModeResolverPayload]);
 
   const handlePainReact = async (painPointId) => {
     const { invoke } = await import('@forge/bridge');
@@ -233,25 +271,38 @@ function Marketplace({
       const createResult = await onCreateTeam?.(newTeam);
       const createdTeamId = createResult?.teamId || null;
       const createdTeamName = newTeam.name.trim();
+      const createdEventId = createResult?.eventId || null;
+
+      // Assign selected pain points to the newly created team
+      if (createdTeamId && selectedPainPointIds.length > 0) {
+        try {
+          const { invoke } = await import('@forge/bridge');
+          await invokeEventScopedResolver(invoke, 'assignPainPointsToTeam', appModeResolverPayload, {
+            teamId: createdTeamId,
+            eventId: createdEventId || '',
+            painPointIds: selectedPainPointIds,
+          });
+        } catch {
+          // non-fatal — team was created, pain point linking failed silently
+        }
+      }
+
       setShowCreateTeamModal(false);
-      setNewTeam({
-        name: '',
-        description: '',
-        lookingFor: [],
-        maxMembers: maxTeamSize,
-      });
+      setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
+      setSelectedPainPointIds([]);
+      setModalPainSearch('');
       if (createdTeamId) {
         onNavigate('team-detail', { teamId: createdTeamId });
       } else {
         setCreateTeamStatus({
           type: 'success',
-          message: `Idea "${createdTeamName}" created successfully.`,
+          message: `Team "${createdTeamName}" created successfully.`,
         });
       }
     } catch (error) {
       const message = error instanceof Error
         ? error.message
-        : 'Failed to create idea. Please try again.';
+        : 'Failed to create team. Please try again.';
       setCreateTeamStatus({
         type: 'error',
         message,
@@ -291,6 +342,8 @@ function Marketplace({
               onClick={() => {
                 setCreateTeamStatus(null);
                 setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
+                setSelectedPainPointIds([]);
+                setModalPainSearch('');
                 setShowCreateTeamModal(true);
               }}
             >
@@ -694,6 +747,87 @@ function Marketplace({
               return { value: String(size), label: `${size} members` };
             })}
           />
+
+          {/* Pain point selector */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Pain Points <span className="text-xs font-normal text-gray-400">(optional)</span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Link existing pain points that your team plans to tackle.
+            </p>
+            {selectedPainPointIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedPainPointIds.map((id) => {
+                  const pp = modalPainPoints.find((p) => p._id === id);
+                  return pp ? (
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 text-xs text-teal-700 dark:text-teal-300">
+                      {pp.title}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPainPointIds((prev) => prev.filter((x) => x !== id))}
+                        className="ml-0.5 text-teal-500 hover:text-teal-700 dark:hover:text-teal-200"
+                        aria-label="Remove"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+            <input
+              type="text"
+              value={modalPainSearch}
+              onChange={(e) => setModalPainSearch(e.target.value)}
+              placeholder="Search pain points…"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 mb-1.5"
+            />
+            {modalPainsLoading ? (
+              <div className="space-y-1">
+                {[1, 2, 3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />)}
+              </div>
+            ) : (
+              <ul className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                {modalPainPoints
+                  .filter((pp) => {
+                    const q = modalPainSearch.toLowerCase();
+                    return !q || pp.title?.toLowerCase().includes(q) || pp.submitterName?.toLowerCase().includes(q);
+                  })
+                  .slice(0, 50)
+                  .map((pp) => {
+                    const isSelected = selectedPainPointIds.includes(pp._id);
+                    return (
+                      <li key={pp._id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPainPointIds((prev) =>
+                            isSelected ? prev.filter((x) => x !== pp._id) : [...prev, pp._id]
+                          )}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
+                            isSelected
+                              ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
+                          )}
+                        >
+                          <span className={cn('flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px]',
+                            isSelected ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300 dark:border-gray-600'
+                          )}>
+                            {isSelected && '✓'}
+                          </span>
+                          <span className="flex-1 truncate">{pp.title}</span>
+                          <span className="flex-shrink-0 text-[10px] text-gray-400">🔥 {pp.reactionCount}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                {modalPainPoints.length === 0 && (
+                  <li className="px-3 py-3 text-sm text-gray-400 text-center">No pain points yet</li>
+                )}
+              </ul>
+            )}
+          </div>
         </VStack>
 
         <Modal.Footer>

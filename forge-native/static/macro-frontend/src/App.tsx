@@ -1302,7 +1302,18 @@ export function App(): JSX.Element {
   }, []);
 
   if (loading) {
-    return <main className="shell">Loading HackDay Central macro…</main>;
+    return (
+      <main className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
+            <circle cx="20" cy="20" r="17" stroke="#e5e7eb" strokeWidth="4" />
+            <path d="M20 3a17 17 0 0 1 17 17" stroke="#14b8a6" strokeWidth="4" strokeLinecap="round" />
+          </svg>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Loading…</p>
+        </div>
+      </main>
+    );
   }
 
   if (!context) {

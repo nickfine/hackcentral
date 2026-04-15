@@ -1768,6 +1768,7 @@ function App() {
             onRequestResponse={handleRequestResponse}
             onLeaveTeam={handleLeaveTeam}
             eventPhase={effectiveEventPhase}
+            appModeResolverPayload={appModeResolverPayload}
           />
         );
 

@@ -260,14 +260,6 @@ export const linkToTeam = mutation({
     painPointId: v.id("painPoints"),
   },
   handler: async (ctx, { teamId, eventId, painPointId }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Must be logged in");
-
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
-      .first();
-
     const existing = await ctx.db
       .query("teamPainPoints")
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
@@ -279,7 +271,6 @@ export const linkToTeam = mutation({
       teamId,
       eventId,
       painPointId,
-      assignedByUserId: profile?._id,
     });
   },
 });
@@ -290,15 +281,23 @@ export const unlinkFromTeam = mutation({
     painPointId: v.id("painPoints"),
   },
   handler: async (ctx, { teamId, painPointId }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Must be logged in");
-
     const link = await ctx.db
       .query("teamPainPoints")
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .filter((q) => q.eq(q.field("painPointId"), painPointId))
       .first();
     if (link) await ctx.db.delete(link._id);
+  },
+});
+
+export const listForPainPoint = query({
+  args: { painPointId: v.id("painPoints") },
+  handler: async (ctx, { painPointId }) => {
+    const links = await ctx.db
+      .query("teamPainPoints")
+      .withIndex("by_pain_point", (q) => q.eq("painPointId", painPointId))
+      .collect();
+    return links.map((l) => ({ teamId: l.teamId, eventId: l.eventId }));
   },
 });
 

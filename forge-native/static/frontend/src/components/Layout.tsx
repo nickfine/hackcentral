@@ -66,7 +66,7 @@ export function Layout({
         <div className="topbar-main">
           <button type="button" className="brand-home" onClick={() => setView('dashboard')} aria-label="Go to Home">
             <img
-              src="/adaptlogo.png"
+              src="./adaptlogo.png"
               alt=""
               className="brand-logo"
               width={32}
