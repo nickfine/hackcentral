@@ -350,7 +350,8 @@ export default defineSchema({
     isHidden: v.boolean(),
   })
     .index("by_reactions", ["reactionCount"])
-    .index("by_hidden", ["isHidden"]),
+    .index("by_hidden", ["isHidden"])
+    .index("by_hidden_reactions", ["isHidden", "reactionCount"]),
 
   // Per-user reactions (one per accountId per pain point)
   painPointReactions: defineTable({

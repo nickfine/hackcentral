@@ -99,18 +99,17 @@ export const list = query({
     reactorId: v.optional(v.string()),
   },
   handler: async (ctx, { sortBy = "reactions", limit = 50, reactorId }) => {
-    let rows = await ctx.db
-      .query("painPoints")
-      .withIndex("by_hidden", (q) => q.eq("isHidden", false))
-      .collect();
-
-    if (sortBy === "reactions") {
-      rows = rows.sort((a, b) => b.reactionCount - a.reactionCount);
-    } else {
-      rows = rows.sort((a, b) => b._creationTime - a._creationTime);
-    }
-
-    const page = rows.slice(0, limit);
+    const page = sortBy === "reactions"
+      ? await ctx.db
+          .query("painPoints")
+          .withIndex("by_hidden_reactions", (q) => q.eq("isHidden", false))
+          .order("desc")
+          .take(limit)
+      : await ctx.db
+          .query("painPoints")
+          .withIndex("by_hidden", (q) => q.eq("isHidden", false))
+          .order("desc")
+          .take(limit);
 
     if (!reactorId) return page.map((r) => ({ ...r, hasReacted: false }));
 

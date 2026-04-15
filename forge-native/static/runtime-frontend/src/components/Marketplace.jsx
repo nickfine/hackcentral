@@ -86,7 +86,7 @@ function Marketplace({
         const { invoke } = await import('@forge/bridge');
         const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
           sortBy: painSort,
-          limit: 1000,
+          limit: 100,
           includeTeams: true,
         });
         if (!cancelled) setPainPoints(result?.painPoints ?? []);
@@ -109,7 +109,7 @@ function Marketplace({
         const { invoke } = await import('@forge/bridge');
         const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
           sortBy: 'reactions',
-          limit: 1000,
+          limit: 100,
         });
         if (!cancelled) setModalPainPoints(result?.painPoints ?? []);
       } catch {
