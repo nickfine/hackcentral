@@ -6182,3 +6182,53 @@ Use this template at the end of every work session:
 - Forge-native: 0.3.62 → **0.3.63**
 - Runtime frontend: 1.2.93 → **1.2.94**
 - Commit: `7d30c1a`
+
+## Session Update - Code Review & Performance Refactor (Apr 15, 2026 23:27 BST)
+
+### What Changed
+
+Thorough code review (run on Claude Opus) identified 2 CRITICAL bugs, 5 HIGH performance issues, and 6 MEDIUM issues. All were resolved.
+
+### CRITICAL Bugs Fixed
+
+1. **Missing `getSupabaseClient()` in `getPainPoints` resolver** — `supabase` variable was used without being initialised. When `includeTeams: true`, the resolver silently returned `{ painPoints: [] }` instead of team-enriched data. Fixed by adding `const supabase = getSupabaseClient();` at the top of the resolver body.
+
+2. **Dead `setShowCaptainActionMenu(false)` in TeamDetail.jsx** — Called in `handleDeleteTeam` but the state was never declared. Would throw a `ReferenceError` on every team deletion. Removed.
+
+### Performance Fixes
+
+- **Rules of Hooks violation in Marketplace.jsx** — `useMemo` hooks were called after an early `return` statement. Moved all hooks above the early return.
+- **`handlePainReact` not memoized** — Wrapped in `useCallback`. Was creating a new function ref on every render, causing all PainPointRow children to re-render.
+- **`commonProps` recreated on every render in App.jsx** — Memoized with `useMemo`. Was causing re-render cascades across all views.
+- **`onUpdateUserRole` inline closure in App.jsx** — Extracted to `useCallback` (`handleUpdateUserRole`).
+- **N+1 Convex queries in `getPainPoints`** — Was firing one `listForPainPoint` query per pain point. Replaced with new batch query `listForPainPoints` (plural) that fetches all team links in a single call.
+- **Convex `list` query loading all docs into memory** — Replaced `.collect()` + in-memory sort/slice with indexed `.order("desc").take(limit)`. Added compound index `by_hidden_reactions` to schema.
+- **Frontend `limit: 1000`** — Reduced to `limit: 100` in Marketplace and TeamDetail.
+
+### Structural Refactors
+
+- **`index.js` split from 9288 lines into 21 modules** using a registration pattern. New structure:
+  - `index.js` — 38-line orchestrator
+  - `lib/constants.js`, `lib/transforms.js`, `lib/convex.js`, `lib/helpers.js` — shared libs
+  - `resolvers/` — 16 domain files (auth, teams, invites, events, backup, config, branding, notifications, telemetry, results, painPoints, dev, health, submissions, voting, judging)
+- **Duplicate `PainPointRow`** — Extracted into `components/shared/PainPointRow.jsx` with design-system tokens. Both `PainPointsSection` and `Marketplace` now import from shared.
+- **`TeamDetail.jsx` sub-components** — Extracted `teamDetail/DeleteTeamModal.jsx` and `teamDetail/PainPointsPanel.jsx`.
+- **`AdminPanel.jsx` sub-components** — Extracted `adminPanel/PhasesPanel.jsx`, `adminPanel/UsersPanel.jsx`, `adminPanel/MessagingPanel.jsx`.
+
+### Gotchas Learned
+
+- **Worktree agents don't auto-commit** — When using isolation: "worktree", the agent leaves changes uncommitted. Must manually copy files out with `cp` after verifying.
+- **Forge lint catches orphaned comment fragments** — When splitting a large file, truncated `/* comment */` blocks (missing opening `/**`) cause `Error: Expression expected` at deploy time. Check with `node --check` on all new files before deploying.
+- **`supabase/.temp/` gets created by Supabase CLI** — Added to `.gitignore` after it was accidentally committed.
+
+### Validation / Evidence
+
+- Build: `npm run build` ✅
+- Convex deploy: `npx convex deploy --yes` ✅ (new index deployed)
+- Forge deploy: v2.45.0 ✅
+- Git: committed at `66c8d8b`, pushed to origin/main
+
+### Version
+
+- Forge deployed version: **2.45.0**
+- Commit: `66c8d8b`
