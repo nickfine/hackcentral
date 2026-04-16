@@ -961,20 +961,24 @@ resolver.define("deleteTeam", async (req) => {
       .limit(1);
 
     const captain = captainData?.[0];
+    const isAdmin = isAdminOrOwner(user, accountId);
 
-    if (!captain) {
+    if (!captain && !isAdmin) {
       throw new Error("Only team captain can delete team");
     }
 
     // Allow delete (disband) only until the hack starts; once hacking or later, block.
-    const event = await getCurrentEvent(supabase, req);
-    if (!event) {
-      throw new Error("No current event found");
-    }
-    const appPhase = PHASE_MAP[event.phase] || "signup";
-    const canDeleteByPhase = appPhase === "signup" || appPhase === "team_formation";
-    if (!canDeleteByPhase) {
-      throw new Error("Teams cannot be deleted once the hack has started. Contact an admin if you need to disband.");
+    // Admins can delete teams at any phase.
+    if (!isAdmin) {
+      const event = await getCurrentEvent(supabase, req);
+      if (!event) {
+        throw new Error("No current event found");
+      }
+      const appPhase = PHASE_MAP[event.phase] || "signup";
+      const canDeleteByPhase = appPhase === "signup" || appPhase === "team_formation";
+      if (!canDeleteByPhase) {
+        throw new Error("Teams cannot be deleted once the hack has started. Contact an admin if you need to disband.");
+      }
     }
 
     // Resolve team members up-front so we can safely free them after deletion.
