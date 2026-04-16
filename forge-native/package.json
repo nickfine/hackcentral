@@ -16,7 +16,9 @@
     "runtime:dev": "npm run dev --prefix static/runtime-frontend",
     "runtime:build": "npm run build --prefix static/runtime-frontend",
     "custom-ui:install": "npm run frontend:install && npm run macro:install && npm run runtime:install",
-    "custom-ui:build": "npm run frontend:build && npm run macro:build && npm run runtime:build"
+    "custom-ui:build": "npm run frontend:build && npm run macro:build && npm run runtime:build",
+    "deploy": "npm run custom-ui:build && forge deploy",
+    "deploy:prod": "npm run custom-ui:build && forge deploy --environment production"
   },
   "dependencies": {
     "@forge/api": "^7.0.1",

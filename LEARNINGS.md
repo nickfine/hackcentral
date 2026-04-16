@@ -6232,3 +6232,41 @@ Thorough code review (run on Claude Opus) identified 2 CRITICAL bugs, 5 HIGH per
 
 - Forge deployed version: **2.45.0**
 - Commit: `66c8d8b`
+
+---
+
+## Session Update - HD26Forge Cleanup & Deploy Process Fix (Apr 16, 2026)
+
+### HD26Forge Removed
+
+- **HackDay 2026 (HD26Forge) uninstalled** from `tag-hackday.atlassian.net` — it was the original standalone HackDay app, now vestigial since `HDC_RUNTIME_OWNER=hackcentral`.
+- Pre-removal audit confirmed all 4 child pages already used `macroSignature: "runtime"` — no legacy macros, no repairs needed.
+- Dead env vars removed from production: `HACKDAY_TEMPLATE_APP_ID`, `HACKDAY_TEMPLATE_ENVIRONMENT_ID`, `HACKDAY_TEMPLATE_MACRO_KEY`.
+- The `hd26forge` fallback code paths in `hdcService.ts`, `confluencePages.ts`, `createFromWeb.ts` remain but are never executed. Safe to remove in a future cleanup.
+
+### CRITICAL: Always Build Before Deploying
+
+**`forge deploy` does NOT rebuild frontend bundles.** It packages whatever is already in `dist/`. If you edit source files and deploy without rebuilding, the old bundle ships and changes are invisible.
+
+**Always use these commands instead of bare `forge deploy`:**
+
+```bash
+# Development environment
+cd forge-native && npm run deploy
+
+# Production environment (tag-hackday.atlassian.net)
+cd forge-native && npm run deploy:prod
+```
+
+These scripts run `custom-ui:build` (all 3 frontends) then deploy. They were added to `forge-native/package.json` on Apr 16, 2026.
+
+**If only the runtime frontend changed**, you can save time with:
+```bash
+npm run runtime:build && forge deploy --environment production
+```
+
+### Forge Environments
+
+- The Confluence site `tag-hackday.atlassian.net` runs the **production** environment.
+- `forge deploy` without `--environment` deploys to **development** — changes won't be visible on the site.
+- Always use `--environment production` (or `npm run deploy:prod`) for changes to take effect.
