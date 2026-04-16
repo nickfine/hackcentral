@@ -3,6 +3,12 @@
 This is the **tag-hackday** tenant of HackCentral, a Confluence Forge app that runs hackday events.
 Working directory: `/Users/nickster/Downloads/HackCentral-tag-hackday`
 
+## Session start checklist
+
+At the start of every session, before doing anything else:
+1. Run `git log --oneline -5` to see what changed since last time
+2. Check `git status` for any uncommitted work
+
 ---
 
 ## Deploy — CRITICAL RULES
