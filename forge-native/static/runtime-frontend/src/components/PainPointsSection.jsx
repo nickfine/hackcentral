@@ -3,7 +3,7 @@
  * Uses Forge Bridge resolvers (getPainPoints, submitPainPoint, reactToPainPoint).
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import EditableText from '../configMode/EditableText';
 import { PainPointRow } from './shared';
@@ -122,10 +122,9 @@ function SubmitForm({ onSubmit }) {
 
 // ─── Main section ─────────────────────────────────────────────────────────────
 export default function PainPointsSection({ appModeResolverPayload, onNavigate }) {
-  const [painPoints, setPainPoints] = useState([]);
+  const [allPainPoints, setAllPainPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('reactions');
-
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,17 +134,28 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
         invoke,
         'getPainPoints',
         appModeResolverPayload,
-        { sortBy, limit: 5 }
+        { sortBy: 'reactions', limit: 20 }
       );
-      setPainPoints(result?.painPoints ?? []);
+      setAllPainPoints(result?.painPoints ?? []);
     } catch {
       // silent — show empty state
     } finally {
       setLoading(false);
     }
-  }, [appModeResolverPayload, sortBy]);
+  }, [appModeResolverPayload]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Client-side sort and slice — avoids re-fetching on sort toggle
+  const painPoints = useMemo(() => {
+    const sorted = [...allPainPoints].sort((a, b) => {
+      if (sortBy === 'newest') {
+        return (b._creationTime || 0) - (a._creationTime || 0);
+      }
+      return (b.reactionCount || 0) - (a.reactionCount || 0);
+    });
+    return sorted.slice(0, 5);
+  }, [allPainPoints, sortBy]);
 
   const handleSubmit = async (payload) => {
     const { invoke } = await import('@forge/bridge');

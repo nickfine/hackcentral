@@ -491,6 +491,9 @@ function Dashboard({
   useAdaptavistLogo = false,
   eventMeta = null,
   appModeResolverPayload = null,
+  allUsers = null,
+  bootstrapActivityFeed = null,
+  bootstrapSchedule = null,
 }) {
   const configMode = useConfigMode();
   const [loading, setLoading] = useState(true);
@@ -519,23 +522,44 @@ function Dashboard({
         return;
       }
 
+      // Use bootstrap data when available; only fetch what's missing.
+      const hasBootstrapActivity = bootstrapActivityFeed != null;
+      const hasBootstrapSchedule = bootstrapSchedule != null;
+      const hasBootstrapRegistrations = allUsers != null && allUsers.length > 0;
+
+      if (hasBootstrapActivity && hasBootstrapSchedule && hasBootstrapRegistrations) {
+        setData({
+          registrations: allUsers,
+          activities: bootstrapActivityFeed?.activities || [],
+          scheduleMilestones: bootstrapSchedule?.milestones || [],
+        });
+        setDataLoadedAt(new Date().toISOString());
+        setLoading(false);
+        return;
+      }
+
       try {
         const { invoke } = await import('@forge/bridge');
 
-        const resolverCalls = [
-          {
+        const resolverCalls = [];
+        if (!hasBootstrapRegistrations) {
+          resolverCalls.push({
             key: 'registrations',
             promise: invokeEventScopedResolver(invoke, 'getRegistrations', appModeResolverPayload),
-          },
-          {
+          });
+        }
+        if (!hasBootstrapActivity) {
+          resolverCalls.push({
             key: 'activity',
             promise: invokeEventScopedResolver(invoke, 'getActivityFeed', appModeResolverPayload, { limit: 20 }),
-          },
-          {
+          });
+        }
+        if (!hasBootstrapSchedule) {
+          resolverCalls.push({
             key: 'schedule',
             promise: invokeEventScopedResolver(invoke, 'getSchedule', appModeResolverPayload),
-          },
-        ];
+          });
+        }
 
         const settled = await Promise.allSettled(resolverCalls.map((entry) => entry.promise));
         const resultsByKey = resolverCalls.reduce((acc, entry, index) => {
@@ -543,26 +567,29 @@ function Dashboard({
           return acc;
         }, {});
 
-        const registrations =
-          resultsByKey.registrations?.status === 'fulfilled'
+        const registrations = hasBootstrapRegistrations
+          ? allUsers
+          : (resultsByKey.registrations?.status === 'fulfilled'
             ? (resultsByKey.registrations.value?.registrations || [])
-            : [];
+            : []);
 
-        const activities =
-          resultsByKey.activity?.status === 'fulfilled'
+        const activities = hasBootstrapActivity
+          ? (bootstrapActivityFeed?.activities || [])
+          : (resultsByKey.activity?.status === 'fulfilled'
             ? (resultsByKey.activity.value?.activities || [])
-            : [];
+            : []);
 
-        const scheduleMilestones =
-          resultsByKey.schedule?.status === 'fulfilled'
+        const scheduleMilestones = hasBootstrapSchedule
+          ? (bootstrapSchedule?.milestones || [])
+          : (resultsByKey.schedule?.status === 'fulfilled'
             ? (resultsByKey.schedule.value?.milestones || [])
-            : [];
+            : []);
 
         setData({ registrations, activities, scheduleMilestones });
         setDataLoadedAt(new Date().toISOString());
 
         const failures = Object.values(resultsByKey).filter((result) => result?.status === 'rejected').length;
-        if (failures === Object.keys(resultsByKey).length) {
+        if (resolverCalls.length > 0 && failures === resolverCalls.length) {
           setError('Failed to load data');
         } else {
           setError(null);
@@ -576,7 +603,7 @@ function Dashboard({
     };
 
     loadData();
-  }, [appModeResolverPayload, user?.role]);
+  }, [appModeResolverPayload, user?.role, allUsers, bootstrapActivityFeed, bootstrapSchedule]);
 
   // Track if reminder check has been done this session
   const reminderCheckDone = useRef(false);

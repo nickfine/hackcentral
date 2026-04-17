@@ -365,6 +365,8 @@ function App() {
   const [teams, setTeams] = useState([]);
   const [freeAgents, setFreeAgents] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [bootstrapActivityFeed, setBootstrapActivityFeed] = useState(null);
+  const [bootstrapSchedule, setBootstrapSchedule] = useState(null);
   const [eventPhase, setEventPhase] = useState('signup');
   const [eventMotd, setEventMotd] = useState('');
   const [eventAdminMessage, setEventAdminMessage] = useState(null);
@@ -523,6 +525,14 @@ function App() {
             registrationsResult = hasOwn(runtimeBootstrap, 'registrations')
               ? toFulfilled(runtimeBootstrap.registrations)
               : toRejected(new Error('Runtime bootstrap payload missing registrations.'));
+
+            // Dashboard data — optional, non-fatal if missing from bootstrap
+            if (hasOwn(runtimeBootstrap, 'activityFeed')) {
+              setBootstrapActivityFeed(runtimeBootstrap.activityFeed);
+            }
+            if (hasOwn(runtimeBootstrap, 'schedule')) {
+              setBootstrapSchedule(runtimeBootstrap.schedule);
+            }
           } catch (runtimeBootstrapError) {
             markStage('get_runtime_bootstrap', runtimeBootstrapStartedAt);
             console.warn('Failed to load runtime bootstrap payload; falling back to legacy startup path.', runtimeBootstrapError);
@@ -1700,6 +1710,9 @@ function App() {
             {...commonProps}
             devRoleOverride={devRoleOverride}
             onAutoAssignOptIn={handleAutoAssignOptIn}
+            allUsers={allUsers}
+            bootstrapActivityFeed={bootstrapActivityFeed}
+            bootstrapSchedule={bootstrapSchedule}
           />
         );
 

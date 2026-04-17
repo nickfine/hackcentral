@@ -52,12 +52,14 @@ resolver.define("getRuntimeBootstrap", async (req) => {
       return value;
     };
 
-    const [user, eventPhasePayload, teams, freeAgents, registrations] = await Promise.all([
+    const [user, eventPhasePayload, teams, freeAgents, registrations, activityFeed, schedule] = await Promise.all([
       runStage("getCurrentUser", "get_current_user"),
       runStage("getEventPhase", "get_event_phase"),
       runStage("getTeams", "get_teams"),
       runStage("getFreeAgents", "get_free_agents"),
       runStage("getRegistrations", "get_registrations"),
+      runStage("getActivityFeed", "get_activity_feed"),
+      runStage("getSchedule", "get_schedule"),
     ]);
 
     console.info(
@@ -83,6 +85,8 @@ resolver.define("getRuntimeBootstrap", async (req) => {
       teams,
       freeAgents,
       registrations,
+      activityFeed,
+      schedule,
     };
   } catch (error) {
     console.info(
