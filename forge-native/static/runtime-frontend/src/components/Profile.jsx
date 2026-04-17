@@ -48,6 +48,7 @@ function Profile({
   const [isEditing, setIsEditing] = useState(false);
   const [callsign, setCallsign] = useState(user?.callsign || '');
   const [bio, setBio] = useState(user?.bio || '');
+  const [vibe, setVibe] = useState(user?.vibe || '');
   const [skills, setSkills] = useState(user?.skills || []);
   const [callsignError, setCallsignError] = useState(null);
   const [showSkillModal, setShowSkillModal] = useState(false);
@@ -80,6 +81,7 @@ function Profile({
     updateUser?.({
       callsign: callsign.trim() || null,
       bio: bio.trim() || null,
+      vibe: vibe.trim() || null,
       skills,
     });
     setIsEditing(false);
@@ -88,6 +90,7 @@ function Profile({
   const handleCancel = () => {
     setCallsign(user?.callsign || '');
     setBio(user?.bio || '');
+    setVibe(user?.vibe || '');
     setSkills(user?.skills || []);
     setCallsignError(null);
     setIsEditing(false);
@@ -174,6 +177,21 @@ function Profile({
                     <Zap className="w-4 h-4" />
                     <span className="italic">"{callsign}"</span>
                   </div>
+                ) : null}
+
+                {/* Vibe */}
+                {isEditing ? (
+                  <Input
+                    label="Your Vibe"
+                    value={vibe}
+                    onChange={(e) => setVibe(e.target.value)}
+                    placeholder="e.g. looking to learn, here to ship"
+                    helperText="Shows on your team page"
+                    maxLength={80}
+                    className="mt-4"
+                  />
+                ) : vibe ? (
+                  <p className="mt-1 text-sm text-text-secondary italic">"{vibe}"</p>
                 ) : null}
 
                 {/* Status Pills */}

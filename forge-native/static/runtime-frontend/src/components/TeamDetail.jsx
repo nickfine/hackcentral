@@ -275,12 +275,6 @@ function TeamDetail({
   const [teamVibe, setTeamVibe] = useState(team?.teamVibe || 'building');
   const [isVibePickerOpen, setIsVibePickerOpen] = useState(false);
   const vibePickerRef = useRef(null);
-  // TODO(hd26-pass4): Persist member vibes when backend schema support is added.
-  const [memberVibes, setMemberVibes] = useState(() =>
-    Object.fromEntries((team?.members || []).map((m) => [m.id, m.vibe || '']))
-  );
-  const [editingMemberVibeId, setEditingMemberVibeId] = useState(null);
-  const [memberVibeInput, setMemberVibeInput] = useState('');
   // TODO(hd26-pass4): Replace local reactions state with team_reactions(team_id,user_id,reaction_type,created_at).
   const [reactionCounts, setReactionCounts] = useState(() => buildInitialReactionCounts(team));
   const [userReactions, setUserReactions] = useState({});
@@ -333,10 +327,6 @@ function TeamDetail({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isVibePickerOpen]);
-
-  useEffect(() => {
-    setMemberVibes(Object.fromEntries((team?.members || []).map((m) => [m.id, m.vibe || ''])));
-  }, [team?.id, team?.members]);
 
   useEffect(() => {
     setLookingForInput(team?.lookingFor || []);
@@ -1274,49 +1264,10 @@ function TeamDetail({
                       </p>
                     )}
 
-                    {/* Member vibe */}
-                    {member.id === user?.id ? (
-                      editingMemberVibeId === member.id ? (
-                        <input
-                          type="text"
-                          autoFocus
-                          maxLength={80}
-                          value={memberVibeInput}
-                          onChange={(e) => setMemberVibeInput(e.target.value)}
-                          onBlur={() => {
-                            setMemberVibes((v) => ({ ...v, [member.id]: memberVibeInput.trim() }));
-                            setEditingMemberVibeId(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setMemberVibes((v) => ({ ...v, [member.id]: memberVibeInput.trim() }));
-                              setEditingMemberVibeId(null);
-                            } else if (e.key === 'Escape') {
-                              setEditingMemberVibeId(null);
-                            }
-                          }}
-                          placeholder="What's your vibe? e.g. looking to learn"
-                          className="mt-1 w-full text-xs text-text-secondary bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-teal-500 dark:focus:border-teal-400 outline-none py-0.5 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMemberVibeInput(memberVibes[member.id] || '');
-                            setEditingMemberVibeId(member.id);
-                          }}
-                          className="mt-1 block text-xs text-left w-full"
-                        >
-                          {memberVibes[member.id] ? (
-                            <span className="text-text-secondary italic">{memberVibes[member.id]}</span>
-                          ) : (
-                            <span className="text-gray-400 dark:text-gray-500 italic">Add your vibe…</span>
-                          )}
-                        </button>
-                      )
-                    ) : memberVibes[member.id] ? (
-                      <p className="mt-1 text-xs text-text-secondary italic">{memberVibes[member.id]}</p>
-                    ) : null}
+                    {/* Member vibe — set via Profile */}
+                    {member.vibe && (
+                      <p className="mt-1 text-xs text-text-secondary italic">{member.vibe}</p>
+                    )}
 
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {member.id === team.captainId && (

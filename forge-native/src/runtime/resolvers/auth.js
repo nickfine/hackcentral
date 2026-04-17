@@ -435,6 +435,9 @@ resolver.define("updateRegistration", async (req) => {
     if (updates.bio !== undefined) {
       dbUpdates.bio = updates.bio;
     }
+    if (updates.vibe !== undefined) {
+      dbUpdates.vibe = updates.vibe || null;
+    }
     if (updates.isFreeAgent !== undefined) {
       dbUpdates.isFreeAgent = !!updates.isFreeAgent;
     }
