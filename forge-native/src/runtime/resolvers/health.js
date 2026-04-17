@@ -52,14 +52,25 @@ resolver.define("getRuntimeBootstrap", async (req) => {
       return value;
     };
 
+    // Non-fatal wrapper — supplementary data (activity feed, schedule) must not
+    // crash the bootstrap if they fail.
+    const runStageOptional = async (functionKey, stageName) => {
+      try {
+        return await runStage(functionKey, stageName);
+      } catch (err) {
+        console.warn(`[getRuntimeBootstrap] Optional stage ${stageName} failed (non-fatal):`, err?.message);
+        return null;
+      }
+    };
+
     const [user, eventPhasePayload, teams, freeAgents, registrations, activityFeed, schedule] = await Promise.all([
       runStage("getCurrentUser", "get_current_user"),
       runStage("getEventPhase", "get_event_phase"),
       runStage("getTeams", "get_teams"),
       runStage("getFreeAgents", "get_free_agents"),
       runStage("getRegistrations", "get_registrations"),
-      runStage("getActivityFeed", "get_activity_feed"),
-      runStage("getSchedule", "get_schedule"),
+      runStageOptional("getActivityFeed", "get_activity_feed"),
+      runStageOptional("getSchedule", "get_schedule"),
     ]);
 
     console.info(
