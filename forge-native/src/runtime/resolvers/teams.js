@@ -71,7 +71,7 @@ resolver.define("getTeams", async (req) => {
           role,
           status,
           createdAt,
-          user:User(id, name, callsign, skills)
+          user:User(id, name, callsign, skills, vibe)
         `)
         .in("teamId", teamIds),
       supabase
@@ -177,7 +177,7 @@ resolver.define("getIdeaSummary", async (req) => {
           role,
           status,
           createdAt,
-          user:User(id, name)
+          user:User(id, name, callsign, vibe)
         `)
         .in("teamId", teamIds),
       supabase
