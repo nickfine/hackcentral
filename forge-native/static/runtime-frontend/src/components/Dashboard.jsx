@@ -1112,8 +1112,8 @@ function Dashboard({
                         : `Next action: ${nextAction.label}`}
                     </p>
                     <p className="dashboard-hero-meta-text text-xs font-normal" data-testid="dashboard-row1-meta">
-                      {countdownText}
-                      {nextMilestoneText ? ` · ${nextMilestoneText}` : ''}
+                      {eventPhase !== 'signup' && countdownText}
+                      {nextMilestoneText ? `${eventPhase !== 'signup' && countdownText ? ' · ' : ''}${nextMilestoneText}` : ''}
                     </p>
                   </div>
                 </div>
