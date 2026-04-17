@@ -35,4 +35,14 @@ registerResultsResolvers(resolver);
 registerPainPointResolvers(resolver);
 registerDevResolvers(resolver);
 
-export const handler = resolver.getDefinitions();
+const resolverHandler = resolver.getDefinitions();
+
+// Wrap the handler so scheduled triggers (warmup pings) hit the SAME function/worker
+// pool as real resolver calls. Loading the module is the expensive part of a cold start;
+// once the worker is warm, subsequent resolver calls skip that cost.
+export const handler = async (event) => {
+  if (event?.trigger || !event?.body) {
+    return { status: 'warm', timestamp: new Date().toISOString() };
+  }
+  return resolverHandler(event);
+};

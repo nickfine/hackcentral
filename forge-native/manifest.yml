@@ -47,6 +47,9 @@ modules:
     - key: event-backup-daily-trigger
       function: event-backup-daily-job
       interval: day
+    - key: runtime-warmup-trigger
+      function: runtime-resolver
+      interval: hour
   webtrigger:
     - key: phase5-migration-wt
       function: phase5-migration-ops
