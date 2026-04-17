@@ -621,6 +621,54 @@ function TeamDetail({
 
             <div className="relative self-start">
               <div className="flex items-center gap-2 md:justify-end">
+                {/* Vibe selector — always visible, inline with action buttons */}
+                <div className="relative pr-2" ref={vibePickerRef}>
+                  {isCaptain ? (
+                    <button
+                      type="button"
+                      data-testid="team-vibe-pill"
+                      aria-label="Team vibe"
+                      onClick={() => setIsVibePickerOpen((o) => !o)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <span aria-hidden="true">{selectedTeamVibe.icon}</span>
+                      <span>{selectedTeamVibe.label}</span>
+                      <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                    </button>
+                  ) : (
+                    <span
+                      data-testid="team-vibe-pill"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold"
+                    >
+                      <span aria-hidden="true">{selectedTeamVibe.icon}</span>
+                      <span>{selectedTeamVibe.label}</span>
+                    </span>
+                  )}
+                  {isVibePickerOpen && (
+                    <div className="absolute top-full right-0 mt-1.5 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex flex-wrap gap-1.5">
+                      {TEAM_VIBE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            setTeamVibe(option.value);
+                            setIsVibePickerOpen(false);
+                          }}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors',
+                            teamVibe === option.value
+                              ? 'bg-teal-100 dark:bg-teal-900/40 border border-teal-400 dark:border-teal-500 text-teal-700 dark:text-teal-300'
+                              : 'border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary hover:bg-gray-200 dark:hover:bg-gray-600'
+                          )}
+                        >
+                          <span aria-hidden="true">{option.icon}</span>
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {isCaptain && !isEditingName && (
                   <>
                     <Button
@@ -727,57 +775,6 @@ function TeamDetail({
             )}
           </div>
 
-          {/* Team Vibe */}
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <p className={SECTION_LABEL_CLASS}>Team Vibe</p>
-            <div className="relative mt-2" ref={vibePickerRef}>
-              {isCaptain ? (
-                <button
-                  type="button"
-                  data-testid="team-vibe-pill"
-                  aria-label="Team vibe"
-                  onClick={() => setIsVibePickerOpen((o) => !o)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <span aria-hidden="true">{selectedTeamVibe.icon}</span>
-                  <span>{selectedTeamVibe.label}</span>
-                  <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
-                </button>
-              ) : (
-                <span
-                  data-testid="team-vibe-pill"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold"
-                >
-                  <span aria-hidden="true">{selectedTeamVibe.icon}</span>
-                  <span>{selectedTeamVibe.label}</span>
-                </span>
-              )}
-
-              {isVibePickerOpen && (
-                <div className="absolute top-full left-0 mt-1.5 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex flex-wrap gap-1.5">
-                  {TEAM_VIBE_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        setTeamVibe(option.value);
-                        setIsVibePickerOpen(false);
-                      }}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors',
-                        teamVibe === option.value
-                          ? 'bg-teal-100 dark:bg-teal-900/40 border border-teal-400 dark:border-teal-500 text-teal-700 dark:text-teal-300'
-                          : 'border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary hover:bg-gray-200 dark:hover:bg-gray-600'
-                      )}
-                    >
-                      <span aria-hidden="true">{option.icon}</span>
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

@@ -1183,6 +1183,8 @@ function Dashboard({
         <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
       )}
 
+      {eventPhase !== 'signup' && (
+      <>
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-testid="dashboard-below-fold">
         <div className="lg:col-span-3" data-testid="dashboard-live-activity">
           <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm">
@@ -1369,6 +1371,8 @@ function Dashboard({
           </div>
         </div>
       </section>
+      </>
+      )}
 
       <footer className="pt-1" data-testid="dashboard-footer">
         <p className="dashboard-meta-text text-xs font-normal">

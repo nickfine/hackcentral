@@ -1483,11 +1483,16 @@ function App() {
     return responseResult;
   }, [devMode]);
 
+  // Keep a ref to teams so loadTeamDetails (dev mode) doesn't need teams as a dep,
+  // which would cause it to re-run every time any team is optimistically updated.
+  const teamsRef = useRef(teams);
+  useEffect(() => { teamsRef.current = teams; }, [teams]);
+
   // Load team details when navigating to team-detail
   const loadTeamDetails = useCallback(async (teamId) => {
     if (devMode) {
       // Dev mode: use local team data
-      const team = teams.find(t => t.id === teamId);
+      const team = teamsRef.current.find(t => t.id === teamId);
       setSelectedTeam(team || null);
       return;
     }
@@ -1500,7 +1505,7 @@ function App() {
       console.error('Failed to load team details:', err);
       setSelectedTeam(null);
     }
-  }, [devMode, teams]);
+  }, [devMode]);
 
   // Load team details when navigating to team-detail
   useEffect(() => {

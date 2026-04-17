@@ -59,7 +59,7 @@ export const USER_ROLES = {
 export const EVENT_PHASES = {
   signup: {
     id: 'signup',
-    label: 'Registration',
+    label: 'Pre-Launch',
     description: 'Complete your profile and choose how you will participate',
     order: 1,
   },
