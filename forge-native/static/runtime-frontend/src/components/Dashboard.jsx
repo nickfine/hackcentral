@@ -1107,7 +1107,9 @@ function Dashboard({
                   <span className="dashboard-hero-accent-rail mt-1 inline-block h-4 w-1 rounded-full" />
                   <div className="space-y-1">
                     <p className="dashboard-hero-callout text-lg font-semibold">
-                      Next action: {nextAction.label}
+                      {eventPhase === 'signup'
+                        ? 'Tell us all about your work-related pain points'
+                        : `Next action: ${nextAction.label}`}
                     </p>
                     <p className="dashboard-hero-meta-text text-xs font-normal" data-testid="dashboard-row1-meta">
                       {countdownText}
@@ -1118,6 +1120,7 @@ function Dashboard({
               </div>
             </div>
 
+            {eventPhase !== 'signup' && (
             <div className="w-full md:w-auto md:self-center">
               <button
                 type="button"
@@ -1135,6 +1138,7 @@ function Dashboard({
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
+            )}
           </div>
         </div>
       </section>
