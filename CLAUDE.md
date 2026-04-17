@@ -108,8 +108,14 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 - Remove auth checks from any Convex mutation/query called via the Forge resolver layer
 
 ### Pain points ↔ teams
-- Convex table `teamPainPoints` — many-to-many
+- Convex table `teamPainPoints` — many-to-many (schema), but enforced as one-to-one in UI
 - `getPainPoints` accepts `includeTeams: true` for team-enriched results
+- `painPoints:listForTeams` — bulk Convex query (teamIds[] → `Record<teamId, {id, title}[]>`)
+- `getTeams` resolver enriches each team with `painPoints` array via `listForTeams` (non-fatal fallback)
+- **One pain point per team** — enforced in `PainPointsPanel` (TeamDetail) and create-team modal (Marketplace)
+- Pain point add/remove locked after hacking phase starts (`EDITABLE_PHASES = ['signup', 'team_formation']`)
+- `TeamCard` default variant: hides description when `team.painPoints.length > 0`, shows "Pain Point" section instead
+- `TeamDetail`: hides "Problem to Solve" section when pain point is linked (via `linkedPainPointCount` state + `onPainPointsChange` callback from `PainPointsPanel`)
 
 ---
 
@@ -120,6 +126,7 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 | Pain Points panel (Dashboard) | signup, team_formation |
 | Delete Team (captain) | signup, team_formation |
 | Delete Team (admin) | any phase |
+| Pain point add/remove (TeamDetail) | signup, team_formation |
 
 ---
 

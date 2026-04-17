@@ -6270,3 +6270,45 @@ npm run runtime:build && forge deploy --environment production
 - The Confluence site `tag-hackday.atlassian.net` runs the **production** environment.
 - `forge deploy` without `--environment` deploys to **development** — changes won't be visible on the site.
 - Always use `--environment production` (or `npm run deploy:prod`) for changes to take effect.
+
+---
+
+## Session Update - Pain Points on Team Cards + Profile Save Fix (Apr 17, 2026)
+
+### Profile Save Bug: Silent Local State Masking Missing Resolver Call
+
+**Symptom:** Profile fields (callsign, vibe, bio, skills) appeared to save in the UI but never persisted to Supabase.
+
+**Root cause:** In `App.jsx` `case 'profile'`, the `updateUser` prop was an inline local-only lambda `(data) => setUser(prev => ({ ...prev, ...data }))` instead of `handleUpdateUser`. So the `updateRegistration` resolver was never invoked — UI updated, DB didn't.
+
+**Fix:** Pass `handleUpdateUser` directly (same as `case 'signup'` already did). One-line fix.
+
+**Diagnostic pattern:** When a UI field appears to save but you suspect the DB isn't changing, check `updatedAt` in the DB directly after saving. If it doesn't change, the resolver isn't being called — then trace the prop chain back from the save handler to find where it breaks.
+
+### Pain Points Linked to Teams
+
+Full-stack feature: pain points assigned to a team now surface on team cards and the team detail view.
+
+**Architecture:**
+- New `painPoints:listForTeams` Convex bulk query — takes `teamIds[]`, returns `Record<teamId, {id,title}[]>` in a single round-trip
+- `getTeams` resolver enriches teams post-fetch with a non-fatal Convex call (if Convex is down, teams still load, `painPoints` defaults to `[]`)
+- `TeamCard` default variant: hides description, shows "Pain Point" section when `team.painPoints.length > 0`
+- `TeamDetail`: `PainPointsPanel` fires `onPainPointsChange(count)` callback; parent hides "Problem to Solve" section when count > 0
+
+**Business rules enforced in UI:**
+- One pain point per team (not multi-select)
+- Captain can swap: remove current pain point, then search/select another
+- Add/remove locked once hacking phase starts (`EDITABLE_PHASES = ['signup', 'team_formation']`)
+- Create-team modal: exclusive single selection (clicking a new item replaces previous, search hidden once one is selected)
+
+**Gotcha — `linkedPainPointCount` initial state:**
+`TeamDetail` initialises `linkedPainPointCount` to `0`, so "Problem to Solve" briefly flashes before `PainPointsPanel` loads and fires the callback. Acceptable for now; could be fixed by initialising from `team.painPoints` if that data is available on mount.
+
+### Versions
+- Profile fix deployed: **v2.59.0** (also v2.60.0 for diagnostic logging)
+- Pain points on cards: **v2.61.0** (Convex + Forge)
+- Pain point label/wrapping fixes: **v2.62.0**, **v2.63.0**
+- Problem to Solve hidden in TeamDetail: **v2.64.0**
+- Exclusive one-pain-point in PainPointsPanel: **v2.65.0**
+- Exclusive one-pain-point in create modal: **v2.66.0**
+- Commit: `af6fe51`
