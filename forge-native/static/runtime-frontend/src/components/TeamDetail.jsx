@@ -3,9 +3,10 @@
  * Full team/idea detail page with captain controls, member management, and join requests.
  */
 
-import { useState, useMemo, useEffect, useContext } from 'react';
+import { useState, useMemo, useEffect, useContext, useRef } from 'react';
 import {
   ChevronRight,
+  ChevronDown,
   Crown,
   Check,
   XCircle,
@@ -272,6 +273,8 @@ function TeamDetail({
 
   // TODO(hd26-pass4): Persist team vibe on Team.team_vibe when backend schema support is added.
   const [teamVibe, setTeamVibe] = useState(team?.teamVibe || 'building');
+  const [isVibePickerOpen, setIsVibePickerOpen] = useState(false);
+  const vibePickerRef = useRef(null);
   // TODO(hd26-pass4): Replace local reactions state with team_reactions(team_id,user_id,reaction_type,created_at).
   const [reactionCounts, setReactionCounts] = useState(() => buildInitialReactionCounts(team));
   const [userReactions, setUserReactions] = useState({});
@@ -313,6 +316,17 @@ function TeamDetail({
     setReactionCounts(buildInitialReactionCounts(team));
     setUserReactions({});
   }, [team?.id, team?.teamVibe, team?.reactionCounts]);
+
+  useEffect(() => {
+    if (!isVibePickerOpen) return;
+    function handleClickOutside(event) {
+      if (vibePickerRef.current && !vibePickerRef.current.contains(event.target)) {
+        setIsVibePickerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isVibePickerOpen]);
 
   useEffect(() => {
     setLookingForInput(team?.lookingFor || []);
@@ -686,55 +700,80 @@ function TeamDetail({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 flex-1">
-              <p className="text-xs text-text-secondary whitespace-nowrap">
-                {memberCount}/{maxMembers} members
-              </p>
-              <div className="team-detail-progress-track h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-teal-500 transition-all duration-500"
-                  style={{ width: `${capacityPercent}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-              {isCaptain && (
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+            <p className="text-xs text-text-secondary whitespace-nowrap">
+              {memberCount}/{maxMembers} members
+            </p>
+            <div className="team-detail-progress-track h-1.5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-teal-500 transition-all duration-500"
+                style={{ width: `${capacityPercent}%` }}
+                aria-hidden="true"
+              />
+            </div>
+            {isCaptain && (
+              <button
+                type="button"
+                aria-label="Edit max team size"
+                className="p-1 rounded-md text-text-secondary hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                onClick={() => {
+                  setMaxMembersInput(team.maxMembers || 5);
+                  setIsEditingMaxMembers(true);
+                }}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Team Vibe */}
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <p className={SECTION_LABEL_CLASS}>Team Vibe</p>
+            <div className="relative mt-2" ref={vibePickerRef}>
+              {isCaptain ? (
                 <button
                   type="button"
-                  aria-label="Edit max team size"
-                  className="p-1 rounded-md text-text-secondary hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
-                  onClick={() => {
-                    setMaxMembersInput(team.maxMembers || 5);
-                    setIsEditingMaxMembers(true);
-                  }}
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span
-                data-testid="team-vibe-pill"
-                className="team-detail-vibe-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold"
-              >
-                <span aria-hidden="true">{selectedTeamVibe.icon}</span>
-                <span>{selectedTeamVibe.label}</span>
-              </span>
-
-              {isCaptain && (
-                <select
+                  data-testid="team-vibe-pill"
                   aria-label="Team vibe"
-                  className="team-detail-vibe-select text-xs rounded-md border px-2 py-1 focus-ring-control"
-                  value={teamVibe}
-                  onChange={(event) => setTeamVibe(event.target.value)}
+                  onClick={() => setIsVibePickerOpen((o) => !o)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
+                  <span aria-hidden="true">{selectedTeamVibe.icon}</span>
+                  <span>{selectedTeamVibe.label}</span>
+                  <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                </button>
+              ) : (
+                <span
+                  data-testid="team-vibe-pill"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary text-xs font-semibold"
+                >
+                  <span aria-hidden="true">{selectedTeamVibe.icon}</span>
+                  <span>{selectedTeamVibe.label}</span>
+                </span>
+              )}
+
+              {isVibePickerOpen && (
+                <div className="absolute top-full left-0 mt-1.5 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex flex-wrap gap-1.5">
                   {TEAM_VIBE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.icon} {option.label}
-                    </option>
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setTeamVibe(option.value);
+                        setIsVibePickerOpen(false);
+                      }}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors',
+                        teamVibe === option.value
+                          ? 'bg-teal-100 dark:bg-teal-900/40 border border-teal-400 dark:border-teal-500 text-teal-700 dark:text-teal-300'
+                          : 'border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary hover:bg-gray-200 dark:hover:bg-gray-600'
+                      )}
+                    >
+                      <span aria-hidden="true">{option.icon}</span>
+                      <span>{option.label}</span>
+                    </button>
                   ))}
-                </select>
+                </div>
               )}
             </div>
           </div>
