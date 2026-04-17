@@ -806,6 +806,17 @@ function Dashboard({
     return `${secondaryMilestone.title} ${formatDayMonthYear(secondaryMilestone.startTime)}`;
   }, [secondaryMilestone]);
 
+  const hackingStartText = useMemo(() => {
+    if (eventPhase !== 'team_formation') return null;
+    const hackingMilestone = scheduleMilestones.find((m) => m.phase === 'hacking');
+    if (!hackingMilestone?.startTime) return null;
+    const date = parseIsoTimestamp(hackingMilestone.startTime);
+    if (!date) return null;
+    const datePart = date.toLocaleDateString(getUserLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timePart = date.toLocaleTimeString(getUserLocale(), { hour: '2-digit', minute: '2-digit' });
+    return `Hacking starts: ${datePart} ${timePart}`;
+  }, [eventPhase, scheduleMilestones]);
+
   const teamReadiness = TEAM_STATUS_META[myProgress.teamStatus] || TEAM_STATUS_META.incomplete;
 
   const submissionReadiness = useMemo(() => {
@@ -1112,8 +1123,13 @@ function Dashboard({
                         : `Next action: ${nextAction.label}`}
                     </p>
                     <p className="dashboard-hero-meta-text text-xs font-normal" data-testid="dashboard-row1-meta">
-                      {eventPhase !== 'signup' && countdownText}
-                      {nextMilestoneText ? `${eventPhase !== 'signup' && countdownText ? ' · ' : ''}${nextMilestoneText}` : ''}
+                      {eventPhase === 'team_formation' && hackingStartText
+                        ? hackingStartText
+                        : <>
+                            {eventPhase !== 'signup' && countdownText}
+                            {nextMilestoneText ? `${eventPhase !== 'signup' && countdownText ? ' · ' : ''}${nextMilestoneText}` : ''}
+                          </>
+                      }
                     </p>
                   </div>
                 </div>
