@@ -24,6 +24,7 @@ import {
   logDebug,
 } from "../lib/helpers.js";
 import { transformTeam } from "../lib/transforms.js";
+import { convexQuery } from "../lib/convex.js";
 
 export function registerTeamResolvers(resolver) {
 // TEAMS
@@ -128,11 +129,26 @@ resolver.define("getTeams", async (req) => {
       )
     );
 
+    // Enrich teams with their linked pain points (non-fatal if Convex unavailable).
+    let painPointsByTeamId = {};
+    try {
+      if (teamIds.length > 0) {
+        painPointsByTeamId = await convexQuery("painPoints:listForTeams", { teamIds }) ?? {};
+      }
+    } catch {
+      // non-fatal — pain points are supplementary
+    }
+
+    const enrichedTeams = baseTeams.map((team) => ({
+      ...team,
+      painPoints: painPointsByTeamId[team.id] ?? [],
+    }));
+
     // problem/moreInfo are only needed in TeamDetail (getTeam), not the list view.
     // Skipping hydrateTeamDetailFields here removes N storage.get() calls from the hot path.
     logDebug(`[getTeams] event=${event.id} rows=${teamRows.length} ms=${Date.now() - startedAt}`);
 
-    return { teams: baseTeams };
+    return { teams: enrichedTeams };
   } catch (error) {
     console.error("getTeams error:", error);
     throw new Error(`Failed to get teams: ${error.message}`);

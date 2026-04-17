@@ -9,7 +9,9 @@ import { invokeEventScopedResolver } from '../../lib/appModeResolverPayload';
 /** Section label class — matches TeamDetail's SECTION_LABEL_CLASS. */
 const SECTION_LABEL_CLASS = 'pb-2 text-xs font-semibold tracking-wider text-text-secondary uppercase';
 
-function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload }) {
+const EDITABLE_PHASES = ['signup', 'team_formation'];
+
+function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, onPainPointsChange, eventPhase }) {
   const [teamPainPoints, setTeamPainPoints] = useState([]);
   const [allPainPoints, setAllPainPoints] = useState([]);
   const [painPointsLoading, setPainPointsLoading] = useState(false);
@@ -28,8 +30,10 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload })
           invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, { sortBy: 'reactions', limit: 100 }),
         ]);
         if (!cancelled) {
-          setTeamPainPoints(teamResult?.painPoints ?? []);
+          const pts = teamResult?.painPoints ?? [];
+          setTeamPainPoints(pts);
           setAllPainPoints(allResult?.painPoints ?? []);
+          onPainPointsChange?.(pts.length);
         }
       } catch {
         // silent
@@ -50,7 +54,7 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload })
         painPointIds: [painPointId],
       });
       const pp = allPainPoints.find((p) => p._id === painPointId);
-      if (pp) setTeamPainPoints((prev) => [...prev, pp]);
+      if (pp) setTeamPainPoints((prev) => { const next = [...prev, pp]; onPainPointsChange?.(next.length); return next; });
       setPainPointStatus({ type: 'success', message: 'Pain point linked.' });
       setTimeout(() => setPainPointStatus(null), 3000);
     } catch {
@@ -66,7 +70,7 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload })
         teamId,
         painPointId,
       });
-      setTeamPainPoints((prev) => prev.filter((p) => p._id !== painPointId));
+      setTeamPainPoints((prev) => { const next = prev.filter((p) => p._id !== painPointId); onPainPointsChange?.(next.length); return next; });
     } catch {
       setPainPointStatus({ type: 'error', message: 'Failed to unlink pain point.' });
     }
@@ -83,13 +87,13 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload })
         </div>
       )}
 
-      {/* Linked pain points */}
+      {/* Linked pain point */}
       {teamPainPoints.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {teamPainPoints.map((pp) => (
             <span key={pp._id} className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 text-xs text-teal-700 dark:text-teal-300">
               🔥 {pp.title}
-              {isCaptain && (
+              {isCaptain && EDITABLE_PHASES.includes(eventPhase) && (
                 <button
                   type="button"
                   onClick={() => handleUnlinkPainPoint(pp._id)}
@@ -104,8 +108,8 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload })
         </div>
       )}
 
-      {/* Add pain point (captain only) */}
-      {isCaptain && (
+      {/* Search to add — only when no pain point linked yet and phase allows editing */}
+      {isCaptain && EDITABLE_PHASES.includes(eventPhase) && teamPainPoints.length === 0 && (
         <div>
           <input
             type="text"

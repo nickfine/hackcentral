@@ -336,6 +336,30 @@ export const listForTeam = query({
   },
 });
 
+/** Batch fetch pain points for multiple teams in a single query. */
+export const listForTeams = query({
+  args: { teamIds: v.array(v.string()) },
+  handler: async (ctx, { teamIds }) => {
+    const allLinks = await Promise.all(
+      teamIds.map((teamId) =>
+        ctx.db
+          .query("teamPainPoints")
+          .withIndex("by_team", (q) => q.eq("teamId", teamId))
+          .collect()
+      )
+    );
+    const grouped: Record<string, Array<{ id: string; title: string }>> = {};
+    for (let i = 0; i < teamIds.length; i++) {
+      const links = allLinks[i];
+      const painPoints = await Promise.all(links.map((l) => ctx.db.get(l.painPointId)));
+      grouped[teamIds[i]] = painPoints
+        .filter(Boolean)
+        .map((pp) => ({ id: pp!._id as string, title: pp!.title as string }));
+    }
+    return grouped;
+  },
+});
+
 // ============================================================================
 // VIEWER HELPER
 // ============================================================================

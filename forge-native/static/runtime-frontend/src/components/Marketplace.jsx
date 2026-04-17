@@ -685,7 +685,7 @@ function Marketplace({
               Pain Points <span className="text-xs font-normal text-gray-400">(optional)</span>
             </label>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Link existing pain points that your team plans to tackle.
+              Link one pain point that your team plans to tackle.
             </p>
             {selectedPainPointIds.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -696,7 +696,7 @@ function Marketplace({
                       {pp.title}
                       <button
                         type="button"
-                        onClick={() => setSelectedPainPointIds((prev) => prev.filter((x) => x !== id))}
+                        onClick={() => setSelectedPainPointIds([])}
                         className="ml-0.5 text-teal-500 hover:text-teal-700 dark:hover:text-teal-200"
                         aria-label="Remove"
                       >
@@ -707,6 +707,7 @@ function Marketplace({
                 })}
               </div>
             )}
+            {selectedPainPointIds.length === 0 && (
             <input
               type="text"
               value={modalPainSearch}
@@ -714,7 +715,8 @@ function Marketplace({
               placeholder="Search pain points…"
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 mb-1.5"
             />
-            {modalPainsLoading ? (
+            )}
+            {selectedPainPointIds.length === 0 && (modalPainsLoading ? (
               <div className="space-y-1">
                 {[1, 2, 3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />)}
               </div>
@@ -732,9 +734,7 @@ function Marketplace({
                       <li key={pp._id}>
                         <button
                           type="button"
-                          onClick={() => setSelectedPainPointIds((prev) =>
-                            isSelected ? prev.filter((x) => x !== pp._id) : [...prev, pp._id]
-                          )}
+                          onClick={() => setSelectedPainPointIds(isSelected ? [] : [pp._id])}
                           className={cn(
                             'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
                             isSelected
@@ -757,7 +757,7 @@ function Marketplace({
                   <li className="px-3 py-3 text-sm text-gray-400 text-center">No pain points yet</li>
                 )}
               </ul>
-            )}
+            ))}
           </div>
         </VStack>
 

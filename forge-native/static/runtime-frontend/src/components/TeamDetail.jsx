@@ -247,6 +247,7 @@ function TeamDetail({
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionInput, setDescriptionInput] = useState(team?.description || '');
   const [isEditingProblem, setIsEditingProblem] = useState(false);
+  const [linkedPainPointCount, setLinkedPainPointCount] = useState(0);
   const [problemInput, setProblemInput] = useState(team?.problem || '');
   const [isSavingProblem, setIsSavingProblem] = useState(false);
   const [isSavingMoreInfo, setIsSavingMoreInfo] = useState(false);
@@ -983,6 +984,7 @@ function TeamDetail({
               )}
             </section>
 
+            {linkedPainPointCount === 0 && (
             <section className="px-5 py-4 border-b border-arena-border">
               <div className="flex items-start justify-between gap-2">
                 <h3 className={SECTION_LABEL_CLASS}>
@@ -1060,6 +1062,7 @@ function TeamDetail({
                 </p>
               )}
             </section>
+            )}
 
             <section className="px-5 py-4 border-b border-arena-border">
               <div className="flex items-start justify-between gap-2">
@@ -1127,6 +1130,8 @@ function TeamDetail({
               eventId={team?.eventId}
               isCaptain={isCaptain}
               appModeResolverPayload={appModeResolverPayload}
+              onPainPointsChange={setLinkedPainPointCount}
+              eventPhase={eventPhase}
             />
 
             <section className="px-5 py-4">

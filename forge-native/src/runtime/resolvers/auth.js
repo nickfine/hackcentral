@@ -442,15 +442,20 @@ resolver.define("updateRegistration", async (req) => {
       dbUpdates.isFreeAgent = !!updates.isFreeAgent;
     }
 
+    console.log("[updateRegistration] user.id:", user.id, "dbUpdates:", JSON.stringify(dbUpdates));
+
     const { data: updatedUserData, error: updateError } = await supabase
       .from("User")
       .update(dbUpdates)
       .eq("id", user.id)
       .select();
 
+    console.log("[updateRegistration] updateError:", updateError ? JSON.stringify(updateError) : null, "updatedUserData count:", updatedUserData?.length, "first:", JSON.stringify(updatedUserData?.[0]));
+
     if (updateError) throw updateError;
 
     const updatedUser = updatedUserData?.[0] || user;
+    console.log("[updateRegistration] returning callsign:", updatedUser?.callsign, "vibe:", updatedUser?.vibe);
     return { user: transformUser(updatedUser) };
   } catch (error) {
     console.error("updateRegistration error:", error);

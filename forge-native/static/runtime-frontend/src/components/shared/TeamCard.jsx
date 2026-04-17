@@ -4,7 +4,7 @@
  */
 
 import { forwardRef } from 'react';
-import { Users, ChevronRight, Crown } from 'lucide-react';
+import { Users, ChevronRight, Crown, Target } from 'lucide-react';
 import { Badge, Avatar, AvatarGroup, Button } from '../ui';
 import { cn, DESIGN_SYSTEM_CARD } from '../../lib/design-system';
 
@@ -178,18 +178,44 @@ const TeamCard = forwardRef(({
         )}
       </div>
 
-      {/* Description / Summary */}
-      <div className="flex-1 mb-3">
-        {team.description ? (
-          <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-4">
-            {team.description}
-          </p>
-        ) : (
-          <p className="text-xs font-normal italic text-gray-500 dark:text-gray-400">
-            No description provided
-          </p>
-        )}
-      </div>
+      {/* Description / Summary — hidden when pain points are present */}
+      {(!team.painPoints || team.painPoints.length === 0) && (
+        <div className="flex-1 mb-3">
+          {team.description ? (
+            <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-4">
+              {team.description}
+            </p>
+          ) : (
+            <p className="text-xs font-normal italic text-gray-500 dark:text-gray-400">
+              No description provided
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Pain Points */}
+      {team.painPoints && team.painPoints.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1 mb-1.5">
+            <Target className="w-3 h-3 text-amber-500 flex-shrink-0" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Pain Point
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {team.painPoints.slice(0, 2).map((pp) => (
+              <span key={pp.id} className="text-xs text-gray-600 dark:text-gray-300">
+                • {pp.title}
+              </span>
+            ))}
+            {team.painPoints.length > 2 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                +{team.painPoints.length - 2} more
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Looking For Tags */}
       {showLookingFor && team.lookingFor && team.lookingFor.length > 0 && (
