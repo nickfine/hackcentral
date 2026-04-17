@@ -997,8 +997,18 @@ function App() {
         updates,
       });
       if (result?.user) {
-        setUser(result.user);
+        const updatedUser = result.user;
+        setUser(updatedUser);
         setIsNewUser(false);
+        // Patch member data in teams state so callsign/vibe show immediately
+        setTeams(prev => prev.map(team => ({
+          ...team,
+          members: (team.members || []).map(m =>
+            m.id === updatedUser.id
+              ? { ...m, callsign: updatedUser.callsign || '', vibe: updatedUser.vibe || null }
+              : m
+          ),
+        })));
       }
     } catch (err) {
       console.error('Failed to update user:', err);
