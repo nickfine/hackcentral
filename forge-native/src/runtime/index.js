@@ -35,14 +35,11 @@ registerResultsResolvers(resolver);
 registerPainPointResolvers(resolver);
 registerDevResolvers(resolver);
 
-const resolverHandler = resolver.getDefinitions();
+export const handler = resolver.getDefinitions();
 
-// Wrap the handler so scheduled triggers (warmup pings) hit the SAME function/worker
-// pool as real resolver calls. Loading the module is the expensive part of a cold start;
-// once the worker is warm, subsequent resolver calls skip that cost.
-export const handler = async (event) => {
-  if (event?.trigger || !event?.body) {
-    return { status: 'warm', timestamp: new Date().toISOString() };
-  }
-  return resolverHandler(event);
+// Warmup handler — lives in the same module so importing it loads all resolver
+// dependencies (Supabase client, 16 resolver modules). Even if Forge uses separate
+// worker pools per function key, module initialization is the expensive part.
+export const warmupHandler = async () => {
+  return { status: 'warm', timestamp: new Date().toISOString() };
 };

@@ -43,12 +43,14 @@ modules:
       handler: ops.handler
     - key: create-from-web
       handler: createFromWeb.handler
+    - key: runtime-warmup
+      handler: runtime/index.warmupHandler
   scheduledTrigger:
     - key: event-backup-daily-trigger
       function: event-backup-daily-job
       interval: day
     - key: runtime-warmup-trigger
-      function: runtime-resolver
+      function: runtime-warmup
       interval: hour
   webtrigger:
     - key: phase5-migration-wt
