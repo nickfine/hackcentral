@@ -76,6 +76,12 @@ function Marketplace({
   const [painPage, setPainPage] = useState(1);
   const [painSort, setPainSort] = useState('reactions');
 
+  // Composer state
+  const [painGripe, setPainGripe] = useState('');
+  const [painSubmitterName, setPainSubmitterName] = useState('');
+  const [painSubmitting, setPainSubmitting] = useState(false);
+  const [painSubmitted, setPainSubmitted] = useState(false);
+
   // Load pain points for Pains tab
   useEffect(() => {
     if (activeTab !== 'pains') return;
@@ -125,6 +131,35 @@ function Marketplace({
     const { invoke } = await import('@forge/bridge');
     await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
   }, [appModeResolverPayload]);
+
+  const handlePainSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!painGripe.trim() || painSubmitting) return;
+    setPainSubmitting(true);
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'submitPainPoint', appModeResolverPayload, {
+        submitterName: painSubmitterName.trim() || 'Anonymous',
+        title: painGripe.trim(),
+      });
+      setPainGripe('');
+      setPainSubmitterName('');
+      setPainSubmitted(true);
+      setTimeout(() => setPainSubmitted(false), 3000);
+      // Reload pain points
+      setPainPointsLoading(true);
+      const { invoke: inv2 } = await import('@forge/bridge');
+      const result = await invokeEventScopedResolver(inv2, 'getPainPoints', appModeResolverPayload, {
+        sortBy: painSort, limit: 100, includeTeams: true,
+      });
+      setPainPoints(result?.painPoints ?? []);
+    } catch {
+      // silent
+    } finally {
+      setPainSubmitting(false);
+      setPainPointsLoading(false);
+    }
+  }, [painGripe, painSubmitterName, painSubmitting, painSort, appModeResolverPayload]);
 
   const filteredPainPoints = useMemo(() => {
     const q = painSearch.toLowerCase();
@@ -463,6 +498,40 @@ function Marketplace({
         </Tabs.Panel>
 
         <Tabs.Panel value="pains">
+          {/* Composer */}
+          <form onSubmit={handlePainSubmit} className="mb-5 rounded-xl border border-arena-border bg-arena-card p-4" style={{ borderLeft: '2px solid var(--accent)', borderLeftColor: 'var(--accent)' }}>
+            <p className="mb-2 text-sm font-semibold text-text-primary">Post a pain point</p>
+            <textarea
+              value={painGripe}
+              onChange={(e) => setPainGripe(e.target.value)}
+              placeholder="One thing that slows you down..."
+              rows={2}
+              className="w-full resize-y rounded-lg border border-arena-border bg-arena-card text-sm text-text-primary placeholder:text-text-muted"
+              style={{ fontFamily: 'inherit', lineHeight: 1.5, minHeight: 56, padding: '8px 12px' }}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+              <input
+                type="text"
+                value={painSubmitterName}
+                onChange={(e) => setPainSubmitterName(e.target.value)}
+                placeholder="Your name (optional)"
+                className="rounded-lg border border-arena-border bg-arena-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
+                style={{ width: 160, fontFamily: 'inherit' }}
+              />
+              <div className="flex items-center gap-2">
+                {painSubmitted && <span className="text-xs text-green-600">Submitted!</span>}
+                <button
+                  type="submit"
+                  disabled={!painGripe.trim() || painSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+                  style={{ background: 'var(--accent)', cursor: !painGripe.trim() || painSubmitting ? 'not-allowed' : 'pointer' }}
+                >
+                  {painSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </div>
+          </form>
+
           {/* Search + sort bar */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="flex-1">
