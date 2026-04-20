@@ -528,6 +528,7 @@ function AppLayout({
   children,
   showSidebar = true,
   isDevMode = false,
+  onDevModeToggle = null,
   devRoleOverride = null,
   onDevRoleChange = null,
   onPhaseChange = null,
@@ -838,14 +839,20 @@ function AppLayout({
                       <div className="flex items-center gap-2 pb-3 border-b border-arena-border">
                         <Wrench className="w-4 h-4 text-yellow-500" />
                         <span className="font-bold text-text-primary">Development Controls</span>
-                        <span className={cn(
-                          'ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
-                          devModeActive
-                            ? 'bg-yellow-500 text-black'
-                            : 'bg-arena-elevated text-text-muted border border-arena-border'
-                        )}>
-                          {devModeActive ? 'ON' : 'OFF'}
-                        </span>
+                        {onDevModeToggle && (
+                          <button
+                            type="button"
+                            onClick={onDevModeToggle}
+                            className={cn(
+                              'ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold uppercase transition-colors',
+                              devModeActive
+                                ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                                : 'bg-arena-elevated text-text-muted border border-arena-border hover:border-yellow-500 hover:text-yellow-500'
+                            )}
+                          >
+                            {devModeActive ? 'ON' : 'OFF'}
+                          </button>
+                        )}
                       </div>
 
                       {/* Role Impersonation */}

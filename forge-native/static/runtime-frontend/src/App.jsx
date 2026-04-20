@@ -1928,6 +1928,7 @@ function App() {
           activeNav={currentView}
           showSidebar={true}
           isDevMode={devMode}
+          onDevModeToggle={() => setDevMode((v) => !v)}
           devRoleOverride={devRoleOverride}
           onDevRoleChange={handleDevRoleChange}
           onPhaseChange={handlePhaseChange}
