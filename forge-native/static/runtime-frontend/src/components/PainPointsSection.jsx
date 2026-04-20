@@ -156,7 +156,7 @@ function PainItem({ pp, onReact }) {
       </div>
 
       {/* Aside */}
-      <div className="flex flex-col items-end gap-1.5" style={{ minWidth: 140 }}>
+      <div className="flex flex-col items-end gap-1.5" style={{ minWidth: 80 }}>
         {hasClaims ? (
           pp.claimingTeams.map((t) => (
             <span

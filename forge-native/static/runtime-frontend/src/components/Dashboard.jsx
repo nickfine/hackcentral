@@ -408,9 +408,13 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
 function PhasesStepper({ eventPhase }) {
   return (
     <div
-      className="grid gap-2 rounded-xl border border-arena-border bg-arena-card shadow-sm"
-      style={{ padding: '14px 18px', gridTemplateColumns: `repeat(${EVENT_PHASE_ORDER.length}, 1fr)` }}
+      className="overflow-x-auto rounded-xl border border-arena-border bg-arena-card shadow-sm"
+      style={{ padding: '14px 18px' }}
       aria-label="Event phases"
+    >
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${EVENT_PHASE_ORDER.length}, minmax(72px, 1fr))` }}
     >
       {EVENT_PHASE_ORDER.map((phase) => {
         const currentIndex = EVENT_PHASE_ORDER.indexOf(eventPhase);
@@ -445,6 +449,7 @@ function PhasesStepper({ eventPhase }) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
@@ -1195,7 +1200,7 @@ function Dashboard({
               fallback={heroTitleFallback}
               as="h1"
               data-testid="dashboard-hero-headline"
-              displayClassName="dashboard-hero-title text-4xl sm:text-5xl tracking-tight leading-tight"
+              displayClassName="dashboard-hero-title text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight"
             />
 
             <EditableTextArea
