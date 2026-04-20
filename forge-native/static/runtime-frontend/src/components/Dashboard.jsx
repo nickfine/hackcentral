@@ -1169,7 +1169,7 @@ function Dashboard({
           data-testid="dashboard-hero-card"
           className={cn(
             'dashboard-hero-card relative overflow-hidden',
-            'grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-center',
+            'grid grid-cols-1 md:grid-cols-[auto_1fr_30%] items-center',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
         >
@@ -1295,7 +1295,7 @@ function Dashboard({
               src="./hd-text.png"
               alt="HackDay"
               aria-hidden="true"
-              className="h-16 w-auto object-contain opacity-90"
+              className="w-full h-auto object-contain opacity-90"
             />
           </div>
 
