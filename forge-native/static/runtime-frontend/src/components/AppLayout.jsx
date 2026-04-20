@@ -20,7 +20,6 @@ import {
   LayoutDashboard,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
   Sparkles,
   UserPlus,
   Wrench,
@@ -34,6 +33,7 @@ import { NotificationCenter } from './shared';
 import { Container, HStack } from './layout';
 import Avatar from './ui/Avatar';
 import PhaseIndicator from './ui/PhaseIndicator';
+import Modal from './ui/Modal';
 import { cn } from '../lib/design-system';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import { useConfigMode } from '../configMode/ConfigModeContext';
@@ -806,10 +806,10 @@ function AppLayout({
 
               {/* DEV MODE TOGGLE - Available to runtime admins and event admins for local simulation */}
               {canUseDevControls && (
-                <div className="relative z-[60]">
+                <>
                   <button
                     type="button"
-                    onClick={() => setDevControlsOpen(!devControlsOpen)}
+                    onClick={() => setDevControlsOpen(true)}
                     className={cn(
                       'flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all',
                       'focus-ring-control',
@@ -821,84 +821,92 @@ function AppLayout({
                   >
                     <Wrench className="w-3 h-3" />
                     <span className="hidden sm:inline">DEV</span>
-                    <ChevronDown className={cn('w-3 h-3 transition-transform', devControlsOpen && 'rotate-180')} />
+                    <span className={cn(
+                      'hidden sm:inline-flex h-1.5 w-1.5 rounded-full',
+                      devModeActive ? 'bg-black' : 'bg-text-muted'
+                    )} />
                   </button>
 
-                  {/* Dev Controls Dropdown */}
-                  {devControlsOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-[55]"
-                        onClick={() => setDevControlsOpen(false)}
-                      />
-                      <div className="absolute left-0 top-full mt-2 w-64 bg-arena-card border-2 border-yellow-500 rounded-lg shadow-xl z-[60] p-4">
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-arena-border">
-                            <Wrench className="w-5 h-5 text-yellow-500" />
-                            <span className="font-bold text-text-primary">Dev Controls</span>
-                          </div>
+                  {/* Dev Controls Modal */}
+                  <Modal
+                    isOpen={devControlsOpen}
+                    onClose={() => setDevControlsOpen(false)}
+                    size="sm"
+                    title="Dev Controls"
+                  >
+                    <div className="space-y-5 p-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-arena-border">
+                        <Wrench className="w-4 h-4 text-yellow-500" />
+                        <span className="font-bold text-text-primary">Development Controls</span>
+                        <span className={cn(
+                          'ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                          devModeActive
+                            ? 'bg-yellow-500 text-black'
+                            : 'bg-arena-elevated text-text-muted border border-arena-border'
+                        )}>
+                          {devModeActive ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
 
-                          {/* Role Impersonation */}
-                          {onDevRoleChange && (
-                            <div>
-                              <label className="text-xs font-bold text-text-muted mb-2 block">
-                                Role Impersonation
-                              </label>
-                              <select
-                                value={devRoleOverride || realUserRole || user?.role || 'participant'}
-                                onChange={(e) => {
-                                  const newRole = e.target.value;
-                                  const realRole = realUserRole || user?.role || 'participant';
-                                  onDevRoleChange?.(newRole === realRole ? null : newRole);
-                                }}
-                                className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
-                              >
-                                <option value={realUserRole || user?.role || 'participant'}>
-                                  Real: {realUserRole || user?.role || 'participant'}
-                                </option>
-                                <option value="participant_guest">Participant - Needs Signup</option>
-                                <option value="participant_no_team">Participant - Registered, No Team</option>
-                                <option value="participant">Participant - Team Member</option>
-                                <option value="participant_captain">Participant - Team Captain</option>
-                                <option disabled>──────── Elevated Roles ────────</option>
-                                <option value="ambassador">Ambassador</option>
-                                <option value="judge">Judge</option>
-                                <option value="admin">Admin</option>
-                                <option value="owner_jonmort">Owner (Jon Mort)</option>
-                              </select>
-                              {devRoleOverride && (
-                                <p className="mt-1 text-xs text-yellow-500">
-                                  Impersonating: {devRoleOverride}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Phase Switcher */}
-                          {onPhaseChange && (
-                            <div>
-                              <label className="text-xs font-bold text-text-muted mb-2 block">
-                                Event Phase
-                              </label>
-                              <select
-                                value={realEventPhase}
-                                onChange={(e) => {
-                                  onPhaseChange(e.target.value);
-                                  setDevControlsOpen(false);
-                                }}
-                                className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
-                              >
-                                {Object.entries(eventPhases).map(([key, phase]) => (
-                                  <option key={key} value={key}>{phase.label}</option>
-                                ))}
-                              </select>
-                            </div>
+                      {/* Role Impersonation */}
+                      {onDevRoleChange && (
+                        <div>
+                          <label className="text-xs font-bold text-text-muted mb-2 block">
+                            Role Impersonation
+                          </label>
+                          <select
+                            value={devRoleOverride || realUserRole || user?.role || 'participant'}
+                            onChange={(e) => {
+                              const newRole = e.target.value;
+                              const realRole = realUserRole || user?.role || 'participant';
+                              onDevRoleChange?.(newRole === realRole ? null : newRole);
+                            }}
+                            className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
+                          >
+                            <option value={realUserRole || user?.role || 'participant'}>
+                              Real: {realUserRole || user?.role || 'participant'}
+                            </option>
+                            <option value="participant_guest">Participant - Needs Signup</option>
+                            <option value="participant_no_team">Participant - Registered, No Team</option>
+                            <option value="participant">Participant - Team Member</option>
+                            <option value="participant_captain">Participant - Team Captain</option>
+                            <option disabled>──────── Elevated Roles ────────</option>
+                            <option value="ambassador">Ambassador</option>
+                            <option value="judge">Judge</option>
+                            <option value="admin">Admin</option>
+                            <option value="owner_jonmort">Owner (Jon Mort)</option>
+                          </select>
+                          {devRoleOverride && (
+                            <p className="mt-1 text-xs text-yellow-500">
+                              Impersonating: {devRoleOverride}
+                            </p>
                           )}
                         </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      )}
+
+                      {/* Phase Switcher */}
+                      {onPhaseChange && (
+                        <div>
+                          <label className="text-xs font-bold text-text-muted mb-2 block">
+                            Event Phase
+                          </label>
+                          <select
+                            value={realEventPhase}
+                            onChange={(e) => {
+                              onPhaseChange(e.target.value);
+                              setDevControlsOpen(false);
+                            }}
+                            className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
+                          >
+                            {Object.entries(eventPhases).map(([key, phase]) => (
+                              <option key={key} value={key}>{phase.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </Modal>
+                </>
               )}
 
               {/* Notification Center */}
