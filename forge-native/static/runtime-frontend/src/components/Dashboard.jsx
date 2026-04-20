@@ -1158,18 +1158,27 @@ function Dashboard({
         ownerName={user?.name || user?.displayName || 'Jon Mort'}
       />
 
-      {/* ====== HERO — two-column with illustration panel ====== */}
+      {/* ====== HERO — logo + text ====== */}
       <section data-testid="dashboard-row1-status-card">
         <div
           data-testid="dashboard-hero-card"
           className={cn(
             'dashboard-hero-card relative overflow-hidden',
-            'grid grid-cols-1 md:grid-cols-[1.2fr_1fr]',
+            'grid grid-cols-1 md:grid-cols-[auto_1fr] items-center',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
         >
+          {/* Logo panel */}
+          <div className="flex items-center justify-center p-6 pb-0 md:pb-6 md:pr-2">
+            <img
+              src={heroLogoSrc}
+              alt={heroLogoAlt}
+              className="dashboard-hero-logo h-20 w-20 object-contain"
+            />
+          </div>
+
           {/* Copy panel */}
-          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8">
+          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8 md:pl-4">
             {heroBannerImageUrl ? (
               <>
                 <img src={heroBannerImageUrl} alt="" className="dashboard-hero-banner-image" />
@@ -1275,21 +1284,6 @@ function Dashboard({
             </div>
           </div>
 
-          {/* Illustration panel */}
-          <div
-            className="hidden md:grid place-items-center overflow-hidden"
-            style={{
-              minHeight: '220px',
-            }}
-            aria-hidden="true"
-          >
-            <img
-              src="./hero-workstation.svg"
-              alt=""
-              className="h-full w-full object-cover"
-              style={{ maxHeight: '300px' }}
-            />
-          </div>
         </div>
       </section>
 
