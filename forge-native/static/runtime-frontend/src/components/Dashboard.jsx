@@ -1150,7 +1150,7 @@ function Dashboard({
   }
 
   return (
-    <div className="space-y-6 py-1" data-testid="dashboard">
+    <div className="space-y-6 pt-5 pb-1" data-testid="dashboard">
 
       <OwnerWelcomeModal
         isOpen={showOwnerWelcome}
