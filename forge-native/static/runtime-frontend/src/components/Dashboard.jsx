@@ -401,6 +401,75 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
   };
 }
 
+// ============================================================================
+// INLINE SUB-COMPONENTS
+// ============================================================================
+
+function PhasesStepper({ eventPhase }) {
+  return (
+    <div
+      className="grid gap-2 rounded-xl border border-arena-border bg-arena-card shadow-sm"
+      style={{ padding: '14px 18px', gridTemplateColumns: `repeat(${EVENT_PHASE_ORDER.length}, 1fr)` }}
+      aria-label="Event phases"
+    >
+      {EVENT_PHASE_ORDER.map((phase) => {
+        const currentIndex = EVENT_PHASE_ORDER.indexOf(eventPhase);
+        const thisIndex = EVENT_PHASE_ORDER.indexOf(phase);
+        const isActive = phase === eventPhase;
+        const isCompleted = thisIndex < currentIndex;
+        return (
+          <div key={phase} className="flex flex-col gap-1.5 min-w-0">
+            <div
+              className="h-1 w-full rounded-full"
+              style={{
+                background: isActive
+                  ? 'var(--accent)'
+                  : isCompleted
+                  ? 'var(--color-text-muted)'
+                  : 'var(--border-default)',
+              }}
+            />
+            <span
+              className="overflow-hidden text-ellipsis whitespace-nowrap text-[11px]"
+              style={{
+                color: isActive
+                  ? 'var(--accent)'
+                  : isCompleted
+                  ? 'var(--color-text-muted)'
+                  : 'var(--text-disabled)',
+                fontWeight: isActive ? 600 : 400,
+              }}
+            >
+              {PHASE_LABELS[phase] || phase}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function KpiCard({ label, value, meta, testId }) {
+  return (
+    <div
+      className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
+      style={{ padding: '14px 16px' }}
+      data-testid={testId}
+    >
+      <p className="dashboard-card-label">{label}</p>
+      <p
+        className="text-2xl font-bold leading-none tracking-tight text-text-primary"
+        style={{ marginTop: 4, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {value}
+      </p>
+      {meta && (
+        <p className="text-xs text-text-muted" style={{ marginTop: 4 }}>{meta}</p>
+      )}
+    </div>
+  );
+}
+
 const ReadinessPill = memo(function ReadinessPill({ label, value, tone = 'gray', title, testId }) {
   const toneStyle = TONE_STYLES[tone] || TONE_STYLES.gray;
 
@@ -641,9 +710,7 @@ function Dashboard({
           appModeResolverPayload,
           {}
         );
-        if (result.notified > 0) {
-          console.log(`[Dashboard] Created ${result.notified} reminder notifications`);
-        }
+        // result.notified count available if needed for future telemetry
       } catch (err) {
         console.error('[Dashboard] Error checking reminders:', err);
       }
@@ -1083,7 +1150,7 @@ function Dashboard({
   }
 
   return (
-    <div className="dashboard-energy-shell relative space-y-6 overflow-hidden rounded-2xl border border-arena-border bg-arena-bg p-6">
+    <div className="space-y-6 py-1" data-testid="dashboard">
 
       <OwnerWelcomeModal
         isOpen={showOwnerWelcome}
@@ -1091,346 +1158,455 @@ function Dashboard({
         ownerName={user?.name || user?.displayName || 'Jon Mort'}
       />
 
+      {/* ====== HERO — two-column with illustration panel ====== */}
       <section data-testid="dashboard-row1-status-card">
         <div
           data-testid="dashboard-hero-card"
           className={cn(
-            'dashboard-hero-card relative overflow-hidden rounded-xl border border-arena-border px-5 py-6 sm:py-8 shadow-sm',
+            'dashboard-hero-card relative overflow-hidden rounded-xl border shadow-sm',
+            'grid grid-cols-1 md:grid-cols-[1.2fr_1fr]',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
         >
-          {heroBannerImageUrl ? (
-            <>
-              <img
-                src={heroBannerImageUrl}
-                alt=""
-                className="dashboard-hero-banner-image"
+          {/* Copy panel */}
+          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8">
+            {heroBannerImageUrl ? (
+              <>
+                <img src={heroBannerImageUrl} alt="" className="dashboard-hero-banner-image" />
+                <div className="dashboard-hero-banner-overlay" aria-hidden="true" />
+              </>
+            ) : null}
+
+            <p className="dashboard-card-label" data-testid="dashboard-row1-meta">
+              {eventMeta?.name || 'HackDay'} · {PHASE_LABELS[eventPhase] || eventPhase}
+            </p>
+
+            <EditableText
+              contentKey="dashboard.hero.title"
+              fallback={heroTitleFallback}
+              as="h1"
+              data-testid="dashboard-hero-headline"
+              displayClassName="dashboard-hero-title text-4xl sm:text-5xl tracking-tight leading-tight"
+            />
+
+            <EditableTextArea
+              contentKey="dashboard.hero.subtitlePrimary"
+              fallback={heroSubtitlePrimaryFallback}
+              as="p"
+              rows={2}
+              displayClassName="dashboard-hero-support-primary text-base leading-relaxed max-w-prose"
+            />
+
+            {showHeroSubtitleSecondary && (
+              <EditableTextArea
+                contentKey="dashboard.hero.subtitleSecondary"
+                fallback={heroSubtitleSecondaryFallback}
+                as="p"
+                rows={3}
+                displayClassName="dashboard-hero-support-secondary text-sm"
+                placeholder={configMode.isEnabled ? 'Optional secondary support line' : ''}
               />
-              <div className="dashboard-hero-banner-overlay" aria-hidden="true" />
-            </>
-          ) : null}
-          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0 flex items-center gap-4">
-              <div className="dashboard-hero-logo-wrap shrink-0">
-                <img
-                  src={heroLogoSrc}
-                  alt={heroLogoAlt}
-                  data-testid="dashboard-hero-logo"
+            )}
+
+            {/* CTAs */}
+            <div data-testid="dashboard-hero-next-action" className="flex flex-wrap items-center gap-3 mt-1">
+              {eventPhase === 'signup' ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
                   className={cn(
-                    'dashboard-hero-logo',
-                    heroIconImageUrl ? 'dashboard-hero-logo--uploaded' : null
+                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
+                    BUTTON_VARIANTS.primary.base,
+                    BUTTON_VARIANTS.primary.hover
                   )}
-                />
-              </div>
-              <div className="min-w-0 space-y-3">
-                <div className="space-y-1">
-                  <EditableText
-                    contentKey="dashboard.hero.title"
-                    fallback={heroTitleFallback}
-                    as="h1"
-                    data-testid="dashboard-hero-headline"
-                    displayClassName="dashboard-hero-title text-4xl sm:text-5xl font-black tracking-tight"
-                  />
-                  <EditableTextArea
-                    contentKey="dashboard.hero.subtitlePrimary"
-                    fallback={heroSubtitlePrimaryFallback}
-                    as="p"
-                    rows={2}
-                    displayClassName="dashboard-hero-support-primary text-sm font-normal"
-                  />
-                  {showHeroSubtitleSecondary && (
-                    <EditableTextArea
-                      contentKey="dashboard.hero.subtitleSecondary"
-                      fallback={heroSubtitleSecondaryFallback}
-                      as="p"
-                      rows={3}
-                      displayClassName="dashboard-hero-support-secondary text-sm font-normal"
-                      placeholder={configMode.isEnabled ? 'Optional secondary support line' : ''}
-                    />
+                >
+                  Post a pain point
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="dashboard-row1-open-next-step"
+                  onClick={handlePrimaryAction}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
+                    BUTTON_VARIANTS.primary.base,
+                    BUTTON_VARIANTS.primary.hover
                   )}
-                </div>
-
-                <div data-testid="dashboard-hero-next-action" className="flex items-start gap-3">
-                  <span className="dashboard-hero-accent-rail mt-1 inline-block h-4 w-1 rounded-full" />
-                  <div className="space-y-1">
-                    <p className="dashboard-hero-callout text-lg font-semibold">
-                      {eventPhase === 'signup'
-                        ? 'Tell us all about your work-related pain points'
-                        : `Next action: ${nextAction.label}`}
-                    </p>
-                    <p className="dashboard-hero-meta-text text-xs font-normal" data-testid="dashboard-row1-meta">
-                      {eventPhase === 'hacking' && hackingCountdownText
-                        ? hackingCountdownText
-                        : eventPhase === 'team_formation' && hackingStartText
-                          ? hackingStartText
-                          : <>
-                              {eventPhase !== 'signup' && countdownText}
-                              {nextMilestoneText ? `${eventPhase !== 'signup' && countdownText ? ' · ' : ''}${nextMilestoneText}` : ''}
-                            </>
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {eventPhase !== 'signup' && (
-            <div className="w-full md:w-auto md:self-center">
+                >
+                  <span>{nextAction.label}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
               <button
                 type="button"
-                data-testid="dashboard-row1-open-next-step"
-                onClick={handlePrimaryAction}
-                className={cn(
-                  'inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 md:w-auto',
-                  BUTTON_VARIANTS.primary.base,
-                  BUTTON_VARIANTS.primary.hover,
-                  BUTTON_VARIANTS.primary.active,
-                  BUTTON_VARIANTS.primary.focus
-                )}
+                onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
+                className="inline-flex items-center gap-2 rounded-lg border border-arena-border bg-transparent px-4 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-arena-elevated"
               >
-                <span>Open Next Step</span>
-                <ArrowRight className="h-4 w-4" />
+                Find a team
               </button>
             </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {showAdminMessagePod && (
-        <section data-testid="dashboard-admin-message">
-          <div className="dashboard-main-card rounded-xl border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-arena-card p-0 shadow-sm">
-            <div className="flex items-center justify-between dashboard-card-header">
-              <p className="dashboard-card-label">Admin Update</p>
-              <Badge
-                variant={
-                  configMotdPriority === 'urgent'
-                    ? 'error'
-                    : configMotdPriority === 'warning'
-                      ? 'warning'
-                      : 'default'
-                }
-              >
-                {String(configMotdPriority || 'info').toUpperCase()}
-              </Badge>
-            </div>
-            <div className="dashboard-card-body space-y-2">
-              {(String(configMotdTitle || '').trim() || (configMode.isEnabled && configMode.canEdit)) && (
-                <EditableText
-                  contentKey="dashboard.motd.title"
-                  fallback={configMotdTitle}
-                  as="p"
-                  displayClassName="text-sm font-bold text-text-primary"
-                  placeholder={configMode.isEnabled ? 'Optional message title' : ''}
-                />
+            {/* Meta row */}
+            <div className="flex flex-wrap gap-4 text-xs text-text-muted">
+              {(eventPhase === 'hacking' && hackingCountdownText
+                ? hackingCountdownText
+                : eventPhase === 'team_formation' && hackingStartText
+                  ? hackingStartText
+                  : countdownText) && (
+                <span className="inline-flex items-center gap-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+                    <circle cx="12" cy="13" r="8"/><path strokeLinecap="round" d="M12 9v4l2 2M9 3h6"/>
+                  </svg>
+                  {eventPhase === 'hacking' && hackingCountdownText
+                    ? hackingCountdownText
+                    : eventPhase === 'team_formation' && hackingStartText
+                      ? hackingStartText
+                      : countdownText}
+                </span>
               )}
-              <EditableTextArea
-                contentKey="dashboard.motd.message"
-                fallback={configMotdBody}
-                as="p"
-                rows={4}
-                displayClassName="text-sm text-text-secondary whitespace-pre-wrap"
-                placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
-              />
+              {stats.participants > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M13 7a4 4 0 11-8 0 4 4 0 018 0zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                  </svg>
+                  {stats.participants.toLocaleString()} participating
+                </span>
+              )}
             </div>
           </div>
-        </section>
-      )}
 
-      {(eventPhase === 'signup' || eventPhase === 'team_formation') && (
-        <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
-      )}
-
-      {eventPhase !== 'signup' && (
-      <>
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-5" data-testid="dashboard-below-fold">
-        <div className="lg:col-span-3" data-testid="dashboard-live-activity">
-          <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm">
-            <div className="flex items-center justify-between dashboard-card-header">
-              <p className="dashboard-card-label">Live Activity</p>
-              <span data-testid="dashboard-live-indicator" className="dashboard-live-chip inline-flex items-center gap-1.5 text-xs font-normal">
-                <span data-testid="dashboard-live-indicator-dot" className="live-pulse h-2 w-2 rounded-full bg-green-500" />
-                Live
-              </span>
-            </div>
-
-            <div className="space-y-3 dashboard-card-body">
-              {activityFeed.slice(0, 5).map((activity, index) => {
-                const verb = ACTIVITY_VERBS[activity.type] || 'updated';
-                const timestamp = formatActivityTime(activity.time);
-                const avatarToneClass = getAvatarToneClass(activity.user);
-                const activityAccentClass = getActivityAccentClass(activity.type);
-                const activityTarget = resolveActivityTarget(activity);
-                const resolvedTeamId = activityTarget?.view === 'team-detail'
-                  ? activityTarget.params?.teamId
-                  : null;
-
-                return (
-                  <div
-                    key={activity.id || `activity-${index}`}
-                    data-testid="dashboard-activity-item"
-                    data-activity-team-id={resolvedTeamId || undefined}
-                    className={cn(
-                      'dashboard-activity-item activity-item-stagger flex w-full cursor-pointer items-start gap-3 rounded-lg border-l-2 px-3 py-3 text-left transition-colors duration-150 focus-ring-control',
-                      activityAccentClass
-                    )}
-                    style={{ '--activity-index': index }}
-                    onClick={() => handleActivityItemClick(activity)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        handleActivityItemClick(activity);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={activity.team ? `Open team ${activity.team}` : 'Open activity details'}
-                  >
-                    <div data-testid="dashboard-activity-avatar" className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${avatarToneClass}`}>
-                      {getInitials(activity.user)}
-                    </div>
-                    <div className="min-w-0 text-sm leading-5">
-                      <p className="text-text-secondary">
-                        <span className="font-normal text-text-primary">{activity.user}</span>
-                        {' '}
-                        <span>{verb}</span>
-                        {activity.team ? (
-                          <>
-                            {' '}
-                            <span className="font-normal text-text-primary">{activity.team}</span>
-                          </>
-                        ) : null}
-                      </p>
-                      <p className="text-xs text-text-muted">{timestamp}</p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div className="dashboard-card-footer mt-3 border-t border-arena-border pt-3">
-                <button
-                  type="button"
-                  data-testid="dashboard-view-all-activity"
-                  className="dashboard-inline-link text-sm font-medium"
-                  onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
-                >
-                  View all activity
-                </button>
-              </div>
-            </div>
+          {/* Illustration panel */}
+          <div
+            className="hidden md:grid place-items-center overflow-hidden border-l border-arena-border"
+            style={{
+              background: 'linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-page) 100%)',
+              minHeight: '220px',
+            }}
+            aria-hidden="true"
+          >
+            <img
+              src="./hero-workstation.svg"
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ maxHeight: '300px' }}
+            />
           </div>
         </div>
+      </section>
 
-        <div className="lg:col-span-2" data-testid="dashboard-at-a-glance">
-          <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm">
-            <div className="dashboard-card-header">
-              <p className="dashboard-card-label">Event Pulse</p>
-            </div>
-            <div className="dashboard-card-body-no-bottom">
-              <ul
-                className="overflow-hidden rounded-lg border border-arena-border"
-                data-testid="dashboard-event-pulse-list"
-                aria-label="Event statistics"
-              >
-                <li className="dashboard-metric-row dashboard-metric-row--divided flex items-center justify-between px-3 py-2">
-                  <span className="dashboard-event-pulse-label text-sm font-normal">Participants</span>
-                  <span data-testid="dashboard-event-pulse-value" className="dashboard-event-pulse-number text-lg font-semibold">{stats.participants}</span>
-                </li>
-                <li className="dashboard-metric-row dashboard-metric-row--divided flex items-center justify-between px-3 py-2">
-                  <span className="dashboard-event-pulse-label text-sm font-normal">Free Agents</span>
-                  <span data-testid="dashboard-event-pulse-value" className="dashboard-event-pulse-number text-lg font-semibold">{stats.freeAgents}</span>
-                </li>
-                <li className="dashboard-metric-row dashboard-metric-row--divided flex items-center justify-between px-3 py-2">
-                  <span className="dashboard-event-pulse-label text-sm font-normal">Teams</span>
-                  <span data-testid="dashboard-event-pulse-value" className="dashboard-event-pulse-number text-lg font-semibold">{stats.teams}</span>
-                </li>
-                <li className="dashboard-metric-row flex items-center justify-between px-3 py-2">
-                  <span className="dashboard-event-pulse-label text-sm font-normal">Submissions</span>
-                  <span data-testid="dashboard-event-pulse-value" className="dashboard-event-pulse-number text-lg font-semibold">{stats.submissions}</span>
-                </li>
-              </ul>
-            </div>
+      {/* ====== LIVE / COUNTDOWN BAR ====== */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-arena-border bg-arena-card shadow-sm"
+        style={{ padding: '14px 18px' }}
+      >
+        <div>
+          <p className="text-sm font-semibold text-text-primary">
+            {countdownText || `${PHASE_LABELS[eventPhase] || eventPhase} in progress`}
+          </p>
+          <p className="mt-0.5 text-xs text-text-muted">
+            {stats.participants.toLocaleString()} participating · {stats.teams} teams forming
+          </p>
+        </div>
+        {phaseEndDate && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold"
+            style={{
+              background: 'var(--accent-subtle)',
+              color: 'var(--accent)',
+              fontFamily: 'var(--font-mono)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+              <circle cx="12" cy="13" r="8" /><path strokeLinecap="round" d="M12 9v4l2 2M9 3h6" />
+            </svg>
+            {formatRelativeWindow(phaseEndDate)}
+          </span>
+        )}
+      </div>
 
-            <div className="dashboard-coming-up-divider mt-4 border-t px-5 pt-4">
-              <p className="dashboard-card-label pb-2">Coming Up</p>
-              <ul className="relative space-y-3 pl-2" data-testid="dashboard-coming-up-list">
-                {comingUpMilestones.length > 1 && (
-                  <span aria-hidden className="timeline-line pointer-events-none absolute bottom-3 left-[1.35rem] top-3 w-px" />
-                )}
+      {/* ====== PHASE STEPPER ====== */}
+      <PhasesStepper eventPhase={eventPhase} />
 
-                {comingUpMilestones.map((milestone, index) => (
-                  <li key={milestone.id} data-testid="dashboard-coming-up-item" className="relative flex items-center gap-3 pl-4">
-                    <span
-                      data-testid="dashboard-coming-up-badge"
-                      className={`relative z-10 inline-flex min-w-12 items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold ${
-                        index === 0
-                          ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-on)] shadow-sm shadow-[color-mix(in_srgb,var(--accent)_20%,transparent)]'
-                          : 'dashboard-coming-up-badge--future'
-                      }`}
+      {/* ====== KPI ROW ====== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: 12 }}>
+        <KpiCard
+          label="Participants"
+          value={stats.participants.toLocaleString()}
+          meta={stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null}
+          testId="dashboard-kpi-participants"
+        />
+        <KpiCard
+          label="Teams"
+          value={stats.teams.toLocaleString()}
+          testId="dashboard-kpi-teams"
+        />
+        <KpiCard
+          label="Submissions"
+          value={stats.submissions.toLocaleString()}
+          testId="dashboard-kpi-submissions"
+        />
+        <KpiCard
+          label="Your activity"
+          value={teamReadiness.label}
+          meta={teamReadiness.detail}
+          testId="dashboard-kpi-status"
+        />
+      </div>
+
+      {/* ====== MAIN CONTENT GRID (2fr | 1fr) ====== */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]" data-testid="dashboard-below-fold">
+
+        {/* LEFT COLUMN — pain points (early phases) or live activity (later phases) */}
+        <div>
+          {isEarlyExecutionPhase ? (
+            <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
+          ) : (
+            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm" data-testid="dashboard-live-activity">
+              <div className="flex items-center justify-between dashboard-card-header">
+                <p className="dashboard-card-label">Live Activity</p>
+                <span data-testid="dashboard-live-indicator" className="dashboard-live-chip inline-flex items-center gap-1.5 text-xs font-normal">
+                  <span data-testid="dashboard-live-indicator-dot" className="live-pulse h-2 w-2 rounded-full bg-green-500" />
+                  Live
+                </span>
+              </div>
+              <div className="space-y-3 dashboard-card-body">
+                {activityFeed.slice(0, 5).map((activity, index) => {
+                  const verb = ACTIVITY_VERBS[activity.type] || 'updated';
+                  const timestamp = formatActivityTime(activity.time);
+                  const avatarToneClass = getAvatarToneClass(activity.user);
+                  const activityAccentClass = getActivityAccentClass(activity.type);
+                  const activityTarget = resolveActivityTarget(activity);
+                  const resolvedTeamId = activityTarget?.view === 'team-detail'
+                    ? activityTarget.params?.teamId
+                    : null;
+                  return (
+                    <div
+                      key={activity.id || `activity-${index}`}
+                      data-testid="dashboard-activity-item"
+                      data-activity-team-id={resolvedTeamId || undefined}
+                      className={cn(
+                        'dashboard-activity-item activity-item-stagger flex w-full cursor-pointer items-start gap-3 rounded-lg border-l-2 px-3 py-3 text-left transition-colors duration-150 focus-ring-control',
+                        activityAccentClass
+                      )}
+                      style={{ '--activity-index': index }}
+                      onClick={() => handleActivityItemClick(activity)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleActivityItemClick(activity);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={activity.team ? `Open team ${activity.team}` : 'Open activity details'}
                     >
-                      {formatDayMonth(milestone.startTime)}
-                    </span>
-                    <span className="text-sm text-text-secondary">{milestone.title}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="dashboard-card-footer mt-3 border-t border-arena-border pt-3">
-                <button
-                  type="button"
-                  data-testid="dashboard-view-full-schedule"
-                  className="dashboard-inline-link text-sm font-medium"
-                  onClick={() => onNavigate?.('schedule')}
-                >
-                  View full schedule →
-                </button>
+                      <div data-testid="dashboard-activity-avatar" className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${avatarToneClass}`}>
+                        {getInitials(activity.user)}
+                      </div>
+                      <div className="min-w-0 text-sm leading-5">
+                        <p className="text-text-secondary">
+                          <span className="font-normal text-text-primary">{activity.user}</span>
+                          {' '}
+                          <span>{verb}</span>
+                          {activity.team ? (
+                            <> <span className="font-normal text-text-primary">{activity.team}</span></>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-text-muted">{timestamp}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="dashboard-card-footer mt-3 border-t border-arena-border pt-3">
+                  <button
+                    type="button"
+                    data-testid="dashboard-view-all-activity"
+                    className="dashboard-inline-link text-sm font-medium"
+                    onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
+                  >
+                    View all activity
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      </section>
 
-      <section data-testid="dashboard-row2-readiness">
-        <div className={`dashboard-main-card rounded-xl border p-0 shadow-sm transition-colors ${readinessCardToneClass}`}>
-          <div className="dashboard-card-header">
-            <p className="dashboard-card-label">Your Readiness</p>
-          </div>
-          <div className="dashboard-card-body">
-            <div className="dashboard-readiness-strip rounded-lg border p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              {readinessItems.map((item) => (
-                <ReadinessPill
-                  key={item.id}
-                  testId={item.testId}
-                  label={item.pillLabel}
-                  value={item.value}
-                  tone={item.tone}
-                  title={item.detail}
-                />
-              ))}
-              </div>
+        {/* RIGHT RAIL — matches spec: Schedule → Announcements → New here */}
+        <div className="flex flex-col gap-5">
+
+          {/* Schedule card */}
+          <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }}>
+            <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className="dashboard-card-label">Coming Up</span>
             </div>
-
+            {comingUpMilestones.length > 0 ? (
+              <div className="space-y-0">
+                {comingUpMilestones.map((milestone, index) => {
+                  const mDate = parseIsoTimestamp(milestone.startTime);
+                  const timeStr = mDate
+                    ? mDate.toLocaleTimeString(getUserLocale(), { hour: '2-digit', minute: '2-digit' })
+                    : formatDayMonth(milestone.startTime);
+                  const isNow = milestone.isNow;
+                  return (
+                    <div
+                      key={milestone.id}
+                      data-testid="dashboard-coming-up-item"
+                      className="grid items-center last:border-b-0"
+                      style={{ gridTemplateColumns: '72px 1fr', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border-subtle, var(--border-default))' }}
+                    >
+                      <span
+                        className="text-xs"
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: isNow ? 'var(--accent)' : 'var(--text-muted)',
+                          fontWeight: isNow ? 600 : 400,
+                        }}
+                      >
+                        {isNow ? 'NOW' : timeStr}
+                      </span>
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: isNow ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontWeight: isNow ? 600 : 400,
+                        }}
+                      >
+                        {milestone.title}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-3 text-sm text-text-muted">No upcoming milestones</p>
+            )}
             <div className="mt-3 border-t border-arena-border pt-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p data-testid="dashboard-readiness-count" className="dashboard-meta-text text-xs font-normal">
-                {readinessCompleteCount} of {readinessTotalCount} ready
-                </p>
-                <p className="dashboard-meta-text text-xs font-normal">{readinessProgressPercent}%</p>
+              <button
+                type="button"
+                data-testid="dashboard-view-full-schedule"
+                className="dashboard-inline-link text-sm font-medium"
+                onClick={() => onNavigate?.('schedule')}
+              >
+                View full schedule →
+              </button>
+            </div>
+          </div>
+
+          {/* Announcements / Admin message */}
+          {showAdminMessagePod && (
+            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }} data-testid="dashboard-admin-message">
+              <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l18-8v18L3 13v-2zM11 13v7a2 2 0 11-4 0v-5" />
+                </svg>
+                <span className="dashboard-card-label">Announcements</span>
+                <Badge
+                  variant={
+                    configMotdPriority === 'urgent' ? 'error'
+                      : configMotdPriority === 'warning' ? 'warning'
+                      : 'default'
+                  }
+                  className="ml-auto"
+                >
+                  {String(configMotdPriority || 'info').toUpperCase()}
+                </Badge>
               </div>
-              <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">
-                <div
-                  data-testid="dashboard-readiness-progress-fill"
-                  className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
-                  style={{ width: `${readinessProgressPercent}%` }}
+              <div
+                className="rounded-lg border p-3"
+                style={{ background: 'var(--surface-elevated)', borderColor: 'var(--border-subtle, var(--border-default))' }}
+              >
+                {(String(configMotdTitle || '').trim() || (configMode.isEnabled && configMode.canEdit)) && (
+                  <EditableText
+                    contentKey="dashboard.motd.title"
+                    fallback={configMotdTitle}
+                    as="p"
+                    displayClassName="text-xs font-semibold uppercase tracking-wider text-text-muted mb-1"
+                    placeholder={configMode.isEnabled ? 'Optional message title' : ''}
+                  />
+                )}
+                <EditableTextArea
+                  contentKey="dashboard.motd.message"
+                  fallback={configMotdBody}
+                  as="p"
+                  rows={3}
+                  displayClassName="text-sm text-text-secondary leading-snug"
+                  placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
                 />
               </div>
             </div>
+          )}
+
+          {/* New here — early phases */}
+          {isEarlyExecutionPhase && (
+            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }}>
+              <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
+                </svg>
+                <span className="dashboard-card-label">New here?</span>
+              </div>
+              <h3 className="text-sm font-semibold text-text-primary" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.15rem', margin: '0 0 4px' }}>
+                You don't have to code
+              </h3>
+              <p className="text-sm text-text-secondary mb-3" style={{ margin: '0 0 12px' }}>
+                Post a gripe, upvote what rings true, and see who wants to fix it with you. All roles are welcome.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('signup')}
+                className="w-full rounded-lg border border-arena-border bg-transparent px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-arena-elevated"
+              >
+                Take the 2-minute tour
+              </button>
+            </div>
+          )}
+
+          {/* Readiness — always visible */}
+          <div className={`dashboard-main-card rounded-xl border p-0 shadow-sm transition-colors ${readinessCardToneClass}`} data-testid="dashboard-row2-readiness">
+            <div className="dashboard-card-header">
+              <p className="dashboard-card-label">Your Readiness</p>
+            </div>
+            <div className="dashboard-card-body">
+              <div className="dashboard-readiness-strip rounded-lg border p-3">
+                <div className="flex flex-col gap-3">
+                  {readinessItems.map((item) => (
+                    <ReadinessPill
+                      key={item.id}
+                      testId={item.testId}
+                      label={item.pillLabel}
+                      value={item.value}
+                      tone={item.tone}
+                      title={item.detail}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3 border-t border-arena-border pt-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <p data-testid="dashboard-readiness-count" className="dashboard-meta-text text-xs font-normal">
+                    {readinessCompleteCount} of {readinessTotalCount} ready
+                  </p>
+                  <p className="dashboard-meta-text text-xs font-normal">{readinessProgressPercent}%</p>
+                </div>
+                <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">
+                  <div
+                    data-testid="dashboard-readiness-progress-fill"
+                    className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
+                    style={{ width: `${readinessProgressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
-      </section>
-      </>
-      )}
+      </div>
 
       <footer className="pt-1" data-testid="dashboard-footer">
         <p className="dashboard-meta-text text-xs font-normal">
