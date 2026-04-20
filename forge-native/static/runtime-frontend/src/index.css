@@ -423,10 +423,9 @@
 }
 
 .dashboard-hero-card {
-  background: var(--surface-hero);
-  border-color: var(--border-default);
-  border-left: 2px solid var(--accent);
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border: none;
+  box-shadow: none;
   color: var(--surface-hero-text);
 }
 
@@ -777,8 +776,9 @@
 }
 
 [data-color-mode="dark"] .dashboard-hero-card {
-  border-left-color: var(--accent);
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 [data-color-mode="dark"] .dashboard-hero-logo {
@@ -2000,10 +2000,9 @@
 }
 
 [data-color-mode="light"] .dashboard-hero-card {
-  background: var(--surface-hero);
-  border-color: var(--border-default);
-  border-left-color: var(--accent);
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 [data-color-mode="light"] .dashboard-hero-logo {

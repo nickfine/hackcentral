@@ -1163,7 +1163,7 @@ function Dashboard({
         <div
           data-testid="dashboard-hero-card"
           className={cn(
-            'dashboard-hero-card relative overflow-hidden rounded-xl border shadow-sm',
+            'dashboard-hero-card relative overflow-hidden',
             'grid grid-cols-1 md:grid-cols-[1.2fr_1fr]',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
@@ -1277,9 +1277,8 @@ function Dashboard({
 
           {/* Illustration panel */}
           <div
-            className="hidden md:grid place-items-center overflow-hidden border-l border-arena-border"
+            className="hidden md:grid place-items-center overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-page) 100%)',
               minHeight: '220px',
             }}
             aria-hidden="true"
