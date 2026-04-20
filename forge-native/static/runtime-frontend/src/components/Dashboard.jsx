@@ -1293,36 +1293,6 @@ function Dashboard({
         </div>
       </section>
 
-      {/* ====== LIVE / COUNTDOWN BAR ====== */}
-      <div
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-arena-border bg-arena-card shadow-sm"
-        style={{ padding: '14px 18px' }}
-      >
-        <div>
-          <p className="text-sm font-semibold text-text-primary">
-            {countdownText || `${PHASE_LABELS[eventPhase] || eventPhase} in progress`}
-          </p>
-          <p className="mt-0.5 text-xs text-text-muted">
-            {stats.participants.toLocaleString()} participating · {stats.teams} teams forming
-          </p>
-        </div>
-        {phaseEndDate && (
-          <span
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold"
-            style={{
-              background: 'var(--accent-subtle)',
-              color: 'var(--accent)',
-              fontFamily: 'var(--font-mono)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-              <circle cx="12" cy="13" r="8" /><path strokeLinecap="round" d="M12 9v4l2 2M9 3h6" />
-            </svg>
-            {formatRelativeWindow(phaseEndDate)}
-          </span>
-        )}
-      </div>
 
       {/* ====== PHASE STEPPER ====== */}
       <PhasesStepper eventPhase={eventPhase} />
