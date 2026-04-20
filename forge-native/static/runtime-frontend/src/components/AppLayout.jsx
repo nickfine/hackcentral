@@ -32,7 +32,6 @@ import NavItem from './shared/NavItem';
 import { NotificationCenter } from './shared';
 import { Container, HStack } from './layout';
 import Avatar from './ui/Avatar';
-import PhaseIndicator from './ui/PhaseIndicator';
 import Modal from './ui/Modal';
 import { cn } from '../lib/design-system';
 import { ThemeStateContext } from '../contexts/ThemeContext';
@@ -1097,40 +1096,6 @@ function AppLayout({
               </div>
             )}
 
-            {/* EVENT STATUS BAR - Phase Timeline */}
-            <div className="relative px-0 py-0">
-              {/* Dev mode hint */}
-              {devModeActive && onPhaseChange && (
-                <div className="hidden lg:flex absolute right-2 top-0.5 flex-col items-end leading-tight pointer-events-none">
-                  <span className="text-[9px] text-yellow-500/85 font-semibold uppercase tracking-wide">
-                    Dev Mode
-                  </span>
-                  <span className="text-[9px] text-yellow-500/85 font-medium">
-                    Click phase to switch
-                  </span>
-                </div>
-              )}
-              {/* Mobile: Compact phase indicator */}
-              <div className="sm:hidden px-3 py-1.5">
-                <PhaseIndicator
-                  phases={eventPhases}
-                  currentPhase={eventPhase}
-                  onPhaseClick={devModeActive && onPhaseChange ? onPhaseChange : undefined}
-                  compact
-                  className="w-full"
-                />
-              </div>
-
-              {/* Desktop: Full animated phase timeline */}
-              <div className="hidden sm:block">
-                <PhaseIndicator
-                  phases={eventPhases}
-                  currentPhase={eventPhase}
-                  onPhaseClick={devModeActive && onPhaseChange ? onPhaseChange : undefined}
-                  ultraCompact
-                />
-              </div>
-            </div>
           </div>
         </Container>
       </div>
