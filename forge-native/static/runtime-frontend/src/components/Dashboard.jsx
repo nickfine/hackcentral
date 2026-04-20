@@ -692,8 +692,8 @@ function Dashboard({
     const next = configMode?.getFieldValue?.('branding.heroIconImageUrl', fallback);
     return typeof next === 'string' ? next.trim() : '';
   })();
-  const heroLogoSrc = heroIconImageUrl || (useAdaptavistLogo ? './adaptlogo.png' : './hd-glyph.png');
-  const heroLogoAlt = heroIconImageUrl ? 'HackDay hero icon' : (useAdaptavistLogo ? 'Adaptavist' : 'HackDay logo');
+  const heroLogoSrc = heroIconImageUrl || (useAdaptavistLogo ? './adaptlogo.png' : './hackday-icon.png');
+  const heroLogoAlt = heroIconImageUrl ? 'HackDay hero icon' : (useAdaptavistLogo ? 'Adaptavist' : 'HackDay');
 
   // Check for free agent reminders when dashboard loads
   useEffect(() => {
