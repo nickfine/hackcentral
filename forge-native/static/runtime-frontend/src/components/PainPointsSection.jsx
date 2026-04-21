@@ -196,7 +196,8 @@ function PainItem({ pp, onReact }) {
             <span className="text-xs text-text-muted">{relativeTime(pp._creationTime)}</span>
           )}
         </div>
-        <p className="text-sm leading-snug text-text-secondary" style={{ margin: '0 0 10px' }}>
+        {/* VISUAL BRAND UPGRADE 3: Bolder title for clear hierarchy */}
+        <p className="pain-title-strong text-sm leading-snug" style={{ margin: '0 0 10px' }}>
           {pp.title}
         </p>
         {pp.description && (
@@ -331,11 +332,15 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
       >
         {/* Header: title + filter tabs */}
         <div className="flex items-center justify-between" style={{ padding: '10px 14px 6px' }}>
+          {/* VISUAL BRAND UPGRADE 1 + 3: Cyan accent on active sort label */}
           <span
             className="text-xs font-semibold uppercase tracking-widest text-text-muted"
             style={{ fontVariant: 'all-small-caps', letterSpacing: '0.12em' }}
           >
-            Top pain points · {sortBy === 'newest' ? 'latest' : 'trending'}
+            Top pain points{' '}
+            <span className="trending-label-cyan" aria-label={sortBy === 'newest' ? 'sorted by latest' : 'sorted by trending'}>
+              · {sortBy === 'newest' ? 'latest' : 'trending'}
+            </span>
           </span>
           <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
             {[
@@ -354,10 +359,11 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
                   style={{
                     gap: 6,
                     padding: '6px 12px',
-                    borderColor: isActive ? 'var(--accent)' : 'var(--border-default)',
-                    background: isActive ? 'var(--accent-subtle)' : 'var(--surface-card)',
-                    color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                    borderColor: isActive ? 'rgba(0, 245, 255, 0.4)' : 'var(--border-default)',
+                    background: isActive ? 'rgba(0, 245, 255, 0.1)' : 'var(--surface-card)',
+                    color: isActive ? '#00d4e8' : 'var(--text-secondary)',
                     cursor: 'pointer',
+                    boxShadow: isActive ? '0 0 10px rgba(0, 245, 255, 0.1)' : 'none',
                   }}
                 >
                   {f.label}

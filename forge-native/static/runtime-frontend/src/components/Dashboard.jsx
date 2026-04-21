@@ -434,6 +434,100 @@ function useCountUp(target, duration = 900) {
 }
 
 // ============================================================================
+// VISUAL BRAND UPGRADE 2 — Hero decorative elements
+// ============================================================================
+
+// Fixed layout (deterministic — no random, prevents flicker on re-render)
+const HERO_PARTICLES = [
+  { glyph: '>',   x: 7,  y: 18, size: 11, dur: 9.2,  delay: 0    },
+  { glyph: '_',   x: 18, y: 72, size: 10, dur: 11.4, delay: 1.3  },
+  { glyph: '{',   x: 42, y: 22, size: 12, dur: 8.1,  delay: 2.7  },
+  { glyph: '}',   x: 68, y: 58, size: 11, dur: 10.5, delay: 0.9  },
+  { glyph: '//',  x: 85, y: 28, size: 9,  dur: 12.2, delay: 3.2  },
+  { glyph: '01',  x: 13, y: 82, size: 10, dur: 9.8,  delay: 1.8  },
+  { glyph: '&&',  x: 58, y: 78, size: 9,  dur: 11.1, delay: 3.0  },
+  { glyph: '=>',  x: 33, y: 48, size: 11, dur: 8.7,  delay: 0.6  },
+  { glyph: '</',  x: 76, y: 84, size: 10, dur: 10.3, delay: 3.7  },
+  { glyph: '0x',  x: 52, y: 12, size: 9,  dur: 13.1, delay: 2.1  },
+  { glyph: 'fn',  x: 28, y: 60, size: 10, dur: 9.5,  delay: 4.2  },
+  { glyph: 'if',  x: 90, y: 50, size: 9,  dur: 11.8, delay: 1.0  },
+];
+
+function HeroParticles() {
+  return (
+    <div
+      className="absolute inset-0 overflow-hidden"
+      aria-hidden="true"
+      style={{ pointerEvents: 'none', zIndex: 0 }}
+    >
+      {HERO_PARTICLES.map((p, i) => (
+        <span
+          key={i}
+          className="hero-particle"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            fontSize: p.size,
+            '--p-dur': `${p.dur}s`,
+            '--p-delay': `${p.delay}s`,
+          }}
+        >
+          {p.glyph}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// VISUAL BRAND UPGRADE 2 — Lightning bolt watermark in hero corner
+function HeroLightningIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        width: 160,
+        height: 160,
+        pointerEvents: 'none',
+        zIndex: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <svg width="160" height="160" viewBox="0 0 160 160" fill="none">
+        <defs>
+          <filter id="hero-bolt-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Outer halo — very faint, oversized */}
+        <path
+          d="M100 15L62 85h34L76 145l68-78H112L100 15z"
+          fill="rgba(0,245,255,0.05)"
+          transform="scale(1.45) translate(-22,-18)"
+        />
+        {/* Main bolt with glow filter */}
+        <path
+          d="M100 15L62 85h34L76 145l68-78H112L100 15z"
+          fill="#00f5ff"
+          opacity="0.09"
+          filter="url(#hero-bolt-glow)"
+        />
+        {/* Spark dots */}
+        <circle cx="138" cy="38" r="2.5" fill="#00f5ff" opacity="0.3" />
+        <circle cx="150" cy="72" r="1.5" fill="#00f5ff" opacity="0.2" />
+        <circle cx="122" cy="22" r="1.5" fill="#00f5ff" opacity="0.25" />
+      </svg>
+    </div>
+  );
+}
+
+// ============================================================================
 // INLINE SUB-COMPONENTS
 // ============================================================================
 
@@ -1365,14 +1459,20 @@ function Dashboard({
         <div
           data-testid="dashboard-hero-card"
           className={cn(
-            'dashboard-hero-card relative overflow-hidden',
+            // VISUAL BRAND UPGRADE 1: cyan left border + subtle glow background
+            'dashboard-hero-card dashboard-hero-card-cyan relative overflow-hidden',
             'grid grid-cols-1 md:grid-cols-[1fr_auto] items-stretch',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
-          style={{ borderLeft: '4px solid var(--accent)' }}
         >
-          {/* Copy panel */}
-          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8">
+          {/* VISUAL BRAND UPGRADE 2: Terminal particle background */}
+          {!heroBannerImageUrl && <HeroParticles />}
+
+          {/* VISUAL BRAND UPGRADE 2: Lightning watermark illustration */}
+          {!heroBannerImageUrl && <HeroLightningIllustration />}
+
+          {/* Copy panel — VISUAL BRAND UPGRADE 4: increased gap for breathing room */}
+          <div className="relative z-10 flex flex-col gap-4 justify-center p-6 sm:p-8">
             {heroBannerImageUrl ? (
               <>
                 <img src={heroBannerImageUrl} alt="" className="dashboard-hero-banner-image" />
@@ -1404,13 +1504,13 @@ function Dashboard({
               )}
             </div>
 
-            {/* QUICK WIN 4: Bolder, slightly larger hero title */}
+            {/* QUICK WIN 4 + VISUAL BRAND UPGRADE 2: Bolder, condensed hero title */}
             <EditableText
               contentKey="dashboard.hero.title"
               fallback={heroTitleFallback}
               as="h1"
               data-testid="dashboard-hero-headline"
-              displayClassName="dashboard-hero-title text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]"
+              displayClassName="dashboard-hero-title text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-[1.02]"
             />
 
             {/* QUICK WIN 4: Subtitle with terminal cursor blink */}
@@ -1471,10 +1571,11 @@ function Dashboard({
                   <ArrowRight className="h-4 w-4" />
                 </button>
               )}
+              {/* VISUAL BRAND UPGRADE 1: ghost-cyan secondary CTA */}
               <button
                 type="button"
                 onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
-                className="inline-flex items-center gap-2 rounded-lg border border-arena-border bg-transparent px-4 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-arena-elevated"
+                className="btn-ghost-cyan inline-flex items-center gap-2 rounded-lg border bg-transparent px-4 py-2.5 text-sm font-semibold"
               >
                 Find a team
               </button>
@@ -1630,11 +1731,11 @@ function Dashboard({
           )}
         </div>
 
-        {/* RIGHT RAIL — matches spec: Schedule → Announcements → New here */}
-        <div className="flex flex-col gap-5">
+        {/* RIGHT RAIL — VISUAL BRAND UPGRADE 4: more breathing room + rounded-2xl + hover glow */}
+        <div className="flex flex-col gap-6">
 
           {/* Schedule card */}
-          <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }}>
+          <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }}>
             <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -1693,7 +1794,7 @@ function Dashboard({
 
           {/* Announcements / Admin message */}
           {showAdminMessagePod && (
-            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }} data-testid="dashboard-admin-message">
+            <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }} data-testid="dashboard-admin-message">
               <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l18-8v18L3 13v-2zM11 13v7a2 2 0 11-4 0v-5" />
@@ -1737,7 +1838,7 @@ function Dashboard({
 
           {/* New here — early phases */}
           {isEarlyExecutionPhase && (
-            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card shadow-sm" style={{ padding: 'var(--dashboard-card-padding-x)' }}>
+            <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }}>
               <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
@@ -1760,8 +1861,8 @@ function Dashboard({
             </div>
           )}
 
-          {/* Readiness — always visible */}
-          <div className={`dashboard-main-card rounded-xl border p-0 shadow-sm transition-colors ${readinessCardToneClass}`} data-testid="dashboard-row2-readiness">
+          {/* Readiness — always visible — VISUAL BRAND UPGRADE 4: rounded-2xl + hover glow */}
+          <div className={`dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border p-0 transition-colors ${readinessCardToneClass}`} data-testid="dashboard-row2-readiness">
             <div className="dashboard-card-header">
               <p className="dashboard-card-label">Your Readiness</p>
             </div>
