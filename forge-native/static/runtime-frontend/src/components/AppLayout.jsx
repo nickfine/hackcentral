@@ -546,7 +546,12 @@ function AppLayout({
           {/* TOPBAR — single compact card (wireframe layout) */}
           <header className="py-3">
             <div className="rounded-xl border border-arena-border bg-arena-card overflow-visible">
-              <div className="relative flex items-center" style={{ height: 52 }}>
+              {/* 3-column grid: left (logo+timer) | center (nav) | right (controls)
+                  1fr auto 1fr ensures the nav is always truly centered on the card */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', height: 52 }}>
+
+                {/* ── LEFT: Logo + WarTimer ── */}
+                <div className="flex items-center self-stretch">
 
                 {/* Logo icon — wrapper clips background to card's left rounded corners */}
                 <div className="flex-shrink-0 overflow-hidden rounded-l-xl" style={{ width: 52, height: 52 }}>
@@ -576,17 +581,11 @@ function AppLayout({
                 {/* War Timer */}
                 <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
 
-                {/* Inline nav — xl and above, absolutely centered in the header bar */}
-                {showSidebar && (
-                  <nav
-                    className="hidden xl:flex items-center gap-1 pointer-events-auto"
-                    aria-label="Primary navigation"
-                    style={{
-                      position: 'absolute',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                    }}
-                  >
+                </div>{/* end LEFT */}
+
+                {/* ── CENTER: Nav (hidden below xl, centered by grid) ── */}
+                {showSidebar ? (
+                  <nav className="hidden xl:flex items-center gap-1" aria-label="Primary navigation">
                     {navItems.map((item) => (
                       <NavItem
                         key={item.id}
@@ -599,10 +598,12 @@ function AppLayout({
                       </NavItem>
                     ))}
                   </nav>
+                ) : (
+                  <div />
                 )}
 
-                {/* Spacer to push right-side items to the right */}
-                <div className="flex-1" />
+                {/* ── RIGHT: Notification + Config + User ── */}
+                <div className="relative flex items-center justify-end self-stretch">
 
                 {/* Notification Center */}
                 <div className="flex-shrink-0 px-2">
@@ -758,7 +759,8 @@ function AppLayout({
                     </>
                   )}
                 </div>
-              </div>
+                </div>{/* end RIGHT */}
+              </div>{/* end grid */}
             </div>
 
             {/* Open App View CTA — below topbar when present */}
