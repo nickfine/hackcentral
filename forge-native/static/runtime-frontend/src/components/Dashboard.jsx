@@ -1306,8 +1306,7 @@ function Dashboard({
               </>
             ) : null}
 
-            <div className="flex items-center justify-between gap-2" data-testid="dashboard-row1-meta">
-              <p className="dashboard-card-label">{eventMeta?.name || 'HackDay'}</p>
+            <div data-testid="dashboard-row1-meta">
               <Badge variant="default" size="sm">{PHASE_LABELS[eventPhase] || eventPhase}</Badge>
             </div>
 
