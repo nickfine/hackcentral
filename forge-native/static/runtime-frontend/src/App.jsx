@@ -990,7 +990,6 @@ function App() {
 
   // Handle user profile updates (from Signup or Profile)
   const handleUpdateUser = useCallback(async (updates) => {
-    console.log('[handleUpdateUser] called devMode=', devMode, 'updates=', JSON.stringify(updates));
     if (devMode) {
       // Dev mode: update local state only
       const nextUser = { ...(user || {}), ...updates };

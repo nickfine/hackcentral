@@ -29,7 +29,6 @@ import {
   MOTD_PRIORITIES,
   HACKDAY_OWNER_EMAILS,
   HACKDAY_OWNER_ACCOUNT_IDS,
-  HACKDAY_OWNER_NAMES,
   HACKDAY_OWNER_TITLE,
   OBSERVERS_TEAM_ID,
   OBSERVERS_MAX_SIZE,
@@ -399,13 +398,9 @@ export function normalizeDisplayName(value) {
   return value.trim().toLowerCase();
 }
 
-export function isHackdayOwnerIdentity({ email, accountId, displayName, name } = {}) {
+export function isHackdayOwnerIdentity({ email, accountId } = {}) {
   const normalizedEmail = normalizeEmail(email);
   if (normalizedEmail && HACKDAY_OWNER_EMAILS.has(normalizedEmail)) {
-    return true;
-  }
-  const normalizedName = normalizeDisplayName(displayName || name);
-  if (normalizedName && HACKDAY_OWNER_NAMES.has(normalizedName)) {
     return true;
   }
   return typeof accountId === "string" && HACKDAY_OWNER_ACCOUNT_IDS.has(accountId);

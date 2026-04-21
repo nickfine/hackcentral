@@ -3,6 +3,31 @@
 This is the **tag-hackday** tenant of HackCentral, a Confluence Forge app that runs hackday events.
 Working directory: `/Users/nickster/Downloads/HackCentral-tag-hackday`
 
+## Model and effort routing
+
+At the start of every response, assess the current task and output a single line in this format before anything else:
+
+`⚙ /model [alias] /effort [level]` — [one-line reason]
+
+Use these rules:
+
+**Model**
+- `sonnet` — most tasks: writing, explaining, editing, straightforward code
+- `opusplan` — anything involving architecture, planning a build, or multi-file refactoring
+- `opus` — deep debugging, race conditions, complex system design mid-session
+
+**Effort**
+- `low` — quick lookups, simple edits, one-liners
+- `medium` — standard coding, bug fixes, most writing tasks
+- `high` — multi-file changes, tracing complex logic, research synthesis
+- `xhigh` — architecture decisions, hard bugs, agentic tasks (Opus 4.7 only)
+- `max` — current task only, genuinely hard problems where being wrong is costly
+
+If the current model and effort already match what the task needs, output:
+`⚙ no change needed`
+
+Do not pad this line with explanation. The reason should be five words or fewer.
+
 ## Session start checklist
 
 At the start of every session, before doing anything else:

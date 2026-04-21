@@ -387,11 +387,16 @@ resolver.define("getTeam", async (req) => {
   }
 
   const supabase = getSupabaseClient();
+  const event = await getCurrentEvent(supabase, req);
+  if (!event) {
+    throw new Error("No current event found");
+  }
 
   try {
     // Fetch team, members, and project in parallel
+    // Team query is scoped to current event to prevent cross-event data leakage
     const [teamResult, membersResult, projectResult] = await Promise.all([
-      supabase.from("Team").select("*").eq("id", teamId).limit(1),
+      supabase.from("Team").select("*").eq("id", teamId).eq("eventId", event.id).limit(1),
       supabase.from("TeamMember").select(`*, user:User(*)`).eq("teamId", teamId),
       supabase.from("Project").select("*").eq("teamId", teamId).limit(1),
     ]);
@@ -505,8 +510,6 @@ resolver.define("updateTeam", async (req) => {
         .eq("id", newCaptainMember[0].id);
       didTransferCaptain = true;
 
-      // Remove captainId from updates to avoid setting it on Team table
-      delete updates.captainId;
     }
 
     const teamDetailFieldUpdates = {};
@@ -624,6 +627,11 @@ resolver.define("createTeam", async (req) => {
   const event = await getCurrentEvent(supabase, req);
   if (!event) {
     throw new Error("No current event found");
+  }
+
+  const appPhase = PHASE_MAP[event.phase] || "signup";
+  if (appPhase !== "signup" && appPhase !== "team_formation") {
+    throw new Error("Teams cannot be created once the hack has started.");
   }
 
   try {

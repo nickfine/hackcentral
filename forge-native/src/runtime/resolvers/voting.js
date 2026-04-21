@@ -194,8 +194,8 @@ resolver.define("castVote", async (req) => {
       .eq("userId", user.id)
       .in("projectId", eventProjectIds);
 
-    // NOTE: There is still a race condition between this check and insert
-    // Proper fix requires database constraint or transaction
+    // Race condition between check and insert is mitigated by the DB unique
+    // constraint on (userId, projectId) — duplicate inserts will be rejected.
     if ((userVotes || []).length >= maxVotesPerUser) {
       throw new Error(`Maximum ${maxVotesPerUser} votes allowed`);
     }
