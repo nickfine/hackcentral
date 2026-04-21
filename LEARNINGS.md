@@ -18,6 +18,22 @@ When users create a HackDay in HackCentral:
 
 **Important:** Changes to HackCentral wizard affect how HD26Forge displays created HackDays.
 
+## CRITICAL: Event Data Lives in Forge Storage, Not Just Supabase
+
+When editing event name, schedule, or content overrides — **Supabase is not the source of truth**. The runtime resolves data in this priority order:
+
+1. **Forge storage** (highest priority) — config drafts (`event-config-draft-{eventId}`) and content overrides (`event-content-overrides-{eventId}`)
+2. **Supabase `event_config_draft` column** — fallback if Forge storage is empty
+3. **Supabase `event_schedule` / `name` columns** — only used if no draft exists
+
+**Consequence:** Updating Supabase directly will have NO effect if a Forge storage draft exists. The admin must discard the draft via CONFIG mode in the app first (CONFIG ON → Discard draft), then the Supabase values take effect.
+
+**To update event name/schedule correctly:**
+1. Have the admin open the Runtime app, enable CONFIG mode, discard the draft
+2. Then update Supabase `Event` table (`name`, `event_schedule`, `hacking_starts_at`, `submission_deadline_at`)
+3. Also update `HackdayTemplateSeed.seed_payload` and `Milestone` rows for that event
+4. For name: also clear Forge content overrides via CONFIG mode (edit hero title → publish)
+
 ## Current Project State
 
 **Version:** 0.6.82 (root app)
