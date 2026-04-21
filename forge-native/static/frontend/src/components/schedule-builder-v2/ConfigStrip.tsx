@@ -74,7 +74,7 @@ export function ConfigStrip({
             type="date"
             className="sb2-anchor-input"
             value={anchorDate}
-            onChange={(e) => onAnchorDateChange(e.target.value)}
+            onChange={(e) => { if (e.target.value) onAnchorDateChange(e.target.value); }}
             aria-label="Hack start date"
           />
           <input
