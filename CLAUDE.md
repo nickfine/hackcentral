@@ -15,6 +15,16 @@ At the start of every session, before doing anything else:
 
 **Never use bare `forge deploy`.** It packages stale `dist/` bundles without rebuilding.
 
+### MANDATORY: Bump APP_VERSION before every deploy
+
+**Every single deploy MUST bump `APP_VERSION` in `forge-native/static/runtime-frontend/src/data/constants.js` BEFORE building.** This is the Atlassian CDN cache-buster. Skipping it means production serves stale content even after a successful deploy. This has caused repeated lost time — do not skip it.
+
+```bash
+# 1. Bump APP_VERSION in forge-native/static/runtime-frontend/src/data/constants.js
+# 2. Then build + deploy:
+cd forge-native && npm run runtime:build && forge deploy --environment production
+```
+
 ```bash
 # Production (tag-hackday.atlassian.net) — always use this
 cd forge-native && npm run deploy:prod
