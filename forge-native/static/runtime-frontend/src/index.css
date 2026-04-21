@@ -2729,6 +2729,30 @@
   animation: phase-line-glow 2.2s ease-in-out infinite;
 }
 
+/* CORE UX IMPROVEMENT 2 — Stronger electric-cyan glow for enhanced PhasesStepper */
+@keyframes phase-line-glow-strong {
+  0%, 100% {
+    box-shadow: 0 0 8px 2px rgba(0, 245, 255, 0.5),
+                0 0 16px 4px rgba(0, 245, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(0, 245, 255, 0.75),
+                0 0 32px 8px rgba(0, 245, 255, 0.35);
+  }
+}
+.phase-active-line-strong {
+  animation: phase-line-glow-strong 2s ease-in-out infinite;
+}
+
+/* CORE UX IMPROVEMENT 2 — Timeline callout subtle breath */
+@keyframes timeline-callout-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.timeline-callout-text {
+  animation: timeline-callout-pulse 3s ease-in-out infinite;
+}
+
 /* Hero pre-launch badge pulsing dot */
 @keyframes prelaunch-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -2810,6 +2834,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hero-particle { animation: none; opacity: 0; }
+  .phase-active-line-strong { animation: none; }
+  .timeline-callout-text { animation: none; }
 }
 
 /* =============================================================================

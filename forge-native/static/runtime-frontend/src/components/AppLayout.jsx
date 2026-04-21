@@ -52,7 +52,15 @@ const FALLBACK_EVENT_META = Object.freeze({
   timezone: EVENT_TIMEZONE,
   startAt: '2026-06-21T09:00:00+01:00',
   endAt: '2026-06-22T17:00:00+01:00',
+  // CORE UX IMPROVEMENT 1 — fallback hacking-start date shown when no schedule is configured
+  hackingStartsFallback: '2026-04-25T09:00:00Z',
 });
+
+// CORE UX IMPROVEMENT 1 — phase badge labels for WarTimer header display
+const WAR_TIMER_PHASE_LABELS = {
+  signup: 'Pre-Launch Phase',
+  team_formation: 'Team Formation',
+};
 
 const parseFlexibleDate = (value) => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -120,19 +128,23 @@ const getPhaseCountdownConfig = (eventPhase, schedule = {}) => {
   if (!PRE_HACKING_PHASES.has(eventPhase)) {
     return { label: null, target: null };
   }
-  return {
-    label: 'until hacking starts',
-    target: (
-      parseFlexibleDate(schedule.hackingStartsAt)
-      || parseFlexibleDate(schedule.teamFormationEndsAt)
-    ),
-  };
+  // CORE UX IMPROVEMENT 1 — target the event start date; label computed from event name in getTimerMeta
+  return { label: null, target: null };
 };
 
 const getTimerMeta = (eventMeta, eventPhase) => {
   const resolved = resolveEventMeta(eventMeta);
   const phaseConfig = getPhaseCountdownConfig(eventPhase, resolved.schedule);
-  const targetDate = phaseConfig.target || resolved.startAt;
+  // For pre-hacking phases, count down to event start. If startAt is in the past
+  // (stale config), fall back to FALLBACK_EVENT_META.startAt to avoid "Event Complete".
+  const rawTarget = phaseConfig.target || resolved.startAt;
+  const now = new Date();
+  const targetDate = (PRE_HACKING_PHASES.has(eventPhase) && rawTarget <= now)
+    ? new Date(FALLBACK_EVENT_META.startAt)
+    : rawTarget;
+  const countdownLabel = PRE_HACKING_PHASES.has(eventPhase)
+    ? `${resolved.name} starts in`
+    : phaseConfig.label;
   const userTimezone = getUserTimezone();
   const userTzAbbr = getTimezoneAbbr();
   const userLocale = getUserLocale();
@@ -155,7 +167,7 @@ const getTimerMeta = (eventMeta, eventPhase) => {
     userTzAbbr,
     localTargetDate,
     localTargetTime,
-    countdownLabel: phaseConfig.label,
+    countdownLabel,
   };
 };
 
@@ -216,24 +228,29 @@ const WarTimer = memo(function WarTimer({ eventMeta, eventPhase }) {
     return () => clearInterval(timer);
   }, [timerMeta]);
 
+  const isLive = timeRemaining.status === 'live';
+  const hasCountdown = timeRemaining.status === 'countdown' && timeRemaining.display;
+
   return (
     <div
       className="hidden md:flex flex-col items-center justify-center flex-shrink-0"
       style={{
         padding: '0 20px',
         borderRight: '0.5px solid var(--border-default)',
-        ...(timeRemaining.status === 'live' ? { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : {}),
+        ...(isLive ? { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : {}),
       }}
-      title={timeRemaining.status === 'countdown' && timeRemaining.localTargetDate
-        ? `${timeRemaining.label}: ${timeRemaining.localTargetDate} at ${timeRemaining.localTargetTime} (${timeRemaining.userTzAbbr})`
+      role="timer"
+      aria-live="polite"
+      title={hasCountdown && timeRemaining.localTargetDate
+        ? `${timeRemaining.label} ${timeRemaining.localTargetDate} at ${timeRemaining.localTargetTime} (${timeRemaining.userTzAbbr})`
         : undefined
       }
     >
+      <div className="text-xs font-semibold text-text-primary truncate" style={{ letterSpacing: '0.01em' }}>
+        {timeRemaining.label}
+      </div>
       <div className="text-lg font-semibold tabular-nums text-text-primary leading-tight">
         {timeRemaining.display}
-      </div>
-      <div className="text-[10px] font-normal text-text-muted truncate">
-        {timeRemaining.label}
       </div>
     </div>
   );
@@ -529,7 +546,7 @@ function AppLayout({
           {/* TOPBAR — single compact card (wireframe layout) */}
           <header className="py-3">
             <div className="rounded-xl border border-arena-border bg-arena-card overflow-visible">
-              <div className="flex items-center" style={{ height: 52 }}>
+              <div className="relative flex items-center" style={{ height: 52 }}>
 
                 {/* Logo icon — wrapper clips background to card's left rounded corners */}
                 <div className="flex-shrink-0 overflow-hidden rounded-l-xl" style={{ width: 52, height: 52 }}>
@@ -559,9 +576,17 @@ function AppLayout({
                 {/* War Timer */}
                 <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
 
-                {/* Inline nav — xl and above */}
+                {/* Inline nav — xl and above, absolutely centered in the header bar */}
                 {showSidebar && (
-                  <nav className="hidden xl:flex flex-1 items-center gap-1 px-3 min-w-0" aria-label="Primary navigation">
+                  <nav
+                    className="hidden xl:flex items-center gap-1 pointer-events-auto"
+                    aria-label="Primary navigation"
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                    }}
+                  >
                     {navItems.map((item) => (
                       <NavItem
                         key={item.id}
@@ -576,9 +601,8 @@ function AppLayout({
                   </nav>
                 )}
 
-                {/* Spacer when inline nav is hidden */}
-                <div className={cn('flex-1', showSidebar && 'xl:hidden')} />
-                {!showSidebar && <div className="flex-1" />}
+                {/* Spacer to push right-side items to the right */}
+                <div className="flex-1" />
 
                 {/* Notification Center */}
                 <div className="flex-shrink-0 px-2">

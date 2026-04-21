@@ -433,6 +433,26 @@ function useCountUp(target, duration = 900) {
   return value;
 }
 
+// CORE UX IMPROVEMENT 3 — Compute daily deltas from createdAt timestamps
+function useDailyDeltas(registrations, teams) {
+  return useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const newParticipantsToday = (registrations || []).filter((r) => {
+      const ts = r.createdAt ? new Date(r.createdAt) : null;
+      return ts && !Number.isNaN(ts.getTime()) && ts >= todayStart;
+    }).length;
+
+    const newTeamsToday = (teams || []).filter((t) => {
+      const ts = t.createdAt ? new Date(t.createdAt) : null;
+      return ts && !Number.isNaN(ts.getTime()) && ts >= todayStart;
+    }).length;
+
+    return { newParticipantsToday, newTeamsToday };
+  }, [registrations, teams]);
+}
+
 // ============================================================================
 // VISUAL BRAND UPGRADE 2 — Hero decorative elements
 // ============================================================================
@@ -532,7 +552,49 @@ function HeroLightningIllustration() {
 // ============================================================================
 
 // QUICK WIN 1 — Enhanced phase stepper with glowing active indicator
-function PhasesStepper({ eventPhase }) {
+// CORE UX IMPROVEMENT 2 — Dynamic callout showing time until next milestone
+function TimelineCallout({ eventPhase, scheduleMilestones }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const currentPhaseIndex = PHASE_ORDER_INDEX[eventPhase] ?? -1;
+  const relevantMilestones = (scheduleMilestones || []).filter(
+    (m) => (PHASE_ORDER_INDEX[m.phase] ?? -1) > currentPhaseIndex
+  );
+  const nextMilestone = getUpcomingMilestones(relevantMilestones, 1)[0] || null;
+
+  if (!nextMilestone) return null;
+  const target = parseIsoTimestamp(nextMilestone.startTime);
+  if (!target) return null;
+
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs <= 0) return null;
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const totalDays = Math.floor(totalHours / 24);
+
+  let timeStr;
+  if (totalDays > 0) timeStr = `${totalDays} day${totalDays !== 1 ? 's' : ''}`;
+  else if (totalHours > 0) timeStr = `${totalHours} hour${totalHours !== 1 ? 's' : ''}`;
+  else timeStr = `${totalMinutes} minute${totalMinutes !== 1 ? 's' : ''}`;
+
+  return (
+    <div style={{ marginTop: 8, textAlign: 'center' }} aria-live="polite">
+      <span
+        className="timeline-callout-text text-[11px] font-semibold"
+        style={{ color: '#00f5ff', letterSpacing: '0.03em' }}
+      >
+        {nextMilestone.title} in {timeStr}
+      </span>
+    </div>
+  );
+}
+
+function PhasesStepper({ eventPhase, scheduleMilestones }) {
   return (
     <div
       className="overflow-x-auto rounded-xl border border-arena-border bg-arena-card shadow-sm"
@@ -550,31 +612,31 @@ function PhasesStepper({ eventPhase }) {
         const isCompleted = thisIndex < currentIndex;
         return (
           <div key={phase} className="flex flex-col gap-1.5 min-w-0">
-            {/* QUICK WIN 1: Thicker active line with CSS glow animation */}
+            {/* CORE UX IMPROVEMENT 2: Thicker electric-cyan bar with stronger glow */}
             <div
-              className={isActive ? 'phase-active-line' : ''}
+              className={isActive ? 'phase-active-line-strong' : ''}
               style={{
-                height: isActive ? 4 : 2,
+                height: isActive ? 6 : 2,
                 width: '100%',
                 borderRadius: 9999,
                 background: isActive
-                  ? 'var(--accent)'
+                  ? '#00f5ff'
                   : isCompleted
                   ? 'var(--color-text-muted)'
                   : 'var(--border-default)',
                 transition: 'height 200ms ease',
               }}
             />
-            {/* QUICK WIN 1: Glowing dot below active phase */}
+            {/* CORE UX IMPROVEMENT 2: Larger, brighter glowing dot */}
             {isActive && (
               <div
                 aria-hidden="true"
                 style={{
-                  width: 6,
-                  height: 6,
+                  width: 8,
+                  height: 8,
                   borderRadius: '50%',
-                  background: 'var(--accent)',
-                  boxShadow: '0 0 8px 2px color-mix(in srgb, var(--accent) 60%, transparent)',
+                  background: '#00f5ff',
+                  boxShadow: '0 0 12px 3px rgba(0, 245, 255, 0.5), 0 0 4px 1px rgba(0, 245, 255, 0.8)',
                   marginTop: -2,
                   marginLeft: 2,
                 }}
@@ -584,7 +646,7 @@ function PhasesStepper({ eventPhase }) {
               className="overflow-hidden text-ellipsis whitespace-nowrap text-[11px]"
               style={{
                 color: isActive
-                  ? 'var(--accent)'
+                  ? '#00f5ff'
                   : isCompleted
                   ? 'var(--color-text-muted)'
                   : 'var(--text-disabled)',
@@ -597,6 +659,8 @@ function PhasesStepper({ eventPhase }) {
         );
       })}
     </div>
+    {/* CORE UX IMPROVEMENT 2: Dynamic milestone countdown callout */}
+    <TimelineCallout eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
     </div>
   );
 }
@@ -843,8 +907,8 @@ function Dashboard({
       if (isDevMode()) {
         setData({
           registrations: [
-            { id: 'dev-user-1', name: 'Maya Rodriguez', isFreeAgent: false },
-            { id: 'dev-user-2', name: 'Jordan Lee', isFreeAgent: false },
+            { id: 'dev-user-1', name: 'Maya Rodriguez', isFreeAgent: false, createdAt: new Date().toISOString() },
+            { id: 'dev-user-2', name: 'Jordan Lee', isFreeAgent: false, createdAt: new Date().toISOString() },
             { id: 'dev-user-3', name: 'Casey Bento', isFreeAgent: false },
             { id: 'dev-user-4', name: "Pat O'Brien", isFreeAgent: true },
             { id: 'dev-user-5', name: 'Skylar Moore', isFreeAgent: true },
@@ -997,6 +1061,9 @@ function Dashboard({
       submissions: activeTeams.filter((t) => t.submission?.status === 'submitted').length,
     };
   }, [data, teams]);
+
+  // CORE UX IMPROVEMENT 3 — Dynamic trends from real createdAt timestamps
+  const dailyDeltas = useDailyDeltas(data?.registrations, teams);
 
   const scheduleMilestones = useMemo(() => {
     const milestones = data?.scheduleMilestones || [];
@@ -1617,7 +1684,7 @@ function Dashboard({
 
 
       {/* ====== PHASE STEPPER ====== */}
-      <PhasesStepper eventPhase={eventPhase} />
+      <PhasesStepper eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
 
       {/* ====== KPI ROW — QUICK WIN 3: animated numbers + trend ====== */}
       <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 6 }}>
@@ -1633,7 +1700,7 @@ function Dashboard({
           label="Participants"
           value={stats.participants.toLocaleString()}
           rawValue={stats.participants}
-          trend={stats.participants > 0 ? '+2 today' : null}
+          trend={dailyDeltas.newParticipantsToday > 0 ? `+${dailyDeltas.newParticipantsToday} today` : null}
           meta={stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null}
           testId="dashboard-kpi-participants"
         />
@@ -1641,7 +1708,7 @@ function Dashboard({
           label="Teams"
           value={stats.teams.toLocaleString()}
           rawValue={stats.teams}
-          trend={stats.teams > 0 ? '+1 today' : null}
+          trend={dailyDeltas.newTeamsToday > 0 ? `+${dailyDeltas.newTeamsToday} today` : null}
           testId="dashboard-kpi-teams"
         />
         <KpiCard
