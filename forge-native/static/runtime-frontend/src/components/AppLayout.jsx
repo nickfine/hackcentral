@@ -23,6 +23,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Save,
 } from 'lucide-react';
 import NavItem from './shared/NavItem';
 import { NotificationCenter } from './shared';
@@ -590,6 +591,29 @@ function AppLayout({
                     onNavigate={onNavigate}
                   />
                 </div>
+
+                {/* Config Mode — Show Actions button */}
+                {configModeControls.canEdit && configModeControls.isEnabled && (
+                  <div className="flex-shrink-0 px-2">
+                    <button
+                      type="button"
+                      data-config-actions-trigger="true"
+                      onClick={configModeControls.isDrawerOpen ? configModeControls.closeDrawer : configModeControls.openDrawer}
+                      disabled={configModeControls.isPublishFooterActive}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-55',
+                        'focus-ring-control',
+                        configModeControls.isDrawerOpen
+                          ? 'border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+                          : 'border-arena-border bg-arena-card text-text-secondary hover:text-text-primary hover:bg-arena-elevated'
+                      )}
+                      aria-label={configModeControls.isDrawerOpen ? 'Hide draft actions' : 'Show draft actions'}
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{configModeControls.isDrawerOpen ? 'Hide Actions' : 'Draft Actions'}</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* User */}
                 <div
