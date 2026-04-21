@@ -543,6 +543,101 @@ const OwnerWelcomeModal = memo(function OwnerWelcomeModal({
   );
 });
 
+// ─── Hero countdown ───────────────────────────────────────────────────────────
+
+const PHASE_OPENED_CTAS = {
+  signup:         { label: 'Sign up',      view: 'signup',      params: {} },
+  team_formation: { label: 'Browse teams', view: 'marketplace', params: { tab: 'teams' } },
+  submission:     { label: 'Submit now',   view: 'submission',  params: {} },
+  voting:         { label: 'Vote now',     view: 'voting',      params: {} },
+};
+
+function HeroCountdown({ scheduleMilestones, eventPhase, onNavigate }) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Re-derive on every tick so the countdown automatically advances to the next milestone.
+  // Filter to current phase and beyond so earlier-phase milestones don't appear after we've moved on.
+  const currentPhaseIndex = PHASE_ORDER_INDEX[eventPhase] ?? -1;
+  const relevantMilestones = (scheduleMilestones || []).filter(
+    (m) => (PHASE_ORDER_INDEX[m.phase] ?? -1) >= currentPhaseIndex
+  );
+  const primaryMilestone = getUpcomingMilestones(relevantMilestones, 1)[0] || null;
+
+  if (!primaryMilestone) return null;
+  const target = parseIsoTimestamp(primaryMilestone.startTime);
+  if (!target) return null;
+
+  const diffMs = target.getTime() - Date.now();
+  const hasOpened = diffMs <= 0;
+
+  if (hasOpened) {
+    const cta = PHASE_OPENED_CTAS[primaryMilestone.phase] || null;
+    const openedLabel = primaryMilestone.title.replace(/\s+opens?$/i, ' is now open');
+    return (
+      <div className="hidden md:flex flex-col items-end justify-center gap-3 p-8 pl-4 text-right">
+        <p className="text-sm leading-snug" style={{ color: 'var(--accent)' }}>
+          {openedLabel}
+        </p>
+        {cta && (
+          <button
+            type="button"
+            onClick={() => onNavigate?.(cta.view, cta.params)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+            style={{ background: 'var(--accent)', cursor: 'pointer' }}
+          >
+            {cta.label}
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const isUrgent = diffMs < 5 * 60 * 1000;
+  const totalSecs = Math.floor(diffMs / 1000);
+  const hours   = Math.floor(totalSecs / 3600);
+  const minutes = Math.floor((totalSecs % 3600) / 60);
+  const seconds = totalSecs % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+
+  const units = [
+    { value: pad(hours),   label: 'h' },
+    { value: pad(minutes), label: 'm' },
+    { value: pad(seconds), label: 's' },
+  ];
+
+  return (
+    <div className="hidden md:flex flex-col items-end justify-center gap-4 p-8 pl-4 text-right">
+      <p className="text-sm text-text-secondary leading-snug max-w-[140px]">
+        {primaryMilestone.title}
+      </p>
+      <div className="flex items-end gap-3">
+        {units.map(({ value, label }) => (
+          <div key={label} className="flex flex-col items-center gap-1">
+            <span
+              className={`text-4xl font-bold leading-none${isUrgent ? ' dashboard-status-text--amber' : ''}`}
+              style={{ fontVariantNumeric: 'tabular-nums', color: isUrgent ? undefined : 'var(--accent)' }}
+            >
+              {value}
+            </span>
+            <span
+              className="text-[10px] uppercase"
+              style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+            >
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Check if running in dev mode (outside Forge)
 const isDevMode = () => {
   try {
@@ -928,6 +1023,15 @@ function Dashboard({
   const teamReadiness = TEAM_STATUS_META[myProgress.teamStatus] || TEAM_STATUS_META.incomplete;
 
   const submissionReadiness = useMemo(() => {
+    // Submission isn't open yet — don't flag it as a warning
+    if (isEarlyExecutionPhase) {
+      return {
+        label: 'Not open',
+        tone: 'gray',
+        detail: 'Submission opens when hacking begins.',
+      };
+    }
+
     if (myProgress.submissionReady || hasSubmitted) {
       return {
         label: 'Ready',
@@ -949,7 +1053,7 @@ function Dashboard({
       tone: 'amber',
       detail: 'Keep building toward a complete handoff.',
     };
-  }, [myProgress.submissionReady, myProgress.deadlineRisk, hasSubmitted, eventPhase]);
+  }, [myProgress.submissionReady, myProgress.deadlineRisk, hasSubmitted, eventPhase, isEarlyExecutionPhase]);
 
   const readinessItems = useMemo(() => ([
     {
@@ -1169,12 +1273,12 @@ function Dashboard({
           data-testid="dashboard-hero-card"
           className={cn(
             'dashboard-hero-card relative overflow-hidden',
-            'grid grid-cols-1 md:grid-cols-[auto_1fr] items-center',
+            'grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-stretch',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
         >
           {/* Logo panel */}
-          <div className="flex items-center justify-center p-6 pb-0 md:pb-6 md:pr-2">
+          <div className="flex items-center justify-center p-8 pb-0 md:pb-8 md:pr-3">
             <img
               src={heroLogoSrc}
               alt={heroLogoAlt}
@@ -1200,7 +1304,7 @@ function Dashboard({
               fallback={heroTitleFallback}
               as="h1"
               data-testid="dashboard-hero-headline"
-              displayClassName="dashboard-hero-title text-3xl sm:text-4xl md:text-5xl tracking-tight leading-tight"
+              displayClassName="dashboard-hero-title text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1]"
             />
 
             <EditableTextArea
@@ -1224,7 +1328,21 @@ function Dashboard({
 
             {/* CTAs */}
             <div data-testid="dashboard-hero-next-action" className="flex flex-wrap items-center gap-3 mt-1">
-              {eventPhase === 'signup' ? (
+              {!isRegisteredUser && isEarlyExecutionPhase ? (
+                <button
+                  type="button"
+                  data-testid="dashboard-row1-open-next-step"
+                  onClick={() => onNavigate?.('signup')}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
+                    BUTTON_VARIANTS.primary.base,
+                    BUTTON_VARIANTS.primary.hover
+                  )}
+                >
+                  Sign up
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : eventPhase === 'signup' ? (
                 <button
                   type="button"
                   onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
@@ -1289,6 +1407,7 @@ function Dashboard({
             </div>
           </div>
 
+          <HeroCountdown scheduleMilestones={scheduleMilestones} eventPhase={eventPhase} onNavigate={onNavigate} />
 
         </div>
       </section>

@@ -117,67 +117,18 @@ const resolveEventMeta = (eventMeta = null) => {
   };
 };
 
+const PRE_HACKING_PHASES = new Set(['signup', 'team_formation']);
+
 const getPhaseCountdownConfig = (eventPhase, schedule = {}) => {
-  switch (eventPhase) {
-    case 'signup':
-      return {
-        label: 'until Team Formation begins',
-        target: (
-          parseFlexibleDate(schedule.teamFormationStartsAt)
-          || parseFlexibleDate(schedule.registrationClosesAt)
-          || parseFlexibleDate(schedule.hackingStartsAt)
-        ),
-      };
-    case 'team_formation':
-      return {
-        label: 'until Team Formation closes',
-        target: (
-          parseFlexibleDate(schedule.teamFormationEndsAt)
-          || parseFlexibleDate(schedule.hackingStartsAt)
-          || parseFlexibleDate(schedule.submissionDeadlineAt)
-        ),
-      };
-    case 'hacking':
-      return {
-        label: 'until Submission closes',
-        target: (
-          parseFlexibleDate(schedule.submissionDeadlineAt)
-          || parseFlexibleDate(schedule.votingOpensAt)
-        ),
-      };
-    case 'submission':
-      return {
-        label: 'until Voting begins',
-        target: (
-          parseFlexibleDate(schedule.votingOpensAt)
-          || parseFlexibleDate(schedule.votingStartsAt)
-          || parseFlexibleDate(schedule.votingClosesAt)
-        ),
-      };
-    case 'voting':
-      return {
-        label: 'until Voting closes',
-        target: (
-          parseFlexibleDate(schedule.votingClosesAt)
-          || parseFlexibleDate(schedule.judgingStartsAt)
-          || parseFlexibleDate(schedule.resultsAnnounceAt)
-        ),
-      };
-    case 'judging':
-      return {
-        label: 'until Results announced',
-        target: parseFlexibleDate(schedule.resultsAnnounceAt),
-      };
-    case 'results':
-      return {
-        label: 'until Event wrap-up',
-        target: null,
-      };
-    default:
-      return {
-        label: 'until next phase',
-        target: null,
-      };
+  if (!PRE_HACKING_PHASES.has(eventPhase)) {
+    return { label: null, target: null };
+  }
+  return {
+    label: 'until hacking starts',
+    target: (
+      parseFlexibleDate(schedule.hackingStartsAt)
+      || parseFlexibleDate(schedule.teamFormationEndsAt)
+    ),
   };
 };
 
@@ -256,6 +207,8 @@ const calculateTimeRemaining = (meta) => {
 
 // Isolated timer component to prevent parent re-renders
 const WarTimer = memo(function WarTimer({ eventMeta, eventPhase }) {
+  if (!PRE_HACKING_PHASES.has(eventPhase)) return null;
+
   const timerMeta = useMemo(() => getTimerMeta(eventMeta, eventPhase), [eventMeta, eventPhase]);
   const [timeRemaining, setTimeRemaining] = useState(() => calculateTimeRemaining(timerMeta));
 
