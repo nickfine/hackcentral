@@ -1429,7 +1429,15 @@ function Dashboard({
       <PhasesStepper eventPhase={eventPhase} />
 
       {/* ====== KPI ROW ====== */}
-      <div className="grid grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr]" style={{ gap: 12 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 12 }}>
+        <KpiCard
+          label="Your activity"
+          value={teamReadiness.label}
+          meta={teamReadiness.detail}
+          accent
+          progressPercent={readinessProgressPercent}
+          testId="dashboard-kpi-status"
+        />
         <KpiCard
           label="Participants"
           value={stats.participants.toLocaleString()}
@@ -1445,14 +1453,6 @@ function Dashboard({
           label="Submissions"
           value={stats.submissions.toLocaleString()}
           testId="dashboard-kpi-submissions"
-        />
-        <KpiCard
-          label="Your activity"
-          value={teamReadiness.label}
-          meta={teamReadiness.detail}
-          accent
-          progressPercent={readinessProgressPercent}
-          testId="dashboard-kpi-status"
         />
       </div>
 

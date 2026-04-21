@@ -527,19 +527,19 @@ function AppLayout({
         <Container size={contentContainerSize} padding="md">
           {/* TOPBAR — single compact card (wireframe layout) */}
           <header className="py-3">
-            <div className="rounded-xl border border-arena-border bg-arena-card overflow-hidden">
+            <div className="rounded-xl border border-arena-border bg-arena-card overflow-visible">
               <div className="flex items-center" style={{ height: 52 }}>
 
-                {/* Logo icon */}
+                {/* Logo icon — wrapper clips background to card's left rounded corners */}
+                <div className="flex-shrink-0 overflow-hidden rounded-l-xl" style={{ width: 52, height: 52 }}>
                 <button
                   type="button"
                   onClick={() => onNavigate('dashboard')}
-                  className="flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                  className="flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
                   style={{
                     width: 52,
                     height: 52,
                     background: 'color-mix(in srgb, var(--accent) 50%, #000)',
-                    borderRadius: 'var(--radius, 10px) 0 0 var(--radius, 10px)',
                   }}
                 >
                   {useAdaptavistLogo ? (
@@ -553,6 +553,7 @@ function AppLayout({
                     />
                   )}
                 </button>
+                </div>
 
                 {/* War Timer */}
                 <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
