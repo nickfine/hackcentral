@@ -200,6 +200,14 @@ function formatRelativeWindow(targetTimestamp) {
   return `In ${Math.max(minutes, 1)}m`;
 }
 
+function formatComingUpTime(milestone, isFirst) {
+  if (milestone.isNow && isFirst) return 'NOW';
+  const rel = formatRelativeWindow(milestone.startTime);
+  if (!rel) return '—';
+  if (rel === 'Live now') return 'now';
+  return rel.replace(/^In /, '');
+}
+
 function formatActivityTime(timeInput) {
   if (!timeInput) return 'recently';
   if (typeof timeInput === 'string' && timeInput.includes('ago')) return timeInput;
@@ -454,11 +462,14 @@ function PhasesStepper({ eventPhase }) {
   );
 }
 
-function KpiCard({ label, value, meta, testId }) {
+function KpiCard({ label, value, meta, accent, progressPercent, testId }) {
   return (
     <div
       className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
-      style={{ padding: '14px 16px' }}
+      style={{
+        padding: '14px 16px',
+        ...(accent ? { borderLeft: '4px solid var(--accent)' } : {}),
+      }}
       data-testid={testId}
     >
       <p className="dashboard-card-label">{label}</p>
@@ -470,6 +481,14 @@ function KpiCard({ label, value, meta, testId }) {
       </p>
       {meta && (
         <p className="text-xs text-text-muted" style={{ marginTop: 4 }}>{meta}</p>
+      )}
+      {accent && progressPercent != null && (
+        <div className="h-1 overflow-hidden rounded-full border border-arena-border" style={{ marginTop: 8 }}>
+          <div
+            className="h-full rounded-full transition-[width] duration-300"
+            style={{ width: `${progressPercent}%`, background: 'var(--accent)' }}
+          />
+        </div>
       )}
     </div>
   );
@@ -1273,21 +1292,13 @@ function Dashboard({
           data-testid="dashboard-hero-card"
           className={cn(
             'dashboard-hero-card relative overflow-hidden',
-            'grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-stretch',
+            'grid grid-cols-1 md:grid-cols-[1fr_auto] items-stretch',
             heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
           )}
+          style={{ borderLeft: '4px solid var(--accent)' }}
         >
-          {/* Logo panel */}
-          <div className="flex items-center justify-center p-8 pb-0 md:pb-8 md:pr-3">
-            <img
-              src={heroLogoSrc}
-              alt={heroLogoAlt}
-              className="dashboard-hero-logo h-20 w-20 object-contain"
-            />
-          </div>
-
           {/* Copy panel */}
-          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8 md:pl-4">
+          <div className="relative z-10 flex flex-col gap-3 justify-center p-6 sm:p-8">
             {heroBannerImageUrl ? (
               <>
                 <img src={heroBannerImageUrl} alt="" className="dashboard-hero-banner-image" />
@@ -1295,9 +1306,10 @@ function Dashboard({
               </>
             ) : null}
 
-            <p className="dashboard-card-label" data-testid="dashboard-row1-meta">
-              {eventMeta?.name || 'HackDay'} · {PHASE_LABELS[eventPhase] || eventPhase}
-            </p>
+            <div className="flex items-center justify-between gap-2" data-testid="dashboard-row1-meta">
+              <p className="dashboard-card-label">{eventMeta?.name || 'HackDay'}</p>
+              <Badge variant="default" size="sm">{PHASE_LABELS[eventPhase] || eventPhase}</Badge>
+            </div>
 
             <EditableText
               contentKey="dashboard.hero.title"
@@ -1417,7 +1429,7 @@ function Dashboard({
       <PhasesStepper eventPhase={eventPhase} />
 
       {/* ====== KPI ROW ====== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: 12 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.5fr]" style={{ gap: 12 }}>
         <KpiCard
           label="Participants"
           value={stats.participants.toLocaleString()}
@@ -1438,6 +1450,8 @@ function Dashboard({
           label="Your activity"
           value={teamReadiness.label}
           meta={teamReadiness.detail}
+          accent
+          progressPercent={readinessProgressPercent}
           testId="dashboard-kpi-status"
         />
       </div>
@@ -1535,11 +1549,7 @@ function Dashboard({
             {comingUpMilestones.length > 0 ? (
               <div className="space-y-0">
                 {comingUpMilestones.map((milestone, index) => {
-                  const mDate = parseIsoTimestamp(milestone.startTime);
-                  const timeStr = mDate
-                    ? mDate.toLocaleTimeString(getUserLocale(), { hour: '2-digit', minute: '2-digit' })
-                    : formatDayMonth(milestone.startTime);
-                  const isNow = milestone.isNow;
+                  const isHighlighted = milestone.isNow && index === 0;
                   return (
                     <div
                       key={milestone.id}
@@ -1552,17 +1562,17 @@ function Dashboard({
                         style={{
                           fontFamily: 'var(--font-mono)',
                           fontVariantNumeric: 'tabular-nums',
-                          color: isNow ? 'var(--accent)' : 'var(--text-muted)',
-                          fontWeight: isNow ? 600 : 400,
+                          color: isHighlighted ? 'var(--accent)' : 'var(--text-muted)',
+                          fontWeight: isHighlighted ? 600 : 400,
                         }}
                       >
-                        {isNow ? 'NOW' : timeStr}
+                        {formatComingUpTime(milestone, index === 0)}
                       </span>
                       <span
                         className="text-sm"
                         style={{
-                          color: isNow ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          fontWeight: isNow ? 600 : 400,
+                          color: isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontWeight: isHighlighted ? 600 : 400,
                         }}
                       >
                         {milestone.title}
@@ -1676,10 +1686,7 @@ function Dashboard({
                 </div>
               </div>
               <div className="mt-3 border-t border-arena-border pt-3">
-                <div className="mb-1 flex items-center justify-between">
-                  <p data-testid="dashboard-readiness-count" className="dashboard-meta-text text-xs font-normal">
-                    {readinessCompleteCount} of {readinessTotalCount} ready
-                  </p>
+                <div className="mb-1 flex items-center justify-end">
                   <p className="dashboard-meta-text text-xs font-normal">{readinessProgressPercent}%</p>
                 </div>
                 <div data-testid="dashboard-readiness-progress" className="dashboard-readiness-progress-track h-1.5 overflow-hidden rounded-full border border-arena-border">

@@ -6,10 +6,7 @@
 
 import { useState, useEffect, useRef, memo, useCallback, useMemo, useContext } from 'react';
 import {
-  CheckCircle2,
-  Clock,
   Users,
-  User,
   Calendar,
   Trophy,
   BookOpen,
@@ -26,7 +23,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  TriangleAlert,
 } from 'lucide-react';
 import NavItem from './shared/NavItem';
 import { NotificationCenter } from './shared';
@@ -221,25 +217,22 @@ const WarTimer = memo(function WarTimer({ eventMeta, eventPhase }) {
 
   return (
     <div
-      className={cn(
-        'hidden md:flex items-center gap-3 px-4 py-2 rounded-card border border-arena-border',
-        timeRemaining.status === 'live'
-          ? 'bg-arena-elevated animate-pulse'
-          : 'bg-arena-card'
-      )}
+      className="hidden md:flex flex-col items-center justify-center flex-shrink-0"
+      style={{
+        padding: '0 20px',
+        borderRight: '0.5px solid var(--border-default)',
+        ...(timeRemaining.status === 'live' ? { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : {}),
+      }}
       title={timeRemaining.status === 'countdown' && timeRemaining.localTargetDate
         ? `${timeRemaining.label}: ${timeRemaining.localTargetDate} at ${timeRemaining.localTargetTime} (${timeRemaining.userTzAbbr})`
         : undefined
       }
     >
-      <Clock className="w-5 h-5 text-text-secondary" />
-      <div className="min-w-0">
-        <div className="app-header-countdown-value font-mono text-2xl font-bold tracking-wider text-text-primary">
-          {timeRemaining.display}
-        </div>
-        <div className="app-header-countdown-label text-xs font-normal uppercase tracking-wide text-text-secondary truncate">
-          {timeRemaining.label}
-        </div>
+      <div className="text-lg font-semibold tabular-nums text-text-primary leading-tight">
+        {timeRemaining.display}
+      </div>
+      <div className="text-[10px] font-normal text-text-muted truncate">
+        {timeRemaining.label}
       </div>
     </div>
   );
@@ -248,176 +241,6 @@ const WarTimer = memo(function WarTimer({ eventMeta, eventPhase }) {
 // ============================================================================
 // THEME TOGGLE
 // ============================================================================
-
-const ThemeToggle = memo(function ThemeToggle() {
-  const themeState = useContext(ThemeStateContext);
-  const { theme, setTheme, resolvedTheme, isSystemTheme } = themeState ?? {};
-  const [isOpen, setIsOpen] = useState(false);
-
-  const themes = [
-    { id: 'light', label: 'Light', icon: Sun },
-    { id: 'dark', label: 'Dark', icon: Moon },
-    { id: 'system', label: 'System', icon: Monitor },
-  ];
-
-  const currentTheme = themes.find(t => t.id === theme) || themes[2];
-  const CurrentIcon = currentTheme.icon;
-
-  return (
-    <div className="relative z-50">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'flex items-center justify-center w-9 h-9 rounded-lg transition-all',
-          'bg-arena-card border border-arena-border',
-          'text-text-secondary hover:text-text-primary hover:bg-arena-elevated',
-          'focus-ring-control'
-        )}
-        title={`Theme: ${currentTheme.label}${isSystemTheme ? ` (${resolvedTheme})` : ''}`}
-        aria-label="Toggle theme"
-      >
-        <CurrentIcon className="w-4 h-4" />
-      </button>
-
-      {/* Theme dropdown */}
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-full mt-2 w-36 bg-arena-card border border-arena-border rounded-lg shadow-xl z-[60] py-1 overflow-hidden">
-            {themes.map((t) => {
-              const Icon = t.icon;
-              const isActive = theme === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    setTheme(t.id);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-                    isActive
-                      ? 'bg-brand/10 text-brand'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-arena-elevated'
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{t.label}</span>
-                  {isActive && (
-                    <span className="ml-auto text-brand">✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-});
-
-const CONFIG_STATUS_LABELS = {
-  on_clean: 'Live',
-  on_unsaved: 'Unsaved',
-  on_draft: 'Draft saved',
-  saving: 'Saving',
-  publishing: 'Publishing',
-  conflict: 'Conflict',
-};
-
-const ConfigModeHeaderControl = memo(function ConfigModeHeaderControl() {
-  const {
-    canEdit,
-    isEnabled,
-    isDrawerOpen,
-    isLoading,
-    isPublishFooterActive,
-    publishSuccess,
-    saveError,
-    status,
-    toggleConfigMode,
-    openDrawer,
-    closeDrawer,
-  } = useConfigMode();
-
-  if (!canEdit) return null;
-
-  const statusLabel = CONFIG_STATUS_LABELS[status] || 'On';
-  const activeMessage = publishSuccess?.message || saveError || null;
-  const isSuccessMessage = Boolean(publishSuccess?.message);
-
-  return (
-    <div className="flex flex-col items-start gap-1.5 sm:items-end">
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={toggleConfigMode}
-          disabled={isPublishFooterActive}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-55',
-            'focus-ring-control',
-            isEnabled
-              ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[linear-gradient(135deg,var(--accent)_0%,var(--accent-hover)_100%)] text-[var(--accent-on)] shadow-[0_10px_24px_color-mix(in_srgb,var(--accent)_35%,transparent)] hover:brightness-105'
-              : 'border-orange-400/70 bg-[linear-gradient(135deg,#fb923c_0%,#f97316_100%)] text-[#291406] shadow-[0_10px_22px_rgba(249,115,22,0.34)] hover:brightness-105'
-          )}
-          aria-label="Config Mode"
-          title="Toggle Config Mode"
-        >
-          <Wrench className="h-3.5 w-3.5" />
-          <span>{isEnabled ? 'Config On' : 'Config Off'}</span>
-          {isLoading && (
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-          )}
-        </button>
-
-        {isEnabled && (
-          <>
-            <button
-              type="button"
-              onClick={isDrawerOpen ? closeDrawer : openDrawer}
-              disabled={isPublishFooterActive}
-              data-config-actions-trigger="true"
-              className={cn(
-                'inline-flex items-center rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-55',
-                'border-arena-border bg-arena-card text-text-secondary hover:text-text-primary hover:bg-arena-elevated',
-                'focus-ring-control'
-              )}
-              aria-label={isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
-            >
-              {isDrawerOpen ? 'Hide Actions' : 'Show Actions'}
-            </button>
-            <span className="hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)] sm:inline-flex">
-              {statusLabel}
-            </span>
-          </>
-        )}
-      </div>
-
-      {activeMessage && (
-        <div
-          className={cn(
-            'flex max-w-[320px] items-start gap-2 rounded-lg border px-2.5 py-2 text-[11px] font-semibold shadow-sm',
-            isSuccessMessage
-              ? 'border-success/35 bg-success/10 text-success'
-              : 'border-error/35 bg-error/10 text-error'
-          )}
-        >
-          {isSuccessMessage ? (
-            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          ) : (
-            <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          )}
-          <span className="leading-snug">{activeMessage}</span>
-        </div>
-      )}
-    </div>
-  );
-});
 
 // ============================================================================
 // NAVIGATION ITEMS
@@ -498,6 +321,9 @@ function AppLayout({
 }) {
   const [devControlsOpen, setDevControlsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const themeState = useContext(ThemeStateContext);
+  const { theme: currentTheme, setTheme } = themeState ?? {};
+  const configModeControls = useConfigMode();
   const [notifications, setNotifications] = useState([]);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [notificationLoading, setNotificationLoading] = useState(false);
@@ -699,291 +525,310 @@ function AppLayout({
         isMacroHost ? 'relative' : (devModeActive ? 'sticky top-[24px]' : 'sticky top-0')
       )}>
         <Container size={contentContainerSize} padding="md">
-          {/* HEADER */}
-          <header className="py-4 mb-2">
-            <HStack justify="between" align="center">
-              {/* Logo */}
-              <button
-                type="button"
-                onClick={() => onNavigate('dashboard')}
-                className="flex items-center flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                {useAdaptavistLogo ? (
-                  <img
-                    src="./adaptlogo.png"
-                    alt="Adaptavist"
-                    className="h-12 sm:h-16 w-auto header-logo"
-                  />
-                ) : (
-                  <>
-                    <img
-                      src="./hd-text.png"
-                      alt="HackDay"
-                      className="h-12 sm:h-16 w-auto logo-dark-mode"
-                    />
-                    <img
-                      src="./hd-text-dark.png"
-                      alt="HackDay"
-                      className="h-12 sm:h-16 w-auto logo-light-mode"
-                    />
-                  </>
-                )}
-              </button>
+          {/* TOPBAR — single compact card (wireframe layout) */}
+          <header className="py-3">
+            <div className="rounded-xl border border-arena-border bg-arena-card overflow-hidden">
+              <div className="flex items-center" style={{ height: 52 }}>
 
-              {/* War Timer */}
-              <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
-
-              {showOpenAppViewCta && onOpenAppView && (
-                <div className="flex flex-col items-start gap-1">
-                  <button
-                    type="button"
-                    onClick={onOpenAppView}
-                    disabled={openingAppView}
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide transition-all',
-                      'focus-ring-control',
-                      openingAppView
-                        ? 'cursor-wait border-arena-border bg-arena-card text-text-muted'
-                        : 'border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]'
-                    )}
-                    title="Open this HackDay in the app shell view"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{openingAppView ? 'Opening...' : 'Open App View'}</span>
-                  </button>
-                  {openAppViewError && (
-                    <p className="max-w-[14rem] text-[11px] font-medium text-error">{openAppViewError}</p>
-                  )}
-                </div>
-              )}
-
-              {/* DEV MODE TOGGLE - Available to runtime admins and event admins for local simulation */}
-              {canUseDevControls && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setDevControlsOpen(true)}
-                    className={cn(
-                      'flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all',
-                      'focus-ring-control',
-                      devModeActive
-                        ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                        : 'bg-arena-card border border-arena-border text-text-secondary hover:text-text-primary'
-                    )}
-                    title="Dev Controls"
-                  >
-                    <Wrench className="w-3 h-3" />
-                    <span className="hidden sm:inline">DEV</span>
-                    <span className={cn(
-                      'hidden sm:inline-flex h-1.5 w-1.5 rounded-full',
-                      devModeActive ? 'bg-black' : 'bg-text-muted'
-                    )} />
-                  </button>
-
-                  {/* Dev Controls Modal */}
-                  <Modal
-                    isOpen={devControlsOpen}
-                    onClose={() => setDevControlsOpen(false)}
-                    size="sm"
-                    title="Dev Controls"
-                  >
-                    <div className="space-y-5 p-4">
-                      <div className="flex items-center gap-2 pb-3 border-b border-arena-border">
-                        <Wrench className="w-4 h-4 text-yellow-500" />
-                        <span className="font-bold text-text-primary">Development Controls</span>
-                        {onDevModeToggle && (
-                          <button
-                            type="button"
-                            onClick={onDevModeToggle}
-                            className={cn(
-                              'ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold uppercase transition-colors',
-                              devModeActive
-                                ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                                : 'bg-arena-elevated text-text-muted border border-arena-border hover:border-yellow-500 hover:text-yellow-500'
-                            )}
-                          >
-                            {devModeActive ? 'ON' : 'OFF'}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Role Impersonation */}
-                      {onDevRoleChange && (
-                        <div>
-                          <label className="text-xs font-bold text-text-muted mb-2 block">
-                            Role Impersonation
-                          </label>
-                          <select
-                            value={devRoleOverride || realUserRole || user?.role || 'participant'}
-                            onChange={(e) => {
-                              const newRole = e.target.value;
-                              const realRole = realUserRole || user?.role || 'participant';
-                              onDevRoleChange?.(newRole === realRole ? null : newRole);
-                            }}
-                            className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
-                          >
-                            <option value={realUserRole || user?.role || 'participant'}>
-                              Real: {realUserRole || user?.role || 'participant'}
-                            </option>
-                            <option value="participant_guest">Participant - Needs Signup</option>
-                            <option value="participant_no_team">Participant - Registered, No Team</option>
-                            <option value="participant">Participant - Team Member</option>
-                            <option value="participant_captain">Participant - Team Captain</option>
-                            <option disabled>──────── Elevated Roles ────────</option>
-                            <option value="ambassador">Ambassador</option>
-                            <option value="judge">Judge</option>
-                            <option value="admin">Admin</option>
-                            <option value="owner_jonmort">Owner (Jon Mort)</option>
-                          </select>
-                          {devRoleOverride && (
-                            <p className="mt-1 text-xs text-yellow-500">
-                              Impersonating: {devRoleOverride}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Phase Switcher */}
-                      {onPhaseChange && (
-                        <div>
-                          <label className="text-xs font-bold text-text-muted mb-2 block">
-                            Event Phase
-                          </label>
-                          <select
-                            value={realEventPhase}
-                            onChange={(e) => {
-                              onPhaseChange(e.target.value);
-                              setDevControlsOpen(false);
-                            }}
-                            className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
-                          >
-                            {Object.entries(eventPhases).map(([key, phase]) => (
-                              <option key={key} value={key}>{phase.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </Modal>
-                </>
-              )}
-
-              {/* Notification Center */}
-              <NotificationCenter
-                notifications={notifications}
-                unreadCount={notificationUnreadCount}
-                loading={notificationLoading}
-                onMarkAsRead={handleMarkNotificationAsRead}
-                onMarkAllAsRead={handleMarkAllNotificationsAsRead}
-                onNavigate={onNavigate}
-              />
-
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
-              {/* Config Mode Controls */}
-              <ConfigModeHeaderControl />
-
-              {/* User Quick Access */}
-              <div className="relative z-50">
+                {/* Logo icon */}
                 <button
                   type="button"
-                  onClick={() => setProfileMenuOpen((prev) => !prev)}
-                  className={cn(
-                    'bg-arena-card border border-arena-border flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-2 sm:py-3 rounded-2xl cursor-pointer',
-                    'transition-all duration-300 group',
-                    'hover:-translate-y-0.5',
-                    'focus-ring-control'
-                  )}
+                  onClick={() => onNavigate('dashboard')}
+                  className="flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                  style={{
+                    width: 52,
+                    height: 52,
+                    background: 'color-mix(in srgb, var(--accent) 50%, #000)',
+                    borderRadius: 'var(--radius, 10px) 0 0 var(--radius, 10px)',
+                  }}
                 >
-                  {/* Team info - hidden on mobile */}
-                  {showTeamContextInHeader && userTeam && (
-                    <div className="hidden sm:flex items-center gap-3">
-                      <div className="w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shadow-lg bg-arena-elevated">
-                        <Users className="w-5 h-5 text-text-secondary" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-text-primary text-sm">
-                          {userTeam.name}
-                        </p>
-                        <p className="text-xs text-text-secondary">
-                          {captainedTeam ? 'Team Captain' : 'Team Member'}
-                        </p>
-                      </div>
-                      <div className="hidden lg:block h-10 w-px bg-arena-border/50 mx-1" />
-                    </div>
+                  {useAdaptavistLogo ? (
+                    <img src="./adaptlogo.png" alt="Adaptavist" className="h-7 w-7 object-contain" />
+                  ) : (
+                    <img
+                      src="./hackday-icon.png"
+                      alt="HackDay"
+                      className="h-7 w-7 object-contain"
+                      style={{ borderRadius: 7, opacity: 0.85 }}
+                    />
                   )}
-
-                  {/* User avatar + name */}
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <Avatar user={user} size="md" />
-                    <div className="text-left sm:text-right">
-                      <p className="font-semibold text-text-primary text-sm">
-                        {user?.name || 'User'}
-                      </p>
-                      <p className="text-xs text-text-secondary">
-                        {user?.role && user.role !== 'participant'
-                          ? `${user.role.charAt(0).toUpperCase()}${user.role.slice(1)}${userCallsign ? ` · ${userCallsign}` : ''}`
-                          : (userCallsign || (userTeam ? 'Team Member' : 'Free Agent'))}
-                      </p>
-                    </div>
-                  </div>
-
-                  <ChevronRight className={cn(
-                    'w-5 h-5 text-text-secondary transition-transform',
-                    profileMenuOpen && 'rotate-90'
-                  )} />
                 </button>
 
-                {profileMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setProfileMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-52 bg-arena-card border border-arena-border rounded-xl shadow-xl z-50 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileMenuOpen(false);
-                          onNavigate('profile');
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-arena-elevated transition-colors"
+                {/* War Timer */}
+                <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
+
+                {/* Inline nav — xl and above */}
+                {showSidebar && (
+                  <nav className="hidden xl:flex flex-1 items-center gap-1 px-3 min-w-0" aria-label="Primary navigation">
+                    {navItems.map((item) => (
+                      <NavItem
+                        key={item.id}
+                        active={activeNav === item.id}
+                        highlight={item.highlight}
+                        onClick={() => handleNavClick(item.id)}
+                        variant="horizontal"
                       >
-                        Profile
-                      </button>
+                        {item.label}
+                      </NavItem>
+                    ))}
+                  </nav>
+                )}
+
+                {/* Spacer when inline nav is hidden */}
+                <div className={cn('flex-1', showSidebar && 'xl:hidden')} />
+                {!showSidebar && <div className="flex-1" />}
+
+                {/* Notification Center */}
+                <div className="flex-shrink-0 px-2">
+                  <NotificationCenter
+                    notifications={notifications}
+                    unreadCount={notificationUnreadCount}
+                    loading={notificationLoading}
+                    onMarkAsRead={handleMarkNotificationAsRead}
+                    onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+                    onNavigate={onNavigate}
+                  />
+                </div>
+
+                {/* User */}
+                <div
+                  className="relative z-50 flex-shrink-0 flex items-center self-stretch"
+                  style={{ borderLeft: '0.5px solid var(--border-default)', padding: '0 14px' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setProfileMenuOpen((prev) => !prev)}
+                    className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80 focus-ring-control"
+                  >
+                    <Avatar user={user} size="sm" />
+                    <div className="hidden sm:block text-left">
+                      <p className="text-xs font-medium text-text-primary leading-tight">{user?.name || 'User'}</p>
+                      <p className="text-[10px] text-text-muted leading-tight">
+                        {user?.role && user.role !== 'participant'
+                          ? `${user.role.charAt(0).toUpperCase()}${user.role.slice(1)}${captainedTeam ? ' · Team Captain' : ''}`
+                          : (captainedTeam ? 'Team Captain' : (userTeam ? 'Team Member' : 'Free Agent'))}
+                        {' ▾'}
+                      </p>
                     </div>
-                  </>
+                  </button>
+
+                  {profileMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setProfileMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-arena-card border border-arena-border rounded-xl shadow-xl z-50 overflow-hidden">
+                        {/* Profile */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileMenuOpen(false);
+                            onNavigate('profile');
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-arena-elevated transition-colors"
+                        >
+                          Profile
+                        </button>
+
+                        {/* Theme */}
+                        <div className="border-t border-arena-border px-4 py-2">
+                          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">Theme</p>
+                          <div className="flex gap-1">
+                            {[
+                              { id: 'light', label: 'Light', Icon: Sun },
+                              { id: 'dark', label: 'Dark', Icon: Moon },
+                              { id: 'system', label: 'System', Icon: Monitor },
+                            ].map(({ id, label, Icon }) => (
+                              <button
+                                key={id}
+                                type="button"
+                                onClick={() => setTheme?.(id)}
+                                className={cn(
+                                  'flex flex-1 flex-col items-center gap-1 rounded-lg border py-2 text-xs font-medium transition-colors',
+                                  currentTheme === id
+                                    ? 'border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+                                    : 'border-arena-border text-text-muted hover:text-text-primary hover:bg-arena-elevated'
+                                )}
+                                title={label}
+                              >
+                                <Icon className="h-3.5 w-3.5" />
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Config Mode toggle */}
+                        {configModeControls.canEdit && (
+                          <div className="border-t border-arena-border px-4 py-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                configModeControls.toggleConfigMode();
+                                setProfileMenuOpen(false);
+                              }}
+                              className={cn(
+                                'w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all',
+                                configModeControls.isEnabled
+                                  ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent-subtle)] text-[var(--accent)]'
+                                  : 'border-orange-400/70 bg-orange-500/10 text-orange-400'
+                              )}
+                            >
+                              <Wrench className="h-3.5 w-3.5 shrink-0" />
+                              <span>{configModeControls.isEnabled ? 'Config On' : 'Config Off'}</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* DEV Controls */}
+                        {canUseDevControls && (
+                          <div className={cn('px-4 py-2', !configModeControls.canEdit && 'border-t border-arena-border')}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileMenuOpen(false);
+                                setDevControlsOpen(true);
+                              }}
+                              className={cn(
+                                'w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all',
+                                devModeActive
+                                  ? 'bg-yellow-500 text-black border-yellow-500'
+                                  : 'border-arena-border text-text-muted hover:text-text-primary hover:bg-arena-elevated'
+                              )}
+                            >
+                              <Wrench className="h-3.5 w-3.5 shrink-0" />
+                              <span>Dev Controls</span>
+                              {devModeActive && (
+                                <span className="ml-auto rounded-full bg-black/20 px-1.5 py-0.5 text-[10px] font-bold">ON</span>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Open App View CTA — below topbar when present */}
+            {showOpenAppViewCta && onOpenAppView && (
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={onOpenAppView}
+                  disabled={openingAppView}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide transition-all',
+                    'focus-ring-control',
+                    openingAppView
+                      ? 'cursor-wait border-arena-border bg-arena-card text-text-muted'
+                      : 'border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]'
+                  )}
+                  title="Open this HackDay in the app shell view"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{openingAppView ? 'Opening...' : 'Open App View'}</span>
+                </button>
+                {openAppViewError && (
+                  <p className="text-[11px] font-medium text-error">{openAppViewError}</p>
                 )}
               </div>
-            </HStack>
+            )}
+
+            {/* Dev Controls Modal — rendered in tree, trigger is in user dropdown */}
+            {canUseDevControls && (
+              <Modal
+                isOpen={devControlsOpen}
+                onClose={() => setDevControlsOpen(false)}
+                size="sm"
+                title="Dev Controls"
+              >
+                <div className="space-y-5 p-4">
+                  <div className="flex items-center gap-2 pb-3 border-b border-arena-border">
+                    <Wrench className="w-4 h-4 text-yellow-500" />
+                    <span className="font-bold text-text-primary">Development Controls</span>
+                    {onDevModeToggle && (
+                      <button
+                        type="button"
+                        onClick={onDevModeToggle}
+                        className={cn(
+                          'ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold uppercase transition-colors',
+                          devModeActive
+                            ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                            : 'bg-arena-elevated text-text-muted border border-arena-border hover:border-yellow-500 hover:text-yellow-500'
+                        )}
+                      >
+                        {devModeActive ? 'ON' : 'OFF'}
+                      </button>
+                    )}
+                  </div>
+                  {onDevRoleChange && (
+                    <div>
+                      <label className="text-xs font-bold text-text-muted mb-2 block">
+                        Role Impersonation
+                      </label>
+                      <select
+                        value={devRoleOverride || realUserRole || user?.role || 'participant'}
+                        onChange={(e) => {
+                          const newRole = e.target.value;
+                          const realRole = realUserRole || user?.role || 'participant';
+                          onDevRoleChange?.(newRole === realRole ? null : newRole);
+                        }}
+                        className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
+                      >
+                        <option value={realUserRole || user?.role || 'participant'}>
+                          Real: {realUserRole || user?.role || 'participant'}
+                        </option>
+                        <option value="participant_guest">Participant - Needs Signup</option>
+                        <option value="participant_no_team">Participant - Registered, No Team</option>
+                        <option value="participant">Participant - Team Member</option>
+                        <option value="participant_captain">Participant - Team Captain</option>
+                        <option disabled>──────── Elevated Roles ────────</option>
+                        <option value="ambassador">Ambassador</option>
+                        <option value="judge">Judge</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner_jonmort">Owner (Jon Mort)</option>
+                      </select>
+                      {devRoleOverride && (
+                        <p className="mt-1 text-xs text-yellow-500">
+                          Impersonating: {devRoleOverride}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {onPhaseChange && (
+                    <div>
+                      <label className="text-xs font-bold text-text-muted mb-2 block">
+                        Event Phase
+                      </label>
+                      <select
+                        value={realEventPhase}
+                        onChange={(e) => {
+                          onPhaseChange(e.target.value);
+                          setDevControlsOpen(false);
+                        }}
+                        className="w-full px-3 py-2 bg-arena-elevated border border-arena-border rounded text-text-primary text-sm focus-ring-control"
+                      >
+                        {Object.entries(eventPhases).map(([key, phase]) => (
+                          <option key={key} value={key}>{phase.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </Modal>
+            )}
           </header>
 
-          <div className="rounded-xl sm:rounded-2xl lg:rounded-[1.75rem] border border-arena-border bg-arena-card overflow-hidden">
-            {/* PRIMARY NAVIGATION */}
-            {showSidebar && (
-              <div className="border-b border-arena-border px-2 sm:px-4 py-2.5">
+          {/* Mobile nav — below xl: */}
+          {showSidebar && (
+            <div className="xl:hidden rounded-xl border border-arena-border bg-arena-card overflow-hidden">
+              <div className="px-2 sm:px-4 py-2.5">
                 <nav aria-label="Primary navigation" className="flex items-center gap-2 sm:gap-3">
                   <div className="min-w-0 flex-1">
-                    <div
-                      className="hidden xl:grid gap-1.5"
-                      style={{ gridTemplateColumns: `repeat(${Math.max(navItems.length, 1)}, minmax(0, 1fr))` }}
-                    >
-                      {navItems.map((item) => (
-                        <NavItem
-                          key={item.id}
-                          active={activeNav === item.id}
-                          highlight={item.highlight}
-                          onClick={() => handleNavClick(item.id)}
-                          variant="horizontal"
-                          className="w-full justify-center"
-                        >
-                          {item.label}
-                        </NavItem>
-                      ))}
-                    </div>
-
-                    <div className="relative xl:hidden">
+                    <div className="relative">
                       <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-[var(--surface-primary)] to-transparent z-10" />
                       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-[var(--surface-primary)] to-transparent z-10" />
                       <button
@@ -1047,9 +892,8 @@ function AppLayout({
                   </div>
                 </nav>
               </div>
-            )}
-
-          </div>
+            </div>
+          )}
         </Container>
       </div>
       {/* END STICKY HEADER + EVENT BAR CONTAINER */}

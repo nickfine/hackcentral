@@ -252,24 +252,58 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
   return (
     <div className="flex flex-col gap-5" data-testid="dashboard-pain-points">
 
-      {/* ── Composer card ── */}
+      {/* ── Feed card (composer inline + filter tabs in header) ── */}
       <section
-        className="rounded-xl border bg-arena-card shadow-sm"
-        style={{ borderLeft: '2px solid var(--accent)', borderColor: 'var(--border-default)', borderLeftColor: 'var(--accent)' }}
+        className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
+        style={{ padding: 6 }}
       >
-        <div className="p-5">
-          <div className="flex flex-wrap items-center" style={{ gap: 10, marginBottom: 12 }}>
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-              style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-            >
-              Next for you
-            </span>
-            <h2 className="text-xl text-text-primary" style={{ margin: 0, fontFamily: 'var(--font-heading)', fontWeight: 400 }}>
-              Post a quick gripe
-            </h2>
+        {/* Header: title + filter tabs */}
+        <div className="flex items-center justify-between" style={{ padding: '10px 14px 6px' }}>
+          <span
+            className="text-xs font-semibold uppercase tracking-widest text-text-muted"
+            style={{ fontVariant: 'all-small-caps', letterSpacing: '0.12em' }}
+          >
+            Top pain points · {sortBy === 'newest' ? 'latest' : 'trending'}
+          </span>
+          <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
+            {[
+              { key: 'reactions', label: 'Trending', count: totalCount || null },
+              { key: 'newest', label: 'Just posted', count: null },
+            ].map((f) => {
+              const isActive = sortBy === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSortBy(f.key)}
+                  className="inline-flex items-center rounded-lg border text-xs font-medium transition-colors"
+                  style={{
+                    gap: 6,
+                    padding: '6px 12px',
+                    borderColor: isActive ? 'var(--accent)' : 'var(--border-default)',
+                    background: isActive ? 'var(--accent-subtle)' : 'var(--surface-card)',
+                    color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {f.label}
+                  {f.count != null && (
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: isActive ? 'currentColor' : 'var(--text-muted)' }}>
+                      · {f.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+        </div>
 
+        {/* Compose form — first row inside feed */}
+        <div
+          style={{ padding: '8px 8px 12px', borderBottom: '1px solid var(--border-subtle, var(--border-default))' }}
+        >
           <form onSubmit={handleSubmit}>
             <textarea
               value={gripe}
@@ -279,18 +313,15 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
               className="w-full resize-y rounded-lg border border-arena-border bg-arena-card text-sm text-text-primary placeholder:text-text-muted"
               style={{ fontFamily: 'inherit', lineHeight: 1.5, minHeight: 72, padding: '10px 12px' }}
             />
-
-            <div className="flex flex-wrap items-center justify-between" style={{ gap: 12, marginTop: 12 }}>
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  value={submitterName}
-                  onChange={(e) => setSubmitterName(e.target.value)}
-                  placeholder="Your name"
-                  className="rounded-lg border border-arena-border bg-arena-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
-                  style={{ width: 140, fontFamily: 'inherit' }}
-                />
-              </div>
+            <div className="flex flex-wrap items-center justify-between" style={{ gap: 12, marginTop: 10 }}>
+              <input
+                type="text"
+                value={submitterName}
+                onChange={(e) => setSubmitterName(e.target.value)}
+                placeholder="Your name"
+                className="rounded-lg border border-arena-border bg-arena-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
+                style={{ width: 140, fontFamily: 'inherit' }}
+              />
               <div className="flex items-center gap-2">
                 {submitted && <span className="text-xs text-green-600">Submitted!</span>}
                 <button
@@ -304,59 +335,6 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
               </div>
             </div>
           </form>
-        </div>
-      </section>
-
-      {/* ── Filter row ── */}
-      <div className="flex flex-wrap items-center" style={{ gap: 8, padding: '4px 2px' }} role="tablist" aria-label="Feed filters">
-        {[
-          { key: 'reactions', label: 'Trending', count: totalCount || null },
-          { key: 'newest', label: 'Just posted', count: null },
-        ].map((f) => {
-          const isActive = sortBy === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setSortBy(f.key)}
-              className="inline-flex items-center rounded-lg border text-xs font-medium transition-colors"
-              style={{
-                gap: 6,
-                padding: '6px 12px',
-                borderColor: isActive ? 'var(--accent)' : 'var(--border-default)',
-                background: isActive ? 'var(--accent-subtle)' : 'var(--surface-card)',
-                color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-              }}
-            >
-              {f.label}
-              {f.count != null && (
-                <span style={{ fontVariantNumeric: 'tabular-nums', color: isActive ? 'currentColor' : 'var(--text-muted)' }}>
-                  · {f.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Feed card ── */}
-      <section
-        className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
-        style={{ padding: 6 }}
-      >
-        <div className="flex items-center justify-between" style={{ padding: '10px 14px 6px' }}>
-          <span
-            className="text-xs font-semibold uppercase tracking-widest text-text-muted"
-            style={{ fontVariant: 'all-small-caps', letterSpacing: '0.12em' }}
-          >
-            Top pain points · {sortBy === 'newest' ? 'latest' : 'trending'}
-          </span>
-          <span className="text-xs text-text-muted">
-            Sorted by {sortBy === 'newest' ? 'newest' : 'upvotes'}
-          </span>
         </div>
 
         {loading ? (
