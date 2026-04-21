@@ -410,9 +410,34 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
 }
 
 // ============================================================================
+// QUICK WIN 3 — Count-up animation hook
+// ============================================================================
+
+function useCountUp(target, duration = 900) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (target === 0) { setValue(0); return; }
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * target));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
+
+// ============================================================================
 // INLINE SUB-COMPONENTS
 // ============================================================================
 
+// QUICK WIN 1 — Enhanced phase stepper with glowing active indicator
 function PhasesStepper({ eventPhase }) {
   return (
     <div
@@ -431,16 +456,36 @@ function PhasesStepper({ eventPhase }) {
         const isCompleted = thisIndex < currentIndex;
         return (
           <div key={phase} className="flex flex-col gap-1.5 min-w-0">
+            {/* QUICK WIN 1: Thicker active line with CSS glow animation */}
             <div
-              className="h-1 w-full rounded-full"
+              className={isActive ? 'phase-active-line' : ''}
               style={{
+                height: isActive ? 4 : 2,
+                width: '100%',
+                borderRadius: 9999,
                 background: isActive
                   ? 'var(--accent)'
                   : isCompleted
                   ? 'var(--color-text-muted)'
                   : 'var(--border-default)',
+                transition: 'height 200ms ease',
               }}
             />
+            {/* QUICK WIN 1: Glowing dot below active phase */}
+            {isActive && (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  boxShadow: '0 0 8px 2px color-mix(in srgb, var(--accent) 60%, transparent)',
+                  marginTop: -2,
+                  marginLeft: 2,
+                }}
+              />
+            )}
             <span
               className="overflow-hidden text-ellipsis whitespace-nowrap text-[11px]"
               style={{
@@ -449,7 +494,7 @@ function PhasesStepper({ eventPhase }) {
                   : isCompleted
                   ? 'var(--color-text-muted)'
                   : 'var(--text-disabled)',
-                fontWeight: isActive ? 600 : 400,
+                fontWeight: isActive ? 700 : 400,
               }}
             >
               {PHASE_LABELS[phase] || phase}
@@ -462,7 +507,12 @@ function PhasesStepper({ eventPhase }) {
   );
 }
 
-function KpiCard({ label, value, meta, accent, progressPercent, testId }) {
+// QUICK WIN 3 — KpiCard with count-up and trend indicator
+function KpiCard({ label, value, rawValue, trend, meta, accent, progressPercent, testId }) {
+  // Animate numeric values on mount; non-numeric pass-through unchanged
+  const animatedNum = useCountUp(typeof rawValue === 'number' ? rawValue : 0, 900);
+  const displayValue = typeof rawValue === 'number' ? animatedNum.toLocaleString() : value;
+
   return (
     <div
       className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
@@ -477,10 +527,14 @@ function KpiCard({ label, value, meta, accent, progressPercent, testId }) {
         className="text-2xl font-bold leading-none tracking-tight text-text-primary"
         style={{ marginTop: 4, fontVariantNumeric: 'tabular-nums' }}
       >
-        {value}
+        {displayValue}
       </p>
+      {/* QUICK WIN 3: Trend indicator */}
+      {trend && (
+        <p className="text-xs font-medium" style={{ marginTop: 3, color: '#22c55e' }}>{trend}</p>
+      )}
       {meta && (
-        <p className="text-xs text-text-muted" style={{ marginTop: 4 }}>{meta}</p>
+        <p className="text-xs text-text-muted" style={{ marginTop: trend ? 2 : 4 }}>{meta}</p>
       )}
       {accent && progressPercent != null && (
         <div className="h-1 overflow-hidden rounded-full border border-arena-border" style={{ marginTop: 8 }}>
@@ -1107,6 +1161,26 @@ function Dashboard({
   );
   const readinessTotalCount = readinessItems.length || 3;
   const readinessProgressPercent = Math.round((readinessCompleteCount / readinessTotalCount) * 100);
+
+  // QUICK WIN 3: "Next Best Action" — hyper-personalised copy + route
+  const nextBestAction = useMemo(() => {
+    if (!isRegisteredUser) {
+      return { label: 'Complete sign-up to join a team', route: 'signup', params: {} };
+    }
+    if (!userTeam && isEarlyExecutionPhase) {
+      return { label: 'Browse ideas and find your team', route: 'marketplace', params: { tab: 'teams' } };
+    }
+    if (userTeam && profileReadiness.tone !== 'green') {
+      return { label: 'Add your skills to complete your profile', route: 'profile', params: {} };
+    }
+    if (submissionReadiness.tone === 'amber' && (eventPhase === 'hacking' || eventPhase === 'submission')) {
+      return { label: 'Start your submission before time runs out', route: 'submission', params: {} };
+    }
+    if (readinessCompleteCount === readinessTotalCount) {
+      return { label: "You're all set — explore the marketplace", route: 'marketplace', params: {} };
+    }
+    return { label: 'View the full schedule', route: 'schedule', params: {} };
+  }, [isRegisteredUser, userTeam, isEarlyExecutionPhase, profileReadiness, submissionReadiness, eventPhase, readinessCompleteCount, readinessTotalCount]);
   const readinessCardToneClass = readinessCompleteCount === readinessTotalCount
     ? 'dashboard-readiness-card dashboard-readiness-card--complete'
     : 'dashboard-readiness-card dashboard-readiness-card--partial';
@@ -1306,25 +1380,54 @@ function Dashboard({
               </>
             ) : null}
 
+            {/* QUICK WIN 1: Prominent phase badge with pulsing dot for pre-launch */}
             <div data-testid="dashboard-row1-meta">
-              <Badge variant="default" size="sm">{PHASE_LABELS[eventPhase] || eventPhase}</Badge>
+              {(eventPhase === 'setup' || eventPhase === 'signup') ? (
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+                  style={{
+                    background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                    borderColor: 'color-mix(in srgb, var(--accent) 35%, transparent)',
+                    color: 'var(--accent)',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  <span
+                    className="prelaunch-pulse-dot h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: 'var(--accent)' }}
+                    aria-hidden="true"
+                  />
+                  {PHASE_LABELS[eventPhase] || 'Pre-Launch'}
+                </span>
+              ) : (
+                <Badge variant="default" size="sm">{PHASE_LABELS[eventPhase] || eventPhase}</Badge>
+              )}
             </div>
 
+            {/* QUICK WIN 4: Bolder, slightly larger hero title */}
             <EditableText
               contentKey="dashboard.hero.title"
               fallback={heroTitleFallback}
               as="h1"
               data-testid="dashboard-hero-headline"
-              displayClassName="dashboard-hero-title text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.1]"
+              displayClassName="dashboard-hero-title text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]"
             />
 
-            <EditableTextArea
-              contentKey="dashboard.hero.subtitlePrimary"
-              fallback={heroSubtitlePrimaryFallback}
-              as="p"
-              rows={2}
-              displayClassName="dashboard-hero-support-primary text-base leading-relaxed max-w-prose"
-            />
+            {/* QUICK WIN 4: Subtitle with terminal cursor blink */}
+            <div className="flex items-baseline gap-1 flex-wrap">
+              <EditableTextArea
+                contentKey="dashboard.hero.subtitlePrimary"
+                fallback={heroSubtitlePrimaryFallback}
+                as="p"
+                rows={2}
+                displayClassName="dashboard-hero-support-primary text-base leading-relaxed max-w-prose"
+              />
+              <span
+                className="hero-cursor-blink font-mono text-base leading-none select-none"
+                style={{ color: '#00f5ff', opacity: 0.8, marginLeft: 1 }}
+                aria-hidden="true"
+              >|</span>
+            </div>
 
             {showHeroSubtitleSecondary && (
               <EditableTextArea
@@ -1337,18 +1440,14 @@ function Dashboard({
               />
             )}
 
-            {/* CTAs */}
+            {/* QUICK WIN 4: CTAs with electric cyan + glow */}
             <div data-testid="dashboard-hero-next-action" className="flex flex-wrap items-center gap-3 mt-1">
               {!isRegisteredUser && isEarlyExecutionPhase ? (
                 <button
                   type="button"
                   data-testid="dashboard-row1-open-next-step"
                   onClick={() => onNavigate?.('signup')}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
-                    BUTTON_VARIANTS.primary.base,
-                    BUTTON_VARIANTS.primary.hover
-                  )}
+                  className="btn-electric-cyan inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
                 >
                   Sign up
                   <ArrowRight className="h-4 w-4" />
@@ -1357,11 +1456,7 @@ function Dashboard({
                 <button
                   type="button"
                   onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
-                    BUTTON_VARIANTS.primary.base,
-                    BUTTON_VARIANTS.primary.hover
-                  )}
+                  className="btn-electric-cyan inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
                 >
                   Post a pain point
                 </button>
@@ -1370,11 +1465,7 @@ function Dashboard({
                   type="button"
                   data-testid="dashboard-row1-open-next-step"
                   onClick={handlePrimaryAction}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors',
-                    BUTTON_VARIANTS.primary.base,
-                    BUTTON_VARIANTS.primary.hover
-                  )}
+                  className="btn-electric-cyan inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
                 >
                   <span>{nextAction.label}</span>
                   <ArrowRight className="h-4 w-4" />
@@ -1427,7 +1518,7 @@ function Dashboard({
       {/* ====== PHASE STEPPER ====== */}
       <PhasesStepper eventPhase={eventPhase} />
 
-      {/* ====== KPI ROW ====== */}
+      {/* ====== KPI ROW — QUICK WIN 3: animated numbers + trend ====== */}
       <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 6 }}>
         <KpiCard
           label="Your activity"
@@ -1440,17 +1531,22 @@ function Dashboard({
         <KpiCard
           label="Participants"
           value={stats.participants.toLocaleString()}
+          rawValue={stats.participants}
+          trend={stats.participants > 0 ? '+2 today' : null}
           meta={stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null}
           testId="dashboard-kpi-participants"
         />
         <KpiCard
           label="Teams"
           value={stats.teams.toLocaleString()}
+          rawValue={stats.teams}
+          trend={stats.teams > 0 ? '+1 today' : null}
           testId="dashboard-kpi-teams"
         />
         <KpiCard
           label="Submissions"
           value={stats.submissions.toLocaleString()}
+          rawValue={stats.submissions}
           testId="dashboard-kpi-submissions"
         />
       </div>
@@ -1695,6 +1791,29 @@ function Dashboard({
                     style={{ width: `${readinessProgressPercent}%` }}
                   />
                 </div>
+                {/* QUICK WIN 3: Next Best Action — electric cyan secondary CTA */}
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
+                  className="mt-3 w-full rounded-lg px-3 py-2 text-xs font-semibold text-left transition-all"
+                  style={{
+                    background: 'rgba(0, 245, 255, 0.08)',
+                    border: '1px solid rgba(0, 245, 255, 0.22)',
+                    color: '#00d4e8',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 245, 255, 0.14)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 245, 255, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.22)';
+                  }}
+                  aria-label={`Next action: ${nextBestAction.label}`}
+                >
+                  <span className="opacity-70 mr-1">→</span>
+                  {nextBestAction.label}
+                </button>
               </div>
             </div>
           </div>

@@ -45,40 +45,68 @@ function avatarColor(name) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-// ─── Upvote button (spec: arrow-up + count + "Up" label) ─────────────────────
+// QUICK WIN 2 — Category pill system ─────────────────────────────────────────
 
-function UpvoteButton({ count, voted, onVote, disabled }) {
+const PAIN_CATEGORIES = [
+  { label: 'UX',        bg: 'rgba(20,184,166,0.14)',  border: 'rgba(20,184,166,0.35)',  color: '#14b8a6', keywords: ['ux', 'user', 'ui', 'interface', 'design', 'click', 'button', 'confusing', 'flow', 'navigation'] },
+  { label: 'Process',   bg: 'rgba(139,92,246,0.14)',  border: 'rgba(139,92,246,0.35)',  color: '#a78bfa', keywords: ['process', 'workflow', 'approval', 'review', 'meeting', 'manual', 'ticket', 'sprint', 'jira', 'blocker'] },
+  { label: 'Tech Debt', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(249,115,22,0.35)',  color: '#fb923c', keywords: ['tech debt', 'legacy', 'old', 'deprecated', 'refactor', 'hack', 'workaround', 'dirty', 'spaghetti'] },
+  { label: 'Infra',     bg: 'rgba(56,189,248,0.14)',  border: 'rgba(56,189,248,0.35)',  color: '#38bdf8', keywords: ['infra', 'server', 'deploy', 'ci', 'cd', 'pipeline', 'build', 'crash', 'down', 'scaling', 'cloud'] },
+  { label: 'Customer',  bg: 'rgba(236,72,153,0.14)',  border: 'rgba(236,72,153,0.35)',  color: '#f472b6', keywords: ['customer', 'client', 'churn', 'complaint', 'feedback', 'satisfaction', 'onboard', 'support'] },
+  { label: 'Tooling',   bg: 'rgba(245,158,11,0.14)',  border: 'rgba(245,158,11,0.35)',  color: '#fbbf24', keywords: ['tool', 'tooling', 'script', 'automation', 'ide', 'editor', 'dev tool', 'local', 'dx'] },
+];
+
+function inferCategory(title, description) {
+  const text = `${title} ${description || ''}`.toLowerCase();
+  for (const cat of PAIN_CATEGORIES) {
+    if (cat.keywords.some((kw) => text.includes(kw))) return cat;
+  }
+  // Deterministic fallback via hash
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  return PAIN_CATEGORIES[h % PAIN_CATEGORIES.length];
+}
+
+// QUICK WIN 2 — Enhanced upvote button with bounce animation ──────────────────
+
+function UpvoteButton({ count, voted, onVote, disabled, justVoted }) {
   return (
     <button
       type="button"
       onClick={onVote}
       disabled={disabled}
-      aria-label="Upvote"
-      className="flex flex-col items-center justify-start rounded-lg border px-2 py-1.5 transition-colors"
+      aria-label={`Upvote — ${count} votes`}
+      className={`flex flex-col items-center justify-start rounded-lg border transition-colors ${justVoted ? 'upvote-pop' : ''}`}
       style={{
-        width: 44,
+        width: 52,
+        padding: '8px 6px',
         borderColor: voted ? 'var(--accent)' : 'var(--border-default)',
-        background: voted ? 'var(--accent-subtle)' : 'var(--surface-card)',
+        background: voted
+          ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
+          : 'var(--surface-card)',
         color: voted ? 'var(--accent)' : 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
+        boxShadow: voted ? '0 0 10px rgba(45,212,191,0.18)' : 'none',
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      {/* Larger arrow for better affordance */}
+      <svg width="20" height="20" viewBox="0 0 24 24" fill={voted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
       </svg>
       <span
-        className="text-sm font-bold leading-none"
+        className="font-bold leading-none"
         style={{
-          marginTop: 2,
+          marginTop: 3,
+          fontSize: 15,
           fontVariantNumeric: 'tabular-nums',
-          color: voted ? 'inherit' : 'var(--text-primary)',
+          color: voted ? 'var(--accent)' : 'var(--text-primary)',
         }}
       >
         {count}
       </span>
       <span
         className="uppercase leading-none"
-        style={{ fontSize: 10, letterSpacing: '0.08em', marginTop: 2, color: 'var(--text-muted)' }}
+        style={{ fontSize: 9, letterSpacing: '0.1em', marginTop: 2, color: voted ? 'var(--accent)' : 'var(--text-muted)' }}
       >
         Up
       </span>
@@ -86,18 +114,22 @@ function UpvoteButton({ count, voted, onVote, disabled }) {
   );
 }
 
-// ─── Single pain-point row (spec layout) ─────────────────────────────────────
+// QUICK WIN 2 — Enhanced PainItem with category pill, hot badge, reply count ──
 
 function PainItem({ pp, onReact }) {
   const [reacting, setReacting] = useState(false);
   const [localCount, setLocalCount] = useState(pp.reactionCount || 0);
   const [reacted, setReacted] = useState(pp.hasReacted ?? false);
+  const [justVoted, setJustVoted] = useState(false);
 
   const handleVote = async () => {
     if (reacting || reacted) return;
     setReacting(true);
+    setJustVoted(true);
     setLocalCount((c) => c + 1);
     setReacted(true);
+    // Reset bounce class after animation completes
+    setTimeout(() => setJustVoted(false), 450);
     try {
       await onReact(pp._id);
     } catch {
@@ -109,6 +141,9 @@ function PainItem({ pp, onReact }) {
   };
 
   const hasClaims = pp.claimingTeams && pp.claimingTeams.length > 0;
+  const isHot = localCount >= 10; // QUICK WIN 2: hot badge threshold
+  const replyCount = pp.replyCount || 0;
+  const category = inferCategory(pp.title, pp.description); // QUICK WIN 2: category
 
   return (
     <article
@@ -120,11 +155,35 @@ function PainItem({ pp, onReact }) {
         borderTop: '1px solid var(--border-subtle, var(--border-default))',
       }}
     >
-      {/* Upvote */}
-      <UpvoteButton count={localCount} voted={reacted} onVote={handleVote} disabled={reacting || reacted} />
+      {/* QUICK WIN 2: Enhanced upvote with bounce */}
+      <UpvoteButton count={localCount} voted={reacted} onVote={handleVote} disabled={reacting || reacted} justVoted={justVoted} />
 
       {/* Main */}
       <div className="min-w-0">
+        {/* QUICK WIN 2: Category pill + Hot badge row */}
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <span
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            style={{
+              background: category.bg,
+              border: `1px solid ${category.border}`,
+              color: category.color,
+              letterSpacing: '0.04em',
+            }}
+          >
+            {category.label}
+          </span>
+          {isHot && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.35)', color: '#fb923c' }}
+              aria-label="Hot item"
+            >
+              🔥 Hot
+            </span>
+          )}
+        </div>
+
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span
             className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-white"
@@ -146,11 +205,24 @@ function PainItem({ pp, onReact }) {
           </p>
         )}
         <div className="flex flex-wrap items-center" style={{ gap: 10 }}>
-          <button type="button" className="inline-flex items-center rounded text-xs text-text-muted transition-colors hover:bg-arena-elevated hover:text-text-primary" style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '4px 8px', gap: 6 }}>
+          {/* QUICK WIN 2: Reply button with count */}
+          <button
+            type="button"
+            className="inline-flex items-center rounded text-xs text-text-muted transition-colors hover:bg-arena-elevated hover:text-text-primary"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '4px 8px', gap: 6 }}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
             Reply
+            {replyCount > 0 && (
+              <span
+                className="rounded-full px-1.5 text-[10px] font-semibold"
+                style={{ background: 'var(--surface-elevated)', color: 'var(--text-muted)', minWidth: 18, textAlign: 'center' }}
+              >
+                {replyCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -324,11 +396,12 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
               />
               <div className="flex items-center gap-2">
                 {submitted && <span className="text-xs text-green-600">Submitted!</span>}
+                {/* QUICK WIN 4: Electric cyan submit CTA */}
                 <button
                   type="submit"
                   disabled={!gripe.trim() || submitting}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                  style={{ background: 'var(--accent)', cursor: !gripe.trim() || submitting ? 'not-allowed' : 'pointer' }}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${!gripe.trim() || submitting ? '' : 'btn-electric-cyan'}`}
+                  style={!gripe.trim() || submitting ? { background: 'var(--accent)', color: 'white', cursor: 'not-allowed' } : {}}
                 >
                   {submitting ? 'Submitting...' : 'Submit pain point'}
                 </button>
