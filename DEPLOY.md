@@ -13,6 +13,19 @@
 
 ---
 
+## CRITICAL: Bump APP_VERSION before every deploy
+
+**Every deploy MUST bump `APP_VERSION` in `static/runtime-frontend/src/data/constants.js` BEFORE building.**
+This is the Atlassian CDN cache-buster. Without it, production serves stale content even after a successful deploy.
+
+```bash
+# 1. Bump APP_VERSION in static/runtime-frontend/src/data/constants.js
+# 2. Then build and deploy
+npm run runtime:build && forge deploy --environment production
+```
+
+---
+
 ## CRITICAL: Always build before deploying
 
 `forge deploy` does **not** rebuild frontend bundles. It packages whatever is in `dist/`.
