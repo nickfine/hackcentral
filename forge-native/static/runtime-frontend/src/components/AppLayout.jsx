@@ -915,7 +915,7 @@ function AppLayout({
       <footer className="border-t border-arena-border px-4 sm:px-6 py-4 bg-arena-bg mt-6">
         <Container size={contentContainerSize} padding="none">
           <HStack justify="between" className="text-xs text-text-muted">
-            <span>MISSION CONTROL v2.0 - Custom UI</span>
+            <span>HackCentral</span>
           </HStack>
         </Container>
       </footer>

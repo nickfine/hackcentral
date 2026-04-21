@@ -1428,7 +1428,7 @@ function Dashboard({
       <PhasesStepper eventPhase={eventPhase} />
 
       {/* ====== KPI ROW ====== */}
-      <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 12 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 6 }}>
         <KpiCard
           label="Your activity"
           value={teamReadiness.label}
