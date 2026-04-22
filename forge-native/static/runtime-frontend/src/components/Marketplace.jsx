@@ -291,13 +291,13 @@ function Marketplace({
       <div className="mb-6">
         <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
         <div className="marketplace-page-header mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-2">
             Ideas Marketplace
           </p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2">
             Teams
           </h1>
-          <p className="text-sm font-normal text-gray-700 dark:text-gray-300 max-w-2xl mb-4">
+          <p className="text-sm font-normal text-text-secondary max-w-2xl mb-4">
             Browse innovative ideas or discover talented free agents to build your dream team.
           </p>
           <div className="flex items-center gap-3">
