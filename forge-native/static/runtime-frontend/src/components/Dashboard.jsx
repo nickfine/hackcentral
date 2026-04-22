@@ -1082,14 +1082,22 @@ function Dashboard({
         </div>
 
         {/* Hero title */}
-        <EditableText
-          contentKey="dashboard.hero.title"
-          fallback={heroTitleFallback}
-          as="h1"
-          data-testid="dashboard-hero-headline"
-          displayClassName="mt-4 text-5xl font-semibold tracking-tight text-white lg:text-7xl"
-          style={{ fontFamily: 'var(--font-heading)', lineHeight: 1.1 }}
-        />
+        <div className="mt-4 flex items-center gap-3">
+          <img
+            src="./hackday_glyph.png"
+            alt=""
+            aria-hidden="true"
+            className="h-9 w-auto flex-shrink-0 lg:h-[3.25rem]"
+          />
+          <EditableText
+            contentKey="dashboard.hero.title"
+            fallback={heroTitleFallback}
+            as="h1"
+            data-testid="dashboard-hero-headline"
+            displayClassName="text-5xl font-semibold tracking-tight text-white lg:text-7xl"
+            style={{ fontFamily: 'var(--font-heading)', lineHeight: 1.1 }}
+          />
+        </div>
 
         {/* Hero subtitle */}
         <EditableTextArea
