@@ -143,7 +143,7 @@ const getTimerMeta = (eventMeta, eventPhase) => {
     ? new Date(FALLBACK_EVENT_META.startAt)
     : rawTarget;
   const countdownLabel = PRE_HACKING_PHASES.has(eventPhase)
-    ? `${resolved.name} starts in`
+    ? 'Event starts in'
     : phaseConfig.label;
   const userTimezone = getUserTimezone();
   const userTzAbbr = getTimezoneAbbr();
