@@ -36,7 +36,7 @@ function formatScheduleTime(milestone, isFirst) {
 
 function ScheduleCard({ comingUpMilestones, onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6">
+    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6 shadow-[var(--card-inner-edge)]">
       <div className="text-xs uppercase tracking-[0.18em] text-white/45">Upcoming schedule</div>
       <div className="mt-5 space-y-4">
         {comingUpMilestones.length > 0 ? (
@@ -75,7 +75,7 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 
 function NewHereCard({ onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6">
+    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6 shadow-[var(--card-inner-edge)]">
       <div className="text-xs uppercase tracking-[0.18em] text-white/45">New here?</div>
       <h3
         className="mt-3 text-3xl font-semibold tracking-tight text-white"
@@ -106,7 +106,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
 
   return (
     <div
-      className="rounded-[26px] border border-cyan-400/15 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-6"
+      className="rounded-[26px] border border-cyan-400/15 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-6 shadow-[var(--cyan-electric-inner-edge)]"
       data-testid="dashboard-row2-readiness"
     >
       <div className="flex items-center justify-between">
@@ -154,7 +154,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
         type="button"
         onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
         aria-label={`Next action: ${nextBestAction.label}`}
-        className="mt-5 w-full rounded-2xl border border-cyan-400/20 px-4 py-3 text-sm font-medium text-cyan-200 transition-colors hover:bg-cyan-400/10"
+        className="mt-5 w-full rounded-2xl border border-cyan-400/20 px-4 py-3 text-sm font-medium text-cyan-200 transition-all hover:bg-cyan-400/10 hover:border-cyan-400/35 hover:shadow-[0_0_12px_rgba(0,245,255,0.08)]"
       >
         Complete next step
       </button>

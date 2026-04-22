@@ -38,7 +38,7 @@ const NavItem = forwardRef(({
   };
 
   const activeStyles = isHorizontal
-    ? 'bg-arena-elevated text-text-primary border border-[color:rgba(255,116,82,0.35)] shadow-[inset_0_-2px_0_rgba(255,116,82,0.55)]'
+    ? 'bg-arena-elevated text-text-primary border border-[color:var(--cyan-electric-border)] shadow-[inset_0_-2px_0_var(--cyan-electric)]'
     : 'bg-arena-elevated text-text-primary border-l-4 border-brand';
 
   const defaultStyles = isHorizontal

@@ -1115,7 +1115,7 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={() => onNavigate?.('signup')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
             >
               Sign up
               <ArrowRight className="h-4 w-4" />
@@ -1124,7 +1124,7 @@ function Dashboard({
             <button
               type="button"
               onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
             >
               Post a pain point
             </button>
@@ -1133,7 +1133,7 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={handlePrimaryAction}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
             >
               <span>{nextAction.label}</span>
               <ArrowRight className="h-4 w-4" />
@@ -1142,7 +1142,7 @@ function Dashboard({
           <button
             type="button"
             onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/5"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:border-white/25"
           >
             Find a team
           </button>

@@ -391,6 +391,11 @@
   --cyan-electric-border: rgba(8, 145, 178, 0.25);
   --cyan-electric-glow: none;
   --cyan-electric-text: #0e7490;
+  --cyan-electric-glow-subtle: none;
+  --cyan-electric-inner-edge: inset 0 1px 0 rgba(8, 145, 178, 0.04);
+  --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(8, 145, 178, 0.08);
+  --card-inner-edge: inset 0 1px 0 rgba(0, 0, 0, 0.03);
+  --card-border-quiet: rgba(0, 0, 0, 0.06);
 }
 
 [data-color-mode="dark"] {
@@ -419,6 +424,11 @@
   --cyan-electric-border: rgba(0, 245, 255, 0.3);
   --cyan-electric-glow: 0 0 18px rgba(0, 245, 255, 0.22);
   --cyan-electric-text: #00d4e8;
+  --cyan-electric-glow-subtle: 0 0 24px rgba(0, 245, 255, 0.10);
+  --cyan-electric-inner-edge: inset 0 1px 0 rgba(0, 245, 255, 0.06);
+  --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(0, 245, 255, 0.12);
+  --card-inner-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --card-border-quiet: rgba(255, 255, 255, 0.06);
 }
 
 [data-theme-preset="editorial"] {

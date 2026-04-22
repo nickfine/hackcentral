@@ -2894,10 +2894,3 @@
   border-color: color-mix(in srgb, var(--cyan-electric) 50%, transparent) !important;
   box-shadow: 0 0 14px color-mix(in srgb, var(--cyan-electric) 12%, transparent);
 }
-
-/* Nav active state override — dashboard route cyan underline */
-[data-active-view="dashboard"] .nav-item-horizontal-active:not([data-highlight]) {
-  border-bottom-color: var(--cyan-electric) !important;
-  box-shadow: inset 0 -2px 0 var(--cyan-electric) !important;
-  border-color: color-mix(in srgb, var(--cyan-electric) 35%, transparent) !important;
-}

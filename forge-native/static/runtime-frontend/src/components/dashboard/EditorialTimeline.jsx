@@ -78,8 +78,10 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
               <div
                 className={`rounded-2xl border px-4 py-4 ${
                   isActive
-                    ? 'border-cyan-400/30 bg-cyan-400/10'
-                    : 'border-white/8 bg-white/[0.02]'
+                    ? 'border-cyan-400/35 bg-cyan-400/[0.12] shadow-[var(--cyan-electric-inner-edge),inset_0_-2px_0_var(--cyan-electric-border)]'
+                    : isCompleted
+                      ? 'border-white/6 bg-white/[0.015] opacity-60'
+                      : 'border-white/6 bg-white/[0.015]'
                 }`}
               >
                 <div
@@ -93,7 +95,7 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
               </div>
               {i < EVENT_PHASE_ORDER.length - 1 && (
                 <div
-                  className="absolute -right-2 top-1/2 hidden h-px w-4 bg-white/12 md:block"
+                  className={`absolute -right-2 top-1/2 hidden h-px w-4 md:block ${isActive ? 'bg-cyan-400/30' : 'bg-white/12'}`}
                   aria-hidden="true"
                 />
               )}

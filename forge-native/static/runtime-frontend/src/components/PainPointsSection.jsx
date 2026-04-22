@@ -96,7 +96,7 @@ function PainItem({ pp, onReact }) {
   const authorName = pp.submitterName || 'Anonymous';
 
   return (
-    <article className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition hover:border-cyan-400/20 hover:bg-white/[0.045]">
+    <article className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4 shadow-[var(--card-inner-edge)] transition hover:border-cyan-400/20 hover:bg-white/[0.045]">
       <UpvoteButton
         count={localCount}
         voted={reacted}
@@ -246,7 +246,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
       </div>
 
       {/* Composer */}
-      <div className="mt-5 rounded-[24px] border border-white/8 bg-[#0a1628] p-4">
+      <div className="mt-5 rounded-[24px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-4 shadow-[var(--cyan-electric-inner-edge)]">
         <form onSubmit={handleSubmit}>
           <textarea
             value={gripe}

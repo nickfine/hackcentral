@@ -6,7 +6,7 @@ function StatCard({ label, value, rawValue, meta, accent, testId }) {
 
   return (
     <div
-      className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5"
+      className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5 shadow-[var(--card-inner-edge)]"
       data-testid={testId}
     >
       <div className="text-xs uppercase tracking-[0.18em] text-white/45">{label}</div>
