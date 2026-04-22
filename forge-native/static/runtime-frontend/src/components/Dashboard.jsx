@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Shield, Users, UsersRound, FileText } from 'lucide-react';
 import { Badge, Modal } from './ui';
 import {
   EVENT_PHASE_ORDER,
@@ -15,6 +15,8 @@ import {
   getMissionContent,
 } from '../lib/missionBriefContent';
 import { cn, BUTTON_VARIANTS } from '../lib/design-system';
+import { HoloPanel, HoloKpiCard, HoloPhaseStepper, HoloHeroCard } from './dashboard/index.js';
+import { useCountUp as useCountUpHook } from '../hooks/useCountUp';
 import { hasCompletedRegistration } from '../lib/registrationState';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
@@ -410,28 +412,10 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
 }
 
 // ============================================================================
-// QUICK WIN 3 — Count-up animation hook
+// QUICK WIN 3 — Count-up animation hook (delegated to shared hook)
 // ============================================================================
 
-function useCountUp(target, duration = 900) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (target === 0) { setValue(0); return; }
-    let raf;
-    const start = performance.now();
-    const tick = (now) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(eased * target));
-      if (progress < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return value;
-}
+const useCountUp = useCountUpHook;
 
 // CORE UX IMPROVEMENT 3 — Compute daily deltas from createdAt timestamps
 function useDailyDeltas(registrations, teams) {
@@ -1520,29 +1504,12 @@ function Dashboard({
 
       {/* ====== HERO — logo + text ====== */}
       <section data-testid="dashboard-row1-status-card">
-        <div
-          data-testid="dashboard-hero-card"
-          className={cn(
-            // VISUAL BRAND UPGRADE 1: cyan left border + subtle glow background
-            'dashboard-hero-card dashboard-hero-card-cyan relative overflow-hidden',
-            'grid grid-cols-1 md:grid-cols-[1fr_auto] items-stretch',
-            heroBannerImageUrl ? 'dashboard-hero-card--with-banner' : null
-          )}
+        <HoloHeroCard
+          scheduleMilestones={scheduleMilestones}
+          eventPhase={eventPhase}
+          onNavigate={onNavigate}
+          heroBannerImageUrl={heroBannerImageUrl}
         >
-          {/* VISUAL BRAND UPGRADE 2: Terminal particle background */}
-          {!heroBannerImageUrl && <HeroParticles />}
-
-          {/* VISUAL BRAND UPGRADE 2: Lightning watermark illustration */}
-          {!heroBannerImageUrl && <HeroLightningIllustration />}
-
-          {/* Copy panel — VISUAL BRAND UPGRADE 4: increased gap for breathing room */}
-          <div className="relative z-10 flex flex-col gap-4 justify-center p-6 sm:p-8">
-            {heroBannerImageUrl ? (
-              <>
-                <img src={heroBannerImageUrl} alt="" className="dashboard-hero-banner-image" />
-                <div className="dashboard-hero-banner-overlay" aria-hidden="true" />
-              </>
-            ) : null}
 
             {/* QUICK WIN 1: Prominent phase badge with pulsing dot for pre-launch */}
             <div data-testid="dashboard-row1-meta">
@@ -1588,7 +1555,7 @@ function Dashboard({
               />
               <span
                 className="hero-cursor-blink font-mono text-base leading-none select-none"
-                style={{ color: '#00f5ff', opacity: 0.8, marginLeft: 1 }}
+                style={{ color: 'var(--cyan-electric)', opacity: 0.8, marginLeft: 1 }}
                 aria-hidden="true"
               >|</span>
             </div>
@@ -1672,46 +1639,47 @@ function Dashboard({
                 </span>
               )}
             </div>
-          </div>
 
-          <HeroCountdown scheduleMilestones={scheduleMilestones} eventPhase={eventPhase} onNavigate={onNavigate} />
-
-        </div>
+        </HoloHeroCard>
       </section>
 
 
       {/* ====== PHASE STEPPER ====== */}
-      <PhasesStepper eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
+      <HoloPhaseStepper eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
 
-      {/* ====== KPI ROW — QUICK WIN 3: animated numbers + trend ====== */}
+      {/* ====== KPI ROW ====== */}
       <div className="grid grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]" style={{ gap: 6 }}>
-        <KpiCard
+        <HoloKpiCard
           label="Your activity"
           value={teamReadiness.label}
           meta={teamReadiness.detail}
+          icon={Shield}
           accent
           progressPercent={readinessProgressPercent}
           testId="dashboard-kpi-status"
         />
-        <KpiCard
+        <HoloKpiCard
           label="Participants"
           value={stats.participants.toLocaleString()}
           rawValue={stats.participants}
           trend={dailyDeltas.newParticipantsToday > 0 ? `+${dailyDeltas.newParticipantsToday} today` : null}
           meta={stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null}
+          icon={Users}
           testId="dashboard-kpi-participants"
         />
-        <KpiCard
+        <HoloKpiCard
           label="Teams"
           value={stats.teams.toLocaleString()}
           rawValue={stats.teams}
           trend={dailyDeltas.newTeamsToday > 0 ? `+${dailyDeltas.newTeamsToday} today` : null}
+          icon={UsersRound}
           testId="dashboard-kpi-teams"
         />
-        <KpiCard
+        <HoloKpiCard
           label="Submissions"
           value={stats.submissions.toLocaleString()}
           rawValue={stats.submissions}
+          icon={FileText}
           testId="dashboard-kpi-submissions"
         />
       </div>
@@ -1724,7 +1692,7 @@ function Dashboard({
           {isEarlyExecutionPhase ? (
             <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
           ) : (
-            <div className="dashboard-main-card rounded-xl border border-arena-border bg-arena-card p-0 shadow-sm" data-testid="dashboard-live-activity">
+            <HoloPanel className="p-0" data-testid="dashboard-live-activity">
               <div className="flex items-center justify-between dashboard-card-header">
                 <p className="dashboard-card-label">Live Activity</p>
                 <span data-testid="dashboard-live-indicator" className="dashboard-live-chip inline-flex items-center gap-1.5 text-xs font-normal">
@@ -1791,20 +1759,20 @@ function Dashboard({
                   </button>
                 </div>
               </div>
-            </div>
+            </HoloPanel>
           )}
         </div>
 
-        {/* RIGHT RAIL — VISUAL BRAND UPGRADE 4: more breathing room + rounded-2xl + hover glow */}
+        {/* RIGHT RAIL */}
         <div className="flex flex-col gap-6">
 
           {/* Schedule card */}
-          <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }}>
+          <HoloPanel hoverable style={{ padding: '1.5rem' }}>
             <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
               </svg>
-              <span className="dashboard-card-label">Coming Up</span>
+              <span className="dashboard-card-label">Upcoming Schedule</span>
             </div>
             {comingUpMilestones.length > 0 ? (
               <div className="space-y-0">
@@ -1848,17 +1816,18 @@ function Dashboard({
               <button
                 type="button"
                 data-testid="dashboard-view-full-schedule"
-                className="dashboard-inline-link text-sm font-medium"
+                className="dashboard-inline-link inline-flex items-center gap-1.5 text-sm font-medium"
                 onClick={() => onNavigate?.('schedule')}
               >
-                View full schedule →
+                View full schedule
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
-          </div>
+          </HoloPanel>
 
           {/* Announcements / Admin message */}
           {showAdminMessagePod && (
-            <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }} data-testid="dashboard-admin-message">
+            <HoloPanel hoverable style={{ padding: '1.5rem' }} data-testid="dashboard-admin-message">
               <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l18-8v18L3 13v-2zM11 13v7a2 2 0 11-4 0v-5" />
@@ -1897,12 +1866,12 @@ function Dashboard({
                   placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
                 />
               </div>
-            </div>
+            </HoloPanel>
           )}
 
           {/* New here — early phases */}
           {isEarlyExecutionPhase && (
-            <div className="dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border border-arena-border bg-arena-card" style={{ padding: '1.5rem' }}>
+            <HoloPanel hoverable style={{ padding: '1.5rem' }}>
               <div className="flex items-center" style={{ gap: 8, marginBottom: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-text-muted" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" />
@@ -1918,15 +1887,16 @@ function Dashboard({
               <button
                 type="button"
                 onClick={() => onNavigate?.('signup')}
-                className="w-full rounded-lg border border-arena-border bg-transparent px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-arena-elevated"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-arena-border bg-transparent px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-arena-elevated"
               >
                 Take the 2-minute tour
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
-            </div>
+            </HoloPanel>
           )}
 
-          {/* Readiness — always visible — VISUAL BRAND UPGRADE 4: rounded-2xl + hover glow */}
-          <div className={`dashboard-main-card right-rail-card card-hover-cyan rounded-2xl border p-0 transition-colors ${readinessCardToneClass}`} data-testid="dashboard-row2-readiness">
+          {/* Readiness — always visible */}
+          <HoloPanel hoverable className={`p-0 transition-colors ${readinessCardToneClass}`} data-testid="dashboard-row2-readiness">
             <div className="dashboard-card-header">
               <p className="dashboard-card-label">Your Readiness</p>
             </div>
@@ -1962,17 +1932,17 @@ function Dashboard({
                   onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
                   className="mt-3 w-full rounded-lg px-3 py-2 text-xs font-semibold text-left transition-all"
                   style={{
-                    background: 'rgba(0, 245, 255, 0.08)',
-                    border: '1px solid rgba(0, 245, 255, 0.22)',
-                    color: '#00d4e8',
+                    background: 'var(--cyan-electric-bg)',
+                    border: '1px solid var(--cyan-electric-border)',
+                    color: 'var(--cyan-electric-text)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 245, 255, 0.14)';
-                    e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)';
+                    e.currentTarget.style.background = 'var(--cyan-electric-bg)';
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--cyan-electric) 40%, transparent)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(0, 245, 255, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.22)';
+                    e.currentTarget.style.background = 'var(--cyan-electric-bg)';
+                    e.currentTarget.style.borderColor = 'var(--cyan-electric-border)';
                   }}
                   aria-label={`Next action: ${nextBestAction.label}`}
                 >
@@ -1981,7 +1951,7 @@ function Dashboard({
                 </button>
               </div>
             </div>
-          </div>
+          </HoloPanel>
 
         </div>
       </div>

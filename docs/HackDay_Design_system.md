@@ -131,6 +131,43 @@ No gradients on any cards. Ever.
 - Section labels: uppercase, `text-xs`, `font-semibold`, `tracking-wider`, `text-gray-500` (light) / `text-gray-400` (dark)
 - Card footer zones (links like "View all activity"): separated by `border-t border-gray-100` (light) / `border-t border-gray-700` (dark), with `pt-3 mt-3` spacing. Footer links use `font-medium`.
 
+### Holographic panel variant (`HoloPanel` component)
+
+The Dashboard route uses a holographic glass treatment via the `HoloPanel` primitive (`components/dashboard/HoloPanel.jsx`). This is a dashboard-scoped design layer and does **not** replace the shared `Card` component used across other routes.
+
+Four layered effects:
+
+| Layer | Property | Purpose |
+|-------|----------|---------|
+| 1 — Translucent fill | `background: rgba(255,255,255, --panel-fill-opacity)` + `backdrop-filter: blur(--panel-blur)` | 4% white surface revealing ambient behind panels |
+| 2 — Gradient border | `::before` with `mask-composite: exclude` and `padding: 1px` | Bright cyan top-left fading to dim, directional shine (angle: `--border-gradient-angle`) |
+| 3 — Inset highlight | `box-shadow: inset 0 1px 0 rgba(255,255,255, --inset-highlight)` | Top edge lit as if by a light source above-left |
+| 4 — Outer halo | `box-shadow: 0 0 --glow-blur --glow-spread rgba(0,245,255, --glow-opacity)` | Wide diffuse cyan glow emanating from the panel |
+
+**Locked token names** (defined in `tokens.css` `:root`, do not modify values):
+
+| Token | Default value | Purpose |
+|-------|--------------|---------|
+| `--panel-fill-opacity` | `0.04` | Fill transparency |
+| `--panel-blur` | `20px` | Backdrop blur radius |
+| `--border-gradient-angle` | `135deg` | Border gradient direction |
+| `--border-bright` | `0.6` | Bright end of border gradient |
+| `--border-dim` | `0.05` | Dim end of border gradient |
+| `--glow-blur` | `60px` | Outer glow blur radius |
+| `--glow-spread` | `-15px` | Outer glow spread (negative = tight focus) |
+| `--glow-opacity` | `0.26` | Outer glow intensity |
+| `--inset-highlight` | `0.08` | Top-edge inset highlight brightness |
+| `--bg-star-opacity` | `0.6` | Starfield ambient opacity |
+| `--bg-nebula-opacity` | `0.36` | Nebula gradient ambient opacity |
+
+Props: `hoverable` (intensifies glow on hover via token overrides), `strong` (hero/stepper variant — brighter border + glow), `cornerAccents` (sci-fi corner tick marks rendered as `<span>` elements).
+
+**Corner accent implementation**: Corner ticks are rendered as `<span class="holo-corner holo-corner--tl">` / `<span class="holo-corner holo-corner--br">`. They are NOT implemented via `::before`/`::after` because `::before` is reserved for the gradient border layer.
+
+**Ambient background**: Ambient nebula and starfield live on `body::before` (z-index 0) and `body::after` (z-index 1), scoped to dashboard in dark mode via `body:has([data-active-view="dashboard"])`. Page content (`#root`) sits at `z-index: 2` above both layers.
+
+In **light mode** all dark-mode effects are suppressed via `[data-color-mode="light"]` token overrides (`--border-bright: 0`, `--glow-opacity: 0`, etc.) and CSS overrides (`::before { display: none }`, opaque fill, standard border). `backdrop-filter` is disabled in light mode.
+
 ---
 
 ## 5. Buttons
@@ -253,9 +290,29 @@ Section zone dividers (e.g. between metrics and "Coming Up"): `border-t` with `p
 
 ---
 
-## 11. Anti-patterns (never do these)
+## 11. Gradient policy (reconciled)
 
-- ❌ Gradients on cards or surfaces
+Gradients are **prohibited** on panel fills and text — surfaces must be flat or translucent solid values.
+
+Gradients are **permitted** in these four contexts only:
+
+| Context | Examples |
+|---------|----------|
+| Border colouring | `HoloPanel::before` gradient via `mask-composite: exclude` (bright cyan → dim) |
+| Ambient page atmosphere | `body::before`/`body::after` radial gradients (nebula + starfield behind panels) |
+| Edge glow pseudo-effects | Inset box-shadow highlights, outer halo glows |
+| Decorative watermark elements | Hero lightning bolt, starfield particles |
+
+**Gradient border technique**: `HoloPanel` uses a `::before` pseudo-element with `padding: 1px` and `-webkit-mask-composite: xor` / `mask-composite: exclude`. This renders a gradient as the border without `background: border-box` (which lacks radius support in some engines). Values driven by locked tokens.
+
+**Ambient architecture**: Ambient is on `body::before` (nebula, z-index 0) and `body::after` (starfield, z-index 1), scoped with `body:has([data-active-view="dashboard"])`. `#root` has `z-index: 2`. Do NOT add ambient to `.dashboard-ambient` or `[data-active-view]` — those approaches are retired.
+
+---
+
+## 12. Anti-patterns (never do these)
+
+- ❌ Gradients on panel fills or card surfaces (use `HoloPanel` tokens for the exception)
+- ❌ Gradients on text
 - ❌ Pill-shaped buttons (`rounded-full`)
 - ❌ Random or uncontrolled avatar colours
 - ❌ Section labels floating outside their cards
@@ -269,7 +326,7 @@ Section zone dividers (e.g. between metrics and "Coming Up"): `border-t` with `p
 
 ---
 
-## 12. Applying to new pages
+## 13. Applying to new pages
 
 When working on any page that is not yet aligned with this design system:
 
