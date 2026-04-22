@@ -57,7 +57,7 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
 
   return (
     <section
-      className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-5"
+      className="rounded-[24px] border border-white/[0.07] bg-white/[0.025] px-5 py-[1.375rem]"
       aria-label="Event phases"
     >
       <div className="grid gap-4 md:grid-cols-7">
@@ -78,24 +78,30 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
               <div
                 className={`rounded-2xl border px-4 py-4 ${
                   isActive
-                    ? 'border-cyan-400/35 bg-cyan-400/[0.12] shadow-[var(--cyan-electric-inner-edge),inset_0_-2px_0_var(--cyan-electric-border)]'
+                    ? 'border-cyan-400/30 bg-cyan-400/[0.10] shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--card-depth-subtle)]'
                     : isCompleted
-                      ? 'border-white/6 bg-white/[0.015] opacity-60'
-                      : 'border-white/6 bg-white/[0.015]'
+                      ? 'border-white/[0.05] bg-white/[0.01] opacity-55'
+                      : 'border-white/[0.06] bg-white/[0.02]'
                 }`}
               >
                 <div
-                  className={`text-sm font-medium ${
-                    isActive ? 'text-cyan-200' : 'text-white/75'
+                  className={`text-sm ${
+                    isActive ? 'font-semibold text-cyan-200' : 'font-medium text-white/75'
                   }`}
                 >
                   {phaseLabel}
                 </div>
-                <div className="mt-1 text-xs text-white/45">{statusText}</div>
+                <div className={`mt-1 text-xs ${
+                  isActive
+                    ? 'font-medium text-cyan-300/70'
+                    : isCompleted
+                      ? 'text-white/35'
+                      : 'text-white/45'
+                }`}>{statusText}</div>
               </div>
               {i < EVENT_PHASE_ORDER.length - 1 && (
                 <div
-                  className={`absolute -right-2 top-1/2 hidden h-px w-4 md:block ${isActive ? 'bg-cyan-400/30' : 'bg-white/12'}`}
+                  className={`absolute -right-2 top-1/2 hidden h-px w-4 md:block ${isActive ? 'bg-cyan-400/35' : 'bg-white/10'}`}
                   aria-hidden="true"
                 />
               )}

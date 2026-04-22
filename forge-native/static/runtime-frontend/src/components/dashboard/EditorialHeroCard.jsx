@@ -60,11 +60,11 @@ function EditorialCountdown({ scheduleMilestones }) {
   return (
     <div className="mt-6 grid grid-cols-3 gap-4 text-center">
       {tiles.map(([n, l]) => (
-        <div key={l} className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-3 py-5">
+        <div key={l} className="rounded-2xl border border-cyan-400/[0.12] bg-cyan-400/[0.035] px-3 py-5">
           <div className="text-4xl font-semibold tracking-tight text-cyan-300 lg:text-5xl">
             {n}
           </div>
-          <div className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">{l}</div>
+          <div className="mt-2 text-[0.6875rem] uppercase tracking-[0.16em] text-white/40">{l}</div>
         </div>
       ))}
     </div>
@@ -86,16 +86,16 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
   return (
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
-      <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(135deg,rgba(58,207,255,0.10),rgba(255,255,255,0.02))] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge),0_0_0_1px_rgba(0,255,255,0.04)]" data-testid="dashboard-hero-card">
+      <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(135deg,rgba(58,207,255,0.10)_0%,rgba(255,255,255,0.02)_60%,rgba(58,207,255,0.03)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom),0_0_0_1px_rgba(0,255,255,0.04)]" data-testid="dashboard-hero-card">
         {children}
       </div>
 
       {/* Right: countdown + what matters now */}
-      <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-8 shadow-[var(--card-inner-edge)]">
-        <div className="text-xs uppercase tracking-[0.24em] text-white/45">HackDay starts in</div>
+      <div className="rounded-[28px] border border-white/[0.09] bg-white/[0.035] p-8 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
+        <div className="text-xs uppercase tracking-[0.22em] text-white/40">HackDay starts in</div>
         <EditorialCountdown scheduleMilestones={scheduleMilestones} />
-        <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white/65">
-          <div className="font-medium text-white">What matters now</div>
+        <div className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm leading-relaxed text-white/60">
+          <div className="font-semibold text-white/95">What matters now</div>
           <div className="mt-1">
             Get a pain point posted early and make your profile team-ready before registration opens.
           </div>

@@ -36,23 +36,23 @@ function formatScheduleTime(milestone, isFirst) {
 
 function ScheduleCard({ comingUpMilestones, onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6 shadow-[var(--card-inner-edge)]">
-      <div className="text-xs uppercase tracking-[0.18em] text-white/45">Upcoming schedule</div>
+    <div className="rounded-[26px] border border-white/[0.07] bg-white/[0.03] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
+      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Upcoming schedule</div>
       <div className="mt-5 space-y-4">
         {comingUpMilestones.length > 0 ? (
           comingUpMilestones.map((milestone, index) => (
             <div
               key={milestone.id}
               data-testid="dashboard-coming-up-item"
-              className="flex items-start justify-between gap-4 border-b border-white/6 pb-4 last:border-b-0 last:pb-0"
+              className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-4 last:border-b-0 last:pb-0"
             >
               <div
-                className="text-sm font-medium text-white/45"
+                className="text-sm font-medium text-white/40"
                 style={{ fontVariantNumeric: 'tabular-nums' }}
               >
                 {formatScheduleTime(milestone, index === 0)}
               </div>
-              <div className="flex-1 text-sm text-white/80">{milestone.title}</div>
+              <div className="flex-1 text-sm text-white/75">{milestone.title}</div>
             </div>
           ))
         ) : (
@@ -63,7 +63,7 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
         type="button"
         data-testid="dashboard-view-full-schedule"
         onClick={() => onNavigate?.('schedule')}
-        className="mt-5 text-sm font-medium text-cyan-300 hover:text-cyan-200 transition-colors"
+        className="mt-5 text-sm font-medium text-cyan-300/80 hover:text-cyan-200 transition-colors"
       >
         View full schedule
       </button>
@@ -75,22 +75,22 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 
 function NewHereCard({ onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/8 bg-white/[0.03] p-6 shadow-[var(--card-inner-edge)]">
-      <div className="text-xs uppercase tracking-[0.18em] text-white/45">New here?</div>
+    <div className="rounded-[26px] border border-white/[0.07] bg-white/[0.025] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
+      <div className="text-xs uppercase tracking-[0.16em] text-white/40">New here?</div>
       <h3
-        className="mt-3 text-3xl font-semibold tracking-tight text-white"
+        className="mt-3 text-3xl font-semibold tracking-tight text-white/95"
         style={{ fontFamily: 'var(--font-heading)' }}
       >
         You do not have to code
       </h3>
-      <p className="mt-3 text-sm leading-6 text-white/65">
+      <p className="mt-3 text-sm leading-relaxed text-white/60">
         Post a gripe, upvote what rings true, and see who wants to fix it with you. All roles are
         welcome.
       </p>
       <button
         type="button"
         onClick={() => onNavigate?.('signup')}
-        className="mt-5 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/5"
+        className="mt-5 rounded-2xl border border-white/[0.08] px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white/80"
       >
         Take the 2-minute tour
       </button>
@@ -106,7 +106,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
 
   return (
     <div
-      className="rounded-[26px] border border-cyan-400/15 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-6 shadow-[var(--cyan-electric-inner-edge)]"
+      className="rounded-[26px] border border-cyan-400/[0.12] bg-[linear-gradient(180deg,rgba(64,212,255,0.06)_0%,rgba(255,255,255,0.02)_70%,rgba(64,212,255,0.02)_100%)] p-6 shadow-[var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom)]"
       data-testid="dashboard-row2-readiness"
     >
       <div className="flex items-center justify-between">
@@ -141,7 +141,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
       <div
         className="mt-5 h-2 overflow-hidden rounded-full"
         data-testid="dashboard-readiness-progress"
-        style={{ background: 'rgba(255,255,255,0.08)' }}
+        style={{ background: 'rgba(255,255,255,0.06)' }}
       >
         <div
           className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 transition-[width] duration-300"
@@ -154,7 +154,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
         type="button"
         onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
         aria-label={`Next action: ${nextBestAction.label}`}
-        className="mt-5 w-full rounded-2xl border border-cyan-400/20 px-4 py-3 text-sm font-medium text-cyan-200 transition-all hover:bg-cyan-400/10 hover:border-cyan-400/35 hover:shadow-[0_0_12px_rgba(0,245,255,0.08)]"
+        className="mt-5 w-full rounded-2xl border border-cyan-400/[0.18] px-4 py-3.5 text-sm font-medium text-cyan-200/90 transition-all hover:bg-cyan-400/[0.08] hover:border-cyan-400/30 hover:shadow-[0_0_12px_rgba(0,245,255,0.08)]"
       >
         Complete next step
       </button>

@@ -396,6 +396,10 @@
   --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(8, 145, 178, 0.08);
   --card-inner-edge: inset 0 1px 0 rgba(0, 0, 0, 0.03);
   --card-border-quiet: rgba(0, 0, 0, 0.06);
+  --card-inner-edge-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+  --card-depth-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --stat-card-surface: rgba(255, 255, 255, 0.035);
+  --footer-separator: rgba(0, 0, 0, 0.05);
 }
 
 [data-color-mode="dark"] {
@@ -429,6 +433,10 @@
   --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(0, 245, 255, 0.12);
   --card-inner-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --card-border-quiet: rgba(255, 255, 255, 0.06);
+  --card-inner-edge-bottom: inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+  --card-depth-subtle: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --stat-card-surface: rgba(255, 255, 255, 0.035);
+  --footer-separator: rgba(255, 255, 255, 0.05);
 }
 
 [data-theme-preset="editorial"] {

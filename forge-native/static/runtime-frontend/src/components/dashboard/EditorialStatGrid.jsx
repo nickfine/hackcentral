@@ -6,18 +6,18 @@ function StatCard({ label, value, rawValue, meta, accent, testId }) {
 
   return (
     <div
-      className="rounded-[22px] border border-white/8 bg-white/[0.03] p-5 shadow-[var(--card-inner-edge)]"
+      className="rounded-[22px] border border-white/[0.07] bg-[var(--stat-card-surface)] p-5 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]"
       data-testid={testId}
     >
-      <div className="text-xs uppercase tracking-[0.18em] text-white/45">{label}</div>
+      <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-white/40">{label}</div>
       <div
-        className="mt-3 text-4xl font-semibold tracking-tight text-white"
+        className="mt-2.5 text-4xl font-semibold tracking-tight text-white"
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {displayValue}
       </div>
-      {meta && <div className="mt-1 text-sm text-white/65">{meta}</div>}
-      {accent && <div className="mt-4 text-sm font-medium text-cyan-300">{accent}</div>}
+      {meta && <div className="mt-1.5 text-sm text-white/55">{meta}</div>}
+      {accent && <div className="mt-3.5 text-sm font-medium text-cyan-300/85">{accent}</div>}
     </div>
   );
 }

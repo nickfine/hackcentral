@@ -1075,7 +1075,7 @@ function Dashboard({
 
         {/* Phase badge */}
         <div data-testid="dashboard-row1-meta">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/[0.08] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" aria-hidden="true" />
             {PHASE_LABELS[eventPhase] || eventPhase}
           </span>
@@ -1105,7 +1105,7 @@ function Dashboard({
           fallback={heroSubtitlePrimaryFallback}
           as="p"
           rows={2}
-          displayClassName="mt-4 max-w-2xl text-lg leading-7 text-white/70"
+          displayClassName="mt-4 max-w-2xl text-lg leading-[1.65] text-white/65"
         />
 
         {/* CTAs */}
@@ -1149,7 +1149,7 @@ function Dashboard({
         </div>
 
         {/* Meta row */}
-        <div className="mt-5 flex flex-wrap gap-4 text-xs text-white/45">
+        <div className="mt-6 flex flex-wrap gap-5 text-xs text-white/40">
           {activeMetaText && (
             <span className="inline-flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
@@ -1213,13 +1213,13 @@ function Dashboard({
             <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
           ) : (
             <div
-              className="rounded-[28px] border border-white/8 bg-white/[0.03] p-6"
+              className="rounded-[28px] border border-white/[0.09] bg-white/[0.035] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
               data-testid="dashboard-live-activity"
             >
-              <div className="flex items-center justify-between border-b border-white/8 pb-5">
-                <div className="text-xs uppercase tracking-[0.18em] text-white/45">Live Activity</div>
-                <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/55">
-                  <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400" />
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-5">
+                <div className="text-xs uppercase tracking-[0.16em] text-white/50">Live Activity</div>
+                <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/50">
+                  <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
                   Live
                 </span>
               </div>
@@ -1236,7 +1236,7 @@ function Dashboard({
                       key={activity.id || `activity-${index}`}
                       data-testid="dashboard-activity-item"
                       data-activity-team-id={resolvedTeamId || undefined}
-                      className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/8 bg-white/[0.02] px-4 py-3 text-left transition hover:border-white/12 hover:bg-white/[0.04]"
+                      className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-white/[0.10] hover:bg-white/[0.04]"
                       onClick={() => handleActivityItemClick(activity)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
@@ -1250,7 +1250,7 @@ function Dashboard({
                     >
                       <div
                         data-testid="dashboard-activity-avatar"
-                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-[10px] font-semibold text-cyan-300"
+                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[10px] font-bold text-cyan-300/90"
                       >
                         {getInitials(activity.user)}
                       </div>
@@ -1263,7 +1263,7 @@ function Dashboard({
                             <> <span className="font-medium text-white">{activity.team}</span></>
                           ) : null}
                         </p>
-                        <p className="text-xs text-white/40">{timestamp}</p>
+                        <p className="text-xs text-white/35">{timestamp}</p>
                       </div>
                     </div>
                   );
@@ -1273,7 +1273,7 @@ function Dashboard({
                 <button
                   type="button"
                   data-testid="dashboard-view-all-activity"
-                  className="rounded-full border border-white/10 px-5 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/5"
+                  className="rounded-full border border-white/[0.08] px-5 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.04] hover:text-white/70"
                   onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
                 >
                   View all activity
@@ -1327,12 +1327,12 @@ function Dashboard({
       </div>
 
       {/* ====== FOOTER ====== */}
-      <footer className="border-t border-white/8 pt-4" data-testid="dashboard-footer">
+      <footer className="border-t border-[var(--footer-separator)] pt-5 pb-1" data-testid="dashboard-footer">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-white/35">
+          <p className="text-xs text-white/30">
             Last updated {new Date(dataLoadedAt).toLocaleString()}
           </p>
-          <p className="text-xs text-white/25">HackCentral</p>
+          <p className="text-[0.6875rem] font-medium tracking-[0.08em] text-white/20">HackCentral</p>
         </div>
       </footer>
 
