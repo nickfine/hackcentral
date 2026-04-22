@@ -558,7 +558,16 @@ function AppLayout({
 
                 {/* ── CENTER: Nav (hidden below xl, centered by grid) ── */}
                 {showSidebar ? (
-                  <nav className="hidden xl:flex items-center gap-1" aria-label="Primary navigation">
+                  <nav
+                    className="hidden xl:flex items-center gap-1"
+                    aria-label="Primary navigation"
+                    style={{
+                      borderLeft: '0.5px solid var(--border-default)',
+                      borderRight: '0.5px solid var(--border-default)',
+                      padding: '0 12px',
+                      alignSelf: 'stretch',
+                    }}
+                  >
                     {navItems.map((item) => (
                       <NavItem
                         key={item.id}

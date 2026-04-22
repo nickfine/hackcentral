@@ -791,24 +791,21 @@ function HeroCountdown({ scheduleMilestones, eventPhase, onNavigate }) {
     return () => clearInterval(id);
   }, []);
 
-  // Re-derive on every tick so the countdown automatically advances to the next milestone.
-  // Filter to current phase and beyond so earlier-phase milestones don't appear after we've moved on.
-  const currentPhaseIndex = PHASE_ORDER_INDEX[eventPhase] ?? -1;
-  const relevantMilestones = (scheduleMilestones || []).filter(
-    (m) => (PHASE_ORDER_INDEX[m.phase] ?? -1) >= currentPhaseIndex
-  );
-  const primaryMilestone = getUpcomingMilestones(relevantMilestones, 1)[0] || null;
+  // Target the first event in the schedule (chronologically earliest milestone).
+  const firstMilestone = (scheduleMilestones || [])
+    .map((m) => ({ ...m, _start: parseIsoTimestamp(m.startTime) }))
+    .filter((m) => m._start)
+    .sort((a, b) => a._start.getTime() - b._start.getTime())[0] || null;
 
-  if (!primaryMilestone) return null;
-  const target = parseIsoTimestamp(primaryMilestone.startTime);
-  if (!target) return null;
+  if (!firstMilestone) return null;
+  const target = firstMilestone._start;
 
   const diffMs = target.getTime() - Date.now();
   const hasOpened = diffMs <= 0;
 
   if (hasOpened) {
-    const cta = PHASE_OPENED_CTAS[primaryMilestone.phase] || null;
-    const openedLabel = primaryMilestone.title.replace(/\s+opens?$/i, ' is now open');
+    const cta = PHASE_OPENED_CTAS[firstMilestone.phase] || null;
+    const openedLabel = firstMilestone.title.replace(/\s+opens?$/i, ' is now open');
     return (
       <div className="hidden md:flex flex-col items-end justify-center gap-3 p-8 pl-4 text-right">
         <p className="text-sm leading-snug" style={{ color: 'var(--accent)' }}>
@@ -845,7 +842,7 @@ function HeroCountdown({ scheduleMilestones, eventPhase, onNavigate }) {
   return (
     <div className="hidden md:flex flex-col items-end justify-center gap-4 p-8 pl-4 text-right">
       <p className="text-sm text-text-secondary leading-snug max-w-[140px]">
-        {primaryMilestone.title}
+        HackDay starts in:
       </p>
       <div className="flex items-end gap-3">
         {units.map(({ value, label }) => (
