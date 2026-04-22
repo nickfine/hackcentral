@@ -1,9 +1,6 @@
 /**
- * PainPointsSection — composer + filter row + pain-point feed.
- * Matches the HackDay Dashboard Wireframe "Mission Control" layout:
- *   1. Composer card (teal left-border, textarea, chip toggles, submit)
- *   2. Filter chip row
- *   3. Feed card with upvote-style pain-point rows
+ * PainPointsSection — editorial "live problem feed" layout.
+ * Eyebrow + heading + subtitle + Trending/Just-posted toggle + composer + pain-point cards.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -30,106 +27,60 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-const AVATAR_COLORS = [
-  'hsl(215, 40%, 45%)',
-  'hsl(30, 20%, 50%)',
-  'hsl(350, 35%, 50%)',
-  'hsl(150, 30%, 45%)',
-  'hsl(40, 40%, 48%)',
-];
-
-function avatarColor(name) {
-  const s = String(name || '').trim().toLowerCase();
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
-
-// QUICK WIN 2 — Category pill system ─────────────────────────────────────────
-
 const PAIN_CATEGORIES = [
-  { label: 'UX',        bg: 'rgba(20,184,166,0.14)',  border: 'rgba(20,184,166,0.35)',  color: '#14b8a6', keywords: ['ux', 'user', 'ui', 'interface', 'design', 'click', 'button', 'confusing', 'flow', 'navigation'] },
-  { label: 'Process',   bg: 'rgba(139,92,246,0.14)',  border: 'rgba(139,92,246,0.35)',  color: '#a78bfa', keywords: ['process', 'workflow', 'approval', 'review', 'meeting', 'manual', 'ticket', 'sprint', 'jira', 'blocker'] },
-  { label: 'Tech Debt', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(249,115,22,0.35)',  color: '#fb923c', keywords: ['tech debt', 'legacy', 'old', 'deprecated', 'refactor', 'hack', 'workaround', 'dirty', 'spaghetti'] },
-  { label: 'Infra',     bg: 'rgba(56,189,248,0.14)',  border: 'rgba(56,189,248,0.35)',  color: '#38bdf8', keywords: ['infra', 'server', 'deploy', 'ci', 'cd', 'pipeline', 'build', 'crash', 'down', 'scaling', 'cloud'] },
-  { label: 'Customer',  bg: 'rgba(236,72,153,0.14)',  border: 'rgba(236,72,153,0.35)',  color: '#f472b6', keywords: ['customer', 'client', 'churn', 'complaint', 'feedback', 'satisfaction', 'onboard', 'support'] },
-  { label: 'Tooling',   bg: 'rgba(245,158,11,0.14)',  border: 'rgba(245,158,11,0.35)',  color: '#fbbf24', keywords: ['tool', 'tooling', 'script', 'automation', 'ide', 'editor', 'dev tool', 'local', 'dx'] },
+  { label: 'UX',        keywords: ['ux', 'user', 'ui', 'interface', 'design', 'click', 'button', 'confusing', 'flow', 'navigation'] },
+  { label: 'Process',   keywords: ['process', 'workflow', 'approval', 'review', 'meeting', 'manual', 'ticket', 'sprint', 'jira', 'blocker'] },
+  { label: 'Tech Debt', keywords: ['tech debt', 'legacy', 'old', 'deprecated', 'refactor', 'hack', 'workaround', 'dirty', 'spaghetti'] },
+  { label: 'Infra',     keywords: ['infra', 'server', 'deploy', 'ci', 'cd', 'pipeline', 'build', 'crash', 'down', 'scaling', 'cloud'] },
+  { label: 'Customer',  keywords: ['customer', 'client', 'churn', 'complaint', 'feedback', 'satisfaction', 'onboard', 'support'] },
+  { label: 'Tooling',   keywords: ['tool', 'tooling', 'script', 'automation', 'ide', 'editor', 'dev tool', 'local', 'dx'] },
+  { label: 'Eng',       keywords: [] },
 ];
 
-function inferCategory(title, description) {
+function inferCategoryLabel(title, description) {
   const text = `${title} ${description || ''}`.toLowerCase();
   for (const cat of PAIN_CATEGORIES) {
-    if (cat.keywords.some((kw) => text.includes(kw))) return cat;
+    if (cat.keywords.some((kw) => text.includes(kw))) return cat.label;
   }
   // Deterministic fallback via hash
   let h = 0;
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-  return PAIN_CATEGORIES[h % PAIN_CATEGORIES.length];
+  return PAIN_CATEGORIES[h % PAIN_CATEGORIES.length].label;
 }
 
-// QUICK WIN 2 — Enhanced upvote button with bounce animation ──────────────────
+// ─── UpvoteButton ─────────────────────────────────────────────────────────────
 
-function UpvoteButton({ count, voted, onVote, disabled, justVoted }) {
+function UpvoteButton({ count, voted, onVote, disabled }) {
   return (
     <button
       type="button"
       onClick={onVote}
       disabled={disabled}
       aria-label={`Upvote — ${count} votes`}
-      className={`flex flex-col items-center justify-start rounded-lg border transition-colors ${justVoted ? 'upvote-pop' : ''}`}
+      className="flex w-16 shrink-0 flex-col items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-2 py-3 text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:cursor-not-allowed"
       style={{
-        width: 52,
-        padding: '8px 6px',
-        borderColor: voted ? 'var(--accent)' : 'var(--border-default)',
-        background: voted
-          ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
-          : 'var(--surface-card)',
-        color: voted ? 'var(--accent)' : 'inherit',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        boxShadow: voted ? '0 0 10px rgba(45,212,191,0.18)' : 'none',
+        borderColor: voted ? 'rgba(34,211,238,0.45)' : undefined,
+        background: voted ? 'rgba(34,211,238,0.12)' : undefined,
       }}
     >
-      {/* Larger arrow for better affordance */}
-      <svg width="20" height="20" viewBox="0 0 24 24" fill={voted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5M5 12l7-7 7 7" />
-      </svg>
-      <span
-        className="font-bold leading-none"
-        style={{
-          marginTop: 3,
-          fontSize: 15,
-          fontVariantNumeric: 'tabular-nums',
-          color: voted ? 'var(--accent)' : 'var(--text-primary)',
-        }}
-      >
-        {count}
-      </span>
-      <span
-        className="uppercase leading-none"
-        style={{ fontSize: 9, letterSpacing: '0.1em', marginTop: 2, color: voted ? 'var(--accent)' : 'var(--text-muted)' }}
-      >
-        Up
-      </span>
+      <div className="text-2xl font-semibold leading-none">{count}</div>
+      <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45">Up</div>
     </button>
   );
 }
 
-// QUICK WIN 2 — Enhanced PainItem with category pill, hot badge, reply count ──
+// ─── PainItem ─────────────────────────────────────────────────────────────────
 
 function PainItem({ pp, onReact }) {
   const [reacting, setReacting] = useState(false);
   const [localCount, setLocalCount] = useState(pp.reactionCount || 0);
   const [reacted, setReacted] = useState(pp.hasReacted ?? false);
-  const [justVoted, setJustVoted] = useState(false);
 
   const handleVote = async () => {
     if (reacting || reacted) return;
     setReacting(true);
-    setJustVoted(true);
     setLocalCount((c) => c + 1);
     setReacted(true);
-    // Reset bounce class after animation completes
-    setTimeout(() => setJustVoted(false), 450);
     try {
       await onReact(pp._id);
     } catch {
@@ -140,118 +91,45 @@ function PainItem({ pp, onReact }) {
     }
   };
 
-  const hasClaims = pp.claimingTeams && pp.claimingTeams.length > 0;
-  const isHot = localCount >= 10; // QUICK WIN 2: hot badge threshold
-  const replyCount = pp.replyCount || 0;
-  const category = inferCategory(pp.title, pp.description); // QUICK WIN 2: category
+  const tagLabel = inferCategoryLabel(pp.title, pp.description);
+  const timeAgo = pp._creationTime ? relativeTime(pp._creationTime) : '';
+  const authorName = pp.submitterName || 'Anonymous';
 
   return (
-    <article
-      className="grid rounded-lg transition-colors hover:bg-arena-elevated"
-      style={{
-        gridTemplateColumns: 'auto 1fr auto',
-        gap: 14,
-        padding: 14,
-        borderTop: '1px solid var(--border-subtle, var(--border-default))',
-      }}
-    >
-      {/* QUICK WIN 2: Enhanced upvote with bounce */}
-      <UpvoteButton count={localCount} voted={reacted} onVote={handleVote} disabled={reacting || reacted} justVoted={justVoted} />
+    <article className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4 transition hover:border-cyan-400/20 hover:bg-white/[0.045]">
+      <UpvoteButton
+        count={localCount}
+        voted={reacted}
+        onVote={handleVote}
+        disabled={reacting || reacted}
+      />
 
-      {/* Main */}
-      <div className="min-w-0">
-        {/* QUICK WIN 2: Category pill + Hot badge row */}
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-            style={{
-              background: category.bg,
-              border: `1px solid ${category.border}`,
-              color: category.color,
-              letterSpacing: '0.04em',
-            }}
-          >
-            {category.label}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
+          <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 font-medium text-cyan-200">
+            {tagLabel}
           </span>
-          {isHot && (
-            <span
-              className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-              style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.35)', color: '#fb923c' }}
-              aria-label="Hot item"
-            >
-              🔥 Hot
-            </span>
-          )}
+          <span className="font-medium text-white/75">{authorName}</span>
+          {timeAgo && <span>{timeAgo}</span>}
         </div>
-
-        <div className="mb-1 flex flex-wrap items-center gap-2">
-          <span
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-white"
-            style={{ fontSize: 10, fontWeight: 600, background: avatarColor(pp.submitterName) }}
-          >
-            {getInitials(pp.submitterName)}
-          </span>
-          <span className="text-xs font-semibold text-text-primary">{pp.submitterName || 'Anonymous'}</span>
-          {pp._creationTime && (
-            <span className="text-xs text-text-muted">{relativeTime(pp._creationTime)}</span>
-          )}
-        </div>
-        {/* VISUAL BRAND UPGRADE 3: Bolder title for clear hierarchy */}
-        <p className="pain-title-strong text-sm leading-snug" style={{ margin: '0 0 10px' }}>
-          {pp.title}
-        </p>
+        <h3 className="mt-2 text-lg font-medium text-white">{pp.title}</h3>
         {pp.description && (
-          <p className="line-clamp-2 text-xs leading-relaxed text-text-muted" style={{ margin: '0 0 6px' }}>
-            {pp.description}
-          </p>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/60">{pp.description}</p>
         )}
-        <div className="flex flex-wrap items-center" style={{ gap: 10 }}>
-          {/* QUICK WIN 2: Reply button with count */}
+        <div className="mt-4 flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center rounded text-xs text-text-muted transition-colors hover:bg-arena-elevated hover:text-text-primary"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '4px 8px', gap: 6 }}
+            className="text-sm text-white/55 transition-colors hover:text-white"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
             Reply
-            {replyCount > 0 && (
-              <span
-                className="rounded-full px-1.5 text-[10px] font-semibold"
-                style={{ background: 'var(--surface-elevated)', color: 'var(--text-muted)', minWidth: 18, textAlign: 'center' }}
-              >
-                {replyCount}
-              </span>
-            )}
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/5"
+          >
+            Open
           </button>
         </div>
-      </div>
-
-      {/* Aside */}
-      <div className="flex flex-col items-end gap-1.5" style={{ minWidth: 80 }}>
-        {hasClaims ? (
-          pp.claimingTeams.map((t) => (
-            <span
-              key={t.id}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs"
-              style={{ borderColor: 'var(--border-default)', background: 'var(--surface-elevated)', color: 'var(--text-secondary)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              {t.name}
-            </span>
-          ))
-        ) : (
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--surface-card)' }}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ background: 'var(--text-muted)' }} />
-            <span style={{ color: 'var(--text-muted)' }}>Open</span>
-          </span>
-        )}
       </div>
     </article>
   );
@@ -320,128 +198,119 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
     await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
   };
 
-  const totalCount = allPainPoints.length;
-
   return (
-    <div className="flex flex-col gap-5" data-testid="dashboard-pain-points">
-
-      {/* ── Feed card (composer inline + filter tabs in header) ── */}
-      <section
-        className="rounded-xl border border-arena-border bg-arena-card shadow-sm"
-        style={{ padding: 6 }}
-      >
-        {/* Header: title + filter tabs */}
-        <div className="flex items-center justify-between" style={{ padding: '10px 14px 6px' }}>
-          <span className="dashboard-card-label">
-            Top pain points{' '}
-            <span className="trending-label-cyan" aria-label={sortBy === 'newest' ? 'sorted by latest' : 'sorted by trending'}>
-              · {sortBy === 'newest' ? 'latest' : 'trending'}
-            </span>
-          </span>
-          <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
-            {[
-              { key: 'reactions', label: 'Trending', count: totalCount || null },
-              { key: 'newest', label: 'Just posted', count: null },
-            ].map((f) => {
-              const isActive = sortBy === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setSortBy(f.key)}
-                  className="inline-flex items-center rounded-lg border text-xs font-medium transition-colors"
-                  style={{
-                    gap: 6,
-                    padding: '6px 12px',
-                    borderColor: isActive ? 'rgba(0, 245, 255, 0.4)' : 'var(--border-default)',
-                    background: isActive ? 'rgba(0, 245, 255, 0.1)' : 'var(--surface-card)',
-                    color: isActive ? '#00d4e8' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    boxShadow: isActive ? '0 0 10px rgba(0, 245, 255, 0.1)' : 'none',
-                  }}
-                >
-                  {f.label}
-                  {f.count != null && (
-                    <span style={{ fontVariantNumeric: 'tabular-nums', color: isActive ? 'currentColor' : 'var(--text-muted)' }}>
-                      · {f.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+    <div
+      className="rounded-[28px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-6"
+      data-testid="dashboard-pain-points"
+    >
+      {/* Section header */}
+      <div className="flex flex-col gap-4 border-b border-white/8 pb-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Top pain points</div>
+          <h2
+            className="mt-2 text-3xl font-semibold tracking-tight text-white"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            The live problem feed
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+            Make this the centre of gravity. Capture one meaningful blocker, upvote what matters,
+            and find others who want to solve the same thing.
+          </p>
         </div>
 
-        {/* Compose form — first row inside feed */}
-        <div
-          style={{ padding: '8px 8px 12px', borderBottom: '1px solid var(--border-subtle, var(--border-default))' }}
-        >
-          <form onSubmit={handleSubmit}>
-            <textarea
-              value={gripe}
-              onChange={(e) => setGripe(e.target.value)}
-              placeholder='One thing that slows you down. A sentence is enough — "it&#39;s annoying" counts.'
-              rows={3}
-              className="w-full resize-y rounded-lg border border-arena-border bg-arena-card text-sm text-text-primary placeholder:text-text-muted"
-              style={{ fontFamily: 'inherit', lineHeight: 1.5, minHeight: 72, padding: '10px 12px' }}
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
+          {[
+            { key: 'reactions', label: 'Trending' },
+            { key: 'newest', label: 'Just posted' },
+          ].map((f) => {
+            const isActive = sortBy === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setSortBy(f.key)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-cyan-400/12 text-cyan-200'
+                    : 'border border-white/10 text-white/65 hover:text-white'
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div className="mt-5 rounded-[24px] border border-white/8 bg-[#0a1628] p-4">
+        <form onSubmit={handleSubmit}>
+          <textarea
+            value={gripe}
+            onChange={(e) => setGripe(e.target.value)}
+            placeholder="What is slowing you down? A sentence is enough. Describe the friction, not the solution"
+            rows={4}
+            className="min-h-[120px] w-full resize-none rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white outline-none placeholder:text-white/30"
+            style={{ fontFamily: 'inherit' }}
+          />
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <input
+              type="text"
+              value={submitterName}
+              onChange={(e) => setSubmitterName(e.target.value)}
+              placeholder="Your name"
+              className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+              style={{ fontFamily: 'inherit' }}
             />
-            <div className="flex flex-wrap items-center justify-between" style={{ gap: 12, marginTop: 10 }}>
-              <input
-                type="text"
-                value={submitterName}
-                onChange={(e) => setSubmitterName(e.target.value)}
-                placeholder="Your name"
-                className="rounded-lg border border-arena-border bg-arena-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
-                style={{ width: 140, fontFamily: 'inherit' }}
-              />
-              <div className="flex items-center gap-2">
-                {submitted && <span className="text-xs text-green-600">Submitted!</span>}
-                {/* QUICK WIN 4: Electric cyan submit CTA */}
-                <button
-                  type="submit"
-                  disabled={!gripe.trim() || submitting}
-                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${!gripe.trim() || submitting ? '' : 'btn-electric-cyan'}`}
-                  style={!gripe.trim() || submitting ? { background: 'var(--accent)', color: 'white', cursor: 'not-allowed' } : {}}
-                >
-                  {submitting ? 'Submitting...' : 'Submit pain point'}
-                </button>
-              </div>
+            <div className="flex items-center gap-3">
+              {submitted && (
+                <span className="text-xs font-medium text-emerald-400">Submitted!</span>
+              )}
+              <button
+                type="submit"
+                disabled={!gripe.trim() || submitting}
+                className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? 'Submitting…' : 'Submit pain point'}
+              </button>
             </div>
-          </form>
-        </div>
-
-        {loading ? (
-          <div className="space-y-2 p-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-arena-elevated" />
-            ))}
           </div>
+        </form>
+      </div>
+
+      {/* Feed */}
+      <div className="mt-5 space-y-4">
+        {loading ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-[24px] border border-white/8 bg-white/[0.02]" />
+          ))
         ) : painPoints.length === 0 ? (
-          <p className="py-8 text-center text-sm text-text-muted">
+          <p className="py-8 text-center text-sm text-white/45">
             No pain points yet — be the first to submit one!
           </p>
         ) : (
-          <>
-            {painPoints.map((pp) => (
-              <PainItem key={pp._id} pp={pp} onReact={handleReact} />
-            ))}
-            {onNavigate && (
-              <div className="py-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => onNavigate('marketplace', { tab: 'pains' })}
-                  className="rounded-lg border border-arena-border bg-transparent px-4 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-arena-elevated hover:text-text-primary"
-                  style={{ cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  See all pain points
-                </button>
-              </div>
-            )}
-          </>
+          painPoints.map((pp) => (
+            <PainItem key={pp._id} pp={pp} onReact={handleReact} />
+          ))
         )}
-      </section>
+      </div>
+
+      {/* See all */}
+      {onNavigate && (
+        <div className="mt-5 flex justify-center">
+          <button
+            type="button"
+            onClick={() => onNavigate('marketplace', { tab: 'pains' })}
+            className="rounded-full border border-white/10 px-5 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/5"
+          >
+            See all pain points
+          </button>
+        </div>
+      )}
     </div>
   );
 }

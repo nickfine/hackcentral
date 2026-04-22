@@ -382,53 +382,6 @@
   --focus-ring-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
 
   /* -------------------------------------------------------------------------
-     HOLOGRAPHIC PANEL TOKENS — four-layer glass effect, theme-aware
-     Light mode: opaque fill, accent-tinted border gradient, no outer glow
-     Dark mode: translucent fill + backdrop-blur + bright cyan gradient border + glow
-     -------------------------------------------------------------------------
-     Layer 1 — fill:   --holo-panel-bg (translucent surface)
-     Layer 2 — border: --holo-border-gradient (bright top-left → transparent)
-     Layer 3 — edge:   --holo-glow-inset (inset top+left highlight)
-     Layer 4 — halo:   --holo-glow-cyan (diffuse outer glow)
-     ------------------------------------------------------------------------- */
-  /* Layer 1: fill — opaque in light mode */
-  --holo-panel-bg: var(--surface-card);
-  /* Layer 2: border gradient — accent-tinted for light mode */
-  --holo-border-gradient: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 40%, var(--border-default)) 0%,
-    var(--border-default) 55%,
-    var(--border-default) 100%
-  );
-  /* Layer 3: inset edge highlight — white frosted glass top edge */
-  --holo-glow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 1px 0 color-mix(in srgb, var(--accent) 20%, transparent);
-  /* Layer 4: outer glow — falls back to card shadow in light mode */
-  --holo-glow-cyan: var(--shadow-card);
-  /* Corner accent ticks */
-  --holo-corner-accent: color-mix(in srgb, var(--accent) 55%, transparent);
-  /* Locked holographic tuning knobs — do not modify values */
-  --panel-fill-opacity: 0.04;
-  --panel-blur: 20px;
-  --border-gradient-angle: 135deg;
-  --border-bright: 0.6;
-  --border-dim: 0.05;
-  --glow-blur: 60px;
-  --glow-spread: -15px;
-  --glow-opacity: 0.26;
-  --inset-highlight: 0.08;
-  --bg-star-opacity: 0.6;
-  --bg-nebula-opacity: 0.36;
-  /* Legacy edge tokens — kept for backward compat */
-  --holo-surface: var(--surface-card);
-  --holo-border-glow: color-mix(in srgb, var(--accent) 22%, var(--border-default));
-  --holo-edge-top: color-mix(in srgb, var(--accent) 30%, var(--border-default));
-  --holo-edge-left: color-mix(in srgb, var(--accent) 18%, var(--border-default));
-  --holo-edge-bottom: var(--border-default);
-  --holo-edge-right: var(--border-default);
-  --holo-outer-glow: var(--shadow-card);
-  --holo-outer-glow-hover: var(--shadow-elevated);
-
-  /* -------------------------------------------------------------------------
      ELECTRIC CYAN TOKENS — fixed HackDay brand identity for hero bolt / CTAs
      Independent of --accent (always neon cyan in dark, muted in light)
      ------------------------------------------------------------------------- */
@@ -438,19 +391,6 @@
   --cyan-electric-border: rgba(8, 145, 178, 0.25);
   --cyan-electric-glow: none;
   --cyan-electric-text: #0e7490;
-}
-
-/* Light-mode suppressions for dark-only holographic effects */
-[data-color-mode="light"] {
-  --panel-fill-opacity: 1;
-  --border-bright: 0;
-  --border-dim: 0;
-  --glow-opacity: 0;
-  --glow-blur: 0px;
-  --glow-spread: 0px;
-  --inset-highlight: 0.04;
-  --bg-star-opacity: 0;
-  --bg-nebula-opacity: 0;
 }
 
 [data-color-mode="dark"] {
@@ -471,42 +411,6 @@
   --text-secondary: #d1d5db;
   --text-muted: #9ca3af;
   --gradient-page-bg: linear-gradient(180deg, var(--surface-page) 0%, var(--surface-page) 100%);
-
-  /* Holographic panel — dark mode: four-layer glass with full-strength glow */
-  /* Layer 1: translucent fill — 50% opacity so backdrop-blur shows ambient */
-  --holo-panel-bg: color-mix(in srgb, var(--surface-card) 50%, transparent);
-  /* Layer 2: bright cyan → transparent gradient border */
-  --holo-border-gradient: linear-gradient(
-    135deg,
-    rgba(0, 245, 255, 0.55) 0%,
-    rgba(0, 245, 255, 0.18) 35%,
-    rgba(0, 245, 255, 0.05) 65%,
-    transparent 100%
-  );
-  /* Layer 3: inset edge highlight — white frosted glass + cyan tint */
-  --holo-glow-inset:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 1px 0 rgba(0, 245, 255, 0.20);
-  /* Layer 4: negative-spread ring halo — bleeds into space between cards */
-  --holo-glow-cyan:
-    0 0 0 1px rgba(0, 245, 255, 0.10),
-    0 0 60px -15px rgba(34, 211, 238, 0.28),
-    0 0 120px -30px rgba(0, 245, 255, 0.15);
-  /* Corner accent — bright cyan */
-  --holo-corner-accent: rgba(0, 245, 255, 0.65);
-  /* Legacy edge tokens — kept for backward compat */
-  --holo-surface: color-mix(in srgb, var(--surface-card) 85%, transparent);
-  --holo-border-glow: color-mix(in srgb, var(--accent) 20%, transparent);
-  --holo-edge-top: color-mix(in srgb, var(--accent) 35%, transparent);
-  --holo-edge-left: color-mix(in srgb, var(--accent) 20%, transparent);
-  --holo-edge-bottom: color-mix(in srgb, var(--accent) 6%, transparent);
-  --holo-edge-right: color-mix(in srgb, var(--accent) 8%, transparent);
-  --holo-outer-glow:
-    0 0 24px color-mix(in srgb, var(--accent) 8%, transparent),
-    0 0 48px color-mix(in srgb, var(--accent) 4%, transparent);
-  --holo-outer-glow-hover:
-    0 0 32px color-mix(in srgb, var(--accent) 14%, transparent),
-    0 0 64px color-mix(in srgb, var(--accent) 6%, transparent);
 
   /* Electric cyan — bright neon in dark mode */
   --cyan-electric: #00f5ff;

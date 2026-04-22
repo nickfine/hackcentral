@@ -1,7 +1,7 @@
 # HackDay 2026 Design System
 
 > Authoritative visual reference for all HackDay 2026 UI surfaces.
-> Derived from iterative dashboard refinement (Feb 2026).
+> The dashboard uses the **editorial dark UI system** (introduced v2.126.0, April 2026).
 > Attach this document to every Codex task that touches UI.
 
 ---
@@ -12,10 +12,12 @@
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `teal-500` | `#14b8a6` | Primary CTA backgrounds, active nav states, active phase indicator, hero left-border accent, imminent date badges |
-| `teal-500/10` | `rgba(20,184,166,0.1)` | Icon background tints (e.g. hero icon circle) |
+| `cyan-400` | `#22d3ee` | Phase badge, active timeline step, countdown tile numbers, stat card accent text, CTA backgrounds, progress bar fill |
+| `cyan-400/10` | `rgba(34,211,238,0.1)` | Active phase tile background tint |
+| `cyan-400/30` | `rgba(34,211,238,0.3)` | Active phase tile border |
+| `--cyan-electric` | `#00f5ff` | Hero lightning bolt, nav active accent (CSS token) |
 
-Teal is the **only** accent colour. Nothing else competes with it for attention.
+Cyan is the **only** accent colour. Nothing else competes with it for attention.
 
 ### Semantic status (used exclusively on status indicators, never as decoration)
 
@@ -46,6 +48,25 @@ Use Tailwind's `gray` scale consistently. Do not mix `slate`, `zinc`, or `neutra
 ---
 
 ## 2. Typography
+
+### Hero heading (dashboard only)
+
+The dashboard hero uses **Fraunces** (the project’s heading typeface, loaded via `@fontsource/fraunces` and exposed as `--font-heading`). Apply as an inline style — Tailwind’s `font-serif` class does **not** map to Fraunces in this project’s config.
+
+```jsx
+// CORRECT
+<h1 style={{ fontFamily: ‘var(--font-heading)’, lineHeight: 1.1 }}
+    className="text-5xl font-semibold tracking-tight text-white lg:text-7xl">
+  HackDay 2026
+</h1>
+```
+
+### Eyebrow labels
+
+Section eyebrows (e.g. "TOP PAIN POINTS", "UPCOMING SCHEDULE") use uppercase tracking:
+`text-xs font-semibold uppercase tracking-[0.12em] text-white/50`
+
+Phase badge: `rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-300`
 
 ### Four-tier hierarchy
 
@@ -124,49 +145,27 @@ Every text element on every page must belong to exactly one tier.
 
 No gradients on any cards. Ever.
 
+### Editorial card system (dashboard)
+
+The dashboard uses flat dark cards. No glassmorphism, no gradient borders, no ambient effects.
+
+| Property | Value |
+|----------|-------|
+| Background | `bg-white/[0.03]` (3% white, virtually invisible fill) |
+| Border | `border border-white/8` (8% white border) |
+| Radius | `rounded-[28px]` (large) or `rounded-[18px]` (inner cards) |
+| Shadow | none |
+
+Sub-cards within a container (e.g. countdown tiles, stat cards, schedule rows) use:
+`bg-white/[0.06] rounded-[18px]` — slightly brighter fill, no border.
+
+The dashboard page background is `bg-[#07111f]` (very dark blue-black). This is applied at the dashboard root, sitting inside AppLayout's background.
+
 ### Card rules
 
-- No coloured card borders except the hero's teal left accent
-- Section labels (YOUR READINESS, LIVE ACTIVITY, etc.) live **inside** the card as the first element
-- Section labels: uppercase, `text-xs`, `font-semibold`, `tracking-wider`, `text-gray-500` (light) / `text-gray-400` (dark)
-- Card footer zones (links like "View all activity"): separated by `border-t border-gray-100` (light) / `border-t border-gray-700` (dark), with `pt-3 mt-3` spacing. Footer links use `font-medium`.
-
-### Holographic panel variant (`HoloPanel` component)
-
-The Dashboard route uses a holographic glass treatment via the `HoloPanel` primitive (`components/dashboard/HoloPanel.jsx`). This is a dashboard-scoped design layer and does **not** replace the shared `Card` component used across other routes.
-
-Four layered effects:
-
-| Layer | Property | Purpose |
-|-------|----------|---------|
-| 1 — Translucent fill | `background: rgba(255,255,255, --panel-fill-opacity)` + `backdrop-filter: blur(--panel-blur)` | 4% white surface revealing ambient behind panels |
-| 2 — Gradient border | `::before` with `mask-composite: exclude` and `padding: 1px` | Bright cyan top-left fading to dim, directional shine (angle: `--border-gradient-angle`) |
-| 3 — Inset highlight | `box-shadow: inset 0 1px 0 rgba(255,255,255, --inset-highlight)` | Top edge lit as if by a light source above-left |
-| 4 — Outer halo | `box-shadow: 0 0 --glow-blur --glow-spread rgba(0,245,255, --glow-opacity)` | Wide diffuse cyan glow emanating from the panel |
-
-**Locked token names** (defined in `tokens.css` `:root`, do not modify values):
-
-| Token | Default value | Purpose |
-|-------|--------------|---------|
-| `--panel-fill-opacity` | `0.04` | Fill transparency |
-| `--panel-blur` | `20px` | Backdrop blur radius |
-| `--border-gradient-angle` | `135deg` | Border gradient direction |
-| `--border-bright` | `0.6` | Bright end of border gradient |
-| `--border-dim` | `0.05` | Dim end of border gradient |
-| `--glow-blur` | `60px` | Outer glow blur radius |
-| `--glow-spread` | `-15px` | Outer glow spread (negative = tight focus) |
-| `--glow-opacity` | `0.26` | Outer glow intensity |
-| `--inset-highlight` | `0.08` | Top-edge inset highlight brightness |
-| `--bg-star-opacity` | `0.6` | Starfield ambient opacity |
-| `--bg-nebula-opacity` | `0.36` | Nebula gradient ambient opacity |
-
-Props: `hoverable` (intensifies glow on hover via token overrides), `strong` (hero/stepper variant — brighter border + glow), `cornerAccents` (sci-fi corner tick marks rendered as `<span>` elements).
-
-**Corner accent implementation**: Corner ticks are rendered as `<span class="holo-corner holo-corner--tl">` / `<span class="holo-corner holo-corner--br">`. They are NOT implemented via `::before`/`::after` because `::before` is reserved for the gradient border layer.
-
-**Ambient background**: Ambient nebula and starfield live on `body::before` (z-index 0) and `body::after` (z-index 1), scoped to dashboard in dark mode via `body:has([data-active-view="dashboard"])`. Page content (`#root`) sits at `z-index: 2` above both layers.
-
-In **light mode** all dark-mode effects are suppressed via `[data-color-mode="light"]` token overrides (`--border-bright: 0`, `--glow-opacity: 0`, etc.) and CSS overrides (`::before { display: none }`, opaque fill, standard border). `backdrop-filter` is disabled in light mode.
+- No coloured card borders (cyan accent appears only on the active phase timeline step)
+- Section eyebrows live **inside** the card as the first element, using the eyebrow label style above
+- Card footer zones (links like "View full schedule"): `border-t border-white/8` with `pt-4 mt-4`. Footer links: `text-sm text-white/50 hover:text-white/80`.
 
 ---
 
@@ -184,10 +183,11 @@ In **light mode** all dark-mode effects are suppressed via `[data-color-mode="li
 
 ### Rules
 
-- No pill-shaped buttons (`rounded-full`) anywhere in the application
-- All primary buttons use the same teal treatment for consistency
-- Secondary/ghost buttons: `border border-gray-300` (light) / `border border-gray-600` (dark) with transparent background
-- Button size should be consistent across all pages - the hero CTA should not be larger than primary buttons elsewhere
+- Dashboard primary CTA: `rounded-2xl bg-cyan-400 px-6 py-2.5 text-sm font-semibold text-[#07111f]`
+- Dashboard secondary CTA: `rounded-2xl border border-white/20 bg-white/8 px-6 py-2.5 text-sm font-semibold text-white`
+- Non-dashboard pages: `rounded-lg bg-[var(--accent)] text-[var(--accent-on)]` (uses theme token)
+- All primary buttons use the same cyan treatment for consistency on the dashboard
+- Ghost buttons: `bg-transparent border border-transparent` with `hover:bg-arena-elevated`
 
 ---
 
@@ -237,19 +237,17 @@ Green dot + "Live" text only. No pill background, no tinted container.
 
 ## 7. Navigation
 
-### Phase stepper
+### Editorial timeline (`EditorialTimeline`)
 
-The phase stepper is a subtle progress indicator, not a navigation bar.
+A seven-step horizontal row inside a `rounded-[24px] border border-white/8` container.
 
 | Element | Treatment |
 |---------|-----------|
-| Label size | `text-xs` |
-| Active phase | `text-teal-500 font-semibold` |
-| Completed phases | `text-gray-500` (light) / `text-gray-300` (dark) |
-| Future phases | `text-gray-400` in both modes |
-| Connector lines | `1px` thickness |
-| Active/completed connector | `bg-teal-500` |
-| Future connector | `bg-gray-200` (light) / `bg-gray-700` (dark) |
+| Container | `rounded-[24px] border border-white/8 p-4` |
+| Step card | `flex-1 rounded-[16px] border border-white/6 p-3 text-center` |
+| Active step | `border-cyan-400/30 bg-cyan-400/10` + label `text-cyan-300 font-semibold` |
+| Inactive step | `text-white/50` label, `text-white/30` sub-status |
+| Sub-status text | Phase open time (e.g. "Opens in 18d"), "Now", or "TBD" |
 
 ---
 
@@ -290,43 +288,64 @@ Section zone dividers (e.g. between metrics and "Coming Up"): `border-t` with `p
 
 ---
 
-## 11. Gradient policy (reconciled)
+## 11. Gradient policy
 
 Gradients are **prohibited** on panel fills and text — surfaces must be flat or translucent solid values.
 
-Gradients are **permitted** in these four contexts only:
+Gradients are **permitted** in these contexts only:
 
 | Context | Examples |
 |---------|----------|
-| Border colouring | `HoloPanel::before` gradient via `mask-composite: exclude` (bright cyan → dim) |
-| Ambient page atmosphere | `body::before`/`body::after` radial gradients (nebula + starfield behind panels) |
-| Edge glow pseudo-effects | Inset box-shadow highlights, outer halo glows |
-| Decorative watermark elements | Hero lightning bolt, starfield particles |
+| Progress bars | Readiness bar fill (cyan → blue-600, `bg-gradient-to-r`) |
+| Decorative watermark elements | Hero left-panel radial tint (`radial-gradient(ellipse at top-left, rgba(34,211,238,0.07), transparent)`) |
+| AppLayout ambient | `body::before` / `body::after` background-image radial gradients (subtle nebula, scoped to the layout) |
 
-**Gradient border technique**: `HoloPanel` uses a `::before` pseudo-element with `padding: 1px` and `-webkit-mask-composite: xor` / `mask-composite: exclude`. This renders a gradient as the border without `background: border-box` (which lacks radius support in some engines). Values driven by locked tokens.
-
-**Ambient architecture**: Ambient is on `body::before` (nebula, z-index 0) and `body::after` (starfield, z-index 1), scoped with `body:has([data-active-view="dashboard"])`. `#root` has `z-index: 2`. Do NOT add ambient to `.dashboard-ambient` or `[data-active-view]` — those approaches are retired.
+No gradient borders. No ambient starfield. No outer glow box-shadows.
 
 ---
 
 ## 12. Anti-patterns (never do these)
 
-- ❌ Gradients on panel fills or card surfaces (use `HoloPanel` tokens for the exception)
+- ❌ Gradients on panel fills or card surfaces
 - ❌ Gradients on text
-- ❌ Pill-shaped buttons (`rounded-full`)
+- ❌ `backdrop-filter: blur()` / glassmorphism on cards
+- ❌ Gradient borders (mask-composite technique — retired with HoloPanel)
+- ❌ Ambient starfield or nebula particle effects on the dashboard
+- ❌ `HoloPanel`, `HoloHeroCard`, `HoloPhaseStepper`, `HoloKpiCard` — these components are deleted
 - ❌ Random or uncontrolled avatar colours
 - ❌ Section labels floating outside their cards
-- ❌ More than one accent colour competing with teal
-- ❌ Text sizes larger than `text-2xl`
+- ❌ More than one accent colour competing with cyan
 - ❌ Arbitrary spacing values that don't snap to 12px multiples
-- ❌ Dark strips/bars in light mode cards
-- ❌ Mixing Tailwind gray scales (stick to `gray`, not `slate`/`zinc`/`neutral`)
+- ❌ Using `font-serif` to target Fraunces — use `style={{ fontFamily: 'var(--font-heading)' }}` instead
 - ❌ Using status colours (green/amber/red) as decoration
-- ❌ Marketing-style CTAs (oversized, pill-shaped, gradient backgrounds)
+- ❌ Marketing-style CTAs with gradient backgrounds
 
 ---
 
-## 13. Applying to new pages
+## 13. Pain points editorial layout (`PainPointsSection`)
+
+The pain points panel uses the editorial card system directly (no wrapper component).
+
+| Zone | Styling |
+|------|---------|
+| Outer container | `rounded-[28px] border border-white/8 bg-white/[0.03] p-6` |
+| Eyebrow | `text-xs font-semibold uppercase tracking-[0.12em] text-white/50` |
+| Heading | `text-2xl font-semibold text-white` |
+| Subtitle | `text-sm text-white/60` |
+| Filter tabs | `rounded-full border px-4 py-1.5 text-sm font-medium` — active: `border-cyan-400/40 bg-cyan-400/10 text-cyan-300`, inactive: `border-white/10 text-white/40` |
+| Composer | `rounded-[18px] bg-white/[0.04] border border-white/8 p-4` with raw `<textarea>` / `<input>` |
+| Submit button | `rounded-xl bg-emerald-500 text-white text-sm font-semibold px-4 py-2` |
+| Pain point card | `rounded-[18px] bg-white/[0.04] p-4` — vote tile left, content right |
+| Vote tile | `rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center` |
+| Vote number | `text-lg font-bold text-white` |
+| Tag pill | `rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/50` |
+| Card action buttons | `rounded-lg border border-white/10 px-3 py-1 text-xs text-white/50 hover:text-white/80` |
+
+**Form element decision**: Use raw `<textarea>`, `<input>`, `<button>` with the above Tailwind classes. The shared `TextArea`/`Input`/`Button` components from `components/ui/` target the shared design system tokens and would fight the editorial dark styling.
+
+---
+
+## 14. Applying to new pages
 
 When working on any page that is not yet aligned with this design system:
 

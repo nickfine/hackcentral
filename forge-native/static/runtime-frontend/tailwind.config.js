@@ -33,6 +33,7 @@ export default {
           magenta: 'var(--accent-magenta)',
           blue: 'var(--accent-blue-deep)',
           cyan: 'var(--accent-cyan)',
+          'cyan-electric': 'var(--cyan-electric)',
         },
 
         accent: {
