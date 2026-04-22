@@ -933,7 +933,7 @@ function AppLayout({
       {/* END STICKY HEADER + EVENT BAR CONTAINER */}
 
       {/* MAIN LAYOUT */}
-      <Container size={contentContainerSize} padding="none">
+      <Container size={contentContainerSize} padding="md">
         {/* MAIN CONTENT */}
         <main
           id="main-content"
