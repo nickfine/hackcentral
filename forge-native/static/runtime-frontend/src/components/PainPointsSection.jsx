@@ -332,11 +332,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
       >
         {/* Header: title + filter tabs */}
         <div className="flex items-center justify-between" style={{ padding: '10px 14px 6px' }}>
-          {/* VISUAL BRAND UPGRADE 1 + 3: Cyan accent on active sort label */}
-          <span
-            className="text-xs font-semibold uppercase tracking-widest text-text-muted"
-            style={{ fontVariant: 'all-small-caps', letterSpacing: '0.12em' }}
-          >
+          <span className="dashboard-card-label">
             Top pain points{' '}
             <span className="trending-label-cyan" aria-label={sortBy === 'newest' ? 'sorted by latest' : 'sorted by trending'}>
               · {sortBy === 'newest' ? 'latest' : 'trending'}
