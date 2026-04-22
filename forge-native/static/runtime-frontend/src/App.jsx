@@ -22,6 +22,7 @@ if (typeof console !== 'undefined' && console.log) {
 
 const Profile = lazy(() => import('./components/Profile'));
 const Marketplace = lazy(() => import('./components/Marketplace'));
+const PainPoints = lazy(() => import('./components/PainPoints'));
 const Schedule = lazy(() => import('./components/Schedule'));
 const Rules = lazy(() => import('./components/Rules'));
 const NewToHackDay = lazy(() => import('./components/NewToHackDay'));
@@ -37,6 +38,7 @@ const VIEW_TO_PATH = {
   dashboard: '/',
   schedule: '/schedule',
   marketplace: '/marketplace',
+  painpoints: '/painpoints',
   submission: '/submission',
   results: '/results',
   rules: '/rules',
@@ -54,6 +56,8 @@ const PATH_TO_VIEW = {
   '/schedule': 'schedule',
   '/marketplace': 'marketplace',
   '/ideas': 'marketplace',
+  '/painpoints': 'painpoints',
+  '/pain-points': 'painpoints',
   '/submission': 'submission',
   '/results': 'results',
   '/rules': 'rules',
@@ -1732,6 +1736,9 @@ function App() {
             initialTab={viewParams.tab || 'teams'}
           />
         );
+
+      case 'painpoints':
+        return <PainPoints {...commonProps} />;
 
       case 'schedule':
         return <Schedule {...commonProps} />;

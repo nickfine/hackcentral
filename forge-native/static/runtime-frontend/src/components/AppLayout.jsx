@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   Sparkles,
   UserPlus,
+  Flame,
   Wrench,
   Sun,
   Moon,
@@ -252,6 +253,13 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
   baseItems.push(
     { id: 'new-to-hackday', label: 'New to HackDay?', icon: Sparkles },
     { id: 'marketplace', label: 'Teams', icon: Users },
+  );
+
+  if (eventPhase === 'signup' || eventPhase === 'team_formation') {
+    baseItems.push({ id: 'painpoints', label: 'Pain Points', icon: Flame });
+  }
+
+  baseItems.push(
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'rules', label: 'Rules', icon: BookOpen },
   );

@@ -13,7 +13,6 @@ import {
   User,
   Grid3x3,
   Rows,
-  Flame,
 } from 'lucide-react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { cn, getSkillClasses, DESIGN_SYSTEM_CARD } from '../lib/design-system';
@@ -34,9 +33,8 @@ import {
   Alert,
 } from './ui';
 import { HStack, VStack } from './layout';
-import { BackButton, StatusBanner, TeamCard, PainPointRow } from './shared';
+import { BackButton, StatusBanner, TeamCard } from './shared';
 
-const PAIN_ITEMS_PER_PAGE = 10;
 
 function Marketplace({
   user,
@@ -69,42 +67,6 @@ function Marketplace({
   const [modalPainPoints, setModalPainPoints] = useState([]);
   const [modalPainsLoading, setModalPainsLoading] = useState(false);
 
-  // Pain points state
-  const [painPoints, setPainPoints] = useState([]);
-  const [painPointsLoading, setPainPointsLoading] = useState(false);
-  const [painSearch, setPainSearch] = useState('');
-  const [painPage, setPainPage] = useState(1);
-  const [painSort, setPainSort] = useState('reactions');
-
-  // Composer state
-  const [painGripe, setPainGripe] = useState('');
-  const [painSubmitterName, setPainSubmitterName] = useState('');
-  const [painSubmitting, setPainSubmitting] = useState(false);
-  const [painSubmitted, setPainSubmitted] = useState(false);
-
-  // Load pain points for Pains tab
-  useEffect(() => {
-    if (activeTab !== 'pains') return;
-    let cancelled = false;
-    setPainPointsLoading(true);
-    (async () => {
-      try {
-        const { invoke } = await import('@forge/bridge');
-        const result = await invokeEventScopedResolver(invoke, 'getPainPoints', appModeResolverPayload, {
-          sortBy: painSort,
-          limit: 100,
-          includeTeams: true,
-        });
-        if (!cancelled) setPainPoints(result?.painPoints ?? []);
-      } catch {
-        if (!cancelled) setPainPoints([]);
-      } finally {
-        if (!cancelled) setPainPointsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [activeTab, painSort, appModeResolverPayload]);
-
   // Load pain points for Create Team modal
   useEffect(() => {
     if (!showCreateTeamModal) return;
@@ -126,56 +88,6 @@ function Marketplace({
     })();
     return () => { cancelled = true; };
   }, [showCreateTeamModal, appModeResolverPayload]);
-
-  const handlePainReact = useCallback(async (painPointId) => {
-    const { invoke } = await import('@forge/bridge');
-    await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
-  }, [appModeResolverPayload]);
-
-  const handlePainSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (!painGripe.trim() || painSubmitting) return;
-    setPainSubmitting(true);
-    try {
-      const { invoke } = await import('@forge/bridge');
-      await invokeEventScopedResolver(invoke, 'submitPainPoint', appModeResolverPayload, {
-        submitterName: painSubmitterName.trim() || 'Anonymous',
-        title: painGripe.trim(),
-      });
-      setPainGripe('');
-      setPainSubmitterName('');
-      setPainSubmitted(true);
-      setTimeout(() => setPainSubmitted(false), 3000);
-      // Reload pain points
-      setPainPointsLoading(true);
-      const { invoke: inv2 } = await import('@forge/bridge');
-      const result = await invokeEventScopedResolver(inv2, 'getPainPoints', appModeResolverPayload, {
-        sortBy: painSort, limit: 100, includeTeams: true,
-      });
-      setPainPoints(result?.painPoints ?? []);
-    } catch {
-      // silent
-    } finally {
-      setPainSubmitting(false);
-      setPainPointsLoading(false);
-    }
-  }, [painGripe, painSubmitterName, painSubmitting, painSort, appModeResolverPayload]);
-
-  const filteredPainPoints = useMemo(() => {
-    const q = painSearch.toLowerCase();
-    return painPoints.filter(
-      (pp) =>
-        pp.title?.toLowerCase().includes(q) ||
-        pp.submitterName?.toLowerCase().includes(q) ||
-        pp.description?.toLowerCase().includes(q)
-    );
-  }, [painPoints, painSearch]);
-
-  const painTotalPages = Math.ceil(filteredPainPoints.length / PAIN_ITEMS_PER_PAGE);
-  const paginatedPainPoints = useMemo(() => {
-    const start = (painPage - 1) * PAIN_ITEMS_PER_PAGE;
-    return filteredPainPoints.slice(start, start + PAIN_ITEMS_PER_PAGE);
-  }, [filteredPainPoints, painPage]);
 
   const itemsPerPage = 12;
 
@@ -411,16 +323,13 @@ function Marketplace({
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); setPainPage(1); }} variant="teal" className="mb-6">
+      <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); }} variant="teal" className="mb-6">
         <Tabs.List>
           <Tabs.Tab value="teams" count={filteredTeams.length}>
             Teams
           </Tabs.Tab>
           <Tabs.Tab value="agents" count={filteredAgents.length}>
             Free Agents
-          </Tabs.Tab>
-          <Tabs.Tab value="pains" count={painPoints.length || undefined}>
-            Pains
           </Tabs.Tab>
         </Tabs.List>
 
@@ -494,121 +403,6 @@ function Marketplace({
               }}
               actionText={userTeam ? 'View My Team' : 'Create Team'}
             />
-          )}
-        </Tabs.Panel>
-
-        <Tabs.Panel value="pains">
-          {/* Composer */}
-          <form onSubmit={handlePainSubmit} className="mb-5 rounded-xl border border-arena-border bg-arena-card p-4" style={{ borderLeft: '2px solid var(--accent)', borderLeftColor: 'var(--accent)' }}>
-            <p className="mb-2 text-sm font-semibold text-text-primary">Post a pain point</p>
-            <textarea
-              value={painGripe}
-              onChange={(e) => setPainGripe(e.target.value)}
-              placeholder="One thing that slows you down..."
-              rows={2}
-              className="w-full resize-y rounded-lg border border-arena-border bg-arena-card text-sm text-text-primary placeholder:text-text-muted"
-              style={{ fontFamily: 'inherit', lineHeight: 1.5, minHeight: 56, padding: '8px 12px' }}
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
-              <input
-                type="text"
-                value={painSubmitterName}
-                onChange={(e) => setPainSubmitterName(e.target.value)}
-                placeholder="Your name (optional)"
-                className="rounded-lg border border-arena-border bg-arena-card px-2.5 py-1.5 text-xs text-text-primary placeholder:text-text-muted"
-                style={{ width: 160, fontFamily: 'inherit' }}
-              />
-              <div className="flex items-center gap-2">
-                {painSubmitted && <span className="text-xs text-green-600">Submitted!</span>}
-                <button
-                  type="submit"
-                  disabled={!painGripe.trim() || painSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                  style={{ background: 'var(--accent)', cursor: !painGripe.trim() || painSubmitting ? 'not-allowed' : 'pointer' }}
-                >
-                  {painSubmitting ? 'Submitting...' : 'Submit'}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Search + sort bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="flex-1">
-              <SearchInput
-                value={painSearch}
-                onChange={(e) => { setPainSearch(e.target.value); setPainPage(1); }}
-                onClear={() => { setPainSearch(''); setPainPage(1); }}
-                placeholder="Search pain points..."
-                inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                leftIconClassName="text-gray-400"
-              />
-            </div>
-            <div className="flex rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-0.5 text-[11px] self-start">
-              <button
-                type="button"
-                onClick={() => { setPainSort('reactions'); setPainPage(1); }}
-                className={`rounded-full px-3 py-1 transition-colors ${painSort === 'reactions' ? 'bg-teal-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              >
-                🔥 Top
-              </button>
-              <button
-                type="button"
-                onClick={() => { setPainSort('newest'); setPainPage(1); }}
-                className={`rounded-full px-3 py-1 transition-colors ${painSort === 'newest' ? 'bg-teal-500 text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              >
-                ✨ New
-              </button>
-            </div>
-          </div>
-
-          {painPointsLoading ? (
-            <div className="space-y-2">
-              {[1,2,3,4,5].map((i) => (
-                <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700" />
-              ))}
-            </div>
-          ) : filteredPainPoints.length === 0 ? (
-            <EmptyState
-              icon={Flame}
-              title="No Pain Points Found"
-              message={painSearch ? 'Try a different search term' : 'No pain points have been submitted yet.'}
-            />
-          ) : (
-            <>
-              <ul className="space-y-2">
-                {paginatedPainPoints.map((pp) => (
-                  <PainPointRow key={pp._id} pp={pp} onReact={handlePainReact} />
-                ))}
-              </ul>
-              {painTotalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-6">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg"
-                    onClick={() => setPainPage((p) => Math.max(1, p - 1))}
-                    disabled={painPage === 1}
-                    leftIcon={<ChevronLeft className="w-4 h-4" />}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Page {painPage} of {painTotalPages}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg"
-                    onClick={() => setPainPage((p) => Math.min(painTotalPages, p + 1))}
-                    disabled={painPage === painTotalPages}
-                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </>
           )}
         </Tabs.Panel>
 

@@ -1123,7 +1123,7 @@ function Dashboard({
           ) : eventPhase === 'signup' ? (
             <button
               type="button"
-              onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
+              onClick={() => onNavigate?.('painpoints')}
               className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
             >
               Post a pain point
