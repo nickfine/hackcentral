@@ -214,44 +214,17 @@ const calculateTimeRemaining = (meta) => {
   return { status: 'ended', display: '0h 0m 0s', label: 'Event Complete' };
 };
 
-// Isolated timer component to prevent parent re-renders
-const WarTimer = memo(function WarTimer({ eventMeta, eventPhase }) {
-  if (!PRE_HACKING_PHASES.has(eventPhase)) return null;
-
-  const timerMeta = useMemo(() => getTimerMeta(eventMeta, eventPhase), [eventMeta, eventPhase]);
-  const [timeRemaining, setTimeRemaining] = useState(() => calculateTimeRemaining(timerMeta));
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeRemaining(calculateTimeRemaining(timerMeta));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timerMeta]);
-
-  const isLive = timeRemaining.status === 'live';
-  const hasCountdown = timeRemaining.status === 'countdown' && timeRemaining.display;
-
+// Event title display in header (replaces countdown timer)
+const EventTitle = memo(function EventTitle({ eventMeta }) {
+  const resolved = resolveEventMeta(eventMeta);
   return (
     <div
-      className="hidden md:flex flex-col items-center justify-center flex-shrink-0"
-      style={{
-        padding: '0 20px',
-        borderRight: '0.5px solid var(--border-default)',
-        ...(isLive ? { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' } : {}),
-      }}
-      role="timer"
-      aria-live="polite"
-      title={hasCountdown && timeRemaining.localTargetDate
-        ? `${timeRemaining.label} ${timeRemaining.localTargetDate} at ${timeRemaining.localTargetTime} (${timeRemaining.userTzAbbr})`
-        : undefined
-      }
+      className="hidden md:flex items-center flex-shrink-0"
+      style={{ padding: '0 20px', borderRight: '0.5px solid var(--border-default)' }}
     >
-      <div className="text-xs font-semibold text-text-primary truncate" style={{ letterSpacing: '0.01em' }}>
-        {timeRemaining.label}
-      </div>
-      <div className="text-lg font-semibold tabular-nums text-text-primary leading-tight">
-        {timeRemaining.display}
-      </div>
+      <span className="text-sm font-semibold text-text-primary truncate">
+        {resolved.name}
+      </span>
     </div>
   );
 });
@@ -578,8 +551,8 @@ function AppLayout({
                 </button>
                 </div>
 
-                {/* War Timer */}
-                <WarTimer eventMeta={eventMeta} eventPhase={eventPhase} />
+                {/* Event Title */}
+                <EventTitle eventMeta={eventMeta} />
 
                 </div>{/* end LEFT */}
 
