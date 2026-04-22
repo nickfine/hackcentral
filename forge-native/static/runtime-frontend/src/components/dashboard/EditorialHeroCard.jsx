@@ -60,8 +60,11 @@ function EditorialCountdown({ scheduleMilestones }) {
   return (
     <div className="mt-6 grid grid-cols-3 gap-4 text-center">
       {tiles.map(([n, l]) => (
-        <div key={l} className="rounded-2xl border border-cyan-400/[0.12] bg-cyan-400/[0.035] px-3 py-5">
-          <div className="text-4xl font-semibold tracking-tight text-cyan-300 lg:text-5xl">
+        <div key={l} className="rounded-2xl border border-cyan-400/[0.20] bg-cyan-400/[0.05] px-3 py-5">
+          <div
+            className="text-4xl font-semibold tracking-tight text-cyan-300 lg:text-5xl"
+            style={{ filter: 'drop-shadow(0 0 10px rgba(0,245,255,0.2))' }}
+          >
             {n}
           </div>
           <div className="mt-2 text-[0.6875rem] uppercase tracking-[0.16em] text-white/40">{l}</div>
@@ -86,12 +89,12 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
   return (
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
-      <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(135deg,rgba(58,207,255,0.10)_0%,rgba(255,255,255,0.02)_60%,rgba(58,207,255,0.03)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom),0_0_0_1px_rgba(0,255,255,0.04)]" data-testid="dashboard-hero-card">
+      <div className="rounded-[28px] border border-cyan-400/35 bg-[linear-gradient(135deg,rgba(58,207,255,0.14)_0%,rgba(0,120,255,0.04)_40%,rgba(255,255,255,0.02)_60%,rgba(58,207,255,0.06)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge-strong),var(--card-inner-edge-bottom),var(--hero-depth),0_0_0_1px_rgba(0,255,255,0.08)]" data-testid="dashboard-hero-card">
         {children}
       </div>
 
       {/* Right: countdown + what matters now */}
-      <div className="rounded-[28px] border border-white/[0.09] bg-white/[0.035] p-8 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
+      <div className="rounded-[28px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(0,245,255,0.03)_0%,rgba(255,255,255,0.02)_100%)] p-8 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
         <div className="text-xs uppercase tracking-[0.22em] text-white/40">HackDay starts in</div>
         <EditorialCountdown scheduleMilestones={scheduleMilestones} />
         <div className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm leading-relaxed text-white/60">

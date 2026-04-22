@@ -47,12 +47,12 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
               className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-4 last:border-b-0 last:pb-0"
             >
               <div
-                className="text-sm font-medium text-white/40"
+                className={`text-sm font-medium ${milestone.isNow && index === 0 ? 'text-cyan-300 font-semibold' : 'text-white/50'}`}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
               >
                 {formatScheduleTime(milestone, index === 0)}
               </div>
-              <div className="flex-1 text-sm text-white/75">{milestone.title}</div>
+              <div className="flex-1 text-sm text-white/80">{milestone.title}</div>
             </div>
           ))
         ) : (
@@ -75,7 +75,7 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 
 function NewHereCard({ onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/[0.07] bg-white/[0.025] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
+    <div className="rounded-[26px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(0,245,255,0.03)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
       <div className="text-xs uppercase tracking-[0.16em] text-white/40">New here?</div>
       <h3
         className="mt-3 text-3xl font-semibold tracking-tight text-white/95"
@@ -106,7 +106,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
 
   return (
     <div
-      className="rounded-[26px] border border-cyan-400/[0.12] bg-[linear-gradient(180deg,rgba(64,212,255,0.06)_0%,rgba(255,255,255,0.02)_70%,rgba(64,212,255,0.02)_100%)] p-6 shadow-[var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom)]"
+      className="rounded-[26px] border border-cyan-400/[0.22] bg-[linear-gradient(180deg,rgba(64,212,255,0.06)_0%,rgba(255,255,255,0.02)_70%,rgba(64,212,255,0.02)_100%)] p-6 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom)]"
       data-testid="dashboard-row2-readiness"
     >
       <div className="flex items-center justify-between">
@@ -146,7 +146,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
         <div
           className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 transition-[width] duration-300"
           data-testid="dashboard-readiness-progress-fill"
-          style={{ width: `${readinessProgressPercent}%` }}
+          style={{ width: `${readinessProgressPercent}%`, boxShadow: '0 0 8px rgba(0,245,255,0.2)' }}
         />
       </div>
 
@@ -154,7 +154,7 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
         type="button"
         onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
         aria-label={`Next action: ${nextBestAction.label}`}
-        className="mt-5 w-full rounded-2xl border border-cyan-400/[0.18] px-4 py-3.5 text-sm font-medium text-cyan-200/90 transition-all hover:bg-cyan-400/[0.08] hover:border-cyan-400/30 hover:shadow-[0_0_12px_rgba(0,245,255,0.08)]"
+        className="mt-5 w-full rounded-2xl border border-cyan-400/[0.25] px-4 py-3.5 text-sm font-medium text-cyan-200/90 transition-all hover:bg-cyan-400/[0.08] hover:border-cyan-400/35 hover:shadow-[0_0_16px_rgba(0,245,255,0.12)]"
       >
         Complete next step
       </button>

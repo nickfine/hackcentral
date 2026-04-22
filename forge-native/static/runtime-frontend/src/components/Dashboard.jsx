@@ -1115,7 +1115,7 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={() => onNavigate?.('signup')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
             >
               Sign up
               <ArrowRight className="h-4 w-4" />
@@ -1124,7 +1124,7 @@ function Dashboard({
             <button
               type="button"
               onClick={() => onNavigate?.('marketplace', { tab: 'pains' })}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
             >
               Post a pain point
             </button>
@@ -1133,7 +1133,7 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={handlePrimaryAction}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(0,245,255,0.25)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
             >
               <span>{nextAction.label}</span>
               <ArrowRight className="h-4 w-4" />
@@ -1213,13 +1213,13 @@ function Dashboard({
             <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
           ) : (
             <div
-              className="rounded-[28px] border border-white/[0.09] bg-white/[0.035] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+              className="rounded-[28px] border border-white/[0.08] bg-[var(--activity-panel-gradient)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
               data-testid="dashboard-live-activity"
             >
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-5">
-                <div className="text-xs uppercase tracking-[0.16em] text-white/50">Live Activity</div>
+              <div className="flex items-center justify-between border-b border-white/[0.05] pb-5">
+                <div className="text-xs uppercase tracking-[0.16em] text-white/55">Live Activity</div>
                 <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/50">
-                  <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                  <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)] animate-[live-pulse_2s_ease-in-out_infinite]" />
                   Live
                 </span>
               </div>
@@ -1236,7 +1236,7 @@ function Dashboard({
                       key={activity.id || `activity-${index}`}
                       data-testid="dashboard-activity-item"
                       data-activity-team-id={resolvedTeamId || undefined}
-                      className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-white/[0.10] hover:bg-white/[0.04]"
+                      className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-cyan-400/20 hover:bg-white/[0.04]"
                       onClick={() => handleActivityItemClick(activity)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
@@ -1273,7 +1273,7 @@ function Dashboard({
                 <button
                   type="button"
                   data-testid="dashboard-view-all-activity"
-                  className="rounded-full border border-white/[0.08] px-5 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.04] hover:text-white/70"
+                  className="rounded-full border border-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/70"
                   onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
                 >
                   View all activity
@@ -1327,12 +1327,12 @@ function Dashboard({
       </div>
 
       {/* ====== FOOTER ====== */}
-      <footer className="border-t border-[var(--footer-separator)] pt-5 pb-1" data-testid="dashboard-footer">
+      <footer className="border-t border-[var(--footer-separator)] pt-6 pb-4" data-testid="dashboard-footer">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-white/35">
             Last updated {new Date(dataLoadedAt).toLocaleString()}
           </p>
-          <p className="text-[0.6875rem] font-medium tracking-[0.08em] text-white/20">HackCentral</p>
+          <p className="text-[0.6875rem] font-medium tracking-[0.12em] text-white/28">HackCentral</p>
         </div>
       </footer>
 

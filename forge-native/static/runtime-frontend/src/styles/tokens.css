@@ -426,17 +426,22 @@
   --cyan-electric-hover: #00d4e8;
   --cyan-electric-bg: rgba(0, 245, 255, 0.08);
   --cyan-electric-border: rgba(0, 245, 255, 0.3);
-  --cyan-electric-glow: 0 0 18px rgba(0, 245, 255, 0.22);
+  --cyan-electric-glow: 0 0 22px rgba(0, 245, 255, 0.28);
   --cyan-electric-text: #00d4e8;
-  --cyan-electric-glow-subtle: 0 0 24px rgba(0, 245, 255, 0.10);
+  --cyan-electric-glow-subtle: 0 0 32px rgba(0, 245, 255, 0.18);
   --cyan-electric-inner-edge: inset 0 1px 0 rgba(0, 245, 255, 0.06);
-  --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(0, 245, 255, 0.12);
+  --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(0, 245, 255, 0.18);
   --card-inner-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --card-border-quiet: rgba(255, 255, 255, 0.06);
   --card-inner-edge-bottom: inset 0 -1px 0 rgba(255, 255, 255, 0.02);
   --card-depth-subtle: 0 1px 3px rgba(0, 0, 0, 0.18);
   --stat-card-surface: rgba(255, 255, 255, 0.035);
-  --footer-separator: rgba(255, 255, 255, 0.05);
+  --stat-card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --footer-separator: rgba(255, 255, 255, 0.08);
+  --timeline-active-glow: 0 0 16px rgba(0, 245, 255, 0.18), 0 0 4px rgba(0, 245, 255, 0.3);
+  --nav-active-glow: 0 0 12px rgba(0, 245, 255, 0.15), inset 0 -2px 0 var(--cyan-electric);
+  --hero-depth: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --activity-panel-gradient: linear-gradient(180deg, rgba(0, 245, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 245, 255, 0.02) 100%);
 }
 
 [data-theme-preset="editorial"] {
