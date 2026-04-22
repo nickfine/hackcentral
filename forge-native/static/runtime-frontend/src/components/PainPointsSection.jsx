@@ -211,11 +211,10 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
             className="mt-2 text-3xl font-semibold tracking-tight text-white"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
-            The live problem feed
+            Live Pain Point Feed
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Make this the centre of gravity. Capture one meaningful blocker, upvote what matters,
-            and find others who want to solve the same thing.
+            Tell us about any pain points you have at work — where's the friction? What can be improved?
           </p>
         </div>
 
