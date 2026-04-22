@@ -204,7 +204,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
       data-testid="dashboard-pain-points"
     >
       {/* Section header */}
-      <div className="flex flex-col gap-4 border-b border-white/8 pb-5 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Top pain points</div>
           <h2
