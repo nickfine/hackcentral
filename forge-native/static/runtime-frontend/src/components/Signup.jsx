@@ -355,7 +355,7 @@ function Signup({
             Sign Up
           </p>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-3">
-            JOIN HACKDAY
+            Join HackDay
           </h1>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
             Create your profile and get ready to hack
