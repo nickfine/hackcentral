@@ -89,7 +89,11 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
   return (
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
-      <div className="rounded-[28px] border border-cyan-400/35 bg-[linear-gradient(135deg,rgba(58,207,255,0.14)_0%,rgba(0,120,255,0.04)_40%,rgba(255,255,255,0.02)_60%,rgba(58,207,255,0.06)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge-strong),var(--card-inner-edge-bottom),var(--hero-depth),0_0_0_1px_rgba(0,255,255,0.08)]" data-testid="dashboard-hero-card">
+      <div
+        className="rounded-[28px] border border-cyan-400/35 p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge-strong),var(--card-inner-edge-bottom),var(--hero-depth),0_0_0_1px_rgba(0,255,255,0.08)]"
+        style={{ background: 'radial-gradient(circle at top left, rgba(40,210,255,0.14), transparent 40%), radial-gradient(circle at top right, rgba(106,91,255,0.08), transparent 40%), linear-gradient(180deg,#0a1526,#0a1222)' }}
+        data-testid="dashboard-hero-card"
+      >
         {children}
       </div>
 

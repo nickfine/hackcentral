@@ -53,6 +53,20 @@
     color-scheme: light;
   }
 
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 560px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 75% 100% at 12% 0%, rgba(40,210,255,0.09), transparent),
+      radial-gradient(ellipse 60% 80% at 88% 0%, rgba(106,91,255,0.07), transparent);
+  }
+
   body {
     background-color: var(--surface-page);
     background-image: var(--gradient-page-bg);
