@@ -114,6 +114,7 @@ const DigitDisplay = ({ value, label, isSeconds, size, isPulsing }) => {
           sizeConfig.padding,
           isPulsing && 'animate-pulse'
         )}
+        style={{ boxShadow: '0 0 24px -8px rgba(34,211,238,0.3)' }}
       >
         <span
           className={cn(
@@ -125,6 +126,7 @@ const DigitDisplay = ({ value, label, isSeconds, size, isPulsing }) => {
           )}
           style={{
             fontVariantNumeric: 'tabular-nums',
+            textShadow: '0 0 24px rgba(34,211,238,0.4)',
           }}
         >
           {paddedValue}
