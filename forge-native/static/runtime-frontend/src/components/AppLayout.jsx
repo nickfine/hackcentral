@@ -255,7 +255,7 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
     { id: 'marketplace', label: 'Teams', icon: Users },
   );
 
-  if (eventPhase === 'signup' || eventPhase === 'team_formation') {
+  if (eventPhase === 'signup' || eventPhase === 'team_formation' || eventPhase === 'setup') {
     baseItems.push({ id: 'painpoints', label: 'Pain Points', icon: Flame });
   }
 
