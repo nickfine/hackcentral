@@ -143,7 +143,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
 
   return (
     <div
-      className="rounded-[28px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-5"
+      className="p-5"
       data-testid="painpoints-page"
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
