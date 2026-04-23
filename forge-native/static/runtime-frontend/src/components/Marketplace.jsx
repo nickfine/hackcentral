@@ -313,15 +313,54 @@ function Marketplace({
           </div>
         </div>
 
-        {/* Tabs — content control region */}
+        {/* Mode Selector — Teams vs Free Agents */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('teams'); setCurrentPage(1); }}
+              className={cn(
+                'px-4 py-2.5 rounded-md text-sm font-semibold transition-all',
+                activeTab === 'teams'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              )}
+            >
+              <span className="flex items-center gap-2">
+                Teams
+                {filteredTeams.length > 0 && (
+                  <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">
+                    {filteredTeams.length}
+                  </span>
+                )}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('agents'); setCurrentPage(1); }}
+              className={cn(
+                'px-4 py-2.5 rounded-md text-sm font-semibold transition-all',
+                activeTab === 'agents'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              )}
+            >
+              <span className="flex items-center gap-2">
+                Free Agents
+                {filteredAgents.length > 0 && (
+                  <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">
+                    {filteredAgents.length}
+                  </span>
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content Panels */}
         <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); }} variant="teal" className="mb-0">
-          <Tabs.List className="border-b border-gray-200 dark:border-gray-700">
-            <Tabs.Tab value="teams" count={filteredTeams.length} className="font-semibold">
-              Teams
-            </Tabs.Tab>
-            <Tabs.Tab value="agents" count={filteredAgents.length} className="font-semibold">
-              Free Agents
-            </Tabs.Tab>
+          <Tabs.List className="hidden">
+            {/* Hidden Tabs.List — only using Tabs for panel management */}
           </Tabs.List>
 
           <Tabs.Panel value="teams">
@@ -376,26 +415,48 @@ function Marketplace({
               )}
             </>
           ) : (
-            <div className="mt-8 text-center py-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/40 dark:bg-gray-800/30">
-              <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                {searchTerm ? 'No teams match your search' : 'No teams yet'}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                {searchTerm
-                  ? 'Try a different search term.'
-                  : 'Be the first to create a team and recruit teammates.'}
-              </p>
-              <Button
-                className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
-                onClick={() => {
-                  setCreateTeamStatus(null);
-                  setShowCreateTeamModal(true);
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                Create First Team
-              </Button>
+            <div className="mt-8 space-y-4">
+              {/* Teams empty state */}
+              <div className="text-center py-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/40 dark:bg-gray-800/30">
+                <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {searchTerm ? 'No teams match your search' : 'No teams yet'}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
+                  {searchTerm
+                    ? 'Try a different search term.'
+                    : 'Be the first to create a team and recruit teammates.'}
+                </p>
+                <Button
+                  className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
+                  onClick={() => {
+                    setCreateTeamStatus(null);
+                    setShowCreateTeamModal(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create First Team
+                </Button>
+              </div>
+
+              {/* Free Agents available pathway — only show if agents exist and not searching teams */}
+              {filteredAgents.length > 0 && !searchTerm && (
+                <div className="p-5 border border-teal-200 dark:border-teal-800/40 rounded-xl bg-teal-50/30 dark:bg-teal-900/10">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    <span className="font-semibold text-gray-900 dark:text-white">{filteredAgents.length} {filteredAgents.length === 1 ? 'free agent is' : 'free agents are'} available</span>
+                    {' '}to join your team
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/20 rounded-lg inline-flex items-center gap-2"
+                    onClick={() => setActiveTab('agents')}
+                    rightIcon={<ChevronRight className="w-4 h-4" />}
+                  >
+                    Browse Free Agents
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Tabs.Panel>
