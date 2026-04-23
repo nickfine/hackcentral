@@ -9,7 +9,7 @@ import { Card, Badge, Alert } from '../ui';
 import { VStack } from '../layout';
 import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../../data/constants';
 
-/** Doc: standard card — white/gray-800, gray border, rounded-xl, shadow-sm light only */
+/** Doc: standard card - white/gray-800, gray border, rounded-xl, shadow-sm light only */
 const ADMIN_CARD_CLASS =
   'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 

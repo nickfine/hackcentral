@@ -53,11 +53,11 @@ const FALLBACK_EVENT_META = Object.freeze({
   timezone: EVENT_TIMEZONE,
   startAt: '2026-06-21T09:00:00+01:00',
   endAt: '2026-06-22T17:00:00+01:00',
-  // CORE UX IMPROVEMENT 1 — fallback hacking-start date shown when no schedule is configured
+  // CORE UX IMPROVEMENT 1 - fallback hacking-start date shown when no schedule is configured
   hackingStartsFallback: '2026-04-25T09:00:00Z',
 });
 
-// CORE UX IMPROVEMENT 1 — phase badge labels for WarTimer header display
+// CORE UX IMPROVEMENT 1 - phase badge labels for WarTimer header display
 const WAR_TIMER_PHASE_LABELS = {
   signup: 'Pre-Launch Phase',
   team_formation: 'Team Formation',
@@ -129,7 +129,7 @@ const getPhaseCountdownConfig = (eventPhase, schedule = {}) => {
   if (!PRE_HACKING_PHASES.has(eventPhase)) {
     return { label: null, target: null };
   }
-  // CORE UX IMPROVEMENT 1 — target the event start date; label computed from event name in getTimerMeta
+  // CORE UX IMPROVEMENT 1 - target the event start date; label computed from event name in getTimerMeta
   return { label: null, target: null };
 };
 
@@ -540,7 +540,7 @@ function AppLayout({
         )
       )}>
         <Container size={contentContainerSize} padding="md">
-          {/* TOPBAR — single compact card (wireframe layout) */}
+          {/* TOPBAR - single compact card (wireframe layout) */}
           <header className="py-3">
             <div className="rounded-xl border border-arena-border bg-arena-card overflow-visible">
               {/* 3-column grid: left (logo+timer) | center (nav) | right (controls)
@@ -550,7 +550,7 @@ function AppLayout({
                 {/* ── LEFT: Logo + WarTimer ── */}
                 <div className="flex items-center self-stretch">
 
-                {/* Logo icon — wrapper clips background to card's left rounded corners */}
+                {/* Logo icon - wrapper clips background to card's left rounded corners */}
                 <div className="flex-shrink-0 overflow-hidden rounded-l-xl" style={{ width: 52, height: 52 }}>
                 <button
                   type="button"
@@ -623,7 +623,7 @@ function AppLayout({
                   />
                 </div>
 
-                {/* Config Mode — Show Actions button */}
+                {/* Config Mode - Show Actions button */}
                 {configModeControls.canEdit && configModeControls.isEnabled && (
                   <div className="flex-shrink-0 px-2">
                     <button
@@ -769,7 +769,7 @@ function AppLayout({
               </div>{/* end grid */}
             </div>
 
-            {/* Open App View CTA — below topbar when present */}
+            {/* Open App View CTA - below topbar when present */}
             {showOpenAppViewCta && onOpenAppView && (
               <div className="flex items-center gap-2 mt-2">
                 <button
@@ -794,7 +794,7 @@ function AppLayout({
               </div>
             )}
 
-            {/* Dev Controls Modal — rendered in tree, trigger is in user dropdown */}
+            {/* Dev Controls Modal - rendered in tree, trigger is in user dropdown */}
             {canUseDevControls && (
               <Modal
                 isOpen={devControlsOpen}
@@ -879,7 +879,7 @@ function AppLayout({
             )}
           </header>
 
-          {/* Mobile nav — below xl: */}
+          {/* Mobile nav - below xl: */}
           {showSidebar && (
             <div className="xl:hidden rounded-xl border border-arena-border bg-arena-card overflow-hidden">
               <div className="px-2 sm:px-4 py-2.5">

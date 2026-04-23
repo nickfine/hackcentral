@@ -1,5 +1,5 @@
 /**
- * PainPoints — workshop board view.
+ * PainPoints - workshop board view.
  * Pain points are grouped into columns by inferred category,
  * sorted by vote count within each column.
  * A clusters strip surfaces high-signal groupings above the board.
@@ -11,6 +11,7 @@ import { inferCategoryLabel } from './shared/PainItem';
 import { COLUMN_ORDER, detectClusters } from '../lib/painCategoryColours';
 import BoardColumn from './painBoard/BoardColumn';
 import ClustersStrip from './painBoard/ClustersStrip';
+import { BackButton } from './shared';
 
 export default function PainPoints({ appModeResolverPayload, onNavigate }) {
   const [allPainPoints, setAllPainPoints] = useState([]);
@@ -47,7 +48,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
   // On initial load for mobile: collapse all columns by default
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      // Collapse all after load — updated once we know categories
+      // Collapse all after load - updated once we know categories
       setCollapsedColumns(new Set(COLUMN_ORDER));
     }
   }, []);
@@ -146,6 +147,11 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
       className="p-5"
       data-testid="painpoints-page"
     >
+      {/* ── Back button ────────────────────────────────────────────────────── */}
+      <div className="mb-4">
+        <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
+      </div>
+
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between">
         <div>
@@ -157,7 +163,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
             Pain Points
           </h2>
           <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/65">
-            Tell us about any pain points you have at work — where's the friction? What can be improved?
+            Tell us about any pain points you have at work - where's the friction? What can be improved?
           </p>
         </div>
 
@@ -253,10 +259,10 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
           <p className="py-12 text-center text-sm text-white/40">
             {searchQuery
               ? 'No pain points match your search.'
-              : 'No pain points yet — be the first to submit one!'}
+              : 'No pain points yet - be the first to submit one!'}
           </p>
         ) : (
-          /* The board — auto-fill grid wraps columns to fit available width */
+          /* The board - auto-fill grid wraps columns to fit available width */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
             {activeCategories.map((category) => (
               <BoardColumn

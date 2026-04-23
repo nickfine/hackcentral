@@ -1,5 +1,5 @@
 /**
- * EditorialRightRail — three stacked cards:
+ * EditorialRightRail - three stacked cards:
  *   1. Upcoming schedule
  *   2. New here? (early phases only)
  *   3. Your readiness
@@ -13,7 +13,7 @@ function parseTs(value) {
 
 function formatRelativeCompact(startTime) {
   const target = parseTs(startTime);
-  if (!target) return '—';
+  if (!target) return '-';
   const diffMs = target.getTime() - Date.now();
   if (diffMs <= 0) return 'Now';
   const totalMins = Math.floor(diffMs / 60000);

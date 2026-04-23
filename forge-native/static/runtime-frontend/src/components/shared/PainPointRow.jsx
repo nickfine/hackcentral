@@ -1,5 +1,5 @@
 /**
- * PainPointRow — shared row component for displaying a single pain point.
+ * PainPointRow - shared row component for displaying a single pain point.
  * Used by both the dashboard widget (PainPointsSection) and the Pains tab (Marketplace).
  */
 

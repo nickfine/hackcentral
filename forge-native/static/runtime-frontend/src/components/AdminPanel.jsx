@@ -46,13 +46,13 @@ import {
 /** HackDay Design System: section labels (inside cards), doc §4 */
 const ADMIN_SECTION_LABEL =
   'text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase pb-2';
-/** Doc: standard card — white/gray-800, gray border, rounded-xl, shadow-sm light only */
+/** Doc: standard card - white/gray-800, gray border, rounded-xl, shadow-sm light only */
 const ADMIN_CARD_CLASS =
   'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 /** Doc: inner block (metric box, phase row container) */
 const ADMIN_INNER_BLOCK =
   'p-5 bg-[var(--surface-elevated)] border border-[var(--border-default)] rounded-xl';
-/** Doc: primary button — teal only, rounded-lg */
+/** Doc: primary button - teal only, rounded-lg */
 const ADMIN_PRIMARY_BUTTON = 'admin-brand-button !rounded-lg';
 /** Doc: current phase / accent highlight */
 const ADMIN_ACCENT_BLOCK = 'admin-accent-block p-5 rounded-xl';
@@ -1294,7 +1294,7 @@ function AdminPanel({
 
   return (
     <div className="admin-panel admin-panel-theme-scope p-4 sm:p-6">
-      {/* Header — Tier 1 page title per HackDay Design System */}
+      {/* Header - Tier 1 page title per HackDay Design System */}
       <div className="mb-6">
         <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
         <div className="mt-4">

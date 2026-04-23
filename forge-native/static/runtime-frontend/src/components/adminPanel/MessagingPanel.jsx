@@ -6,7 +6,7 @@
 import { Card, Button, Badge, Input, TextArea, Select, Alert } from '../ui';
 import { VStack } from '../layout';
 
-/** Doc: standard card — white/gray-800, gray border, rounded-xl, shadow-sm light only */
+/** Doc: standard card - white/gray-800, gray border, rounded-xl, shadow-sm light only */
 const ADMIN_CARD_CLASS =
   'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 
@@ -14,7 +14,7 @@ const ADMIN_CARD_CLASS =
 const ADMIN_SECTION_LABEL =
   'text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase pb-2';
 
-/** Doc: primary button — teal only, rounded-lg */
+/** Doc: primary button - teal only, rounded-lg */
 const ADMIN_PRIMARY_BUTTON = 'admin-brand-button !rounded-lg';
 
 const MESSAGE_PRIORITY_OPTIONS = [

@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { invokeEventScopedResolver } from '../../lib/appModeResolverPayload';
 
-/** Section label class — matches TeamDetail's SECTION_LABEL_CLASS. */
+/** Section label class - matches TeamDetail's SECTION_LABEL_CLASS. */
 const SECTION_LABEL_CLASS = 'pb-2 text-xs font-semibold tracking-wider text-text-secondary uppercase';
 
 const EDITABLE_PHASES = ['signup', 'team_formation'];
@@ -108,7 +108,7 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, o
         </div>
       )}
 
-      {/* Search to add — only when no pain point linked yet and phase allows editing */}
+      {/* Search to add - only when no pain point linked yet and phase allows editing */}
       {isCaptain && EDITABLE_PHASES.includes(eventPhase) && teamPainPoints.length === 0 && (
         <div>
           <input

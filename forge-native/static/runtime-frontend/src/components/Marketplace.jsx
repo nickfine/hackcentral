@@ -161,7 +161,7 @@ function Marketplace({
             painPointIds: selectedPainPointIds,
           });
         } catch {
-          // non-fatal — team was created, pain point linking failed silently
+          // non-fatal - team was created, pain point linking failed silently
         }
       }
 

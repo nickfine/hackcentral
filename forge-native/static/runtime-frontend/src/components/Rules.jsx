@@ -157,17 +157,17 @@ const TIPS = [
   {
     id: 'tip1',
     textKey: 'rules.tips.tip1',
-    text: 'Work together with your team — collaboration is key!',
+    text: 'Work together with your team - collaboration is key!',
   },
   {
     id: 'tip2',
     textKey: 'rules.tips.tip2',
-    text: 'Take breaks when needed — rest helps productivity',
+    text: 'Take breaks when needed - rest helps productivity',
   },
   {
     id: 'tip3',
     textKey: 'rules.tips.tip3',
-    text: 'Plan before coding — whiteboarding and design help',
+    text: 'Plan before coding - whiteboarding and design help',
   },
   {
     id: 'tip4',

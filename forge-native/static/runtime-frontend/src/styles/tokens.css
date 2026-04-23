@@ -400,6 +400,15 @@
   --card-depth-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
   --stat-card-surface: rgba(255, 255, 255, 0.035);
   --footer-separator: rgba(0, 0, 0, 0.05);
+  --pain-card-surface: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.01) 100%);
+  --pain-card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --pain-card-shadow-hover: 0 2px 8px rgba(0,0,0,0.10);
+  --pain-card-border: rgba(0,0,0,0.06);
+  --pain-card-border-hover: rgba(0,0,0,0.12);
+  --pain-column-surface: rgba(0,0,0,0.02);
+  --pain-column-border: rgba(0,0,0,0.04);
+  --pain-vote-surface: rgba(0,0,0,0.03);
+  --pain-vote-border: rgba(0,0,0,0.08);
 }
 
 [data-color-mode="dark"] {
@@ -442,6 +451,15 @@
   --nav-active-glow: 0 0 12px rgba(0, 245, 255, 0.15), inset 0 -2px 0 var(--cyan-electric);
   --hero-depth: 0 8px 32px rgba(0, 0, 0, 0.25);
   --activity-panel-gradient: linear-gradient(180deg, rgba(0, 245, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 245, 255, 0.02) 100%);
+  --pain-card-surface: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.035) 100%);
+  --pain-card-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.24), 0 4px 12px rgba(0,0,0,0.18);
+  --pain-card-shadow-hover: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.28), 0 8px 20px rgba(0,0,0,0.22), 0 0 12px rgba(0,245,255,0.06);
+  --pain-card-border: rgba(255,255,255,0.06);
+  --pain-card-border-hover: rgba(255,255,255,0.10);
+  --pain-column-surface: rgba(255,255,255,0.015);
+  --pain-column-border: rgba(255,255,255,0.05);
+  --pain-vote-surface: rgba(255,255,255,0.04);
+  --pain-vote-border: rgba(255,255,255,0.08);
 }
 
 [data-theme-preset="editorial"] {

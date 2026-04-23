@@ -187,7 +187,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
       }
     } catch (err) {
       console.error('Vote failed:', err);
-      setVoteError('Vote failed — please try again.');
+      setVoteError('Vote failed - please try again.');
       setTimeout(() => setVoteError(''), 4000);
     } finally {
       setVotingTeamId(null);

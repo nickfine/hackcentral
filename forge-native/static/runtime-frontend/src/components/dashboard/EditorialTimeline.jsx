@@ -38,7 +38,7 @@ function buildPhaseMilestoneMap(scheduleMilestones) {
 }
 
 /**
- * Editorial horizontal phase timeline — seven bordered cards, active step highlighted.
+ * Editorial horizontal phase timeline - seven bordered cards, active step highlighted.
  *
  * @param {{
  *   eventPhase: string,

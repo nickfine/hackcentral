@@ -1,5 +1,5 @@
 /**
- * ClustersStrip — horizontal row of cluster cards shown above the board.
+ * ClustersStrip - horizontal row of cluster cards shown above the board.
  * A cluster is 3+ pain points in the same category with >= 8 total votes.
  * Hidden entirely when no clusters qualify.
  */

@@ -530,7 +530,7 @@ function App() {
               ? toFulfilled(runtimeBootstrap.registrations)
               : toRejected(new Error('Runtime bootstrap payload missing registrations.'));
 
-            // Dashboard data — optional, non-fatal if missing from bootstrap
+            // Dashboard data - optional, non-fatal if missing from bootstrap
             if (hasOwn(runtimeBootstrap, 'activityFeed')) {
               setBootstrapActivityFeed(runtimeBootstrap.activityFeed);
             }

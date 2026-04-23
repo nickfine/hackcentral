@@ -1,5 +1,5 @@
 /**
- * BoardColumn — a single category column on the Pain Points workshop board.
+ * BoardColumn - a single category column on the Pain Points workshop board.
  * Shows a coloured header (category name + count badge + total votes),
  * then a sorted list of PainItem cards in the "board" variant.
  *
@@ -27,12 +27,12 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
   const totalVotes = painPoints.reduce((sum, pp) => sum + (pp.reactionCount || 0), 0);
 
   return (
-    <div className="flex flex-col rounded-[18px] border border-white/8 bg-white/[0.02] overflow-hidden">
+    <div className="flex flex-col rounded-[18px] border border-[var(--pain-column-border)] bg-[var(--pain-column-surface)] overflow-hidden">
       {/* Column header */}
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="flex items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.03] lg:cursor-default"
+        className="flex items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.025] lg:cursor-default"
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -48,7 +48,7 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
           {totalVotes > 0 && (
             <span className="text-xs text-white/35 tabular-nums">{totalVotes} votes</span>
           )}
-          {/* Collapse chevron — visible on mobile only */}
+          {/* Collapse chevron - visible on mobile only */}
           <svg
             className={`lg:hidden h-4 w-4 text-white/35 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
             fill="none"
@@ -65,9 +65,9 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
       {/* Thin accent line under header */}
       <div className="h-px mx-3" style={{ background: colour.border }} />
 
-      {/* Card list — hidden when collapsed */}
+      {/* Card list - hidden when collapsed */}
       {!isCollapsed && (
-        <div className="flex flex-col gap-2.5 p-2.5 overflow-y-auto max-h-[65vh]">
+        <div className="flex flex-col gap-3 p-2.5 overflow-y-auto max-h-[65vh]">
           {sorted.length === 0 ? (
             <p className="py-6 text-center text-xs text-white/30">
               No {category} pains match your search

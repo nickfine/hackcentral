@@ -7,7 +7,7 @@ function parseTs(value) {
 }
 
 /**
- * Countdown tiles — DAYS / HRS / MINS.
+ * Countdown tiles - DAYS / HRS / MINS.
  * Ticks every 60s normally; every 1s when under one hour.
  */
 function EditorialCountdown({ scheduleMilestones }) {
@@ -77,7 +77,7 @@ function EditorialCountdown({ scheduleMilestones }) {
 /**
  * Editorial two-column hero section.
  *
- * Left column: rendered via `children` — editorial content (badge, title, subtitle, CTAs, meta).
+ * Left column: rendered via `children` - editorial content (badge, title, subtitle, CTAs, meta).
  * Right column: countdown tiles + "What matters now" hint card.
  *
  * @param {{

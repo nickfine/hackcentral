@@ -178,7 +178,7 @@ const TeamCard = forwardRef(({
         )}
       </div>
 
-      {/* Description / Summary — hidden when pain points are present */}
+      {/* Description / Summary - hidden when pain points are present */}
       {(!team.painPoints || team.painPoints.length === 0) && (
         <div className="flex-1 mb-3">
           {team.description ? (

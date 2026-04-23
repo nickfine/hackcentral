@@ -55,7 +55,7 @@ export const MOTD_MESSAGES = {
     },
     participant: {
       title: 'Team Formation in Progress',
-      message: "It's time to form your team! Join an existing idea, create your own, or stay as a Free Agent. Teams can have 2-6 members. Don't wait too long—the hack starts soon!",
+      message: "It's time to form your team! Join an existing idea, create your own, or stay as a Free Agent. Teams can have 2-6 members. Don't wait too long-the hack starts soon!",
       variant: 'warning',
     },
     ambassador: {
@@ -184,7 +184,7 @@ export const MOTD_MESSAGES = {
     },
     ambassador: {
       title: 'Judges at Work',
-      message: 'The judges are evaluating submissions. Keep the excitement going—results will be announced soon!',
+      message: 'The judges are evaluating submissions. Keep the excitement going-results will be announced soon!',
       variant: 'info',
     },
     judge: {

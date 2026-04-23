@@ -1,5 +1,5 @@
 /**
- * PainPointsSection — editorial "live problem feed" layout.
+ * PainPointsSection - editorial "live problem feed" layout.
  * Eyebrow + heading + subtitle + Trending/Just-posted toggle + composer + pain-point cards.
  */
 
@@ -86,7 +86,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
             Live Pain Point Feed
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-            Tell us about any pain points you have at work — where's the friction? What can be improved?
+            Tell us about any pain points you have at work - where's the friction? What can be improved?
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
           ))
         ) : painPoints.length === 0 ? (
           <p className="py-8 text-center text-sm text-white/45">
-            No pain points yet — be the first to submit one!
+            No pain points yet - be the first to submit one!
           </p>
         ) : (
           painPoints.map((pp) => (

@@ -143,13 +143,16 @@ export function UpvoteButton({ count, voted, onVote, disabled, compact = false }
       type="button"
       onClick={onVote}
       disabled={disabled}
-      aria-label={`Upvote — ${count} votes`}
-      className={`flex shrink-0 flex-col items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-2 text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:cursor-not-allowed ${
+      aria-label={`Upvote - ${count} votes`}
+      className={`pain-vote-hover flex shrink-0 flex-col items-center justify-center rounded-xl px-2 text-cyan-300 disabled:cursor-not-allowed ${
         compact ? 'w-14 py-2' : 'w-16 py-3'
       }`}
       style={{
-        borderColor: voted ? 'rgba(34,211,238,0.45)' : undefined,
-        background: voted ? 'rgba(34,211,238,0.12)' : undefined,
+        background: voted ? 'rgba(34,211,238,0.08)' : 'var(--pain-vote-surface)',
+        border: voted ? '1px solid rgba(34,211,238,0.30)' : '1px solid var(--pain-vote-border)',
+        boxShadow: voted
+          ? 'inset 0 1px 0 rgba(34,211,238,0.10), 0 0 8px rgba(34,211,238,0.08)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
     >
       <div className={`font-semibold leading-none ${compact ? 'text-xl' : 'text-2xl'}`}>{count}</div>
@@ -186,13 +189,16 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
   const colour = getCategoryColour(tagLabel);
   const isBoard = variant === 'board';
 
+  const isTrending = localCount >= 5;
+
   return (
     <article
-      className={`flex gap-3 border border-white/8 bg-white/[0.03] shadow-[var(--card-inner-edge)] transition ${
+      className={`flex gap-3 border border-[var(--pain-card-border)] shadow-[var(--pain-card-shadow)] transition-all duration-200 ${
         isBoard
-          ? 'rounded-[18px] p-3 hover:border-cyan-400/25 hover:bg-white/[0.045]'
-          : 'rounded-[24px] p-4 hover:border-cyan-400/20 hover:bg-white/[0.045]'
-      }`}
+          ? 'rounded-[18px] p-3 hover:border-[var(--pain-card-border-hover)] hover:shadow-[var(--pain-card-shadow-hover)]'
+          : 'rounded-[24px] p-4 hover:border-[var(--pain-card-border-hover)] hover:shadow-[var(--pain-card-shadow-hover)]'
+      } ${isTrending ? 'pain-card-trending' : ''}`}
+      style={{ background: 'var(--pain-card-surface)' }}
     >
       <UpvoteButton
         count={localCount}
@@ -203,21 +209,21 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
       />
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/35">
           <span
             className="rounded-full px-2.5 py-1 font-medium"
             style={{ color: colour.text, background: colour.bg }}
           >
             {tagLabel}
           </span>
-          <span className="font-medium text-white/75">{authorName}</span>
-          {timeAgo && <span>{timeAgo}</span>}
+          <span className="font-medium text-white/60">{authorName}</span>
+          {timeAgo && <span className="text-white/28">{timeAgo}</span>}
         </div>
-        <h3 className={`mt-2 font-medium text-white ${isBoard ? 'text-base' : 'text-lg'}`}>
+        <h3 className={`mt-1.5 font-semibold leading-snug text-white ${isBoard ? 'text-base' : 'text-lg'}`}>
           {pp.title}
         </h3>
         {pp.description && (
-          <p className={`mt-2 line-clamp-2 leading-5 text-white/60 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
+          <p className={`mt-1.5 line-clamp-2 leading-5 text-white/50 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
             {pp.description}
           </p>
         )}

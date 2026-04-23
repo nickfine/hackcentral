@@ -90,7 +90,7 @@ const TrendIndicator = memo(function TrendIndicator({ value, label, showPercenta
           !isPositive && !isNegative && 'text-[var(--text-secondary)]'
         )}
       >
-        {isPositive ? '↑' : isNegative ? '↓' : '–'}
+        {isPositive ? '↑' : isNegative ? '↓' : '-'}
       </span>
       <span 
         className={cn(

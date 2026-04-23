@@ -621,7 +621,7 @@ function TeamDetail({
 
             <div className="relative self-start">
               <div className="flex items-center gap-2 md:justify-end">
-                {/* Vibe selector — always visible, inline with action buttons */}
+                {/* Vibe selector - always visible, inline with action buttons */}
                 <div className="relative pr-2" ref={vibePickerRef}>
                   {isCaptain ? (
                     <button
@@ -1266,7 +1266,7 @@ function TeamDetail({
                       </p>
                     )}
 
-                    {/* Member vibe — set via Profile */}
+                    {/* Member vibe - set via Profile */}
                     {member.vibe && (
                       <p className="mt-1 text-xs text-text-secondary italic">{member.vibe}</p>
                     )}

@@ -93,7 +93,7 @@ export const MISSION_CONTENT = {
     [USER_STATES.ON_TEAM_NOT_FULL]: {
       headline: 'Your team is set. Now prepare to build.',
       status: (ctx) => `Locked in with ${ctx.teamName || 'your team'}`,
-      context: () => 'Hacking starts soon — define your problem clearly, align on your approach, and fill any open spots while you have time.',
+      context: () => 'Hacking starts soon - define your problem clearly, align on your approach, and fill any open spots while you have time.',
       primaryCTA: { label: 'Review Schedule', action: 'schedule' },
       secondaryCTA: { label: 'Open Team', action: 'team' },
       footerPrefix: 'Team formation opens in',
@@ -101,7 +101,7 @@ export const MISSION_CONTENT = {
     [USER_STATES.ON_TEAM_FULL]: {
       headline: 'Your team is set. Now prepare to build.',
       status: (ctx) => `Locked in with ${ctx.teamName || 'your team'}`,
-      context: () => 'Hacking starts soon — use the time to define your problem clearly and align on your first hour of work.',
+      context: () => 'Hacking starts soon - use the time to define your problem clearly and align on your first hour of work.',
       primaryCTA: { label: 'Review Schedule', action: 'schedule' },
       secondaryCTA: { label: 'Open Team', action: 'team' },
       footerPrefix: 'Team formation opens in',
@@ -156,7 +156,7 @@ export const MISSION_CONTENT = {
     [USER_STATES.ON_TEAM_NOT_FULL]: {
       headline: 'Your team is set. Now prepare to build.',
       status: (ctx) => `Locked in with ${ctx.teamName || 'your team'} · ${ctx.memberCount || 0}/6 members`,
-      context: (stats) => `Hacking starts soon — define your problem clearly, align on your approach, and fill any open spots. ${stats.freeAgents > 0 ? `${stats.freeAgents} free agents are still available.` : ''}`.trim(),
+      context: (stats) => `Hacking starts soon - define your problem clearly, align on your approach, and fill any open spots. ${stats.freeAgents > 0 ? `${stats.freeAgents} free agents are still available.` : ''}`.trim(),
       primaryCTA: { label: 'Review Schedule', action: 'schedule' },
       secondaryCTA: { label: 'Open Team', action: 'team' },
       footerPrefix: 'Team formation closes in',
@@ -164,7 +164,7 @@ export const MISSION_CONTENT = {
     [USER_STATES.ON_TEAM_FULL]: {
       headline: 'Your team is set. Now prepare to build.',
       status: (ctx) => `Locked in with ${ctx.teamName || 'your team'}`,
-      context: () => 'Hacking starts soon — use the time to define your problem clearly and align on your first hour of work.',
+      context: () => 'Hacking starts soon - use the time to define your problem clearly and align on your first hour of work.',
       primaryCTA: { label: 'Review Schedule', action: 'schedule' },
       secondaryCTA: { label: 'Open Team', action: 'team' },
       footerPrefix: 'Hacking begins in',

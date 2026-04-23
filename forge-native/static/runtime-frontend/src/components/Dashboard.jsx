@@ -350,7 +350,7 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
   };
 }
 
-// CORE UX IMPROVEMENT 3 — Compute daily deltas from createdAt timestamps
+// CORE UX IMPROVEMENT 3 - Compute daily deltas from createdAt timestamps
 function useDailyDeltas(registrations, teams) {
   return useMemo(() => {
     const todayStart = new Date();
@@ -615,7 +615,7 @@ function Dashboard({
     };
   }, [data, teams]);
 
-  // CORE UX IMPROVEMENT 3 — Dynamic trends from real createdAt timestamps
+  // CORE UX IMPROVEMENT 3 - Dynamic trends from real createdAt timestamps
   const dailyDeltas = useDailyDeltas(data?.registrations, teams);
 
   const scheduleMilestones = useMemo(() => {
@@ -810,7 +810,7 @@ function Dashboard({
   const teamReadiness = TEAM_STATUS_META[myProgress.teamStatus] || TEAM_STATUS_META.incomplete;
 
   const submissionReadiness = useMemo(() => {
-    // Submission isn't open yet — don't flag it as a warning
+    // Submission isn't open yet - don't flag it as a warning
     if (isEarlyExecutionPhase) {
       return {
         label: 'Not open',
@@ -876,7 +876,7 @@ function Dashboard({
   const readinessTotalCount = readinessItems.length || 3;
   const readinessProgressPercent = Math.round((readinessCompleteCount / readinessTotalCount) * 100);
 
-  // QUICK WIN 3: "Next Best Action" — hyper-personalised copy + route
+  // QUICK WIN 3: "Next Best Action" - hyper-personalised copy + route
   const nextBestAction = useMemo(() => {
     if (!isRegisteredUser) {
       return { label: 'Complete sign-up to join a team', route: 'signup', params: {} };
@@ -891,7 +891,7 @@ function Dashboard({
       return { label: 'Start your submission before time runs out', route: 'submission', params: {} };
     }
     if (readinessCompleteCount === readinessTotalCount) {
-      return { label: "You're all set — explore the marketplace", route: 'marketplace', params: {} };
+      return { label: "You're all set - explore the marketplace", route: 'marketplace', params: {} };
     }
     return { label: 'View the full schedule', route: 'schedule', params: {} };
   }, [isRegisteredUser, userTeam, isEarlyExecutionPhase, profileReadiness, submissionReadiness, eventPhase, readinessCompleteCount, readinessTotalCount]);
@@ -1209,7 +1209,7 @@ function Dashboard({
       {/* ====== MAIN CONTENT GRID ====== */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.65fr]" data-testid="dashboard-below-fold">
 
-        {/* LEFT COLUMN — pain points (early phases) or live activity (later phases) */}
+        {/* LEFT COLUMN - pain points (early phases) or live activity (later phases) */}
         <div>
           {isEarlyExecutionPhase ? (
             <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
@@ -1327,16 +1327,6 @@ function Dashboard({
         </div>
 
       </div>
-
-      {/* ====== FOOTER ====== */}
-      <footer className="border-t border-[var(--footer-separator)] pt-6 pb-4" data-testid="dashboard-footer">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-white/35">
-            Last updated {new Date(dataLoadedAt).toLocaleString()}
-          </p>
-          <p className="text-[0.6875rem] font-medium tracking-[0.12em] text-white/28">HackCentral</p>
-        </div>
-      </footer>
 
       {/* Diagnostic values for tests */}
       <span className="sr-only" data-testid="dashboard-phase-label">{PHASE_LABELS[eventPhase] || eventPhase}</span>

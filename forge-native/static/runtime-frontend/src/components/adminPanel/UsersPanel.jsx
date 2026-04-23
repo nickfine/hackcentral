@@ -9,7 +9,7 @@ import { cn } from '../../lib/design-system';
 import { Card, Badge, Button, Input, Select, SearchInput, Alert, Modal } from '../ui';
 import { EmptyState } from '../ui/ErrorState';
 
-/** Doc: standard card — white/gray-800, gray border, rounded-xl, shadow-sm light only */
+/** Doc: standard card - white/gray-800, gray border, rounded-xl, shadow-sm light only */
 const ADMIN_CARD_CLASS =
   'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 
