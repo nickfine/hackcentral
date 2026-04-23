@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { getCategoryColour } from '../../lib/painCategoryColours';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -136,20 +137,22 @@ export function inferCategoryLabel(title, description) {
 
 // ─── UpvoteButton ─────────────────────────────────────────────────────────────
 
-export function UpvoteButton({ count, voted, onVote, disabled }) {
+export function UpvoteButton({ count, voted, onVote, disabled, compact = false }) {
   return (
     <button
       type="button"
       onClick={onVote}
       disabled={disabled}
       aria-label={`Upvote — ${count} votes`}
-      className="flex w-16 shrink-0 flex-col items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-2 py-3 text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:cursor-not-allowed"
+      className={`flex shrink-0 flex-col items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-2 text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:cursor-not-allowed ${
+        compact ? 'w-14 py-2' : 'w-16 py-3'
+      }`}
       style={{
         borderColor: voted ? 'rgba(34,211,238,0.45)' : undefined,
         background: voted ? 'rgba(34,211,238,0.12)' : undefined,
       }}
     >
-      <div className="text-2xl font-semibold leading-none">{count}</div>
+      <div className={`font-semibold leading-none ${compact ? 'text-xl' : 'text-2xl'}`}>{count}</div>
       <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45">Up</div>
     </button>
   );
@@ -157,7 +160,7 @@ export function UpvoteButton({ count, voted, onVote, disabled }) {
 
 // ─── PainItem ─────────────────────────────────────────────────────────────────
 
-export function PainItem({ pp, onReact }) {
+export function PainItem({ pp, onReact, variant = 'default' }) {
   const [reacting, setReacting] = useState(false);
   const [localCount, setLocalCount] = useState(pp.reactionCount || 0);
   const [reacted, setReacted] = useState(pp.hasReacted ?? false);
@@ -180,29 +183,45 @@ export function PainItem({ pp, onReact }) {
   const tagLabel = inferCategoryLabel(pp.title, pp.description);
   const timeAgo = pp._creationTime ? relativeTime(pp._creationTime) : '';
   const authorName = pp.submitterName || 'Anonymous';
+  const colour = getCategoryColour(tagLabel);
+  const isBoard = variant === 'board';
 
   return (
-    <article className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4 shadow-[var(--card-inner-edge)] transition hover:border-cyan-400/20 hover:bg-white/[0.045]">
+    <article
+      className={`flex gap-3 border border-white/8 bg-white/[0.03] shadow-[var(--card-inner-edge)] transition ${
+        isBoard
+          ? 'rounded-[18px] p-3 hover:border-cyan-400/25 hover:bg-white/[0.045]'
+          : 'rounded-[24px] p-4 hover:border-cyan-400/20 hover:bg-white/[0.045]'
+      }`}
+    >
       <UpvoteButton
         count={localCount}
         voted={reacted}
         onVote={handleVote}
         disabled={reacting || reacted}
+        compact={isBoard}
       />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
-          <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 font-medium text-cyan-200">
+          <span
+            className="rounded-full px-2.5 py-1 font-medium"
+            style={{ color: colour.text, background: colour.bg }}
+          >
             {tagLabel}
           </span>
           <span className="font-medium text-white/75">{authorName}</span>
           {timeAgo && <span>{timeAgo}</span>}
         </div>
-        <h3 className="mt-2 text-lg font-medium text-white">{pp.title}</h3>
+        <h3 className={`mt-2 font-medium text-white ${isBoard ? 'text-base' : 'text-lg'}`}>
+          {pp.title}
+        </h3>
         {pp.description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/60">{pp.description}</p>
+          <p className={`mt-2 line-clamp-2 leading-5 text-white/60 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
+            {pp.description}
+          </p>
         )}
-        {pp.teams?.length > 0 && (
+        {!isBoard && pp.teams?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {pp.teams.map((t) => (
               <span

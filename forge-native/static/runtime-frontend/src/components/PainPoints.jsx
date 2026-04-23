@@ -1,22 +1,24 @@
 /**
- * PainPoints — full-page pain point feed.
- * Uses the same editorial dark/cyan styling as the dashboard PainPointsSection widget,
- * but shows all pain points with search and pagination.
+ * PainPoints — workshop board view.
+ * Pain points are grouped into columns by inferred category,
+ * sorted by vote count within each column.
+ * A clusters strip surfaces high-signal groupings above the board.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
-import { PainItem } from './shared/PainItem';
+import { inferCategoryLabel } from './shared/PainItem';
+import { COLUMN_ORDER, detectClusters } from '../lib/painCategoryColours';
+import BoardColumn from './painBoard/BoardColumn';
+import ClustersStrip from './painBoard/ClustersStrip';
 
-const PAGE_SIZE = 10;
-
-export default function PainPoints({ appModeResolverPayload }) {
+export default function PainPoints({ appModeResolverPayload, onNavigate }) {
   const [allPainPoints, setAllPainPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('reactions');
   const [searchQuery, setSearchQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const sentinelRef = useRef(null);
+  // Mobile: track which columns are collapsed (Set of category labels)
+  const [collapsedColumns, setCollapsedColumns] = useState(() => new Set());
 
   // Composer state
   const [gripe, setGripe] = useState('');
@@ -30,7 +32,7 @@ export default function PainPoints({ appModeResolverPayload }) {
       const { invoke } = await import('@forge/bridge');
       const result = await invokeEventScopedResolver(
         invoke, 'getPainPoints', appModeResolverPayload,
-        { sortBy, limit: 200, includeTeams: true }
+        { sortBy: 'reactions', limit: 200, includeTeams: true }
       );
       setAllPainPoints(result?.painPoints ?? []);
     } catch {
@@ -38,42 +40,17 @@ export default function PainPoints({ appModeResolverPayload }) {
     } finally {
       setLoading(false);
     }
-  }, [appModeResolverPayload, sortBy]);
+  }, [appModeResolverPayload]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Reset visible count when search or sort changes
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, sortBy]);
-
-  const filteredPainPoints = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return allPainPoints;
-    return allPainPoints.filter(
-      (pp) =>
-        pp.title?.toLowerCase().includes(q) ||
-        pp.submitterName?.toLowerCase().includes(q) ||
-        pp.description?.toLowerCase().includes(q)
-    );
-  }, [allPainPoints, searchQuery]);
-
-  const visiblePainPoints = filteredPainPoints.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredPainPoints.length;
-
-  // Infinite scroll — reveal more items when sentinel enters viewport
+  // On initial load for mobile: collapse all columns by default
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMore) {
-          setVisibleCount((n) => n + PAGE_SIZE);
-        }
-      },
-      { rootMargin: '120px' }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore]);
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      // Collapse all after load — updated once we know categories
+      setCollapsedColumns(new Set(COLUMN_ORDER));
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,31 +79,93 @@ export default function PainPoints({ appModeResolverPayload }) {
     await invokeEventScopedResolver(invoke, 'reactToPainPoint', appModeResolverPayload, { painPointId });
   }, [appModeResolverPayload]);
 
+  const handleToggleCollapse = useCallback((category) => {
+    setCollapsedColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  }, []);
+
+  // ─── Data pipeline ──────────────────────────────────────────────────────────
+
+  // 1. Enrich each pain point with its inferred category
+  const categorised = useMemo(
+    () => allPainPoints.map((pp) => ({
+      ...pp,
+      _category: inferCategoryLabel(pp.title, pp.description),
+    })),
+    [allPainPoints]
+  );
+
+  // 2. Apply search filter
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return categorised;
+    return categorised.filter(
+      (pp) =>
+        pp.title?.toLowerCase().includes(q) ||
+        pp.submitterName?.toLowerCase().includes(q) ||
+        pp.description?.toLowerCase().includes(q)
+    );
+  }, [categorised, searchQuery]);
+
+  // 3. Group by category
+  const grouped = useMemo(() => {
+    const map = new Map();
+    for (const pp of filtered) {
+      const cat = pp._category;
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat).push(pp);
+    }
+    return map;
+  }, [filtered]);
+
+  // 4. Active categories: those with >= 1 item, ordered by COLUMN_ORDER
+  const activeCategories = useMemo(() => {
+    const seen = new Set(grouped.keys());
+    const ordered = COLUMN_ORDER.filter((cat) => seen.has(cat));
+    // Append any categories not in COLUMN_ORDER (shouldn't happen, but just in case)
+    for (const cat of seen) {
+      if (!ordered.includes(cat)) ordered.push(cat);
+    }
+    return ordered;
+  }, [grouped]);
+
+  // 5. Cluster detection runs on unfiltered data (persists during search)
+  const clusters = useMemo(() => detectClusters(allPainPoints), [allPainPoints]);
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div
-      className="rounded-[28px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-6"
+      className="rounded-[28px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(64,212,255,0.06),rgba(255,255,255,0.02))] p-5"
       data-testid="painpoints-page"
     >
-      {/* Page header */}
-      <div className="flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Live problem feed</div>
           <h2
-            className="mt-2 text-3xl font-semibold tracking-tight text-white"
+            className="mt-1.5 text-3xl font-semibold tracking-tight text-white"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Pain Points
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/65">
             Tell us about any pain points you have at work — where's the friction? What can be improved?
           </p>
         </div>
 
         {/* Sort tabs */}
-        <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
+        <div className="flex items-center gap-2 shrink-0" role="tablist" aria-label="Feed filters">
           {[
             { key: 'reactions', label: 'Trending' },
-            { key: 'newest', label: 'Just posted' },
+            { key: 'newest',    label: 'Just posted' },
           ].map((f) => {
             const isActive = sortBy === f.key;
             return (
@@ -149,24 +188,24 @@ export default function PainPoints({ appModeResolverPayload }) {
         </div>
       </div>
 
-      {/* Composer */}
-      <div className="mt-5 rounded-[24px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-4 shadow-[var(--cyan-electric-inner-edge)]">
+      {/* ── Composer ───────────────────────────────────────────────────────── */}
+      <div className="rounded-[20px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-3">
         <form onSubmit={handleSubmit}>
           <textarea
             value={gripe}
             onChange={(e) => setGripe(e.target.value)}
             placeholder="What is slowing you down? A sentence is enough. Describe the friction, not the solution"
-            rows={4}
-            className="min-h-[120px] w-full resize-none rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white outline-none placeholder:text-white/30"
+            rows={3}
+            className="min-h-[80px] w-full resize-none rounded-xl border border-white/8 bg-white/[0.02] p-3 text-sm text-white outline-none placeholder:text-white/30"
             style={{ fontFamily: 'inherit' }}
           />
-          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <input
               type="text"
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
               placeholder="Your name"
-              className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+              className="rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30"
               style={{ fontFamily: 'inherit' }}
             />
             <div className="flex items-center gap-3">
@@ -176,7 +215,7 @@ export default function PainPoints({ appModeResolverPayload }) {
               <button
                 type="submit"
                 disabled={!gripe.trim() || submitting}
-                className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Submitting…' : 'Submit pain point'}
               </button>
@@ -185,45 +224,60 @@ export default function PainPoints({ appModeResolverPayload }) {
         </form>
       </div>
 
-      {/* Search bar */}
-      <div className="mt-5">
+      {/* ── Search ─────────────────────────────────────────────────────────── */}
+      <div className="mt-4">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search pain points…"
-          className="w-full rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-400/30"
+          className="w-full rounded-xl border border-white/8 bg-white/[0.02] px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-400/30"
           style={{ fontFamily: 'inherit' }}
         />
       </div>
 
-      {/* Feed */}
-      <div className="mt-5 space-y-4">
+      {/* ── Clusters strip ─────────────────────────────────────────────────── */}
+      <ClustersStrip clusters={clusters} onNavigate={onNavigate} />
+
+      {/* ── Board ──────────────────────────────────────────────────────────── */}
+      <div className="mt-5">
         {loading ? (
-          [1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-[24px] border border-white/8 bg-white/[0.02]" />
-          ))
-        ) : visiblePainPoints.length === 0 ? (
-          <p className="py-8 text-center text-sm text-white/45">
-            {searchQuery ? 'No pain points match your search.' : 'No pain points yet — be the first to submit one!'}
+          /* Loading: skeleton columns */
+          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-4 lg:overflow-x-auto scrollbar-hide">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-64 animate-pulse rounded-[18px] border border-white/8 bg-white/[0.02] lg:min-w-[260px] lg:max-w-[320px] lg:flex-shrink-0"
+              />
+            ))}
+          </div>
+        ) : activeCategories.length === 0 ? (
+          /* Empty state */
+          <p className="py-12 text-center text-sm text-white/40">
+            {searchQuery
+              ? 'No pain points match your search.'
+              : 'No pain points yet — be the first to submit one!'}
           </p>
         ) : (
-          visiblePainPoints.map((pp) => (
-            <PainItem key={pp._id} pp={pp} onReact={handleReact} />
-          ))
-        )}
-      </div>
-
-      {/* Infinite scroll sentinel */}
-      <div ref={sentinelRef} className="mt-4 flex justify-center">
-        {hasMore && (
-          <div className="flex items-center gap-2 py-4 text-sm text-white/35">
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-cyan-400" />
-            Loading more…
+          /* The board */
+          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-4 lg:overflow-x-auto scrollbar-hide">
+            {activeCategories.map((category) => (
+              <div
+                key={category}
+                className="lg:min-w-[260px] lg:max-w-[320px] lg:flex-shrink-0"
+                style={activeCategories.length <= 4 ? { flex: '1' } : undefined}
+              >
+                <BoardColumn
+                  category={category}
+                  painPoints={grouped.get(category) ?? []}
+                  sortBy={sortBy}
+                  onReact={handleReact}
+                  isCollapsed={collapsedColumns.has(category)}
+                  onToggleCollapse={() => handleToggleCollapse(category)}
+                />
+              </div>
+            ))}
           </div>
-        )}
-        {!loading && !hasMore && filteredPainPoints.length > PAGE_SIZE && (
-          <p className="py-4 text-xs text-white/25">All {filteredPainPoints.length} pain points loaded</p>
         )}
       </div>
     </div>
