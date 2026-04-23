@@ -1139,13 +1139,15 @@ function Dashboard({
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:border-white/25"
-          >
-            Find a team
-          </button>
+          {eventPhase !== 'signup' && (
+            <button
+              type="button"
+              onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:border-white/25"
+            >
+              Find a team
+            </button>
+          )}
         </div>
 
         {/* Meta row */}
