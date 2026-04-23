@@ -730,10 +730,22 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [urlRoutingEnabled]);
 
-  // Phase change handler (dev mode only)
+  // Phase change handler (dev mode only — updates local state for simulation)
   const handlePhaseChange = useCallback((phase) => {
     setEventPhase(phase);
   }, []);
+
+  // Admin phase change — persists to DB via resolver, then updates local state
+  const handleAdminPhaseChange = useCallback(async (phase) => {
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'setEventPhase', appModeResolverPayload, { phase });
+      setEventPhase(phase);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update event phase';
+      alert(`Phase change failed: ${message}`);
+    }
+  }, [appModeResolverPayload]);
 
   const handleDevRoleChange = useCallback((nextRole) => {
     setDevRoleOverride(nextRole);
@@ -1763,7 +1775,7 @@ function App() {
           <AdminPanel
             {...commonProps}
             eventPhase={eventPhase}
-            onPhaseChange={canUseSimulationControls ? handlePhaseChange : null}
+            onPhaseChange={canUseSimulationControls ? handleAdminPhaseChange : null}
             onEventSettingsUpdate={handleEventSettingsUpdate}
             onIdeaSummaryChange={refreshTeamsAndFreeAgents}
             savedBrandingBaseline={persistedBrandingBaseline}
