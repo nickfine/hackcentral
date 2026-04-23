@@ -296,7 +296,7 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
     }
   }
 
-  if (eventPhase === 'signup' && !isRegisteredUser) {
+  if ((eventPhase === 'signup' || eventPhase === 'pre-launch') && !isRegisteredUser) {
     return {
       teamStatus: 'no_team',
       submissionReady: false,
@@ -307,7 +307,7 @@ function buildMyProgressModel({ eventPhase, userTeam, hasSubmitted, phaseEndDate
     };
   }
 
-  if (!hasTeam && (eventPhase === 'signup' || eventPhase === 'team_formation')) {
+  if (!hasTeam && (eventPhase === 'signup' || eventPhase === 'team_formation' || eventPhase === 'pre-launch')) {
     return {
       teamStatus: 'no_team',
       submissionReady: false,
@@ -703,7 +703,7 @@ function Dashboard({
     [eventPhase, userTeam, hasSubmitted, phaseEndDate, isRegisteredUser]
   );
 
-  const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation';
+  const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation' || eventPhase === 'pre-launch';
 
   const profileReadiness = useMemo(() => {
     if (!isRegisteredUser) {
@@ -1120,7 +1120,7 @@ function Dashboard({
               Sign up
               <ArrowRight className="h-4 w-4" />
             </button>
-          ) : eventPhase === 'signup' ? (
+          ) : (eventPhase === 'signup' || eventPhase === 'pre-launch') ? (
             <button
               type="button"
               onClick={() => onNavigate?.('painpoints')}
@@ -1139,7 +1139,7 @@ function Dashboard({
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
-          {eventPhase !== 'signup' && (
+          {eventPhase !== 'signup' && eventPhase !== 'pre-launch' && (
             <button
               type="button"
               onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
