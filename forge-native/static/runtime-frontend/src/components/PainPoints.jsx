@@ -243,12 +243,9 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
       <div className="mt-5">
         {loading ? (
           /* Loading: skeleton columns */
-          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-4 lg:overflow-x-auto scrollbar-hide">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-64 animate-pulse rounded-[18px] border border-white/8 bg-white/[0.02] lg:min-w-[260px] lg:max-w-[320px] lg:flex-shrink-0"
-              />
+              <div key={i} className="h-64 animate-pulse rounded-[18px] border border-white/8 bg-white/[0.02]" />
             ))}
           </div>
         ) : activeCategories.length === 0 ? (
@@ -259,23 +256,18 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
               : 'No pain points yet — be the first to submit one!'}
           </p>
         ) : (
-          /* The board */
-          <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-4 lg:overflow-x-auto scrollbar-hide">
+          /* The board — auto-fill grid wraps columns to fit available width */
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
             {activeCategories.map((category) => (
-              <div
+              <BoardColumn
                 key={category}
-                className="lg:min-w-[260px] lg:max-w-[320px] lg:flex-shrink-0"
-                style={activeCategories.length <= 4 ? { flex: '1' } : undefined}
-              >
-                <BoardColumn
-                  category={category}
-                  painPoints={grouped.get(category) ?? []}
-                  sortBy={sortBy}
-                  onReact={handleReact}
-                  isCollapsed={collapsedColumns.has(category)}
-                  onToggleCollapse={() => handleToggleCollapse(category)}
-                />
-              </div>
+                category={category}
+                painPoints={grouped.get(category) ?? []}
+                sortBy={sortBy}
+                onReact={handleReact}
+                isCollapsed={collapsedColumns.has(category)}
+                onToggleCollapse={() => handleToggleCollapse(category)}
+              />
             ))}
           </div>
         )}
