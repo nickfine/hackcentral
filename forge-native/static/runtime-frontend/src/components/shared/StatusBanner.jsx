@@ -48,34 +48,34 @@ function StatusBanner({ user, teams = [], userInvites = [], onNavigate, eventPha
   if (!userTeam) {
     return (
       <div className={`${DESIGN_SYSTEM_CARD} border-l-2 border-[var(--accent)] p-5 animate-fade-in`}>
-        <HStack gap="4" align="center" justify="between">
-          <HStack gap="3" align="center" className="flex-1">
+        <HStack gap="4" align="start" justify="between" className="sm:items-center">
+          <HStack gap="3" align="start" className="flex-1 sm:items-center">
             <div className="w-12 h-12 rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] flex items-center justify-center flex-shrink-0">
               <User className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <VStack gap="1" align="start" className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-0">You're a Free Agent</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-0">
-                Team captains can find you in the Marketplace
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-0">Free Agent Status</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-white mb-0">
+                {pendingInviteCount > 0
+                  ? `${pendingInviteCount} pending invite${pendingInviteCount !== 1 ? 's' : ''} waiting`
+                  : 'Make your profile discoverable to team captains'}
               </p>
-              {pendingInviteCount > 0 && (
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                  You have {pendingInviteCount} pending invite{pendingInviteCount !== 1 ? 's' : ''}
-                </p>
-              )}
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                {pendingInviteCount > 0
+                  ? 'Review and respond to team invitations'
+                  : 'Update your skills to help teams find you'}
+              </p>
             </VStack>
           </HStack>
-          {pendingInviteCount > 0 && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on)] rounded-lg"
-              onClick={() => onNavigate('marketplace', { tab: 'teams' })}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-            >
-              View Invites
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            size="sm"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on)] rounded-lg flex-shrink-0"
+            onClick={() => onNavigate(pendingInviteCount > 0 ? 'marketplace' : 'profile')}
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+          >
+            {pendingInviteCount > 0 ? 'View Invites' : 'Edit Profile'}
+          </Button>
         </HStack>
       </div>
     );
