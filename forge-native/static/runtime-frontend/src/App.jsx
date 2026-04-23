@@ -735,18 +735,6 @@ function App() {
     setEventPhase(phase);
   }, []);
 
-  // Admin phase change — persists to DB via resolver, then updates local state
-  const handleAdminPhaseChange = useCallback(async (phase) => {
-    try {
-      const { invoke } = await import('@forge/bridge');
-      await invokeEventScopedResolver(invoke, 'setEventPhase', appModeResolverPayload, { phase });
-      setEventPhase(phase);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update event phase';
-      alert(`Phase change failed: ${message}`);
-    }
-  }, [appModeResolverPayload]);
-
   const handleDevRoleChange = useCallback((nextRole) => {
     setDevRoleOverride(nextRole);
     setDevParticipantGuestNeedsSignup(nextRole === 'participant_guest');
@@ -789,6 +777,19 @@ function App() {
     () => buildAppModeResolverPayload(appModePageId),
     [appModePageId]
   );
+
+  // Admin phase change — persists to DB via resolver, then updates local state
+  // Must be defined after appModeResolverPayload to avoid TDZ
+  const handleAdminPhaseChange = useCallback(async (phase) => {
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'setEventPhase', appModeResolverPayload, { phase });
+      setEventPhase(phase);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update event phase';
+      alert(`Phase change failed: ${message}`);
+    }
+  }, [appModeResolverPayload]);
 
   const refreshTeamsAndFreeAgents = useCallback(async () => {
     if (devMode) {
