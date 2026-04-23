@@ -4,18 +4,19 @@
  * but shows all pain points with search and pagination.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { PainItem } from './shared/PainItem';
 
-const ITEMS_PER_PAGE = 10;
+const PAGE_SIZE = 10;
 
 export default function PainPoints({ appModeResolverPayload }) {
   const [allPainPoints, setAllPainPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('reactions');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef(null);
 
   // Composer state
   const [gripe, setGripe] = useState('');
@@ -41,8 +42,8 @@ export default function PainPoints({ appModeResolverPayload }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Reset to page 1 when search or sort changes
-  useEffect(() => { setPage(1); }, [searchQuery, sortBy]);
+  // Reset visible count when search or sort changes
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchQuery, sortBy]);
 
   const filteredPainPoints = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -55,11 +56,24 @@ export default function PainPoints({ appModeResolverPayload }) {
     );
   }, [allPainPoints, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredPainPoints.length / ITEMS_PER_PAGE));
-  const paginatedPainPoints = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filteredPainPoints.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredPainPoints, page]);
+  const visiblePainPoints = filteredPainPoints.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredPainPoints.length;
+
+  // Infinite scroll — reveal more items when sentinel enters viewport
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore) {
+          setVisibleCount((n) => n + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '120px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -189,41 +203,29 @@ export default function PainPoints({ appModeResolverPayload }) {
           [1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-24 animate-pulse rounded-[24px] border border-white/8 bg-white/[0.02]" />
           ))
-        ) : paginatedPainPoints.length === 0 ? (
+        ) : visiblePainPoints.length === 0 ? (
           <p className="py-8 text-center text-sm text-white/45">
             {searchQuery ? 'No pain points match your search.' : 'No pain points yet — be the first to submit one!'}
           </p>
         ) : (
-          paginatedPainPoints.map((pp) => (
+          visiblePainPoints.map((pp) => (
             <PainItem key={pp._id} pp={pp} onReact={handleReact} />
           ))
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-white/45">
-            {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/65 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="mt-4 flex justify-center">
+        {hasMore && (
+          <div className="flex items-center gap-2 py-4 text-sm text-white/35">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-cyan-400" />
+            Loading more…
+          </div>
+        )}
+        {!loading && !hasMore && filteredPainPoints.length > PAGE_SIZE && (
+          <p className="py-4 text-xs text-white/25">All {filteredPainPoints.length} pain points loaded</p>
+        )}
+      </div>
     </div>
   );
 }
