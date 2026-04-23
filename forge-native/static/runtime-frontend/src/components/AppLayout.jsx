@@ -519,10 +519,25 @@ function AppLayout({
         </div>
       )}
 
+      {/* CONFIG MODE BANNER */}
+      {configModeControls.canEdit && configModeControls.isEnabled && (
+        <div className={cn(
+          'px-4 py-1 text-center text-xs font-bold z-50 tracking-widest uppercase',
+          'bg-orange-500 text-white',
+          isMacroHost ? 'relative' : (devModeActive ? 'sticky top-[24px]' : 'sticky top-0')
+        )}>
+          ⚙ CONFIG MODE ON
+        </div>
+      )}
+
       {/* STICKY HEADER + EVENT BAR CONTAINER */}
       <div className={cn(
         'z-40 bg-arena-bg',
-        isMacroHost ? 'relative' : (devModeActive ? 'sticky top-[24px]' : 'sticky top-0')
+        isMacroHost ? 'relative' : (
+          devModeActive && configModeControls.canEdit && configModeControls.isEnabled ? 'sticky top-[48px]' :
+          (devModeActive || (configModeControls.canEdit && configModeControls.isEnabled)) ? 'sticky top-[24px]' :
+          'sticky top-0'
+        )
       )}>
         <Container size={contentContainerSize} padding="md">
           {/* TOPBAR — single compact card (wireframe layout) */}
