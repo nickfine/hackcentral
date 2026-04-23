@@ -1516,6 +1516,13 @@ function App() {
 
   // Load team details when navigating to team-detail
   const loadTeamDetails = useCallback(async (teamId) => {
+    // First, try to find the team in local teams array (e.g., just created)
+    const localTeam = teams.find(t => t.id === teamId);
+    if (localTeam) {
+      setSelectedTeam(localTeam);
+      return;
+    }
+
     if (devMode) {
       // Dev mode: use local team data
       const team = teamsRef.current.find(t => t.id === teamId);
@@ -1531,7 +1538,7 @@ function App() {
       console.error('Failed to load team details:', err);
       setSelectedTeam(null);
     }
-  }, [devMode]);
+  }, [devMode, teams]);
 
   // Load team details when navigating to team-detail
   useEffect(() => {
