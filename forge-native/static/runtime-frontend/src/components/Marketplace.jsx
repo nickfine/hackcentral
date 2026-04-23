@@ -200,23 +200,25 @@ function Marketplace({
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
-        <div className="marketplace-page-header mt-6">
-          <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-2">
-            Ideas Marketplace
+        <div className="marketplace-page-header mt-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">
+            Teams Marketplace
           </p>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2">
-            Teams
-          </h1>
-          <p className="text-sm font-normal text-text-secondary max-w-2xl mb-4">
-            Browse innovative ideas or discover talented free agents to build your dream team.
-          </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
+            <div className="flex-1">
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-1">
+                Teams
+              </h1>
+              <p className="text-sm text-text-secondary max-w-2xl">
+                Find the right team or post your idea to recruit teammates.
+              </p>
+            </div>
             <button
               type="button"
               disabled={!!userTeam}
-              className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               onClick={() => {
                 setCreateTeamStatus(null);
                 setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
@@ -224,33 +226,27 @@ function Marketplace({
                 setModalPainSearch('');
                 setShowCreateTeamModal(true);
               }}
+              title={userTeam ? 'You are already on a team' : 'Create a new team'}
             >
               <Plus className="w-4 h-4" />
               Create Team
             </button>
-            {userTeam?.id && (
-              <Button
-                variant="secondary"
-                className="border border-gray-300 dark:border-gray-600 rounded-lg"
-                onClick={() => onNavigate('team-detail', { teamId: userTeam.id })}
-              >
-                View My Team
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Status Banner */}
-      <div className="mb-6">
-        <StatusBanner
-          user={user}
-          teams={teams}
-          userInvites={userInvites}
-          onNavigate={onNavigate}
-          eventPhase={eventPhase}
-        />
-      </div>
+      {/* Status Banner — more integrated */}
+      {(userTeam || !userTeam) && (
+        <div className="mb-5">
+          <StatusBanner
+            user={user}
+            teams={teams}
+            userInvites={userInvites}
+            onNavigate={onNavigate}
+            eventPhase={eventPhase}
+          />
+        </div>
+      )}
 
       {/* Create Idea feedback */}
       {createTeamStatus && !showCreateTeamModal && (
@@ -258,88 +254,81 @@ function Marketplace({
           variant={createTeamStatus.type}
           dismissible
           onDismiss={() => setCreateTeamStatus(null)}
-          className="mb-6"
+          className="mb-4"
         >
           {createTeamStatus.message}
         </Alert>
       )}
 
-      {/* Search and Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="marketplace-search-wrap flex-1">
-          <SearchInput
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            onClear={() => setSearchTerm('')}
-            placeholder="Search by name, description, or skills..."
-            inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-            leftIconClassName="text-gray-400"
-          />
+      {/* Search and Tabs as integrated region */}
+      <div className="mb-6">
+        {/* Search and View Controls */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="marketplace-search-wrap flex-1">
+            <SearchInput
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              onClear={() => setSearchTerm('')}
+              placeholder="Search by name, description, or skills..."
+              inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              leftIconClassName="text-gray-400"
+            />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                viewMode === 'grid'
+                  ? 'bg-teal-500/10 text-teal-500'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              )}
+              aria-label="Grid view"
+              aria-pressed={viewMode === 'grid'}
+            >
+              <Grid3x3 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('row')}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                viewMode === 'row'
+                  ? 'bg-teal-500/10 text-teal-500'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              )}
+              aria-label="List view"
+              aria-pressed={viewMode === 'row'}
+            >
+              <Rows className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'grid'
-                ? 'bg-teal-500/10 text-teal-500'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-            )}
-            aria-label="Grid view"
-            aria-pressed={viewMode === 'grid'}
-          >
-            <Grid3x3 className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('row')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'row'
-                ? 'bg-teal-500/10 text-teal-500'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-            )}
-            aria-label="List view"
-            aria-pressed={viewMode === 'row'}
-          >
-            <Rows className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); }} variant="teal" className="mb-0">
+          <Tabs.List>
+            <Tabs.Tab value="teams" count={filteredTeams.length}>
+              Teams
+            </Tabs.Tab>
+            <Tabs.Tab value="agents" count={filteredAgents.length}>
+              Free Agents
+            </Tabs.Tab>
+          </Tabs.List>
 
-      {userTeam && (
-        <Alert variant="info" className="mb-6">
-          You already have an active team for this event. Open it with
-          {' '}
-          <strong>View My Team</strong>
-          .
-        </Alert>
-      )}
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onChange={(tab) => { setActiveTab(tab); setCurrentPage(1); }} variant="teal" className="mb-6">
-        <Tabs.List>
-          <Tabs.Tab value="teams" count={filteredTeams.length}>
-            Teams
-          </Tabs.Tab>
-          <Tabs.Tab value="agents" count={filteredAgents.length}>
-            Free Agents
-          </Tabs.Tab>
-        </Tabs.List>
-
-        <Tabs.Panel value="teams">
-          {paginatedTeams.length > 0 ? (
+          <Tabs.Panel value="teams">
+            {paginatedTeams.length > 0 ? (
             <>
               {/* Team Grid */}
               <div
                 className={cn(
-                  'grid gap-6',
+                  'grid gap-6 mt-6',
                   viewMode === 'grid'
                     ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                     : 'grid-cols-1'
@@ -357,7 +346,7 @@ function Marketplace({
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-6">
+                <div className="flex justify-center items-center gap-2 mt-8">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -385,30 +374,33 @@ function Marketplace({
               )}
             </>
           ) : (
-            <EmptyState
-              icon={Users}
-              title="No Ideas Found"
-              message={
-                searchTerm
-                  ? 'Try a different search term'
-                  : 'Be the first to create an idea!'
-              }
-              action={() => {
-                setCreateTeamStatus(null);
-                if (userTeam?.id) {
-                  onNavigate('team-detail', { teamId: userTeam.id });
-                  return;
-                }
-                setShowCreateTeamModal(true);
-              }}
-              actionText={userTeam ? 'View My Team' : 'Create Team'}
-            />
+            <div className="mt-8 text-center py-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/30 dark:bg-gray-800/20">
+              <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {searchTerm ? 'No teams match your search' : 'No teams yet'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-5">
+                {searchTerm
+                  ? 'Try a different search term, or create the first team in the marketplace.'
+                  : 'Be the first to post an idea and recruit your team.'}
+              </p>
+              <Button
+                className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
+                onClick={() => {
+                  setCreateTeamStatus(null);
+                  setShowCreateTeamModal(true);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+                Create First Team
+              </Button>
+            </div>
           )}
         </Tabs.Panel>
 
         <Tabs.Panel value="agents">
           {filteredAgents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
               {filteredAgents.map((agent) => (
                 <div
                   key={agent.id}
@@ -443,18 +435,21 @@ function Marketplace({
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={User}
-              title="No Free Agents"
-              message={
-                searchTerm
-                  ? 'Try a different search term'
-                  : 'All participants have joined teams!'
-              }
-            />
+            <div className="mt-8 text-center py-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/30 dark:bg-gray-800/20">
+              <User className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {searchTerm ? 'No free agents match your search' : 'No free agents available'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+                {searchTerm
+                  ? 'Try a different search term.'
+                  : 'All participants have already joined teams!'}
+              </p>
+            </div>
           )}
         </Tabs.Panel>
       </Tabs>
+      </div>
 
       {/* Create Team Modal */}
       <Modal
