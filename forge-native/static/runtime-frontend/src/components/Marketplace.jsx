@@ -415,48 +415,54 @@ function Marketplace({
               )}
             </>
           ) : (
-            <div className="mt-8 space-y-4">
-              {/* Teams empty state */}
-              <div className="text-center py-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/40 dark:bg-gray-800/30">
-                <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  {searchTerm ? 'No teams match your search' : 'No teams yet'}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                  {searchTerm
-                    ? 'Try a different search term.'
-                    : 'Be the first to create a team and recruit teammates.'}
-                </p>
-                <Button
-                  className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
-                  onClick={() => {
-                    setCreateTeamStatus(null);
-                    setShowCreateTeamModal(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Create First Team
-                </Button>
-              </div>
-
-              {/* Free Agents available pathway — only show if agents exist and not searching teams */}
-              {filteredAgents.length > 0 && !searchTerm && (
-                <div className="p-5 border border-teal-200 dark:border-teal-800/40 rounded-xl bg-teal-50/30 dark:bg-teal-900/10">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                    <span className="font-semibold text-gray-900 dark:text-white">{filteredAgents.length} {filteredAgents.length === 1 ? 'free agent is' : 'free agents are'} available</span>
-                    {' '}to join your team
+            <div className="mt-8">
+              {/* Unified empty state — consolidates Teams creation and Free Agents pathway */}
+              <div className="text-center border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/40 dark:bg-gray-800/30 overflow-hidden">
+                <div className="px-6 sm:px-8 py-10">
+                  <Users className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {searchTerm ? 'No teams match your search' : 'No teams yet'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
+                    {searchTerm
+                      ? 'Try a different search term.'
+                      : 'Be the first to create a team and recruit teammates.'}
                   </p>
                   <Button
-                    variant="secondary"
-                    size="sm"
-                    className="border border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/20 rounded-lg inline-flex items-center gap-2"
-                    onClick={() => setActiveTab('agents')}
-                    rightIcon={<ChevronRight className="w-4 h-4" />}
+                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
+                    onClick={() => {
+                      setCreateTeamStatus(null);
+                      setShowCreateTeamModal(true);
+                    }}
                   >
-                    Browse Free Agents
+                    <Plus className="w-4 h-4" />
+                    Create First Team
                   </Button>
+
+                  {/* Secondary pathway — integrated within the same card */}
+                  {!searchTerm && filteredAgents.length > 0 && (
+                    <>
+                      <div className="my-6 border-t border-gray-200 dark:border-gray-600" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Or find talent to build with
+                      </p>
+                      <p className="text-sm mb-4">
+                        <span className="font-semibold text-gray-900 dark:text-white">{filteredAgents.length} {filteredAgents.length === 1 ? 'free agent' : 'free agents'}</span>
+                        <span className="text-gray-600 dark:text-gray-400"> available now</span>
+                      </p>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg inline-flex items-center gap-2"
+                        onClick={() => setActiveTab('agents')}
+                        rightIcon={<ChevronRight className="w-4 h-4" />}
+                      >
+                        Browse Free Agents
+                      </Button>
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </Tabs.Panel>
