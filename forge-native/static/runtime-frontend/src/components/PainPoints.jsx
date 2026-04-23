@@ -151,7 +151,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Live problem feed</div>
           <h2
-            className="mt-1.5 text-3xl font-semibold tracking-tight text-white"
+            className="mt-1.5 text-4xl font-black tracking-tight text-white sm:text-5xl"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Pain Points
