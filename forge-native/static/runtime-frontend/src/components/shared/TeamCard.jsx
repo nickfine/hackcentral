@@ -178,16 +178,35 @@ const TeamCard = forwardRef(({
         )}
       </div>
 
-      {/* Description / Summary - hidden when pain points are present */}
+      {/* Problem to Solve / Description - shown when no pain points linked */}
       {(!team.painPoints || team.painPoints.length === 0) && (
         <div className="flex-1 mb-3">
-          {team.description ? (
-            <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-4">
+          {/* Show problem field if available (custom problem to solve) */}
+          {team.problem && (
+            <div className="mb-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Target className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Problem to Solve
+                </span>
+              </div>
+              <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-3">
+                {team.problem}
+              </p>
+            </div>
+          )}
+
+          {/* Show description as secondary info */}
+          {team.description && (
+            <p className="text-sm font-normal text-gray-600 dark:text-gray-400 line-clamp-3">
               {team.description}
             </p>
-          ) : (
+          )}
+
+          {/* Fallback if neither problem nor description */}
+          {!team.problem && !team.description && (
             <p className="text-xs font-normal italic text-gray-500 dark:text-gray-400">
-              No description provided
+              No details provided
             </p>
           )}
         </div>
