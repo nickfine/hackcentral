@@ -242,41 +242,41 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
   })();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-28 pt-4 sm:px-6 sm:pb-16 lg:px-8">
+    <div className="max-w-6xl mx-auto px-4 pb-28 pt-4 sm:px-6 sm:pb-16 lg:px-8">
       <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
 
-      <section className="mt-5">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8 items-stretch">
+      <section className="mt-6 sm:mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
           <Card
             padding="lg"
-            className="xl:col-span-7 relative overflow-hidden border border-arena-border h-full bg-[linear-gradient(145deg,rgba(124,58,237,0.12),rgba(2,6,23,0.92)_45%,rgba(249,115,22,0.12))]"
+            className="lg:col-span-6 relative overflow-hidden border border-arena-border h-full bg-[linear-gradient(145deg,rgba(124,58,237,0.14),rgba(2,6,23,0.93)_45%,rgba(249,115,22,0.14))] shadow-lg shadow-black/20"
           >
-            <div className="absolute -top-20 -left-8 w-56 h-56 rounded-full bg-cyan-400/15 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-20 right-2 w-56 h-56 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
+            <div className="absolute -top-24 -left-12 w-64 h-64 rounded-full bg-cyan-400/12 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 right-0 w-64 h-64 rounded-full bg-orange-500/12 blur-3xl pointer-events-none" />
 
             <div className="relative">
               <EditableText
                 contentKey="newToHackday.hero.label"
                 fallback="Overview"
                 as="p"
-                displayClassName="mb-3 text-[11px] sm:text-xs"
+                displayClassName="mb-2 text-[10px] sm:text-xs uppercase tracking-wider text-text-muted"
               />
               <EditableText
                 contentKey="newToHackday.hero.title"
                 fallback="New to HackDay?"
                 as="h1"
-                displayClassName="text-[2.2rem] sm:text-5xl lg:text-6xl font-black tracking-tight text-text-primary leading-[1.02]"
+                displayClassName="text-[2rem] sm:text-5xl lg:text-5xl font-black tracking-tight text-text-primary leading-[1.05]"
               />
               <EditableTextArea
                 contentKey="newToHackday.hero.subtitle"
                 fallback="Follow one clear path: find your team, build a focused demo, and submit with confidence before time runs out."
                 as="p"
                 rows={3}
-                displayClassName="mt-5 text-[15px] sm:text-lg leading-relaxed text-text-secondary max-w-xl"
+                displayClassName="mt-4 text-base sm:text-lg leading-relaxed text-text-secondary max-w-xl"
               />
 
-              <div className="mt-7 flex flex-wrap gap-2">
-                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated border border-arena-border text-sm text-text-secondary">
+              <div className="mt-6 flex flex-wrap gap-2">
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated/60 border border-arena-border/50 text-xs font-medium text-text-muted">
                   <EditableText
                     contentKey="newToHackday.hero.pathIdeas"
                     fallback="1. Ideas"
@@ -284,7 +284,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                     displayClassName="inline"
                   />
                 </div>
-                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated border border-arena-border text-sm text-text-secondary">
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated/60 border border-arena-border/50 text-xs font-medium text-text-muted">
                   <EditableText
                     contentKey="newToHackday.hero.pathBuild"
                     fallback="2. Build"
@@ -292,7 +292,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                     displayClassName="inline"
                   />
                 </div>
-                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated border border-arena-border text-sm text-text-secondary">
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-arena-elevated/60 border border-arena-border/50 text-xs font-medium text-text-muted">
                   <EditableText
                     contentKey="newToHackday.hero.pathSubmit"
                     fallback="3. Submit"
@@ -302,11 +302,11 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 </div>
               </div>
 
-              <div className="mt-9 flex flex-wrap gap-3">
+              <div className="mt-7 flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Button
                   variant="primary"
                   size="lg"
-                  className="w-full sm:w-auto"
+                  className="sm:w-auto"
                   onClick={() => onNavigate('marketplace')}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
@@ -315,7 +315,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 <Button
                   variant="secondary"
                   size="lg"
-                  className="w-full sm:w-auto"
+                  className="sm:w-auto"
                   onClick={() => onNavigate('schedule')}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
@@ -327,62 +327,63 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 fallback="Recommended flow: Ideas first, then Build, then Submit."
                 as="p"
                 rows={2}
-                displayClassName="mt-4 text-xs sm:text-sm text-text-muted"
+                displayClassName="mt-3 text-xs text-text-muted"
               />
             </div>
           </Card>
 
-          <Card padding="none" className="xl:col-span-5 overflow-hidden border border-arena-border h-full">
-            <div className="relative h-full min-h-[300px] sm:min-h-[420px]">
+          <Card padding="none" className="lg:col-span-6 overflow-hidden border border-arena-border h-full shadow-lg shadow-black/10">
+            <div className="relative h-full min-h-[300px] sm:min-h-[380px]">
               <img
                 src={newToHackdayHeroImageUrl}
                 alt="HackDay journey: innovate and imagine, collaborate and build, then share and execute"
                 className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 ease-out"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent pointer-events-none" />
             </div>
           </Card>
         </div>
       </section>
 
-      <section className="mt-8 sm:mt-10">
+      <section className="mt-9 sm:mt-12">
         <EditableText
           contentKey="newToHackday.stats.label"
           fallback="At a glance"
           as="p"
           frameClassName="mx-auto w-fit"
-          displayClassName="text-center text-xs sm:text-sm uppercase tracking-[0.08em] text-text-muted mb-3"
+          displayClassName="text-center text-xs uppercase tracking-wider text-text-muted mb-4"
         />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {HERO_STATS.map((stat) => (
-            <Card key={stat.id} padding="md" className="text-center bg-arena-elevated/80">
+            <Card key={stat.id} padding="md" className="text-center bg-arena-elevated/50 border-arena-border shadow-md shadow-black/5">
               <EditableText
                 contentKey={stat.valueKey}
                 fallback={stat.value}
                 as="p"
-                displayClassName="text-2xl sm:text-3xl font-black text-text-primary"
+                displayClassName="text-3xl sm:text-4xl font-black text-text-primary"
               />
               <EditableText
                 contentKey={stat.labelKey}
                 fallback={stat.label}
                 as="p"
-                displayClassName="mt-1 text-xs sm:text-sm uppercase tracking-[0.08em] text-text-muted"
+                displayClassName="mt-2 text-xs uppercase tracking-wider font-medium text-text-muted"
               />
             </Card>
           ))}
         </div>
       </section>
 
-      <section className="mt-10 sm:mt-14">
-        <Card padding="lg" className="overflow-hidden border border-arena-border">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <section className="mt-12 sm:mt-14">
+        <Card padding="lg" className="overflow-hidden border-arena-border shadow-lg shadow-black/10">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6 mb-6">
             <div>
               <EditableText
                 contentKey="newToHackday.first30.label"
                 fallback="Overview"
                 as="p"
-                displayClassName="mb-2 text-sm"
+                displayClassName="mb-2 text-xs uppercase tracking-wider text-text-muted"
               />
-              <Card.Title className="text-2xl sm:text-3xl">
+              <Card.Title className="text-2xl sm:text-3xl lg:text-4xl font-black">
                 <EditableText
                   contentKey="newToHackday.first30.title"
                   fallback="Your First 30 Minutes"
@@ -401,7 +402,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
             <Button
               variant="secondary"
               size="md"
-              className="w-full sm:w-auto"
+              className="sm:w-auto flex-shrink-0"
               onClick={() => onNavigate('marketplace')}
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
@@ -409,16 +410,16 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
             </Button>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             {FIRST_30_MINUTES.map((item, index) => (
-              <div key={item.id} className="rounded-xl border border-arena-border bg-arena-elevated/80 p-4 sm:p-5">
+              <div key={item.id} className="rounded-xl border border-arena-border bg-arena-elevated/50 p-4 sm:p-5 shadow-md shadow-black/5">
                 <EditableText
                   contentKey={item.windowKey}
                   fallback={item.window}
                   as="p"
-                  displayClassName="text-[11px] uppercase tracking-[0.08em] text-text-muted mb-2"
+                  displayClassName="text-xs uppercase tracking-wider font-medium text-text-muted mb-2"
                 />
-                <h3 className="text-base sm:text-lg font-bold text-text-primary mb-1">
+                <h3 className="text-base sm:text-lg font-bold text-text-primary mb-2">
                   {index + 1}.{' '}
                   <EditableText
                     contentKey={item.titleKey}
@@ -440,22 +441,22 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
         </Card>
       </section>
 
-      <section className="mt-12 sm:mt-20">
-        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
-        <div className="text-center">
+      <section className="mt-14 sm:mt-20">
+        <div className="mb-6 h-px bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent" />
+        <div className="text-center mb-2">
           <EditableText
             contentKey="newToHackday.journey.label"
             fallback="Action"
             as="p"
             frameClassName="mx-auto w-fit"
-            displayClassName="mb-2 text-sm"
+            displayClassName="mb-2 text-xs uppercase tracking-wider text-text-muted"
           />
           <EditableText
             contentKey="newToHackday.journey.title"
             fallback="Your 3-Step HackDay Journey"
             as="h2"
             frameClassName="mx-auto"
-            displayClassName="text-2xl sm:text-3xl font-black tracking-tight text-text-primary"
+            displayClassName="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-text-primary"
           />
         </div>
         <EditableTextArea
@@ -464,12 +465,10 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
           as="p"
           rows={3}
           frameClassName="mx-auto max-w-2xl"
-          displayClassName="mt-3 text-sm sm:text-base text-text-secondary max-w-2xl mx-auto text-center"
+          displayClassName="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl mx-auto text-center"
         />
 
         <div className="relative mt-8">
-          <div className="hidden md:block absolute left-[15%] right-[15%] top-6 h-px bg-gradient-to-r from-cyan-400/35 via-brand/45 to-orange-400/35" />
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             {ONBOARDING_STEPS.map((step, index) => {
               const Icon = step.icon;
@@ -478,36 +477,29 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                   key={step.id}
                   padding="md"
                   hoverable
-                  className="relative overflow-hidden h-full"
-                  style={{ borderColor: 'var(--glass-item-border)' }}
+                  className="relative overflow-hidden h-full border-arena-border shadow-md shadow-black/10"
                 >
-                  <div className={`h-1 w-full rounded-full mb-4 ${step.accent.track}`} />
+                  <div className={`h-1 w-full rounded-full mb-5 ${step.accent.track}`} />
                   <div className="relative h-full flex flex-col">
-                    <div className="flex items-center justify-between gap-3 mb-4">
-                      <div className="inline-flex items-center gap-2">
-                        <div className={`w-12 h-12 rounded-full border flex items-center justify-center ${step.accent.badge}`}>
-                          <span className="text-xl font-black">{index + 1}</span>
-                        </div>
-                        <div
-                          className="w-9 h-9 rounded-lg bg-arena-elevated border flex items-center justify-center"
-                          style={{ borderColor: 'var(--glass-item-border)' }}
-                        >
-                          <Icon className={`w-4 h-4 ${step.accent.icon}`} />
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="inline-flex items-center gap-2.5 flex-shrink-0">
+                        <div className={`w-11 h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${step.accent.badge}`}>
+                          <span className="text-lg font-black">{index + 1}</span>
                         </div>
                       </div>
                       <EditableText
                         contentKey={step.estimatedTimeKey}
                         fallback={step.estimatedTime}
                         as="span"
-                        displayClassName="text-xs font-bold uppercase tracking-[0.08em] text-text-muted"
+                        displayClassName="text-xs uppercase tracking-widest font-medium text-text-muted flex-shrink-0"
                       />
                     </div>
 
-                    <div className="rounded-xl border overflow-hidden mb-4" style={{ borderColor: 'var(--glass-item-border)' }}>
+                    <div className="rounded-xl border border-arena-border overflow-hidden mb-5 bg-arena-elevated/40" style={{ borderColor: 'var(--glass-item-border)' }}>
                       <img
                         src={step.artwork}
                         alt={`${step.title} visual guide`}
-                        className="w-full h-32 object-cover"
+                        className="w-full h-32 object-cover opacity-95"
                       />
                     </div>
 
@@ -515,38 +507,34 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                       contentKey={step.titleKey}
                       fallback={step.title}
                       as="h3"
-                      displayClassName="text-xl font-bold text-text-primary leading-tight mb-2"
+                      displayClassName="text-lg font-bold text-text-primary leading-snug mb-2"
                     />
                     <EditableTextArea
                       contentKey={step.descriptionKey}
                       fallback={step.description}
                       as="p"
                       rows={4}
-                      displayClassName="text-sm sm:text-base leading-relaxed text-text-secondary flex-1"
+                      displayClassName="text-sm leading-relaxed text-text-secondary flex-1 mb-3"
                     />
                     <EditableTextArea
                       contentKey={step.outcomeKey}
                       fallback={step.outcome}
                       as="p"
                       rows={3}
-                      displayClassName={`text-sm mt-3 mb-4 ${step.accent.outcome}`}
+                      displayClassName={`text-xs leading-relaxed font-medium mb-4 ${step.accent.outcome}`}
                     />
 
-                    <EditableText
-                      contentKey={step.doNowLabelKey}
-                      fallback={step.doNowLabel}
-                      as="p"
-                      displayClassName="text-[11px] uppercase tracking-[0.08em] text-text-muted mb-2"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      fullWidth
-                      onClick={() => onNavigate(step.actionRoute)}
-                      rightIcon={<ArrowRight className="w-4 h-4" />}
-                    >
-                      {step.action}
-                    </Button>
+                    <div className="pt-2 border-t border-arena-border/40">
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        fullWidth
+                        onClick={() => onNavigate(step.actionRoute)}
+                        rightIcon={<ArrowRight className="w-4 h-4" />}
+                      >
+                        {step.action}
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               );
@@ -555,9 +543,9 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
         </div>
       </section>
 
-      <section className="mt-12 sm:mt-20">
-        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-violet-300/35 to-transparent" />
-        <Card padding="lg" className="overflow-hidden">
+      <section className="mt-14 sm:mt-20">
+        <div className="mb-6 h-px bg-gradient-to-r from-transparent via-violet-300/20 to-transparent" />
+        <Card padding="lg" className="overflow-hidden border-arena-border shadow-lg shadow-black/10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             <div className="lg:col-span-7">
               <EditableText
@@ -565,9 +553,9 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 fallback="Rules"
                 as="p"
                 frameClassName="mx-auto lg:mx-0 w-fit"
-                displayClassName="mb-2 text-sm text-center lg:text-left"
+                displayClassName="mb-2 text-xs uppercase tracking-wider text-text-muted text-center lg:text-left"
               />
-              <Card.Title className="text-2xl sm:text-3xl mb-3 text-center lg:text-left">
+              <Card.Title className="text-2xl sm:text-3xl lg:text-4xl mb-3 text-center lg:text-left font-black">
                 <EditableText
                   contentKey="newToHackday.keyRules.title"
                   fallback="Key Rules You Must Get Right"
@@ -701,17 +689,17 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
         </Card>
       </section>
 
-      <section className="mt-12 sm:mt-16">
-        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-orange-300/35 to-transparent" />
-        <Card padding="lg">
+      <section className="mt-14 sm:mt-16">
+        <div className="mb-6 h-px bg-gradient-to-r from-transparent via-orange-300/20 to-transparent" />
+        <Card padding="lg" className="border-arena-border shadow-lg shadow-black/10">
           <EditableText
             contentKey="newToHackday.faq.label"
             fallback="FAQ"
             as="p"
             frameClassName="mx-auto w-fit"
-            displayClassName="mb-2 text-sm text-center"
+            displayClassName="mb-2 text-xs uppercase tracking-wider text-text-muted text-center"
           />
-          <Card.Title className="text-2xl sm:text-3xl mb-3 text-center">
+          <Card.Title className="text-2xl sm:text-3xl lg:text-4xl mb-3 text-center font-black">
             <EditableText
               contentKey="newToHackday.faq.title"
               fallback="Frequently Asked Questions"
@@ -725,7 +713,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
             as="p"
             rows={3}
             frameClassName="mx-auto max-w-2xl"
-            displayClassName="text-sm sm:text-base leading-relaxed text-text-secondary mb-5 max-w-2xl mx-auto text-center"
+            displayClassName="text-sm sm:text-base leading-relaxed text-text-secondary mb-6 max-w-2xl mx-auto text-center"
           />
 
           <div className="space-y-3">
@@ -779,10 +767,10 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
         </Card>
       </section>
 
-      <section className="mt-10 sm:mt-12">
+      <section className="mt-12 sm:mt-14">
         <Card
-          padding="md"
-          className="border border-brand/35 bg-[linear-gradient(90deg,rgba(249,115,22,0.18)_0%,rgba(12,22,44,0.88)_46%,rgba(6,182,212,0.16)_100%)] max-w-3xl mx-auto"
+          padding="lg"
+          className="border border-brand/40 bg-[linear-gradient(135deg,rgba(249,115,22,0.16)_0%,rgba(12,22,44,0.92)_48%,rgba(6,182,212,0.14)_100%)] max-w-3xl mx-auto shadow-lg shadow-black/15"
         >
           <div className="flex items-center justify-center">
             <div className="w-full text-center">
@@ -791,14 +779,14 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 fallback="Next step"
                 as="p"
                 frameClassName="mx-auto w-fit"
-                displayClassName="text-xs uppercase tracking-[0.08em] text-text-muted mb-1"
+                displayClassName="text-xs uppercase tracking-wider text-text-muted mb-2"
               />
               <EditableText
                 contentKey="newToHackday.nextStep.title"
                 fallback="Ready to start Step 1?"
                 as="p"
                 frameClassName="mx-auto"
-                displayClassName="text-base sm:text-lg font-bold text-text-primary"
+                displayClassName="text-lg sm:text-xl font-black text-text-primary"
               />
               <EditableTextArea
                 contentKey="newToHackday.nextStep.subtitle"
@@ -806,13 +794,13 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 as="p"
                 rows={2}
                 frameClassName="mx-auto"
-                displayClassName="text-sm text-text-secondary mt-1 mb-4"
+                displayClassName="text-sm text-text-secondary mt-2 mb-5"
               />
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
                 <Button
                   variant="primary"
                   size="md"
-                  className="w-full sm:w-auto"
+                  className="sm:w-auto"
                   onClick={() => onNavigate('marketplace')}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
@@ -821,7 +809,7 @@ function NewToHackDay({ onNavigate, eventBranding = {} }) {
                 <Button
                   variant="secondary"
                   size="md"
-                  className="w-full sm:w-auto"
+                  className="sm:w-auto"
                   onClick={() => onNavigate('schedule')}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
