@@ -135,6 +135,10 @@ function Marketplace({
     );
   }, [freeAgents, searchTerm, user?.id]);
 
+  // Determine if team creation is allowed in current phase
+  const EDITABLE_PHASES = ['signup', 'team_formation'];
+  const canCreateTeam = EDITABLE_PHASES.includes(eventPhase);
+
   // Show skeleton while loading (after all hooks)
   if (isLoading) {
     return <MarketplaceSkeleton />;
@@ -217,7 +221,7 @@ function Marketplace({
             </div>
             <button
               type="button"
-              disabled={!!userTeam}
+              disabled={!!userTeam || !canCreateTeam}
               className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               onClick={() => {
                 setCreateTeamStatus(null);
@@ -226,7 +230,13 @@ function Marketplace({
                 setModalPainSearch('');
                 setShowCreateTeamModal(true);
               }}
-              title={userTeam ? 'You are already on a team' : 'Create a new team'}
+              title={
+                userTeam
+                  ? 'You are already on a team'
+                  : !canCreateTeam
+                  ? 'Teams cannot be created once the hack has started'
+                  : 'Create a new team'
+              }
             >
               <Plus className="w-4 h-4" />
               Create Team
@@ -429,11 +439,13 @@ function Marketplace({
                       : 'Be the first to create a team and recruit teammates.'}
                   </p>
                   <Button
-                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2"
+                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => {
                       setCreateTeamStatus(null);
                       setShowCreateTeamModal(true);
                     }}
+                    disabled={!canCreateTeam}
+                    title={!canCreateTeam ? 'Teams cannot be created once the hack has started' : 'Create a new team'}
                   >
                     <Plus className="w-4 h-4" />
                     Create First Team
