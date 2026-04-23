@@ -3,9 +3,10 @@
  * Admin panel tab for managing event phases.
  */
 
+import { useState } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '../../lib/design-system';
-import { Card, Badge, Alert } from '../ui';
+import { Card, Badge, Alert, Modal, Button } from '../ui';
 import { VStack } from '../layout';
 import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../../data/constants';
 
@@ -14,8 +15,28 @@ const ADMIN_CARD_CLASS =
   'bg-[var(--surface-card)] border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-card)]';
 
 function PhasesPanel({ eventPhase, onPhaseChange }) {
+  const [pendingPhase, setPendingPhase] = useState(null);
+
+  const handlePhaseClick = (phaseKey) => {
+    setPendingPhase(phaseKey);
+  };
+
+  const confirmPhaseChange = () => {
+    if (pendingPhase) {
+      onPhaseChange?.(pendingPhase);
+      setPendingPhase(null);
+    }
+  };
+
+  const cancelPhaseChange = () => {
+    setPendingPhase(null);
+  };
+
+  const pendingPhaseData = pendingPhase ? EVENT_PHASES[pendingPhase] : null;
+
   return (
-    <Card padding="md" className={ADMIN_CARD_CLASS}>
+    <>
+      <Card padding="md" className={ADMIN_CARD_CLASS}>
       <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event Phases</Card.Title>
       <p className="text-sm sm:text-base leading-relaxed text-gray-700 dark:text-gray-300 mb-5">
         Move the event forward deliberately. Phase updates apply to all participants immediately.
@@ -33,7 +54,7 @@ function PhasesPanel({ eventPhase, onPhaseChange }) {
           return (
             <button
               key={phaseKey}
-              onClick={() => onPhaseChange?.(phaseKey)}
+              onClick={() => handlePhaseClick(phaseKey)}
               className={cn(
                 'w-full flex items-center gap-4 p-5 rounded-lg border transition-all text-left',
                 isCurrent
@@ -70,6 +91,44 @@ function PhasesPanel({ eventPhase, onPhaseChange }) {
         })}
       </VStack>
     </Card>
+
+      {/* Phase change confirmation modal */}
+      <Modal
+        isOpen={!!pendingPhase}
+        onClose={cancelPhaseChange}
+        title="Confirm Phase Change"
+        size="sm"
+      >
+        {pendingPhaseData && (
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-300">
+              Move event to <span className="font-semibold text-gray-900 dark:text-white">{pendingPhaseData.label}</span>?
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {pendingPhaseData.description}
+            </p>
+            <Alert variant="warning">
+              This change will apply to all participants immediately.
+            </Alert>
+          </div>
+        )}
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            className="border border-gray-300 dark:border-gray-600 rounded-lg"
+            onClick={cancelPhaseChange}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            onClick={confirmPhaseChange}
+          >
+            Confirm Change
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 }
 
