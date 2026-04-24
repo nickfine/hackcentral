@@ -414,10 +414,10 @@
 
 @keyframes phase-beacon-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.35);
+    box-shadow: 0 0 0 0 rgba(0, 245, 255, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.08);
+    box-shadow: 0 0 0 8px rgba(0, 245, 255, 0.10);
   }
 }
 
@@ -501,6 +501,12 @@
     width: clamp(7rem, 11vw, 11rem);
     height: clamp(7rem, 11vw, 11rem);
   }
+}
+
+/* Dashboard background grid — dark mode only, applied to decorative child element */
+[data-color-mode="dark"] .dashboard-bg-grid {
+  background: var(--dashboard-bg-grid);
+  opacity: 0.5;
 }
 
 .dashboard-hero-accent-rail {
@@ -2902,8 +2908,8 @@
 
 /* Pain card — trending emphasis (>= 5 votes) */
 [data-color-mode="dark"] .pain-card-trending {
-  box-shadow: var(--pain-card-shadow), 0 0 16px rgba(0,245,255,0.05) !important;
-  border-color: rgba(255,255,255,0.08) !important;
+  box-shadow: var(--pain-card-shadow), 0 0 20px rgba(0,245,255,0.10) !important;
+  border-color: rgba(0,245,255,0.12) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

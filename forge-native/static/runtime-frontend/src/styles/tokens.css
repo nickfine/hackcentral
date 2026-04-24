@@ -460,6 +460,13 @@
   --pain-column-border: rgba(255,255,255,0.05);
   --pain-vote-surface: rgba(255,255,255,0.04);
   --pain-vote-border: rgba(255,255,255,0.08);
+  --dashboard-bg-grid:
+    repeating-linear-gradient(
+      0deg, transparent, transparent 59px, rgba(0,245,255,0.015) 59px, rgba(0,245,255,0.015) 60px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 59px, rgba(0,245,255,0.015) 59px, rgba(0,245,255,0.015) 60px
+    );
 }
 
 [data-theme-preset="editorial"] {

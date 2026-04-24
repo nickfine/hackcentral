@@ -193,11 +193,11 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
 
   return (
     <article
-      className={`flex gap-3 border border-[var(--pain-card-border)] shadow-[var(--pain-card-shadow)] transition-all duration-200 ${
+      className={`flex gap-3 border shadow-[var(--pain-card-shadow)] transition-all duration-200 ${
         isBoard
           ? 'rounded-[18px] p-3 hover:border-[var(--pain-card-border-hover)] hover:shadow-[var(--pain-card-shadow-hover)]'
           : 'rounded-[24px] p-4 hover:border-[var(--pain-card-border-hover)] hover:shadow-[var(--pain-card-shadow-hover)]'
-      } ${isTrending ? 'pain-card-trending' : ''}`}
+      } ${isTrending ? 'pain-card-trending border-cyan-400/[0.12]' : 'border-[var(--pain-card-border)]'}`}
       style={{ background: 'var(--pain-card-surface)' }}
     >
       <UpvoteButton
@@ -212,10 +212,15 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/35">
           <span
             className="rounded-full px-2.5 py-1 font-medium"
-            style={{ color: colour.text, background: colour.bg }}
+            style={{ color: colour.text, background: colour.bg, border: `1px solid ${colour.border}` }}
           >
             {tagLabel}
           </span>
+          {isTrending && (
+            <span className="rounded-full bg-cyan-400/[0.08] px-2 py-0.5 font-semibold uppercase tracking-wide text-cyan-300" style={{ border: '1px solid rgba(0,245,255,0.18)', fontSize: '10px' }}>
+              Trending
+            </span>
+          )}
           <span className="font-medium text-white/60">{authorName}</span>
           {timeAgo && <span className="text-white/28">{timeAgo}</span>}
         </div>

@@ -184,14 +184,14 @@ export default function EditorialRightRail({
 }) {
   return (
     <div className="space-y-6">
-      <ScheduleCard comingUpMilestones={comingUpMilestones} onNavigate={onNavigate} />
-      {isEarlyExecutionPhase && <NewHereCard onNavigate={onNavigate} />}
       <ReadinessCard
         readinessItems={readinessItems}
         readinessProgressPercent={readinessProgressPercent}
         nextBestAction={nextBestAction}
         onNavigate={onNavigate}
       />
+      <ScheduleCard comingUpMilestones={comingUpMilestones} onNavigate={onNavigate} />
+      {isEarlyExecutionPhase && <NewHereCard onNavigate={onNavigate} />}
     </div>
   );
 }

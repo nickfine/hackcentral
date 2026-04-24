@@ -23,14 +23,14 @@ const NavItem = forwardRef(({
   const highlightStyles = {
     vertical: {
       amber: 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-l-4 border-amber-400',
-      purple: 'text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border-l-4 border-purple-400',
+      purple: 'text-purple-300/70 bg-purple-500/[0.06] hover:bg-purple-500/[0.10] border-l-4 border-purple-400/50',
       success: 'text-success bg-success/10 hover:bg-success/20 border-l-4 border-success',
       signup: 'nav-item-signup-vertical border-l-4',
       error: 'text-error bg-error/10 hover:bg-error/20 border-l-4 border-error',
     },
     horizontal: {
       amber: 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40',
-      purple: 'text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-400/40',
+      purple: 'text-purple-300/70 bg-purple-500/[0.06] hover:bg-purple-500/[0.10] border border-purple-400/20',
       success: 'text-success bg-success/10 hover:bg-success/20 border border-success/40',
       signup: 'nav-item-signup-horizontal border',
       error: 'text-error bg-error/10 hover:bg-error/20 border border-error/40',

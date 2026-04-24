@@ -27,11 +27,11 @@ import PainPointsSection from './PainPointsSection';
 // ============================================================================
 
 const MOCK_ACTIVITY_FEED = [
-  { id: 1, type: 'join', teamId: 'team-3', user: 'Maya Rodriguez', team: 'Rescue House', time: '2m ago' },
-  { id: 2, type: 'create', teamId: 'team-1', user: 'Jordan Lee', team: 'Quantum Collective', time: '5m ago' },
-  { id: 3, type: 'join', user: 'Casey Bento', team: 'Meteor Touch', time: '12m ago' },
-  { id: 4, type: 'create', user: "Pat O'Brien", team: 'Carbon Cockfox', time: '18m ago' },
-  { id: 5, type: 'join', teamId: 'team-2', user: 'Skylar Moore', team: 'Digital Overlords', time: '23m ago' },
+  { id: 1, type: 'join', teamId: 'team-3', user: 'Maya Rodriguez', team: 'Workflow Wranglers', time: '2m ago' },
+  { id: 2, type: 'create', teamId: 'team-1', user: 'Jordan Lee', team: 'Jira Unchained', time: '5m ago' },
+  { id: 3, type: 'join', user: 'Casey Bento', team: 'Config Simplified', time: '12m ago' },
+  { id: 4, type: 'create', user: "Pat O'Brien", team: 'Onboarding Overhaul', time: '18m ago' },
+  { id: 5, type: 'join', teamId: 'team-2', user: 'Skylar Moore', team: 'Pipeline Fixers', time: '23m ago' },
 ];
 
 const MOCK_MILESTONES = [
@@ -882,7 +882,7 @@ function Dashboard({
       return { label: 'Complete sign-up to join a team', route: 'signup', params: {} };
     }
     if (!userTeam && isEarlyExecutionPhase) {
-      return { label: 'Browse ideas and find your team', route: 'marketplace', params: { tab: 'teams' } };
+      return { label: `Browse ${stats.teams} ideas and find your team`, route: 'marketplace', params: { tab: 'teams' } };
     }
     if (userTeam && profileReadiness.tone !== 'green') {
       return { label: 'Add your skills to complete your profile', route: 'profile', params: {} };
@@ -894,7 +894,7 @@ function Dashboard({
       return { label: "You're all set - explore the marketplace", route: 'marketplace', params: {} };
     }
     return { label: 'View the full schedule', route: 'schedule', params: {} };
-  }, [isRegisteredUser, userTeam, isEarlyExecutionPhase, profileReadiness, submissionReadiness, eventPhase, readinessCompleteCount, readinessTotalCount]);
+  }, [isRegisteredUser, userTeam, isEarlyExecutionPhase, profileReadiness, submissionReadiness, eventPhase, readinessCompleteCount, readinessTotalCount, stats.teams]);
 
   const missionImpressionKeyRef = useRef(null);
   useEffect(() => {
@@ -972,7 +972,7 @@ function Dashboard({
     () => (
       isCreatedHackDay && eventMeta?.tagline?.trim()
         ? eventMeta.tagline.trim()
-        : 'Turn friction into projects. Post a real problem, attract collaborators, and shape your approach before hacking starts.'
+        : 'Build something useful. Break something boring. Vibe together.'
     ),
     [isCreatedHackDay, eventMeta?.tagline]
   );
@@ -1062,7 +1062,13 @@ function Dashboard({
       : countdownText;
 
   return (
-    <div className="space-y-6 pt-5 pb-1" data-testid="dashboard">
+    <div className="relative space-y-6 pt-5 pb-1" data-testid="dashboard">
+
+      {/* Faint background grid — dark mode only, decorative */}
+      <div
+        className="dashboard-bg-grid pointer-events-none absolute inset-0 -z-10"
+        aria-hidden="true"
+      />
 
       <OwnerWelcomeModal
         isOpen={showOwnerWelcome}
@@ -1088,6 +1094,7 @@ function Dashboard({
             alt=""
             aria-hidden="true"
             className="h-9 w-auto flex-shrink-0 lg:h-[3.25rem]"
+            style={{ filter: 'drop-shadow(0 0 12px rgba(0,245,255,0.25)) drop-shadow(0 0 24px rgba(106,91,255,0.12))' }}
           />
           <EditableText
             contentKey="dashboard.hero.title"

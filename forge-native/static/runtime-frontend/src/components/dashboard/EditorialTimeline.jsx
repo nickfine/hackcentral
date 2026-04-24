@@ -78,10 +78,10 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
               <div
                 className={`rounded-2xl border px-4 py-4 ${
                   isActive
-                    ? 'border-cyan-400/45 bg-cyan-400/[0.16] shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--timeline-active-glow),var(--card-depth-subtle)] animate-[phase-beacon-pulse_3s_ease-in-out_infinite]'
+                    ? 'border-cyan-400/55 bg-cyan-400/[0.18] shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--timeline-active-glow),var(--card-depth-subtle)] ring-1 ring-cyan-400/20 ring-offset-1 ring-offset-transparent animate-[phase-beacon-pulse_3s_ease-in-out_infinite]'
                     : isCompleted
                       ? 'border-white/[0.05] bg-white/[0.01] opacity-40'
-                      : 'border-white/[0.06] bg-white/[0.02]'
+                      : 'border-white/[0.06] bg-white/[0.02] opacity-75'
                 }`}
               >
                 <div
@@ -101,7 +101,7 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
               </div>
               {i < EVENT_PHASE_ORDER.length - 1 && (
                 <div
-                  className={`absolute -right-2 top-1/2 hidden h-px w-4 md:block ${isActive ? 'bg-cyan-400/35' : 'bg-white/10'}`}
+                  className={`absolute -right-2 top-1/2 hidden h-px w-4 md:block ${isActive ? 'bg-cyan-400/50 shadow-[0_0_4px_rgba(0,245,255,0.3)]' : 'bg-white/10'}`}
                   aria-hidden="true"
                 />
               )}

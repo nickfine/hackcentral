@@ -80,10 +80,14 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Top pain points</div>
           <h2
-            className="mt-2 text-3xl font-semibold tracking-tight text-white"
+            className="mt-2 flex items-center gap-2 text-3xl font-semibold tracking-tight text-white"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Live Pain Point Feed
+            <span className="inline-flex items-center gap-1.5 align-middle" aria-hidden="true">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)] animate-[live-pulse_2s_ease-in-out_infinite]" />
+              <span className="text-xs font-medium uppercase tracking-wider text-emerald-400/70" style={{ fontFamily: 'var(--font-body)' }}>Live</span>
+            </span>
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
             Tell us about any pain points you have at work - where's the friction? What can be improved?
@@ -118,14 +122,14 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
       </div>
 
       {/* Composer */}
-      <div className="mt-5 rounded-[24px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-4 shadow-[var(--cyan-electric-inner-edge)]">
+      <div className="mt-5 rounded-[20px] border border-white/[0.06] bg-[rgba(10,22,40,0.65)] p-4">
         <form onSubmit={handleSubmit}>
           <textarea
             value={gripe}
             onChange={(e) => setGripe(e.target.value)}
             placeholder="What is slowing you down? A sentence is enough. Describe the friction, not the solution"
-            rows={4}
-            className="min-h-[120px] w-full resize-none rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white outline-none placeholder:text-white/30"
+            rows={3}
+            className="min-h-[96px] w-full resize-none rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white outline-none placeholder:text-white/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -153,15 +157,50 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
         </form>
       </div>
 
+      {/* Friction lenses — show only when feed is empty */}
+      {painPoints.length === 0 && !loading && (
+        <div className="mt-6 space-y-3">
+          <div className="text-xs uppercase tracking-[0.16em] text-white/40">Friction areas</div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              'Process',
+              'Tools',
+              'Communication',
+              'Access',
+              'Handoffs',
+              'Duplication',
+              'Waiting',
+              'Ownership',
+            ].map((lens) => (
+              <span
+                key={lens}
+                className="rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-xs text-white/65"
+              >
+                {lens}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Separator — only show when feed has items */}
+      {painPoints.length > 0 && (
+        <div className="mt-5 flex items-center gap-3" aria-hidden="true">
+          <div className="h-px flex-1 bg-white/[0.06]" />
+          <span className="text-[10px] uppercase tracking-[0.18em] text-white/30">Recent submissions</span>
+          <div className="h-px flex-1 bg-white/[0.06]" />
+        </div>
+      )}
+
       {/* Feed */}
-      <div className="mt-5 space-y-4">
+      <div className={`space-y-4 ${loading || painPoints.length > 0 ? 'mt-4' : 'mt-2'}`}>
         {loading ? (
           [1, 2, 3].map((i) => (
             <div key={i} className="h-24 animate-pulse rounded-[24px] border border-white/8 bg-white/[0.02]" />
           ))
         ) : painPoints.length === 0 ? (
-          <p className="py-8 text-center text-sm text-white/45">
-            No pain points yet - be the first to submit one!
+          <p className="py-4 text-center text-sm text-white/50">
+            No pain points yet. Start with real friction you have experienced at work.
           </p>
         ) : (
           painPoints.map((pp) => (
