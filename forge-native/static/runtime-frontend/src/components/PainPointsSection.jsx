@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Lightbulb } from 'lucide-react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { PainItem } from './shared/PainItem';
 
@@ -94,31 +95,33 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
           </p>
         </div>
 
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
-          {[
-            { key: 'reactions', label: 'Trending' },
-            { key: 'newest', label: 'Just posted' },
-          ].map((f) => {
-            const isActive = sortBy === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setSortBy(f.key)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-cyan-400/12 text-cyan-200'
-                    : 'border border-white/10 text-white/65 hover:text-white'
-                }`}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Filter tabs — only show when feed has items */}
+        {painPoints.length > 0 && (
+          <div className="flex items-center gap-2" role="tablist" aria-label="Feed filters">
+            {[
+              { key: 'reactions', label: 'Trending' },
+              { key: 'newest', label: 'Just posted' },
+            ].map((f) => {
+              const isActive = sortBy === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSortBy(f.key)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-cyan-400/12 text-cyan-200'
+                      : 'border border-white/10 text-white/65 hover:text-white'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Composer */}
@@ -132,12 +135,12 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
             className="min-h-[96px] w-full resize-none rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-sm text-white outline-none placeholder:text-white/30"
             style={{ fontFamily: 'inherit' }}
           />
-          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <input
               type="text"
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
-              placeholder="Your name"
+              placeholder="Your name (optional)"
               className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
               style={{ fontFamily: 'inherit' }}
             />
@@ -148,7 +151,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
               <button
                 type="submit"
                 disabled={!gripe.trim() || submitting}
-                className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl bg-emerald-400 px-10 py-4 text-base font-semibold text-slate-950 transition-all shadow-lg hover:shadow-[0_0_16px_rgba(0,240,255,0.3)] hover:bg-emerald-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Submitting…' : 'Submit pain point'}
               </button>
@@ -157,7 +160,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
         </form>
       </div>
 
-      {/* Friction lenses — show only when feed is empty */}
+      {/* Friction categories — show only when feed is empty */}
       {painPoints.length === 0 && !loading && (
         <div className="mt-6 space-y-3">
           <div className="text-xs uppercase tracking-[0.16em] text-white/40">Friction areas</div>
@@ -199,9 +202,19 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
             <div key={i} className="h-24 animate-pulse rounded-[24px] border border-white/8 bg-white/[0.02]" />
           ))
         ) : painPoints.length === 0 ? (
-          <p className="py-4 text-center text-sm text-white/50">
-            No pain points yet. Start with real friction you have experienced at work.
-          </p>
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#00f0ff]/10">
+              <Lightbulb className="h-7 w-7 text-[#00f0ff]" />
+            </div>
+            <h3 className="mb-2 text-xl font-semibold text-white">Be the spark.</h3>
+            <p className="mx-auto max-w-[300px] text-sm leading-relaxed text-slate-400">
+              The best ideas often start with one honest frustration.<br />
+              What's slowing you or your team down right now?
+            </p>
+            <div className="mt-4 text-xs text-slate-500">
+              100% anonymous • One sentence is enough
+            </div>
+          </div>
         ) : (
           painPoints.map((pp) => (
             <PainItem key={pp._id} pp={pp} onReact={handleReact} />
@@ -209,8 +222,8 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
         )}
       </div>
 
-      {/* See all */}
-      {onNavigate && (
+      {/* See all — only show when feed has items */}
+      {onNavigate && painPoints.length > 0 && (
         <div className="mt-5 flex justify-center">
           <button
             type="button"
