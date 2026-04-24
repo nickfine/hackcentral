@@ -774,13 +774,18 @@ function Dashboard({
     if (primaryMilestone) {
       const relative = formatRelativeWindow(primaryMilestone.startTime);
       if (!relative) return primaryMilestone.title;
-      return `${primaryMilestone.title} ${relative.replace(/^In\s/, 'in ')}`;
+      const baseText = `${primaryMilestone.title} ${relative.replace(/^In\s/, 'in ')}`;
+      // Add participant threshold for registration closing milestone
+      if (primaryMilestone.title?.includes('Registration') && eventPhase === 'signup') {
+        return `${baseText} (or when we hit 50 participants)`;
+      }
+      return baseText;
     }
 
     const phaseWindow = formatRelativeWindow(phaseEndDate);
     if (!phaseWindow) return 'Milestones syncing';
     return `Current phase closes ${phaseWindow.replace(/^In\s/, 'in ')}`;
-  }, [primaryMilestone, phaseEndDate]);
+  }, [primaryMilestone, phaseEndDate, eventPhase]);
 
   const nextMilestoneText = useMemo(() => {
     if (!secondaryMilestone) return null;

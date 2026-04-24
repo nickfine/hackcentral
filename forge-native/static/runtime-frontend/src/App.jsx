@@ -399,6 +399,9 @@ function App() {
   const [devRoleOverride, setDevRoleOverride] = useState(null);
   const [devParticipantGuestNeedsSignup, setDevParticipantGuestNeedsSignup] = useState(false);
   const autoOpenAppViewAttemptedRef = useRef(false);
+
+  // TODO: Role-gate the Admin Panel in production using @forge/bridge — only show to admins (isEventAdmin or user?.role === 'admin')
+  // Currently accessible in dev mode for testing. Enable permission checking before deploying to production.
   const canUseSimulationControls = devMode || isEventAdmin || user?.role === 'admin';
 
   const isMacroHost = useMemo(() => {

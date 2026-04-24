@@ -76,9 +76,9 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
           return (
             <div key={phase} className="relative">
               <div
-                className={`rounded-2xl border px-4 py-4 ${
+                className={`rounded-2xl border px-4 py-4 transition-transform ${
                   isActive
-                    ? 'border-cyan-400/55 bg-cyan-400/[0.18] shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--timeline-active-glow),var(--card-depth-subtle)] ring-1 ring-cyan-400/20 ring-offset-1 ring-offset-transparent animate-[phase-beacon-pulse_3s_ease-in-out_infinite]'
+                    ? 'border-cyan-400/55 bg-cyan-400/[0.18] shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--timeline-active-glow),var(--card-depth-subtle)] ring-1 ring-cyan-400/20 ring-offset-1 ring-offset-transparent animate-[phase-beacon-pulse_3s_ease-in-out_infinite] hover:scale-105'
                     : isCompleted
                       ? 'border-white/[0.05] bg-white/[0.01] opacity-40'
                       : 'border-white/[0.06] bg-white/[0.02] opacity-75'

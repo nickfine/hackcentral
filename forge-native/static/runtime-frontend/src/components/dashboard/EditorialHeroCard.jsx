@@ -59,8 +59,12 @@ function EditorialCountdown({ scheduleMilestones }) {
 
   return (
     <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-      {tiles.map(([n, l]) => (
-        <div key={l} className="rounded-2xl border border-cyan-400/[0.20] bg-cyan-400/[0.05] px-3 py-5">
+      {tiles.map(([n, l], idx) => (
+        <div key={l} className={`relative rounded-2xl border border-cyan-400/[0.20] bg-cyan-400/[0.05] px-3 py-5 ${idx === 2 ? 'ring-1 ring-cyan-400/30' : ''}`}>
+          {/* Pulsing indicator on minutes tile only */}
+          {idx === 2 && (
+            <div className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(0,245,255,0.6)] animate-pulse" aria-hidden="true" />
+          )}
           <div
             className="text-4xl font-semibold tracking-tight text-cyan-300 lg:text-5xl"
             style={{ filter: 'drop-shadow(0 0 14px rgba(0,245,255,0.35))' }}
