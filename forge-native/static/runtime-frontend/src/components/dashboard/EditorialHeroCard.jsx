@@ -47,8 +47,8 @@ function EditorialCountdown({ scheduleMilestones }) {
 
   if (!tiles) {
     return (
-      <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4 text-center">
-        <div className="text-sm font-medium text-cyan-300">
+      <div className="mt-6 rounded-full border border-cyan-400/35 bg-cyan-400/[0.10] px-5 py-2.5 text-center">
+        <div className="text-sm font-semibold text-cyan-300">
           {firstMilestone
             ? firstMilestone.title.replace(/\s+opens?$/i, ' is now open')
             : 'Loading schedule…'}
@@ -94,8 +94,12 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
       <div
-        className="rounded-[28px] border border-cyan-400/45 p-8 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge-strong),var(--card-inner-edge-bottom),var(--hero-depth),0_0_0_1px_rgba(0,255,255,0.12)]"
-        style={{ background: 'radial-gradient(circle at top left, rgba(40,210,255,0.22), transparent 40%), radial-gradient(circle at top right, rgba(106,91,255,0.14), transparent 40%), radial-gradient(ellipse at bottom center, rgba(0,245,255,0.06), transparent 50%), linear-gradient(180deg,#0a1526,#0a1222)' }}
+        className="relative rounded-[28px] border border-white/[0.08] p-8"
+        style={{
+          background: 'radial-gradient(circle at 80% 15%, rgba(139,92,246,0.08), transparent 45%), linear-gradient(180deg, #0a1428 0%, #070e1e 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          overflow: 'hidden'
+        }}
         data-testid="dashboard-hero-card"
       >
         {children}
@@ -105,7 +109,7 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
       <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(0,245,255,0.06)_0%,rgba(255,255,255,0.015)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
         <div className="text-xs uppercase tracking-[0.22em] text-white/40">HackDay starts in</div>
         <EditorialCountdown scheduleMilestones={scheduleMilestones} />
-        <div className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 text-sm leading-relaxed text-white/60">
+        <div className="mt-6 rounded-2xl border border-white/[0.07] border-l-2 border-l-cyan-400/25 bg-[rgba(10,18,34,0.60)] p-4 text-sm leading-relaxed text-white/60">
           <div className="font-semibold text-white/95">What matters now</div>
           <div className="mt-1">
             Get a pain point posted early and make your profile team-ready before registration opens.
