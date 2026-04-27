@@ -360,3 +360,94 @@ export const createHackDayFromWeb = action({
     return data;
   },
 });
+
+/**
+ * Delete a HackDay instance. Only the creator or primary admin can delete.
+ * This is a hard delete from Supabase.
+ */
+export const deleteHackDay = action({
+  args: { eventId: v.string() },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("You must be signed in to delete a HackDay.");
+    }
+
+    const userEmail = identity.email?.trim?.()?.toLowerCase();
+    if (!userEmail) {
+      throw new Error("Your account must have an email to delete a HackDay.");
+    }
+
+    const url = process.env?.SUPABASE_URL?.replace(/\/$/, "");
+    const key = process.env?.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error("Server configuration error: Supabase credentials not set.");
+    }
+
+    // Fetch the event to verify permissions
+    type EventRow = {
+      id: string;
+      created_by_user_id: string | null;
+      confluence_page_id: string | null;
+    };
+
+    const events = await supabaseGet<EventRow>(
+      url,
+      key,
+      "/Event",
+      {
+        select: "id,created_by_user_id,confluence_page_id",
+        "id": `eq.${args.eventId}`,
+      }
+    );
+
+    if (events.length === 0) {
+      throw new Error("HackDay not found.");
+    }
+
+    const event = events[0];
+
+    // Check if user is primary admin by looking up HackdayTemplateSeed
+    type SeedRow = {
+      primary_admin_email: string;
+    };
+
+    let isAdmin = false;
+    if (event.confluence_page_id) {
+      const seeds = await supabaseGet<SeedRow>(url, key, "/HackdayTemplateSeed", {
+        select: "primary_admin_email",
+        "confluence_page_id": `eq.${event.confluence_page_id}`,
+      });
+      if (seeds.length > 0 && seeds[0].primary_admin_email.toLowerCase() === userEmail) {
+        isAdmin = true;
+      }
+    }
+
+    // Check if user is creator (by ID match if available, otherwise email-based)
+    const isCreator = event.created_by_user_id === identity.subject || isAdmin;
+
+    if (!isCreator && !isAdmin) {
+      throw new Error("You do not have permission to delete this HackDay. Only the creator or primary admin can delete.");
+    }
+
+    // Delete the event from Supabase
+    const deleteRes = await fetch(`${url}/rest/v1/Event?id=eq.${args.eventId}`, {
+      method: "DELETE",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!deleteRes.ok) {
+      const text = await deleteRes.text();
+      throw new Error(`Failed to delete HackDay: ${deleteRes.status} ${text}`);
+    }
+
+    return {
+      success: true,
+      message: `HackDay "${event.id}" deleted successfully.`,
+    };
+  },
+});

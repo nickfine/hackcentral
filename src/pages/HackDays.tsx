@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAction } from 'convex/react';
-import { ExternalLink, Plus, Calendar, User, Rocket } from 'lucide-react';
+import { ExternalLink, Plus, Calendar, User, Rocket, Trash2 } from 'lucide-react';
 import { api } from '../../convex/_generated/api';
 import type { HackDayEventItem } from '../../convex/hackdays';
 import { SectionHeader } from '@/components/shared';
@@ -64,10 +64,28 @@ function getLifecycleBadgeClass(status: string): string {
 
 export default function HackDays() {
   const listEvents = useAction(api.hackdays.listHackDayEvents);
+  const deleteAction = useAction(api.hackdays.deleteHackDay);
 
   const [events, setEvents] = useState<HackDayEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (eventId: string, eventName: string) => {
+    setDeleting(eventId);
+    try {
+      await deleteAction({ eventId });
+      setDeleteConfirm(null);
+      // Refresh the list
+      const eventList = await listEvents();
+      setEvents(eventList);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete HackDay');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -159,52 +177,97 @@ export default function HackDays() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className={eventCardClass}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
-                  {event.name}
-                </h3>
-                <span className={getLifecycleBadgeClass(event.lifecycleStatus)}>
-                  {LIFECYCLE_LABELS[event.lifecycleStatus] ?? event.lifecycleStatus}
-                </span>
-              </div>
-              <dl className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {event.primaryAdminEmail && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-3.5 w-3.5 shrink-0 text-teal-600 dark:text-teal-500" />
-                    <span className="truncate">{event.primaryAdminEmail}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 shrink-0 text-teal-600 dark:text-teal-500" />
-                  <span>{formatDate(event.createdAt)}</span>
-                </div>
-              </dl>
-              <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-700">
-                {event.confluencePageUrl ? (
-                  <a
-                    href={event.confluencePageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300"
-                  >
-                    Open in Confluence
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                ) : event.confluencePageId ? (
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Page ID: {event.confluencePageId}
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className={eventCardClass}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                    {event.name}
+                  </h3>
+                  <span className={getLifecycleBadgeClass(event.lifecycleStatus)}>
+                    {LIFECYCLE_LABELS[event.lifecycleStatus] ?? event.lifecycleStatus}
                   </span>
-                ) : null}
+                </div>
+                <dl className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  {event.primaryAdminEmail && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-3.5 w-3.5 shrink-0 text-teal-600 dark:text-teal-500" />
+                      <span className="truncate">{event.primaryAdminEmail}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-teal-600 dark:text-teal-500" />
+                    <span>{formatDate(event.createdAt)}</span>
+                  </div>
+                </dl>
+                <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-700">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      {event.confluencePageUrl ? (
+                        <a
+                          href={event.confluencePageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline dark:text-teal-300"
+                        >
+                          Open in Confluence
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : event.confluencePageId ? (
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Page ID: {event.confluencePageId}
+                        </span>
+                      ) : null}
+                    </div>
+                    <button
+                      onClick={() => setDeleteConfirm(event.id)}
+                      disabled={deleting === event.id}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                      title="Delete HackDay"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Delete Confirmation Dialog */}
+          {deleteConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800 max-w-sm">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Delete HackDay?
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Are you sure you want to permanently delete "
+                  {events.find((e) => e.id === deleteConfirm)?.name}"? This action cannot be undone.
+                </p>
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="flex-1 btn btn-sm btn-outline"
+                    disabled={deleting !== null}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirm, events.find((e) => e.id === deleteConfirm)?.name || '')}
+                    className="flex-1 btn btn-sm bg-red-600 hover:bg-red-700 text-white"
+                    disabled={deleting !== null}
+                  >
+                    {deleting === deleteConfirm ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
