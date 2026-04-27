@@ -1476,6 +1476,7 @@ export type Defs = {
   hdcSetActiveAppModeContext: (payload: { pageId: string; eventId: string }) => SetActiveAppModeContextResult;
   hdcCreateInstanceDraft: (payload: CreateInstanceDraftInput) => CreateInstanceDraftResult;
   hdcDeleteDraftInstance: (payload: { eventId: string }) => DeleteDraftResult;
+  hdcDeleteInstance: (payload: { eventId: string }) => DeleteDraftResult;
   hdcLaunchInstance: (payload: { eventId: string }) => EventLifecycleResult;
   hdcSubmitHack: (payload: SubmitHackInput) => SubmitHackResult;
   hdcGetRoiDashboard: (payload: GetRoiDashboardInput) => RoiDashboardSnapshot;
