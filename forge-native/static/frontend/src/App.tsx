@@ -1527,6 +1527,8 @@ export function App(): JSX.Element {
   const [hackdaySearchInput, setHackdaySearchInput] = useState('');
   const [hackdaySortBy, setHackdaySortBy] = useState<HackdaySortBy>('recent');
   const [hackdayExtractionPanelOpen, setHackdayExtractionPanelOpen] = useState(false);
+  const [deleteConfirmEventId, setDeleteConfirmEventId] = useState<string | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   const [roiSnapshot, setRoiSnapshot] = useState<RoiDashboardSnapshot | null>(null);
   const [roiLoading, setRoiLoading] = useState(false);
@@ -1660,6 +1662,22 @@ export function App(): JSX.Element {
       setRefreshingSwitcherRegistry(false);
     }
   }, [loadBootstrap]);
+
+  const handleDeleteHackday = useCallback(async (eventId: string) => {
+    setDeletingEventId(eventId);
+    try {
+      await invokeTyped('hdcDeleteInstance', { eventId });
+      setBootstrap((current) =>
+        current ? { ...current, registry: current.registry.filter((e) => e.id !== eventId) } : current
+      );
+      setDeleteConfirmEventId(null);
+      setActionMessage('HackDay deleted.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete HackDay.');
+    } finally {
+      setDeletingEventId(null);
+    }
+  }, []);
 
   const featuredHacks = useMemo(() => bootstrap?.featuredHacks ?? [], [bootstrap?.featuredHacks]);
   const latestHackSubmission = useMemo(
@@ -7561,6 +7579,15 @@ export function App(): JSX.Element {
                           ) : (
                             <span className="text-muted">Page not yet available</span>
                           )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm btn-danger"
+                            onClick={() => setDeleteConfirmEventId(event.id)}
+                            disabled={deletingEventId === event.id}
+                            title="Delete HackDay"
+                          >
+                            {deletingEventId === event.id ? '…' : '🗑'}
+                          </button>
                         </div>
                       </article>
                     ))}
@@ -7813,6 +7840,36 @@ export function App(): JSX.Element {
                 <p className="meta">Set <strong>CONFLUENCE_HDC_PARENT_PAGE_ID</strong> in Forge env to enable the create wizard.</p>
               ) : null}
             </section>
+          ) : null}
+
+          {deleteConfirmEventId ? (
+            <div className="modal-backdrop" role="dialog" aria-modal="true">
+              <div className="modal-box">
+                <h2>Delete HackDay?</h2>
+                <p>
+                  Are you sure you want to permanently delete <strong>{registry.find((e) => e.id === deleteConfirmEventId)?.eventName ?? deleteConfirmEventId}</strong>?
+                  This will also delete the Confluence page and all event data. This cannot be undone.
+                </p>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setDeleteConfirmEventId(null)}
+                    disabled={deletingEventId !== null}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleDeleteHackday(deleteConfirmEventId)}
+                    disabled={deletingEventId !== null}
+                  >
+                    {deletingEventId !== null ? 'Deleting…' : 'Delete permanently'}
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : null}
 
           {view === 'create_hackday' ? (

@@ -1744,6 +1744,38 @@ export class HdcService {
     return { deleted: true };
   }
 
+  async deleteInstance(viewer: ViewerContext, eventId: string): Promise<DeleteDraftResult> {
+    const user = await this.repository.ensureUser(viewer);
+    const event = await this.repository.getEventById(eventId);
+    if (!event) {
+      throw new Error('Event not found.');
+    }
+
+    const admins = await this.repository.listEventAdmins(eventId);
+    const isAdmin = admins.some((admin) => admin.user_id === user.id);
+    if (!isAdmin) {
+      throw new Error('Only an admin can delete a HackDay instance.');
+    }
+
+    await this.repository.logAudit({
+      eventId,
+      actorUserId: user.id,
+      action: 'instance_deleted',
+      previousValue: {
+        eventName: event.name,
+        lifecycleStatus: event.lifecycle_status,
+        confluencePageId: event.confluence_page_id,
+      },
+    });
+
+    if (event.confluence_page_id) {
+      await deletePage(event.confluence_page_id);
+    }
+    await this.repository.deleteEventCascade(eventId);
+
+    return { deleted: true };
+  }
+
   async bulkCleanupTestEvents(viewer: ViewerContext): Promise<{
     deletedCount: number;
     failedCount: number;
