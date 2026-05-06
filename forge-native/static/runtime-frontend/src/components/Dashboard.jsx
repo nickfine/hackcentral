@@ -1185,160 +1185,170 @@ function Dashboard({
       </EditorialHeroCard>
 
       {/* ====== PHASE TIMELINE ====== */}
-      <EditorialTimeline eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
+      {eventPhase !== 'signup' && (
+        <EditorialTimeline eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
+      )}
 
       {/* ====== STAT GRID ====== */}
-      <EditorialStatGrid stats={[
-        {
-          label: 'Your activity',
-          value: teamReadiness.label,
-          meta: teamReadiness.detail,
-          accent: `${readinessProgressPercent}% complete`,
-          testId: 'dashboard-kpi-status',
-        },
-        {
-          label: 'Participants',
-          rawValue: stats.participants,
-          meta: stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null,
-          accent: dailyDeltas.newParticipantsToday > 0 ? `+${dailyDeltas.newParticipantsToday} today` : null,
-          testId: 'dashboard-kpi-participants',
-        },
-        {
-          label: 'Teams',
-          rawValue: stats.teams,
-          accent: dailyDeltas.newTeamsToday > 0 ? `+${dailyDeltas.newTeamsToday} today` : 'Forming now',
-          testId: 'dashboard-kpi-teams',
-        },
-        {
-          label: 'Submissions',
-          rawValue: stats.submissions,
-          meta: isEarlyExecutionPhase ? 'Not open yet' : null,
-          accent: isEarlyExecutionPhase ? 'Awaiting launch' : null,
-          testId: 'dashboard-kpi-submissions',
-        },
-      ]} />
+      {eventPhase !== 'signup' && (
+        <EditorialStatGrid stats={[
+          {
+            label: 'Your activity',
+            value: teamReadiness.label,
+            meta: teamReadiness.detail,
+            accent: `${readinessProgressPercent}% complete`,
+            testId: 'dashboard-kpi-status',
+          },
+          {
+            label: 'Participants',
+            rawValue: stats.participants,
+            meta: stats.freeAgents > 0 ? `${stats.freeAgents} unassigned` : null,
+            accent: dailyDeltas.newParticipantsToday > 0 ? `+${dailyDeltas.newParticipantsToday} today` : null,
+            testId: 'dashboard-kpi-participants',
+          },
+          {
+            label: 'Teams',
+            rawValue: stats.teams,
+            accent: dailyDeltas.newTeamsToday > 0 ? `+${dailyDeltas.newTeamsToday} today` : 'Forming now',
+            testId: 'dashboard-kpi-teams',
+          },
+          {
+            label: 'Submissions',
+            rawValue: stats.submissions,
+            meta: isEarlyExecutionPhase ? 'Not open yet' : null,
+            accent: isEarlyExecutionPhase ? 'Awaiting launch' : null,
+            testId: 'dashboard-kpi-submissions',
+          },
+        ]} />
+      )}
 
       {/* ====== MAIN CONTENT GRID ====== */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.65fr]" data-testid="dashboard-below-fold">
+      {eventPhase !== 'signup' ? (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.65fr]" data-testid="dashboard-below-fold">
 
-        {/* LEFT COLUMN - pain points (early phases) or live activity (later phases) */}
-        <div>
-          {isEarlyExecutionPhase ? (
-            <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
-          ) : (
-            <div
-              className="rounded-[28px] border border-white/[0.08] bg-[var(--activity-panel-gradient)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
-              data-testid="dashboard-live-activity"
-            >
-              <div className="flex items-center justify-between border-b border-white/[0.05] pb-5">
-                <div className="text-xs uppercase tracking-[0.16em] text-white/55">Live Activity</div>
-                <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/50">
-                  <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)] animate-[live-pulse_2s_ease-in-out_infinite]" />
-                  Live
-                </span>
-              </div>
-              <div className="mt-5 space-y-3">
-                {activityFeed.slice(0, 5).map((activity, index) => {
-                  const verb = ACTIVITY_VERBS[activity.type] || 'updated';
-                  const timestamp = formatActivityTime(activity.time);
-                  const activityTarget = resolveActivityTarget(activity);
-                  const resolvedTeamId = activityTarget?.view === 'team-detail'
-                    ? activityTarget.params?.teamId
-                    : null;
-                  return (
-                    <div
-                      key={activity.id || `activity-${index}`}
-                      data-testid="dashboard-activity-item"
-                      data-activity-team-id={resolvedTeamId || undefined}
-                      className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-cyan-400/20 hover:bg-white/[0.04]"
-                      onClick={() => handleActivityItemClick(activity)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleActivityItemClick(activity);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={activity.team ? `Open team ${activity.team}` : 'Open activity details'}
-                    >
+          {/* LEFT COLUMN - pain points (early phases) or live activity (later phases) */}
+          <div>
+            {isEarlyExecutionPhase ? (
+              <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
+            ) : (
+              <div
+                className="rounded-[28px] border border-white/[0.08] bg-[var(--activity-panel-gradient)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+                data-testid="dashboard-live-activity"
+              >
+                <div className="flex items-center justify-between border-b border-white/[0.05] pb-5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-white/55">Live Activity</div>
+                  <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/50">
+                    <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)] animate-[live-pulse_2s_ease-in-out_infinite]" />
+                    Live
+                  </span>
+                </div>
+                <div className="mt-5 space-y-3">
+                  {activityFeed.slice(0, 5).map((activity, index) => {
+                    const verb = ACTIVITY_VERBS[activity.type] || 'updated';
+                    const timestamp = formatActivityTime(activity.time);
+                    const activityTarget = resolveActivityTarget(activity);
+                    const resolvedTeamId = activityTarget?.view === 'team-detail'
+                      ? activityTarget.params?.teamId
+                      : null;
+                    return (
                       <div
-                        data-testid="dashboard-activity-avatar"
-                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[10px] font-bold text-cyan-300/90"
+                        key={activity.id || `activity-${index}`}
+                        data-testid="dashboard-activity-item"
+                        data-activity-team-id={resolvedTeamId || undefined}
+                        className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-cyan-400/20 hover:bg-white/[0.04]"
+                        onClick={() => handleActivityItemClick(activity)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleActivityItemClick(activity);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={activity.team ? `Open team ${activity.team}` : 'Open activity details'}
                       >
-                        {getInitials(activity.user)}
+                        <div
+                          data-testid="dashboard-activity-avatar"
+                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[10px] font-bold text-cyan-300/90"
+                        >
+                          {getInitials(activity.user)}
+                        </div>
+                        <div className="min-w-0 text-sm leading-5">
+                          <p className="text-white/70">
+                            <span className="font-medium text-white">{activity.user}</span>
+                            {' '}
+                            <span>{verb}</span>
+                            {activity.team ? (
+                              <> <span className="font-medium text-white">{activity.team}</span></>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-white/35">{timestamp}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 text-sm leading-5">
-                        <p className="text-white/70">
-                          <span className="font-medium text-white">{activity.user}</span>
-                          {' '}
-                          <span>{verb}</span>
-                          {activity.team ? (
-                            <> <span className="font-medium text-white">{activity.team}</span></>
-                          ) : null}
-                        </p>
-                        <p className="text-xs text-white/35">{timestamp}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <div className="mt-5 flex justify-center">
+                  <button
+                    type="button"
+                    data-testid="dashboard-view-all-activity"
+                    className="rounded-full border border-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/70"
+                    onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
+                  >
+                    View all activity
+                  </button>
+                </div>
               </div>
-              <div className="mt-5 flex justify-center">
-                <button
-                  type="button"
-                  data-testid="dashboard-view-all-activity"
-                  className="rounded-full border border-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/70"
-                  onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
-                >
-                  View all activity
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* RIGHT RAIL */}
-        <div>
-          {/* Announcements / Admin message */}
-          {showAdminMessagePod && (
-            <div
-              className="mb-6 rounded-[26px] border border-white/8 bg-white/[0.03] p-6"
-              data-testid="dashboard-admin-message"
-            >
-              <div className="text-xs uppercase tracking-[0.18em] text-white/45">Announcements</div>
-              <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.02] p-4">
-                {(String(configMotdTitle || '').trim() || (configMode.isEnabled && configMode.canEdit)) && (
-                  <EditableText
-                    contentKey="dashboard.motd.title"
-                    fallback={configMotdTitle}
+          {/* RIGHT RAIL */}
+          <div>
+            {/* Announcements / Admin message */}
+            {showAdminMessagePod && (
+              <div
+                className="mb-6 rounded-[26px] border border-white/8 bg-white/[0.03] p-6"
+                data-testid="dashboard-admin-message"
+              >
+                <div className="text-xs uppercase tracking-[0.18em] text-white/45">Announcements</div>
+                <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+                  {(String(configMotdTitle || '').trim() || (configMode.isEnabled && configMode.canEdit)) && (
+                    <EditableText
+                      contentKey="dashboard.motd.title"
+                      fallback={configMotdTitle}
+                      as="p"
+                      displayClassName="text-xs font-semibold uppercase tracking-wider text-white/45 mb-1"
+                      placeholder={configMode.isEnabled ? 'Optional message title' : ''}
+                    />
+                  )}
+                  <EditableTextArea
+                    contentKey="dashboard.motd.message"
+                    fallback={configMotdBody}
                     as="p"
-                    displayClassName="text-xs font-semibold uppercase tracking-wider text-white/45 mb-1"
-                    placeholder={configMode.isEnabled ? 'Optional message title' : ''}
+                    rows={3}
+                    displayClassName="text-sm text-white/70 leading-snug"
+                    placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
                   />
-                )}
-                <EditableTextArea
-                  contentKey="dashboard.motd.message"
-                  fallback={configMotdBody}
-                  as="p"
-                  rows={3}
-                  displayClassName="text-sm text-white/70 leading-snug"
-                  placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
-                />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <EditorialRightRail
-            comingUpMilestones={comingUpMilestones}
-            onNavigate={onNavigate}
-            readinessItems={readinessItems}
-            readinessProgressPercent={readinessProgressPercent}
-            nextBestAction={nextBestAction}
-            isEarlyExecutionPhase={isEarlyExecutionPhase}
-          />
+            <EditorialRightRail
+              comingUpMilestones={comingUpMilestones}
+              onNavigate={onNavigate}
+              readinessItems={readinessItems}
+              readinessProgressPercent={readinessProgressPercent}
+              nextBestAction={nextBestAction}
+              isEarlyExecutionPhase={isEarlyExecutionPhase}
+            />
+          </div>
+
         </div>
-
-      </div>
+      ) : (
+        <div className="grid grid-cols-1" data-testid="dashboard-below-fold">
+          <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
+        </div>
+      )}
 
       {/* Diagnostic values for tests */}
       <span className="sr-only" data-testid="dashboard-phase-label">{PHASE_LABELS[eventPhase] || eventPhase}</span>
