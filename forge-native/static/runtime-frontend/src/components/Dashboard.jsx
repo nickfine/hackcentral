@@ -1185,9 +1185,7 @@ function Dashboard({
       </EditorialHeroCard>
 
       {/* ====== PHASE TIMELINE ====== */}
-      {eventPhase !== 'signup' && (
-        <EditorialTimeline eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
-      )}
+      <EditorialTimeline eventPhase={eventPhase} scheduleMilestones={scheduleMilestones} />
 
       {/* ====== STAT GRID ====== */}
       {eventPhase !== 'signup' && (
