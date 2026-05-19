@@ -312,6 +312,7 @@ export function ConfigModeProvider({
   const [saveError, setSaveError] = useState(null);
   const [conflict, setConflict] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(null);
+  const [draftSaveSuccess, setDraftSaveSuccess] = useState(null);
   const [backupError, setBackupError] = useState(null);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
@@ -393,6 +394,14 @@ export function ConfigModeProvider({
     }, 6000);
     return () => window.clearTimeout(timerId);
   }, [publishSuccess]);
+
+  useEffect(() => {
+    if (!draftSaveSuccess) return undefined;
+    const timerId = window.setTimeout(() => {
+      setDraftSaveSuccess(null);
+    }, 3000);
+    return () => window.clearTimeout(timerId);
+  }, [draftSaveSuccess]);
 
   useEffect(() => {
     setPublishedMotdMessage(normalizeAdminMessage(eventAdminMessage, eventAdminMessage?.message || eventAdminMessage || '') || null);
@@ -529,6 +538,7 @@ export function ConfigModeProvider({
       setSaveError(null);
       setConflict(false);
       setPublishSuccess(null);
+      setDraftSaveSuccess(null);
     }
 
     try {
@@ -548,6 +558,9 @@ export function ConfigModeProvider({
         setDraftEnvelope(nextDraft);
         setWorkingPatch(clonePatch(nextDraft.patch));
         setHasUnsavedChanges(false);
+        if (!silent) {
+          setDraftSaveSuccess('Draft saved successfully');
+        }
         return { success: true, draft: nextDraft };
       }
 
@@ -574,6 +587,9 @@ export function ConfigModeProvider({
       setDraftEnvelope(nextDraft);
       setWorkingPatch(clonePatch(nextDraft.patch));
       setHasUnsavedChanges(false);
+      if (!silent) {
+        setDraftSaveSuccess('Draft saved successfully');
+      }
       return { success: true, draft: nextDraft };
     } catch (err) {
       console.error('[ConfigMode] saveDraft failed:', err);
@@ -1038,7 +1054,7 @@ export function ConfigModeProvider({
     setPendingConfirmType('discard');
   }, [canEdit, isEnabled, hasDraft, hasUnsavedChanges]);
 
-  const requestExitConfigMode = useCallback(() => {
+  const requestExitConfigMode = useCallback(async () => {
     if (!canEdit || !isEnabled) return;
     if (hasUnsavedChanges) {
       setPendingConfirmType('exit');
@@ -1055,12 +1071,25 @@ export function ConfigModeProvider({
     }
 
     if (pendingConfirmType === 'exit') {
-      forceExitConfigMode();
-      return { success: true };
+      if (hasUnsavedChanges) {
+        setSaveError(null);
+        setConflict(false);
+        const saveResult = await saveDraft({ silent: true });
+        if (saveResult.success) {
+          forceExitConfigMode();
+          return { success: true };
+        } else {
+          setSaveError('Failed to auto-save changes before exit. Please save manually or discard.');
+          return { success: false };
+        }
+      } else {
+        forceExitConfigMode();
+        return { success: true };
+      }
     }
 
     return { success: false, skipped: true };
-  }, [pendingConfirmType, discardDraft, closeConfirmDialog, forceExitConfigMode]);
+  }, [pendingConfirmType, discardDraft, closeConfirmDialog, forceExitConfigMode, hasUnsavedChanges, saveDraft]);
 
   const confirmDialog = useMemo(() => {
     if (!pendingConfirmType || pendingConfirmType === 'publish') {
@@ -1093,13 +1122,15 @@ export function ConfigModeProvider({
       isOpen: true,
       type: 'exit',
       title: 'Exit Config Mode?',
-      description: 'You have unsaved changes. Exit now will keep current published content unchanged.',
-      confirmLabel: 'Exit Config Mode',
-      confirmVariant: 'danger',
+      description: hasUnsavedChanges
+        ? 'You have unsaved changes. They will be automatically saved to draft before exiting. You can publish them later or discard them.'
+        : 'Exit Config Mode and return to participant view?',
+      confirmLabel: hasUnsavedChanges ? 'Save & Exit' : 'Exit Config Mode',
+      confirmVariant: 'primary',
       sections: [],
       totalFields: 0,
     };
-  }, [pendingConfirmType]);
+  }, [pendingConfirmType, hasUnsavedChanges]);
 
   const toggleConfigMode = useCallback(() => {
     if (!canEdit) return;
@@ -1146,6 +1177,7 @@ export function ConfigModeProvider({
       saveError,
       conflict,
       publishSuccess,
+      draftSaveSuccess,
       publishFooterState,
       isPublishFooterActive,
       publishSummary,
@@ -1179,6 +1211,7 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    draftSaveSuccess,
     publishFooterState,
     isPublishFooterActive,
     publishSummary,
@@ -1208,6 +1241,7 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    draftSaveSuccess,
     publishFooterState,
     isPublishFooterActive,
     publishSummary,
@@ -1272,6 +1306,7 @@ export function ConfigModeProvider({
     saveError,
     conflict,
     publishSuccess,
+    draftSaveSuccess,
     publishFooterState,
     isPublishFooterActive,
     publishSummary,
@@ -1346,6 +1381,7 @@ export function useConfigMode() {
       saveError: null,
       conflict: false,
       publishSuccess: null,
+      draftSaveSuccess: null,
       publishFooterState: 'default',
       isPublishFooterActive: false,
       publishSummary: {

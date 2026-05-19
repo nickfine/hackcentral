@@ -115,9 +115,9 @@ invokeEventScopedResolver(invoke, 'resolverName', appModeResolverPayload, payloa
 Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrentEvent` falls back to global resolution and may pick the wrong event.
 
 ### Phase simulation vs real phase
-- The **PhasesPanel in AdminPanel is frontend-only** — clicking a phase updates React state only, never calls `setEventPhase` or changes the DB
+- The **PhasesPanel in AdminPanel makes real DB changes** — clicking a phase shows a confirmation modal ("This change will apply to all participants immediately") and calls `setEventPhase`
 - Backend resolvers read the real phase from DB via `getCurrentEvent(supabase, req)`
-- Phase-gated backend behaviour must be tested by changing the real DB phase (Supabase directly or `setEventPhase` resolver)
+- Phase-gated backend behaviour can be tested via PhasesPanel in AdminPanel or directly via Supabase
 - `effectiveEventPhase` in App.jsx = `deriveEffectiveEventPhase(eventPhase, user)` — only promotes `signup` → `team_formation` for eligible users; all other phases pass through unchanged
 
 ### Bootstrap context

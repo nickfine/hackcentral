@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, PanelRightClose, Save, Shield, TriangleAlert, Undo2, Upload, X } from 'lucide-react';
+import { CheckCircle, Loader2, PanelRightClose, Save, Shield, TriangleAlert, Undo2, Upload, X } from 'lucide-react';
 import { Badge, Button } from '../components/ui';
 import { cn } from '../lib/design-system';
 import { useConfigMode } from './ConfigModeContext';
@@ -27,6 +27,7 @@ function ConfigSidePanel({ isMacroHost = false }) {
     publishSummary,
     publishDraft,
     cancelPublishDraftRequest,
+    draftSaveSuccess,
   } = useConfigMode();
   const canDiscard = hasDraft || hasUnsavedChanges;
   const canPublish = hasDraft || hasUnsavedChanges;
@@ -260,6 +261,15 @@ function ConfigSidePanel({ isMacroHost = false }) {
                         ? 'Retry publish'
                         : 'Publish now'}
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {draftSaveSuccess && (
+              <div className="border-t border-arena-border bg-[color-mix(in_srgb,#10b981_10%,transparent)] px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 shrink-0 text-[#10b981]" />
+                  <p className="text-sm font-medium text-text-primary">{draftSaveSuccess}</p>
                 </div>
               </div>
             )}
