@@ -1839,6 +1839,7 @@ function App() {
             onLeaveTeam={handleLeaveTeam}
             eventPhase={effectiveEventPhase}
             appModeResolverPayload={appModeResolverPayload}
+            skillsConfig={eventSkillsConfig}
           />
         );
 
