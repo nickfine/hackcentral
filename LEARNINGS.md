@@ -42,6 +42,19 @@ When editing event name, schedule, or content overrides — **Supabase is not th
 **Forge Native Package:** 0.3.60
 **Runtime Bundle Version:** 1.2.93
 
+## Session Update - Per-Hackday Skills Toggle (May 19, 2026)
+
+### Feature
+Admin can toggle skills on/off per hackday from AdminPanel > Settings. When off: skills step removed from signup, all skills UI hidden in TeamDetail, Marketplace and join request modal. Admin can also supply a custom skills list that replaces the default `SKILLS` constant. Config stored in Forge Storage under `eventSkillsConfig:v1:{eventId}`. Default (`null`) = skills enabled with standard list (backward compatible). Shipped at runtime bundle v1.2.181.
+
+### Gotcha — TeamDetail uses explicit props, not commonProps spread
+Most views in App.jsx receive `{...commonProps}`, which includes everything in the `commonProps` object. `TeamDetail` does not — it has a manually maintained explicit prop list at `App.jsx:~1830`. Any new prop added to `commonProps` will **not** automatically reach `TeamDetail`. It must be added to the `<TeamDetail ...>` render block by hand. This was the root cause of `skillsConfig` silently defaulting to `null` (skills always enabled) despite the admin having turned them off.
+
+### Pattern — per-event feature config via Forge Storage
+Storing per-event feature flags in Forge Storage (not Supabase) is the correct pattern for config that needs to be available to all users without a Supabase join. The `getEventPhase` resolver is the right place to attach it — it runs on bootstrap and is called by all user types.
+
+---
+
 ## Session Update - Git-Native tag-hackday Tenant Checkout Cleanup (Apr 3, 2026 22:30 BST)
 
 ### Completed
