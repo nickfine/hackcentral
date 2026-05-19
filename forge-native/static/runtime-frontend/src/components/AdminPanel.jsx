@@ -284,6 +284,7 @@ function AdminPanel({
   onBrandingPreviewClear,
   onBrandingSaved,
   appModeResolverPayload = null,
+  skillsConfig: initialSkillsConfig = null,
 }) {
   const configMode = useConfigMode();
   const [activeSection, setActiveSection] = useState('overview');
@@ -303,6 +304,10 @@ function AdminPanel({
   const [settingsStatus, setSettingsStatus] = useState(null);
   const [messagingStatus, setMessagingStatus] = useState(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [skillsConfig, setSkillsConfig] = useState({ enabled: true, list: null });
+  const [isSavingSkillsConfig, setIsSavingSkillsConfig] = useState(false);
+  const [skillsConfigStatus, setSkillsConfigStatus] = useState(null);
+  const [newSkillInput, setNewSkillInput] = useState('');
   const [isSavingMotd, setIsSavingMotd] = useState(false);
   const [isResettingData, setIsResettingData] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
@@ -659,6 +664,16 @@ function AdminPanel({
     };
   }, [appModeResolverPayload, isAdmin, activeSection, forgeHost, configModeActive, configMode.getFieldValue]);
 
+  // Sync skills config from the prop (passed down from App.jsx eventSkillsConfig state)
+  useEffect(() => {
+    if (initialSkillsConfig && typeof initialSkillsConfig === 'object') {
+      setSkillsConfig({
+        enabled: initialSkillsConfig.enabled !== false,
+        list: Array.isArray(initialSkillsConfig.list) ? initialSkillsConfig.list : null,
+      });
+    }
+  }, [initialSkillsConfig]);
+
   useEffect(() => {
     if (backupSnapshots.length === 0) {
       setSelectedSnapshotId('');
@@ -849,6 +864,28 @@ function AdminPanel({
       setSettingsStatus({ type: 'error', message: err?.message || 'Failed to save event settings.' });
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleSaveSkillsConfig = async () => {
+    setSkillsConfigStatus(null);
+    setIsSavingSkillsConfig(true);
+    try {
+      if (forgeHost) {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'saveEventSkillsConfig', appModeResolverPayload, {
+          skillsConfig: {
+            enabled: skillsConfig.enabled,
+            list: skillsConfig.list,
+          },
+        });
+        onEventSettingsUpdate?.({ skillsConfig: result?.skillsConfig ?? skillsConfig });
+      }
+      setSkillsConfigStatus({ type: 'success', message: 'Skills settings saved.' });
+    } catch (err) {
+      setSkillsConfigStatus({ type: 'error', message: err?.message || 'Failed to save skills settings.' });
+    } finally {
+      setIsSavingSkillsConfig(false);
     }
   };
 
@@ -2132,6 +2169,135 @@ function AdminPanel({
               >
                 {isSavingSettings ? 'Saving...' : 'Save Settings'}
               </Button>
+
+              <div className="mt-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="mb-4">
+                  <p className={ADMIN_SECTION_LABEL}>Participant Skills</p>
+                  <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                    Control whether skills are collected during signup and shown in team management for this hackday.
+                  </p>
+                </div>
+
+                {skillsConfigStatus && (
+                  <Alert variant={skillsConfigStatus.type} className="mb-4">
+                    {skillsConfigStatus.message}
+                  </Alert>
+                )}
+
+                <div className={ADMIN_INNER_BLOCK}>
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <p className="text-base font-semibold text-gray-900 dark:text-white">Collect skills</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        When off, the skills step is removed from signup and all skills UI is hidden from team pages.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={skillsConfig.enabled}
+                      onClick={() => setSkillsConfig((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+                        skillsConfig.enabled ? 'bg-brand' : 'bg-gray-200 dark:bg-gray-700'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200',
+                          skillsConfig.enabled ? 'translate-x-5' : 'translate-x-0'
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {skillsConfig.enabled && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Skills list {skillsConfig.list === null ? '(using defaults)' : `(${(skillsConfig.list || []).length} custom)`}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {(skillsConfig.list ?? []).map((skill) => (
+                          <span
+                            key={skill}
+                            className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-sm text-gray-700 dark:text-gray-300"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => setSkillsConfig((prev) => ({
+                                ...prev,
+                                list: (prev.list || []).filter((s) => s !== skill),
+                              }))}
+                              className="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                              aria-label={`Remove ${skill}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        {skillsConfig.list === null && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 self-center">
+                            Add a skill below to switch to a custom list.
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newSkillInput}
+                          onChange={(e) => setNewSkillInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newSkillInput.trim()) {
+                              e.preventDefault();
+                              const trimmed = newSkillInput.trim();
+                              const currentList = skillsConfig.list ?? [];
+                              if (!currentList.includes(trimmed)) {
+                                setSkillsConfig((prev) => ({ ...prev, list: [...currentList, trimmed] }));
+                              }
+                              setNewSkillInput('');
+                            }
+                          }}
+                          placeholder="Add a skill and press Enter"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            const trimmed = newSkillInput.trim();
+                            if (!trimmed) return;
+                            const currentList = skillsConfig.list ?? [];
+                            if (!currentList.includes(trimmed)) {
+                              setSkillsConfig((prev) => ({ ...prev, list: [...currentList, trimmed] }));
+                            }
+                            setNewSkillInput('');
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {skillsConfig.list !== null && skillsConfig.list.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSkillsConfig((prev) => ({ ...prev, list: null }))}
+                          className="mt-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 underline"
+                        >
+                          Reset to default skills
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  className={cn('mt-4', ADMIN_PRIMARY_BUTTON)}
+                  onClick={handleSaveSkillsConfig}
+                  loading={isSavingSkillsConfig}
+                >
+                  {isSavingSkillsConfig ? 'Saving...' : 'Save Skills Settings'}
+                </Button>
+              </div>
 
               <div className="mt-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="mb-4">

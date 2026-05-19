@@ -31,6 +31,7 @@ import {
   normalizeConfigModeDraftEnvelope,
   getStoredEventContentOverrides,
   getStoredEventConfigDraft,
+  getStoredEventSkillsConfig,
   getRuntimeActorPermissionContext,
   resolveRuntimeEventAdminAccess,
   resolveConfigModeAccess,
@@ -117,7 +118,7 @@ resolver.define("getEventPhase", async (req) => {
   const accountId = req.context?.accountId;
 
   // Fetch storage/DB reads that are independent of each other in parallel.
-  const [storedMotd, seed, accessContextResult, contentOverrides, configDraft] = await Promise.all([
+  const [storedMotd, seed, accessContextResult, contentOverrides, configDraft, storedSkillsConfig] = await Promise.all([
     getStoredEventMotd(event.id),
     'seed' in (instanceContext || {}) ? Promise.resolve(instanceContext.seed) : (pageId ? getTemplateSeedByPageId(supabase, pageId) : Promise.resolve(null)),
     accountId
@@ -128,6 +129,7 @@ resolver.define("getEventPhase", async (req) => {
       : Promise.resolve(null),
     getStoredEventContentOverrides(event.id),
     getStoredEventConfigDraft(event.id),
+    getStoredEventSkillsConfig(event.id),
   ]);
 
   const fallbackMotd = normalizeMotdMessage(event.motd || "");
@@ -193,6 +195,7 @@ resolver.define("getEventPhase", async (req) => {
       schedule: hasPublishedEventSchedule(eventSchedule) ? eventSchedule : null,
     },
     branding,
+    skillsConfig: storedSkillsConfig,
     isCreatedHackDay,
     isEventAdmin,
     contentOverridesMeta: {

@@ -73,27 +73,56 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 
 // ─── New here card ────────────────────────────────────────────────────────────
 
-function NewHereCard({ onNavigate }) {
+export function NewHereCard({ onNavigate }) {
   return (
     <div className="rounded-[26px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(0,245,255,0.03)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/40">New here?</div>
+      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Everyone is invited</div>
       <h3
-        className="mt-3 text-3xl font-semibold tracking-tight text-white/95"
+        className="mt-3 text-2xl font-semibold tracking-tight text-white/95"
         style={{ fontFamily: 'var(--font-heading)' }}
       >
-        You do not have to code
+        New to HackDay?
       </h3>
-      <p className="mt-3 text-sm leading-relaxed text-white/60">
-        Post a gripe, upvote what rings true, and see who wants to fix it with you. All roles are
-        welcome.
+      <p className="mt-2 text-sm text-white/55">Learn to vibecode or build something together with your colleagues</p>
+      <ul className="mt-4 space-y-1.5">
+        {[
+          'Bring your work problem',
+          'Bring your awkward question',
+          'Bring your user pain',
+          'Bring your eye for what feels wrong',
+          'Bring your patience to test what others make',
+        ].map((line) => (
+          <li key={line} className="flex items-start gap-2 text-sm text-white/65">
+            <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-cyan-400/60" />
+            {line}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-sm leading-relaxed text-white/55">
+        Vibecoding lowers the barrier to learning, joining in and building with others. Even if you
+        do not want to code, you still have plenty to contribute.
       </p>
-      <button
-        type="button"
-        onClick={() => onNavigate?.('signup')}
-        className="mt-5 rounded-2xl border border-white/[0.08] px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white/80"
-      >
-        Take the 2-minute tour
-      </button>
+      <ul className="mt-4 space-y-1 text-sm font-medium text-white/75">
+        {['Describe it', 'Shape it', 'Build it together', 'Vibe together'].map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <div className="mt-5 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => onNavigate?.('painpoints')}
+          className="w-full rounded-2xl bg-cyan-400/10 border border-cyan-400/25 px-4 py-3 text-sm font-semibold text-cyan-300 transition-colors hover:bg-cyan-400/20 hover:border-cyan-400/40"
+        >
+          Post a pain point
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('signup')}
+          className="w-full rounded-2xl border border-white/[0.08] px-4 py-3 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.04] hover:text-white/80"
+        >
+          Take the 2-minute tour
+        </button>
+      </div>
     </div>
   );
 }

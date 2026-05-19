@@ -9,8 +9,9 @@ function parseTs(value) {
 /**
  * Countdown tiles - DAYS / HRS / MINS.
  * Ticks every 60s normally; every 1s when under one hour.
+ * In pre-launch (signup) phase, targets the Team Formation milestone specifically.
  */
-function EditorialCountdown({ scheduleMilestones }) {
+function EditorialCountdown({ scheduleMilestones, eventPhase }) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -24,14 +25,24 @@ function EditorialCountdown({ scheduleMilestones }) {
     return () => clearInterval(id);
   }, [scheduleMilestones]);
 
-  const firstMilestone = (scheduleMilestones || [])
-    .map((m) => ({ ...m, _start: parseTs(m.startTime) }))
-    .filter((m) => m._start)
-    .sort((a, b) => a._start - b._start)[0] || null;
+  const targetMilestone = (() => {
+    const parsed = (scheduleMilestones || [])
+      .map((m) => ({ ...m, _start: parseTs(m.startTime) }))
+      .filter((m) => m._start);
+
+    if (eventPhase === 'signup') {
+      // Pre-launch: specifically target Team Formation milestone
+      return parsed
+        .filter((m) => m.phase === 'team_formation')
+        .sort((a, b) => a._start - b._start)[0] || null;
+    }
+    // All other phases: earliest milestone
+    return parsed.sort((a, b) => a._start - b._start)[0] || null;
+  })();
 
   const tiles = (() => {
-    if (!firstMilestone) return null;
-    const diffMs = firstMilestone._start.getTime() - Date.now();
+    if (!targetMilestone) return null;
+    const diffMs = targetMilestone._start.getTime() - Date.now();
     if (diffMs <= 0) return null;
     const totalSecs = Math.floor(diffMs / 1000);
     const days = Math.floor(totalSecs / 86400);
@@ -49,9 +60,9 @@ function EditorialCountdown({ scheduleMilestones }) {
     return (
       <div className="mt-6 rounded-full border border-cyan-400/35 bg-cyan-400/[0.10] px-5 py-2.5 text-center">
         <div className="text-sm font-semibold text-cyan-300">
-          {firstMilestone
-            ? firstMilestone.title.replace(/\s+opens?$/i, ' is now open')
-            : 'Loading schedule…'}
+          {targetMilestone
+            ? targetMilestone.title.replace(/\s+opens?$/i, ' is now open')
+            : eventPhase === 'signup' ? 'Schedule not yet set' : 'Loading schedule…'}
         </div>
       </div>
     );
@@ -89,7 +100,8 @@ function EditorialCountdown({ scheduleMilestones }) {
  *   children: React.ReactNode,
  * }} props
  */
-export default function EditorialHeroCard({ scheduleMilestones, children }) {
+export default function EditorialHeroCard({ scheduleMilestones, eventPhase, children }) {
+  const isPreLaunch = eventPhase === 'signup';
   return (
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
@@ -107,8 +119,10 @@ export default function EditorialHeroCard({ scheduleMilestones, children }) {
 
       {/* Right: countdown + what matters now */}
       <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(0,245,255,0.06)_0%,rgba(255,255,255,0.015)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
-        <div className="text-xs uppercase tracking-[0.22em] text-white/40">HackDay starts in</div>
-        <EditorialCountdown scheduleMilestones={scheduleMilestones} />
+        <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+          {isPreLaunch ? 'Team Formation in' : 'HackDay starts in'}
+        </div>
+        <EditorialCountdown scheduleMilestones={scheduleMilestones} eventPhase={eventPhase} />
         <div className="mt-6 rounded-2xl border border-white/[0.07] border-l-2 border-l-cyan-400/25 bg-[rgba(10,18,34,0.60)] p-4 text-sm leading-relaxed text-white/60">
           <div className="font-semibold text-white/95">What matters now</div>
           <div className="mt-1">

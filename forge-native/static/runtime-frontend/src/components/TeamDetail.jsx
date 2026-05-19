@@ -238,7 +238,12 @@ function TeamDetail({
   onLeaveTeam,
   eventPhase = 'signup',
   appModeResolverPayload,
+  skillsConfig = null,
 }) {
+  const skillsEnabled = skillsConfig === null || skillsConfig.enabled !== false;
+  const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
+    ? skillsConfig.list
+    : SKILLS;
   // State for editing
   const [moreInfoText, setMoreInfoText] = useState(team?.moreInfo || '');
   const [isEditingMoreInfo, setIsEditingMoreInfo] = useState(false);
@@ -784,8 +789,8 @@ function TeamDetail({
         </div>
       )}
 
-      {/* Zone 2 - Team Requirements (full width) */}
-      <div data-testid="team-detail-requirements-strip" className={cn(DESIGN_SYSTEM_CARD, 'team-detail-content-card p-5 mb-6')}>
+      {/* Zone 2 - Team Requirements (full width) — hidden when skills are disabled */}
+      {skillsEnabled && <div data-testid="team-detail-requirements-strip" className={cn(DESIGN_SYSTEM_CARD, 'team-detail-content-card p-5 mb-6')}>
         <div className="flex flex-col md:flex-row md:gap-6">
           <div className="flex-1 min-w-0 md:max-w-[55%]">
             <div className="flex items-start justify-between gap-2">
@@ -807,7 +812,7 @@ function TeamDetail({
             {isEditingLookingFor ? (
               <div className="space-y-3 mt-2">
                 <MultiSelect
-                  options={SKILLS.map(skill => ({ value: skill, label: skill }))}
+                  options={activeSkillsList.map(skill => ({ value: skill, label: skill }))}
                   value={lookingForInput}
                   onChange={setLookingForInput}
                   placeholder="Select skills needed..."
@@ -894,7 +899,7 @@ function TeamDetail({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Zone B - Action Workspace */}
       <div className="grid gap-6 lg:grid-cols-5">
@@ -1195,7 +1200,7 @@ function TeamDetail({
                         </div>
                       </div>
 
-                      {request.userSkills?.length > 0 && (
+                      {skillsEnabled && request.userSkills?.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {request.userSkills.map((skill) => (
                             <Badge key={`${request.id}-${skill}`} variant="default" size="xs" className="team-detail-join-request-skill">

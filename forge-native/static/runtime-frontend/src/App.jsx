@@ -385,6 +385,7 @@ function App() {
   const [eventThemePreference, setEventThemePreference] = useState(null);
   const [eventPageId, setEventPageId] = useState(null);
   const [eventBranding, setEventBranding] = useState({});
+  const [eventSkillsConfig, setEventSkillsConfig] = useState(null);
   const [isEventAdmin, setIsEventAdmin] = useState(false);
   const [appModeContextError, setAppModeContextError] = useState(null);
   const [openAppViewError, setOpenAppViewError] = useState(null);
@@ -612,6 +613,7 @@ function App() {
           }
           setEventPageId(eventInfo?.instanceContext?.pageId ?? null);
           setEventBranding(eventInfo?.branding && typeof eventInfo.branding === 'object' ? eventInfo.branding : {});
+          setEventSkillsConfig(eventInfo?.skillsConfig ?? null);
           setIsEventAdmin(Boolean(eventInfo?.isEventAdmin));
           setUseAdaptavistLogo(Boolean(eventInfo?.isCreatedHackDay));
           if (isAppModeContextBlocked(instanceContext)) {
@@ -766,6 +768,10 @@ function App() {
         setMaxVotesPerUser(parsedMaxVotes);
       }
     }
+
+    if (updates.skillsConfig !== undefined) {
+      setEventSkillsConfig(updates.skillsConfig ?? null);
+    }
   }, []);
 
   const appModePageId = useMemo(
@@ -854,6 +860,7 @@ function App() {
       else setEventThemePreference(null);
       if (eventInfo?.instanceContext?.pageId != null) setEventPageId(eventInfo.instanceContext.pageId);
       if (eventInfo?.branding && typeof eventInfo.branding === 'object') setEventBranding(eventInfo.branding);
+      if (eventInfo?.skillsConfig !== undefined) setEventSkillsConfig(eventInfo.skillsConfig ?? null);
       if (eventInfo?.isEventAdmin !== undefined) setIsEventAdmin(Boolean(eventInfo.isEventAdmin));
       setUseAdaptavistLogo(Boolean(eventInfo?.isCreatedHackDay));
       if (isAppModeContextBlocked(instanceContext)) {
@@ -1706,6 +1713,7 @@ function App() {
     eventPageId,
     appModeResolverPayload,
     eventBranding: effectiveEventBranding,
+    skillsConfig: eventSkillsConfig,
     isEventAdmin,
     onRefreshEventPhase: refreshEventPhase,
     viewParams,
@@ -1713,7 +1721,7 @@ function App() {
   }), [effectiveUser, teams, handleNavigate, handleTrackEvent, handleSubmitProject,
     effectiveEventPhase, eventPhase, maxVotesPerUser, maxTeamSize, eventMotd,
     effectiveEventAdminMessage, eventMeta, eventPageId, appModeResolverPayload,
-    effectiveEventBranding, isEventAdmin, refreshEventPhase, viewParams, useAdaptavistLogo]);
+    effectiveEventBranding, eventSkillsConfig, isEventAdmin, refreshEventPhase, viewParams, useAdaptavistLogo]);
 
   const handleUpdateUserRole = useCallback(async (userId, newRole) => {
     if (devMode) return;
@@ -1796,6 +1804,7 @@ function App() {
             allUsers={allUsers}
             onRefreshUsers={refreshRegistrations}
             onUpdateUserRole={handleUpdateUserRole}
+            skillsConfig={eventSkillsConfig}
           />
         );
 
@@ -1812,6 +1821,7 @@ function App() {
             eventPhase={effectiveEventPhase}
             realEventPhase={eventPhase}
             onTrackEvent={handleTrackEvent}
+            skillsConfig={eventSkillsConfig}
           />
         );
 

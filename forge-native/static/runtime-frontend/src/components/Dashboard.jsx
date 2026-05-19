@@ -14,7 +14,7 @@ import {
   computeUserState,
   getMissionContent,
 } from '../lib/missionBriefContent';
-import { EditorialHeroCard, EditorialTimeline, EditorialStatGrid, EditorialRightRail } from './dashboard/index.js';
+import { EditorialHeroCard, EditorialTimeline, EditorialStatGrid, EditorialRightRail, NewHereCard } from './dashboard/index.js';
 import { hasCompletedRegistration } from '../lib/registrationState';
 import EditableText from '../configMode/EditableText';
 import EditableTextArea from '../configMode/EditableTextArea';
@@ -1082,7 +1082,7 @@ function Dashboard({
       />
 
       {/* ====== HERO ====== */}
-      <EditorialHeroCard scheduleMilestones={scheduleMilestones}>
+      <EditorialHeroCard scheduleMilestones={scheduleMilestones} eventPhase={eventPhase}>
 
         {/* Phase badge */}
         <div data-testid="dashboard-row1-meta">
@@ -1343,8 +1343,9 @@ function Dashboard({
 
         </div>
       ) : (
-        <div className="grid grid-cols-1" data-testid="dashboard-below-fold">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_0.65fr]" data-testid="dashboard-below-fold">
           <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
+          <NewHereCard onNavigate={onNavigate} />
         </div>
       )}
 

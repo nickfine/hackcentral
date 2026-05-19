@@ -21,6 +21,7 @@ import {
   EVENT_MOTD_STORAGE_KEY_PREFIX,
   EVENT_CONFIG_DRAFT_STORAGE_KEY_PREFIX,
   EVENT_CONTENT_OVERRIDES_STORAGE_KEY_PREFIX,
+  EVENT_SKILLS_CONFIG_STORAGE_KEY_PREFIX,
   NOT_VIABLE_IDEAS_STORAGE_KEY_PREFIX,
   TEAM_DETAIL_FIELDS_STORAGE_KEY_PREFIX,
   ADMIN_RESET_LOCK_KEY_PREFIX,
@@ -2092,6 +2093,46 @@ export function getEventConfigDraftStorageKey(eventId) {
   return `${EVENT_CONFIG_DRAFT_STORAGE_KEY_PREFIX}${eventId}`;
 }
 
+export function getEventSkillsConfigStorageKey(eventId) {
+  return `${EVENT_SKILLS_CONFIG_STORAGE_KEY_PREFIX}${eventId}`;
+}
+
+export function normalizeEventSkillsConfig(value) {
+  if (!value || typeof value !== 'object') return null;
+  const enabled = value.enabled !== false;
+  const list = Array.isArray(value.list)
+    ? Array.from(new Set(
+        value.list
+          .filter((s) => typeof s === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )).slice(0, 30)
+    : null;
+  return { enabled, list };
+}
+
+export async function getStoredEventSkillsConfig(eventId) {
+  if (!eventId) return null;
+  try {
+    const stored = await storage.get(getEventSkillsConfigStorageKey(eventId));
+    if (stored === undefined || stored === null) return null;
+    return normalizeEventSkillsConfig(stored);
+  } catch (err) {
+    console.warn("Failed to read skills config from storage:", err.message);
+    return null;
+  }
+}
+
+export async function setStoredEventSkillsConfig(eventId, config) {
+  if (!eventId) return;
+  try {
+    const normalized = normalizeEventSkillsConfig(config);
+    await storage.set(getEventSkillsConfigStorageKey(eventId), normalized);
+  } catch (err) {
+    throw new Error(`Failed to persist skills config: ${err.message}`);
+  }
+}
+
 export function getEventContentOverridesStorageKey(eventId) {
   return `${EVENT_CONTENT_OVERRIDES_STORAGE_KEY_PREFIX}${eventId}`;
 }
@@ -3380,6 +3421,7 @@ export async function buildConfigModeStateResponse(supabase, req, access) {
     hackingStartsAt: event?.hacking_starts_at || event?.startDate || event?.start_date,
     submissionDeadlineAt: event?.submission_deadline_at || event?.endDate || event?.end_date,
   });
+  const publishedSkillsConfig = await getStoredEventSkillsConfig(event.id);
   let backupCoverageStatus = null;
   try {
     backupCoverageStatus = await getEventBackupCoverageStatus({
@@ -3398,6 +3440,7 @@ export async function buildConfigModeStateResponse(supabase, req, access) {
     motdMessage: effectiveMotd,
     publishedContentOverrides,
     publishedSchedule: hasPublishedEventSchedule(publishedSchedule) ? publishedSchedule : null,
+    publishedSkillsConfig,
     draft,
     configModeCapabilities: {
       enabled: true,

@@ -3,6 +3,7 @@ export const TELEMETRY_SUMMARY_KEY = "uiTelemetrySummary:v1";
 export const EVENT_MOTD_STORAGE_KEY_PREFIX = "eventMotd:v1:";
 export const EVENT_CONFIG_DRAFT_STORAGE_KEY_PREFIX = "eventConfigDraft:v1:";
 export const EVENT_CONTENT_OVERRIDES_STORAGE_KEY_PREFIX = "eventContentOverrides:v1:";
+export const EVENT_SKILLS_CONFIG_STORAGE_KEY_PREFIX = "eventSkillsConfig:v1:";
 export const NOT_VIABLE_IDEAS_STORAGE_KEY_PREFIX = "notViableIdeas:v1:";
 export const TEAM_DETAIL_FIELDS_STORAGE_KEY_PREFIX = "teamDetailFields:v1:";
 export const ADMIN_RESET_LOCK_KEY_PREFIX = "adminResetLock:v1:";

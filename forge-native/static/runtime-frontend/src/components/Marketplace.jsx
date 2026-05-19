@@ -48,7 +48,12 @@ function Marketplace({
   userInvites = [],
   isLoading = false,
   appModeResolverPayload,
+  skillsConfig = null,
 }) {
+  const skillsEnabled = skillsConfig === null || skillsConfig.enabled !== false;
+  const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
+    ? skillsConfig.list
+    : SKILLS;
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState('grid');
@@ -568,12 +573,13 @@ function Marketplace({
             rows={4}
           />
 
+          {skillsEnabled && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Looking For Skills
             </label>
             <div className="flex flex-wrap gap-2">
-              {SKILLS.map((skill) => {
+              {activeSkillsList.map((skill) => {
                 const isSelected = newTeam.lookingFor.includes(skill);
                 return (
                   <button
@@ -605,6 +611,7 @@ function Marketplace({
               })}
             </div>
           </div>
+          )}
 
           <Select
             label="Max Team Size"

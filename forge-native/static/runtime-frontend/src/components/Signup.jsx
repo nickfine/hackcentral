@@ -4,7 +4,7 @@
  * Ported from HD26AI for feature parity
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   Eye, 
   Check, 
@@ -30,22 +30,26 @@ import { VStack, HStack } from './layout';
 const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 50;
 
-// Step definitions
-const STEPS = [
-  { id: 1, label: 'Identity', shortLabel: 'Name' },
-  { id: 2, label: 'Skills', shortLabel: 'Skills' },
-  { id: 3, label: 'Participation', shortLabel: 'Role' },
+const ALL_STEPS = [
+  { id: 1, kind: 'identity', label: 'Identity', shortLabel: 'Name' },
+  { id: 2, kind: 'skills', label: 'Skills', shortLabel: 'Skills' },
+  { id: 3, kind: 'participation', label: 'Participation', shortLabel: 'Role' },
 ];
 
-function Signup({ 
-  user, 
-  updateUser, 
-  onNavigate, 
+function Signup({
+  user,
+  updateUser,
+  onNavigate,
   teams = [],
   eventPhase,
   realEventPhase = eventPhase,
   onTrackEvent,
+  skillsConfig = null,
 }) {
+  const skillsEnabled = skillsConfig === null || skillsConfig.enabled !== false;
+  const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
+    ? skillsConfig.list
+    : SKILLS;
   const signupSessionIdRef = useRef(`signup-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const stepsSeenRef = useRef(new Set());
   const currentStepRef = useRef(1);
@@ -71,6 +75,12 @@ function Signup({
   
   // Success state
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Dynamic steps — skills step omitted when skills are disabled for this hackday
+  const steps = useMemo(() => {
+    const filtered = skillsEnabled ? ALL_STEPS : ALL_STEPS.filter((s) => s.kind !== 'skills');
+    return filtered.map((s, i) => ({ ...s, id: i + 1 }));
+  }, [skillsEnabled]);
 
   // Validate name
   const validateName = useCallback((value) => {
@@ -113,18 +123,19 @@ function Signup({
   }, [callsign, validateCallsign]);
 
   // Check if current step is valid
-  const isStepValid = useCallback((step) => {
-    switch (step) {
-      case 1:
+  const isStepValid = useCallback((stepId) => {
+    const kind = steps.find((s) => s.id === stepId)?.kind;
+    switch (kind) {
+      case 'identity':
         return name.trim().length >= MIN_NAME_LENGTH && !nameError && !callsignError;
-      case 2:
+      case 'skills':
         return selectedSkills.length > 0;
-      case 3:
-        return true; // Participation choice is optional
+      case 'participation':
+        return true;
       default:
         return false;
     }
-  }, [name, nameError, callsignError, selectedSkills.length]);
+  }, [steps, name, nameError, callsignError, selectedSkills.length]);
 
   // Handle next step
   const handleNext = useCallback(() => {
@@ -173,7 +184,7 @@ function Signup({
   }, [currentStep, onTrackEvent, eventPhase]);
 
   // Filter skills based on search
-  const filteredSkills = SKILLS.filter(skill =>
+  const filteredSkills = activeSkillsList.filter(skill =>
     skill.toLowerCase().includes(skillSearchQuery.toLowerCase()) &&
     !selectedSkills.includes(skill)
   );
@@ -320,9 +331,10 @@ function Signup({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const progress = (currentStep / STEPS.length) * 100;
+  const progress = (currentStep / steps.length) * 100;
   const canProceed = isStepValid(currentStep);
-  const isLastStep = currentStep === STEPS.length;
+  const isLastStep = currentStep === steps.length;
+  const currentStepKind = steps.find((s) => s.id === currentStep)?.kind;
 
   // Success screen
   if (showSuccess) {
@@ -380,11 +392,11 @@ function Signup({
         <div className="mb-8">
           <div className="max-w-xl mx-auto">
             <p className="text-xs font-bold uppercase tracking-wide text-text-muted text-center mb-3">
-              Step {currentStep} of {STEPS.length}
+              Step {currentStep} of {steps.length}
             </p>
             <div className="flex items-start justify-center">
-              {STEPS.map((step, index) => (
-                <div key={step.id} className="flex items-start">
+              {steps.map((step, index) => (
+                <div key={step.kind} className="flex items-start">
                   <div className="w-24 sm:w-28 flex flex-col items-center">
                     <button
                       type="button"
@@ -411,7 +423,7 @@ function Signup({
                       {step.shortLabel}
                     </button>
                   </div>
-                  {index < STEPS.length - 1 && (
+                  {index < steps.length - 1 && (
                     <div className="w-10 sm:w-14 mt-5 mx-1">
                       <div className="h-1 rounded-full bg-arena-border overflow-hidden">
                         <div
@@ -432,12 +444,12 @@ function Signup({
 
         {/* Step Content */}
         <Card padding="lg" className="mb-6">
-          {/* Step 1: Identity */}
-          {currentStep === 1 && (
+          {/* Identity step */}
+          {currentStepKind === 'identity' && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-black text-text-primary mb-6">
-                  <span className="text-brand">1.</span> Your Identity
+                  <span className="text-brand">{currentStep}.</span> Your Identity
                 </h2>
                 <p className="text-sm text-text-secondary mb-5">
                   This is how others will see you in HackDay.
@@ -468,12 +480,12 @@ function Signup({
             </div>
           )}
 
-          {/* Step 2: Skills */}
-          {currentStep === 2 && (
+          {/* Skills step */}
+          {currentStepKind === 'skills' && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-black text-text-primary mb-6">
-                  <span className="text-brand">2.</span> Your Skills
+                  <span className="text-brand">{currentStep}.</span> Your Skills
                 </h2>
                 <p className="text-sm text-text-secondary mb-5">
                   Choose skills so teams can find a good match quickly.
@@ -574,12 +586,12 @@ function Signup({
             </div>
           )}
 
-          {/* Step 3: Participation */}
-          {currentStep === 3 && (
+          {/* Participation step */}
+          {currentStepKind === 'participation' && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-black text-text-primary mb-6">
-                  <span className="text-brand">3.</span> How Will You Participate?
+                  <span className="text-brand">{currentStep}.</span> How Will You Participate?
                 </h2>
                 <p className="text-sm text-text-secondary mb-5">
                   Pick participant to join a team, or observer to follow along.

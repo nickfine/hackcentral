@@ -27,6 +27,8 @@ import {
   getConfluencePageStorageForBackup,
   appendEventBackupAuditLog,
   buildConfigModeStateResponse,
+  setStoredEventSkillsConfig,
+  normalizeEventSkillsConfig,
 } from "../lib/helpers.js";
 import {
   runSaveConfigModeDraftCore,
@@ -290,5 +292,14 @@ resolver.define("publishEventConfigDraft", async (req) => {
   });
 });
 
+resolver.define("saveEventSkillsConfig", async (req) => {
+  const supabase = getSupabaseClient();
+  const access = await resolveConfigModeAccess(supabase, req);
+  const payload = req.payload || {};
+  const rawConfig = payload.skillsConfig;
+  const normalized = normalizeEventSkillsConfig(rawConfig);
+  await setStoredEventSkillsConfig(access.event.id, normalized);
+  return { success: true, skillsConfig: normalized };
+});
 
 }
