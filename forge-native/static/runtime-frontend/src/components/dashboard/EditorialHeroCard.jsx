@@ -144,7 +144,7 @@ export default function EditorialHeroCard({ scheduleMilestones, eventPhase, chil
         <div className="mt-6 rounded-2xl border border-white/[0.07] border-l-2 border-l-cyan-400/25 bg-[rgba(10,18,34,0.60)] p-4 text-sm leading-relaxed text-white/60">
           <div className="font-semibold text-white/95">What matters now</div>
           <div className="mt-1">
-            Get a pain point posted early and make your profile team-ready before registration opens.
+            Get a pain point posted early and find your team before hacking starts.
           </div>
         </div>
       </div>
