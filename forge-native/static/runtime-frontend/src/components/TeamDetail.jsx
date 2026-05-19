@@ -783,7 +783,7 @@ function TeamDetail({
         </div>
       </div>
 
-      {viewerSkillMatch && (
+      {skillsEnabled && viewerSkillMatch && (
         <div className="mt-4 pt-4 mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 px-5 py-3 text-center text-sm font-medium text-amber-600 dark:text-amber-400">
           This team is looking for your skills!
         </div>
@@ -1282,7 +1282,7 @@ function TeamDetail({
                           Captain
                         </span>
                       )}
-                      {(member.skills || []).map((skill) => (
+                      {skillsEnabled && (member.skills || []).map((skill) => (
                         <span
                           key={`${member.id}-${skill}`}
                           className="team-detail-member-skill-tag inline-flex items-center rounded-lg bg-gray-100 dark:bg-gray-700 text-text-primary px-2 py-0.5 text-xs"
@@ -1290,7 +1290,7 @@ function TeamDetail({
                           {skill}
                         </span>
                       ))}
-                      {member.id !== team.captainId && (member.skills || []).length === 0 && (
+                      {skillsEnabled && member.id !== team.captainId && (member.skills || []).length === 0 && (
                         <p className="text-xs text-text-secondary italic">No skills listed</p>
                       )}
                     </div>
@@ -1351,6 +1351,7 @@ function TeamDetail({
             rows={4}
           />
 
+          {skillsEnabled && (
           <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
             <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
               Your Skills
@@ -1370,6 +1371,7 @@ function TeamDetail({
               )}
             </div>
           </div>
+          )}
         </div>
 
         <Modal.Footer>
