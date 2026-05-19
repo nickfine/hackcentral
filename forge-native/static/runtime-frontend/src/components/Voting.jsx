@@ -210,7 +210,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
             People&apos;s Choice
           </p>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2">
-            Vote for Your Favorites
+            VOTE FOR YOUR FAVOURITE HACK
           </h1>
           <p className="text-text-secondary max-w-2xl">
             You can vote for up to {MAX_VOTES} projects
