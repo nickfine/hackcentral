@@ -27,28 +27,29 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
   }, [scheduleMilestones]);
 
   const targetMilestone = (() => {
+    const now = new Date();
     const parsed = (scheduleMilestones || [])
       .map((m) => ({ ...m, _start: parseTs(m.startTime) }))
       .filter((m) => m._start);
 
     if (eventPhase === 'team_formation') {
       return parsed
-        .filter((m) => m.phase === 'hacking')
+        .filter((m) => m.phase === 'hacking' && m._start > now)
         .sort((a, b) => a._start - b._start)[0] || null;
     }
     if (eventPhase === 'hacking') {
       return parsed
-        .filter((m) => m.phase === 'submission')
+        .filter((m) => m.phase === 'submission' && m._start > now)
         .sort((a, b) => a._start - b._start)[0] || null;
     }
     if (eventPhase === 'submission') {
-      // Target the deadline — the latest submission milestone
+      // Target the deadline — the latest future submission milestone
       return parsed
-        .filter((m) => m.phase === 'submission')
+        .filter((m) => m.phase === 'submission' && m._start > now)
         .sort((a, b) => b._start - a._start)[0] || null;
     }
     // All other phases: earliest upcoming milestone
-    return parsed.sort((a, b) => a._start - b._start)[0] || null;
+    return parsed.filter((m) => m._start > now).sort((a, b) => a._start - b._start)[0] || null;
   })();
 
   const tiles = (() => {
