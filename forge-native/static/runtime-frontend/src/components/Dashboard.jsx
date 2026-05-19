@@ -36,18 +36,10 @@ const MOCK_ACTIVITY_FEED = [
 
 const MOCK_MILESTONES = [
   {
-    id: 'milestone-signup-close',
-    title: 'Registration Closes',
-    phase: 'signup',
-    startTime: '2026-06-20T20:00:00.000Z',
-    endTime: null,
-    location: 'Registration Portal',
-  },
-  {
     id: 'milestone-team-formation',
     title: 'Team Formation Opens',
     phase: 'team_formation',
-    startTime: '2026-06-20T20:30:00.000Z',
+    startTime: '2026-06-20T20:00:00.000Z',
     endTime: null,
     location: 'Ideas Marketplace',
   },
@@ -217,11 +209,21 @@ function normalizeTeamName(value) {
   return value.trim().toLowerCase();
 }
 
-function getUpcomingMilestones(milestones = [], limit = 2) {
+function getUpcomingMilestones(milestones = [], limit = 2, currentPhase = null) {
   const now = new Date();
+  const currentPhaseOrder = PHASE_ORDER_INDEX[currentPhase];
+  const hasPhaseFilter = Number.isFinite(currentPhaseOrder);
 
   return (milestones || [])
     .map((milestone) => {
+      // Skip milestones that belong to phases earlier than the current phase
+      if (hasPhaseFilter) {
+        const milestonePhaseOrder = PHASE_ORDER_INDEX[milestone.phase];
+        if (Number.isFinite(milestonePhaseOrder) && milestonePhaseOrder < currentPhaseOrder) {
+          return null;
+        }
+      }
+
       const startDate = parseIsoTimestamp(milestone.startTime);
       const endDate = parseIsoTimestamp(milestone.endTime);
       if (!startDate) return null;
@@ -629,13 +631,13 @@ function Dashboard({
   );
 
   const nextMilestones = useMemo(
-    () => getUpcomingMilestones(scheduleMilestones, 2),
-    [scheduleMilestones]
+    () => getUpcomingMilestones(scheduleMilestones, 2, eventPhase),
+    [scheduleMilestones, eventPhase]
   );
 
   const comingUpMilestones = useMemo(
-    () => getUpcomingMilestones(scheduleMilestones, 4),
-    [scheduleMilestones]
+    () => getUpcomingMilestones(scheduleMilestones, 4, eventPhase),
+    [scheduleMilestones, eventPhase]
   );
 
   const activityFeed = useMemo(() => {
@@ -966,18 +968,18 @@ function Dashboard({
   );
   const isCreatedHackDay = useAdaptavistLogo;
   const heroTitleFallback = useMemo(
-    () => (
-      isCreatedHackDay && eventMeta?.name?.trim()
-        ? eventMeta.name.trim()
-        : (missionContent.headline || 'Mission status')
-    ),
-    [isCreatedHackDay, eventMeta?.name, missionContent.headline]
+    () => {
+      if (eventPhase === 'hacking') return 'HACKING UNDERWAY';
+      if (isCreatedHackDay && eventMeta?.name?.trim()) return eventMeta.name.trim();
+      return missionContent.headline || 'Mission status';
+    },
+    [eventPhase, isCreatedHackDay, eventMeta?.name, missionContent.headline]
   );
   const heroSubtitlePrimaryFallback = useMemo(
     () => (
       isCreatedHackDay && eventMeta?.tagline?.trim()
         ? eventMeta.tagline.trim()
-        : 'Build something useful. Break something boring. Vibe together.'
+        : 'Build something useful. Break something boring. Everyone Vibing Together.'
     ),
     [isCreatedHackDay, eventMeta?.tagline]
   );

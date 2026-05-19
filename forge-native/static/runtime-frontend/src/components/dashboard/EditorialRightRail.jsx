@@ -76,14 +76,14 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 export function NewHereCard({ onNavigate }) {
   return (
     <div className="rounded-[26px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(0,245,255,0.03)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Everyone is invited</div>
+      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Everyone Vibing Together</div>
       <h3
         className="mt-3 text-2xl font-semibold tracking-tight text-white/95"
         style={{ fontFamily: 'var(--font-heading)' }}
       >
         New to HackDay?
       </h3>
-      <p className="mt-2 text-sm text-white/55">Learn to vibecode or build something together with your colleagues</p>
+      <p className="mt-2 text-sm text-white/55">Build something together with your colleagues</p>
       <ul className="mt-4 space-y-1.5">
         {[
           'Bring your work problem',
@@ -99,7 +99,7 @@ export function NewHereCard({ onNavigate }) {
         ))}
       </ul>
       <p className="mt-4 text-sm leading-relaxed text-white/55">
-        Vibecoding lowers the barrier to learning, joining in and building with others. Even if you
+        The barrier to joining in and building with others is lower than you think. Even if you
         do not want to code, you still have plenty to contribute.
       </p>
       <ul className="mt-4 space-y-1 text-sm font-medium text-white/75">

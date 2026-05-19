@@ -57,52 +57,45 @@ export const USER_ROLES = {
 // ============================================================================
 
 export const EVENT_PHASES = {
-  signup: {
-    id: 'signup',
-    label: 'Pre-Launch',
-    description: 'Complete your profile and choose how you will participate',
-    order: 1,
-  },
   team_formation: {
     id: 'team_formation',
     label: 'Team Formation',
     description: 'Find teammates and form your squad',
-    order: 2,
+    order: 1,
   },
   hacking: {
     id: 'hacking',
     label: 'Hacking',
     description: 'Build your project',
-    order: 3,
+    order: 2,
   },
   submission: {
     id: 'submission',
     label: 'Submission',
     description: 'Submit your project for judging',
-    order: 4,
+    order: 3,
   },
   voting: {
     id: 'voting',
     label: 'Voting',
     description: "Vote for People's Champion",
-    order: 5,
+    order: 4,
   },
   judging: {
     id: 'judging',
     label: 'Judging',
     description: 'Judges evaluate submissions',
-    order: 6,
+    order: 5,
   },
   results: {
     id: 'results',
     label: 'Results',
     description: 'Winners announced!',
-    order: 7,
+    order: 6,
   },
 };
 
 export const EVENT_PHASE_ORDER = [
-  'signup',
   'team_formation',
   'hacking',
   'submission',

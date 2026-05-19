@@ -9,7 +9,8 @@ function parseTs(value) {
 /**
  * Countdown tiles - DAYS / HRS / MINS.
  * Ticks every 60s normally; every 1s when under one hour.
- * In pre-launch (signup) phase, targets the Team Formation milestone specifically.
+ * Target milestone is phase-aware: team_formation → hacking start,
+ * hacking → first submission milestone, submission → last submission milestone.
  */
 function EditorialCountdown({ scheduleMilestones, eventPhase }) {
   const [, setTick] = useState(0);
@@ -30,13 +31,23 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
       .map((m) => ({ ...m, _start: parseTs(m.startTime) }))
       .filter((m) => m._start);
 
-    if (eventPhase === 'signup') {
-      // Pre-launch: specifically target Team Formation milestone
+    if (eventPhase === 'team_formation') {
       return parsed
-        .filter((m) => m.phase === 'team_formation')
+        .filter((m) => m.phase === 'hacking')
         .sort((a, b) => a._start - b._start)[0] || null;
     }
-    // All other phases: earliest milestone
+    if (eventPhase === 'hacking') {
+      return parsed
+        .filter((m) => m.phase === 'submission')
+        .sort((a, b) => a._start - b._start)[0] || null;
+    }
+    if (eventPhase === 'submission') {
+      // Target the deadline — the latest submission milestone
+      return parsed
+        .filter((m) => m.phase === 'submission')
+        .sort((a, b) => b._start - a._start)[0] || null;
+    }
+    // All other phases: earliest upcoming milestone
     return parsed.sort((a, b) => a._start - b._start)[0] || null;
   })();
 
@@ -62,7 +73,7 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
         <div className="text-sm font-semibold text-cyan-300">
           {targetMilestone
             ? targetMilestone.title.replace(/\s+opens?$/i, ' is now open')
-            : eventPhase === 'signup' ? 'Schedule not yet set' : 'Loading schedule…'}
+            : 'Loading schedule…'}
         </div>
       </div>
     );
@@ -100,8 +111,14 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
  *   children: React.ReactNode,
  * }} props
  */
+const COUNTDOWN_LABELS = {
+  team_formation: 'Hacking starts in',
+  hacking: 'Hacking ends in',
+  submission: 'Submissions close in',
+};
+
 export default function EditorialHeroCard({ scheduleMilestones, eventPhase, children }) {
-  const isPreLaunch = eventPhase === 'signup';
+  const countdownLabel = COUNTDOWN_LABELS[eventPhase] || 'Up next';
   return (
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
@@ -120,7 +137,7 @@ export default function EditorialHeroCard({ scheduleMilestones, eventPhase, chil
       {/* Right: countdown + what matters now */}
       <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(0,245,255,0.06)_0%,rgba(255,255,255,0.015)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
         <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-          {isPreLaunch ? 'Team Formation in' : 'HackDay starts in'}
+          {countdownLabel}
         </div>
         <EditorialCountdown scheduleMilestones={scheduleMilestones} eventPhase={eventPhase} />
         <div className="mt-6 rounded-2xl border border-white/[0.07] border-l-2 border-l-cyan-400/25 bg-[rgba(10,18,34,0.60)] p-4 text-sm leading-relaxed text-white/60">
