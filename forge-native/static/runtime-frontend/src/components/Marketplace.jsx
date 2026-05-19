@@ -65,7 +65,7 @@ function Marketplace({
     name: '',
     description: '',
     lookingFor: [],
-    maxMembers: maxTeamSize,
+    maxMembers: Math.min(maxTeamSize, 6),
   });
   const [selectedPainPointIds, setSelectedPainPointIds] = useState([]);
   const [modalPainSearch, setModalPainSearch] = useState('');
@@ -175,7 +175,7 @@ function Marketplace({
       }
 
       setShowCreateTeamModal(false);
-      setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
+      setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: Math.min(maxTeamSize, 6) });
       setSelectedPainPointIds([]);
       setModalPainSearch('');
       if (createdTeamId) {
@@ -230,7 +230,7 @@ function Marketplace({
               className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               onClick={() => {
                 setCreateTeamStatus(null);
-                setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: maxTeamSize });
+                setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: Math.min(maxTeamSize, 6) });
                 setSelectedPainPointIds([]);
                 setModalPainSearch('');
                 setShowCreateTeamModal(true);
@@ -619,8 +619,8 @@ function Marketplace({
             onChange={(val) =>
               setNewTeam({ ...newTeam, maxMembers: Number(val) })
             }
-            options={Array.from({ length: maxTeamSize - 1 }, (_, i) => {
-              const size = i + 2;
+            options={Array.from({ length: Math.min(maxTeamSize, 6) - 2 }, (_, i) => {
+              const size = i + 3;
               return { value: String(size), label: `${size} members` };
             })}
           />

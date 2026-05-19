@@ -196,6 +196,9 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
 
       {/* ── Composer ───────────────────────────────────────────────────────── */}
       <div className="rounded-[20px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+          Record your pain points here
+        </p>
         <form onSubmit={handleSubmit}>
           <textarea
             value={gripe}
