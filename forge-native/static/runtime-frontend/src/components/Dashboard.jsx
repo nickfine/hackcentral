@@ -1156,10 +1156,10 @@ function Dashboard({
           {eventPhase !== 'signup' && eventPhase !== 'setup' && (
             <button
               type="button"
-              onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
+              onClick={() => onNavigate?.('painpoints')}
               className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:border-white/25"
             >
-              Find a team
+              Explore Pain Points
             </button>
           )}
         </div>
