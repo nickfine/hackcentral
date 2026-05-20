@@ -46,9 +46,6 @@ DROP TABLE IF EXISTS public."Milestone" CASCADE;
 DROP TABLE IF EXISTS public."EventRegistration" CASCADE;
 DROP TABLE IF EXISTS public."Event" CASCADE;
 DROP TABLE IF EXISTS public."User" CASCADE;
-DROP TABLE IF EXISTS public."VerificationToken" CASCADE;
-DROP TABLE IF EXISTS public."Session" CASCADE;
-DROP TABLE IF EXISTS public."Account" CASCADE;
 
 DROP TYPE IF EXISTS public."TrackSide" CASCADE;
 DROP TYPE IF EXISTS public."MemberStatus" CASCADE;
@@ -147,36 +144,6 @@ CREATE TABLE public."User" (
   capability_tags text[] DEFAULT ARRAY[]::text[],
   CONSTRAINT "User_email_key" UNIQUE (email),
   CONSTRAINT "User_atlassian_account_id_key" UNIQUE (atlassian_account_id)
-);
-
-CREATE TABLE public."Account" (
-  id text PRIMARY KEY,
-  "userId" text NOT NULL REFERENCES public."User"(id),
-  type text NOT NULL,
-  provider text NOT NULL,
-  "providerAccountId" text NOT NULL,
-  refresh_token text,
-  access_token text,
-  expires_at integer,
-  token_type text,
-  scope text,
-  id_token text,
-  session_state text,
-  CONSTRAINT "Account_provider_providerAccountId_key" UNIQUE (provider, "providerAccountId")
-);
-
-CREATE TABLE public."Session" (
-  id text PRIMARY KEY,
-  "sessionToken" text NOT NULL UNIQUE,
-  "userId" text NOT NULL REFERENCES public."User"(id),
-  expires timestamp without time zone NOT NULL
-);
-
-CREATE TABLE public."VerificationToken" (
-  identifier text NOT NULL,
-  token text NOT NULL,
-  expires timestamp without time zone NOT NULL,
-  CONSTRAINT "VerificationToken_identifier_token_key" UNIQUE (identifier, token)
 );
 
 CREATE TABLE public."Event" (
@@ -463,6 +430,12 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 CREATE TRIGGER on_auth_user_updated
 AFTER UPDATE ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Lock down handle_new_user so it cannot be invoked via PostgREST RPC.
+-- Triggers continue to execute it (they run as the function owner, not the caller).
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
 
 CREATE OR REPLACE FUNCTION public.hackday_submission_page_link_set_updated_at_fn()
 RETURNS trigger AS $$
