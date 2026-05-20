@@ -140,7 +140,7 @@ function Signup({
   // Handle next step
   const handleNext = useCallback(() => {
     if (isStepValid(currentStep)) {
-      if (currentStep < STEPS.length) {
+      if (currentStep < steps.length) {
         onTrackEvent?.('signup_step_next', {
           component: 'signup_wizard',
           eventPhase: eventPhase || 'signup',
@@ -273,7 +273,7 @@ function Signup({
   }, [onTrackEvent, eventPhase]);
 
   useEffect(() => {
-    const stepLabel = STEPS.find((step) => step.id === currentStep)?.label || `Step ${currentStep}`;
+    const stepLabel = steps.find((step) => step.id === currentStep)?.label || `Step ${currentStep}`;
     stepsSeenRef.current.add(currentStep);
     currentStepRef.current = currentStep;
     isObserverRef.current = isObserver;
