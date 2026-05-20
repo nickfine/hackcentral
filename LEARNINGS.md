@@ -42,6 +42,19 @@ When editing event name, schedule, or content overrides — **Supabase is not th
 **Forge Native Package:** 0.3.60
 **Runtime Bundle Version:** 1.2.93
 
+## Session Update - Supabase Security Advisor Cleanup (May 20, 2026)
+
+### Action
+Dropped three unused NextAuth tables (`public."Account"`, `public."Session"`, `public."VerificationToken"`) from production Supabase `easooezlgwbiiqqlpvpb` and revoked `EXECUTE` on `public.handle_new_user()` from `PUBLIC`, `anon`, `authenticated`. Cleared all five `rls_disabled_in_public` and `sensitive_columns_exposed` ERRORs plus both `*_security_definer_function_executable` WARNs reported by `mcp__supabase__get_advisors`. Tables had 0 rows and 0 code references — they were inherited from the original Prisma/NextAuth schema when the project was bootstrapped on 2026-03-19.
+
+### Gotcha — handle_new_user trigger is not attached in tag-hackday production
+Despite migration `20251207173004_add_auth_sync_trigger.sql` creating both `on_auth_user_created` and `on_auth_user_updated` triggers on `auth.users`, neither exists in tag-hackday production. The function itself is present but orphaned. New `public."User"` rows must therefore come from Forge resolvers using the service role, not from Supabase auth signups. If you ever wire up Supabase auth flows here, the trigger needs to be reinstated and an `auth.users` test signup performed to verify.
+
+### Pattern — tenant Supabase schema hygiene
+Source of truth for fresh tenants is `forge-native/supabase/bootstrap/20260319_hdc_canonical_base_bootstrap.sql` plus the dated migrations under `forge-native/supabase/migrations/`. The `docs/artifacts/HDC-TAG-HACKDAY-SUPABASE-BOOTSTRAP-20260319.sql` file is a reference snapshot of the original tag-hackday bootstrap, not the script that gets re-run. When schema changes go to production, both files should be updated to keep them aligned.
+
+---
+
 ## Session Update - Per-Hackday Skills Toggle (May 19, 2026)
 
 ### Feature

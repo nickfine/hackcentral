@@ -32,9 +32,6 @@ DROP TABLE IF EXISTS public."TeamMember" CASCADE;
 DROP TABLE IF EXISTS public."Team" CASCADE;
 DROP TABLE IF EXISTS public."EventRegistration" CASCADE;
 DROP TABLE IF EXISTS public."Event" CASCADE;
-DROP TABLE IF EXISTS public."VerificationToken" CASCADE;
-DROP TABLE IF EXISTS public."Session" CASCADE;
-DROP TABLE IF EXISTS public."Account" CASCADE;
 DROP TABLE IF EXISTS public."User" CASCADE;
 
 DROP TABLE IF EXISTS public.judge_scores CASCADE;
@@ -118,42 +115,6 @@ CREATE TABLE public."User" (
 );
 
 CREATE UNIQUE INDEX "User_email_key" ON public."User" (email);
-
-CREATE TABLE public."Account" (
-  id text PRIMARY KEY,
-  "userId" text NOT NULL REFERENCES public."User"(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  type text NOT NULL,
-  provider text NOT NULL,
-  "providerAccountId" text NOT NULL,
-  refresh_token text,
-  access_token text,
-  expires_at integer,
-  token_type text,
-  scope text,
-  id_token text,
-  session_state text
-);
-
-CREATE UNIQUE INDEX "Account_provider_providerAccountId_key"
-  ON public."Account" (provider, "providerAccountId");
-
-CREATE TABLE public."Session" (
-  id text PRIMARY KEY,
-  "sessionToken" text NOT NULL,
-  "userId" text NOT NULL REFERENCES public."User"(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  expires timestamp without time zone NOT NULL
-);
-
-CREATE UNIQUE INDEX "Session_sessionToken_key" ON public."Session" ("sessionToken");
-
-CREATE TABLE public."VerificationToken" (
-  identifier text NOT NULL,
-  token text NOT NULL,
-  expires timestamp without time zone NOT NULL
-);
-
-CREATE UNIQUE INDEX "VerificationToken_identifier_token_key"
-  ON public."VerificationToken" (identifier, token);
 
 CREATE TABLE public."Event" (
   id text PRIMARY KEY,
