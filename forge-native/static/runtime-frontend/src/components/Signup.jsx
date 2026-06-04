@@ -598,10 +598,48 @@ function Signup({
                 </p>
                 
                 <div className="space-y-4">
+                  {/* Participant Option */}
+                  <button
+                    type="button"
+                    onClick={() => setIsObserver(false)}
+                    className={cn(
+                      'w-full p-6 border-2 transition-all duration-200 text-left rounded-xl',
+                      !isObserver
+                        ? 'border-brand bg-brand/10'
+                        : 'border-arena-border hover:border-arena-border-strong hover:bg-arena-elevated'
+                    )}
+                  >
+                    <HStack gap="4" align="start">
+                      <div className={cn(
+                        'mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                        !isObserver
+                          ? 'border-brand bg-brand'
+                          : 'border-text-muted'
+                      )}>
+                        {!isObserver && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <HStack gap="2" align="center" className="mb-2">
+                          <span className={cn(
+                            'font-bold text-lg',
+                            !isObserver ? 'text-brand' : 'text-text-primary'
+                          )}>
+                            Join as Participant
+                          </span>
+                        </HStack>
+                        <p className="text-sm text-text-secondary">
+                          Compete in the hackday. You'll be able to join or create a team from the Ideas Marketplace after signing up.
+                        </p>
+                      </div>
+                    </HStack>
+                  </button>
+
                   {/* Observer Option */}
                   <button
                     type="button"
-                    onClick={() => setIsObserver(!isObserver)}
+                    onClick={() => setIsObserver(true)}
                     className={cn(
                       'w-full p-6 border-2 transition-all duration-200 text-left rounded-xl',
                       isObserver
@@ -611,13 +649,13 @@ function Signup({
                   >
                     <HStack gap="4" align="start">
                       <div className={cn(
-                        'mt-1 w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all',
+                        'mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
                         isObserver
                           ? 'border-brand bg-brand'
                           : 'border-text-muted'
                       )}>
                         {isObserver && (
-                          <Check className="w-4 h-4 text-white" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
                         )}
                       </div>
                       <div className="flex-1">
@@ -639,14 +677,6 @@ function Signup({
                       </div>
                     </HStack>
                   </button>
-                  
-                  {!isObserver && (
-                    <Card variant="secondary" padding="md" className="bg-arena-elevated">
-                      <p className="text-sm text-text-secondary">
-                        <strong className="text-text-primary">Joining as a Participant:</strong> You'll be able to join or create an idea from the Ideas Marketplace after signing up.
-                      </p>
-                    </Card>
-                  )}
                 </div>
               </div>
             </div>

@@ -76,7 +76,7 @@ resolver.define("getCurrentUser", async (req) => {
       }
 
       const user = transformUser(existingUser);
-      const isNewUser = !existingUser.skills;
+      const isNewUser = existingUser.skills === null;
       const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
       return {
         ...user,
@@ -121,7 +121,7 @@ resolver.define("getCurrentUser", async (req) => {
       const user = transformUser(existingUserByAtlassianId);
       const isNewUser = !existingUserByAtlassianId.name ||
                         existingUserByAtlassianId.name === email.split("@")[0] ||
-                        !existingUserByAtlassianId.skills;
+                        existingUserByAtlassianId.skills === null;
       const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
       return {
         ...user,
@@ -169,7 +169,7 @@ resolver.define("getCurrentUser", async (req) => {
       const user = transformUser(existingUser);
       const isNewUser = !existingUser.name ||
                         existingUser.name === email.split("@")[0] ||
-                        !existingUser.skills;
+                        existingUser.skills === null;
       const isHackdayOwner = isHackdayOwnerIdentity({ email, accountId, displayName });
       return {
         ...user,
