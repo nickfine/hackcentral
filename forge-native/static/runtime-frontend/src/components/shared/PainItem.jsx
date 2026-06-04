@@ -188,8 +188,10 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
   const authorName = pp.submitterName || 'Anonymous';
   const colour = getCategoryColour(tagLabel);
   const isBoard = variant === 'board';
+  const [expanded, setExpanded] = useState(false);
 
   const isTrending = localCount >= 5;
+  const CLAMP_LINES = isBoard ? 3 : 5;
 
   return (
     <article
@@ -224,9 +226,20 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
           <span className="font-medium text-white/60">{authorName}</span>
           {timeAgo && <span className="text-white/28">{timeAgo}</span>}
         </div>
-        <h3 className={`mt-1.5 font-semibold leading-snug text-white ${isBoard ? 'text-base' : 'text-lg'}`}>
+        <h3
+          className={`mt-1.5 font-semibold leading-snug text-white ${isBoard ? 'text-base' : 'text-lg'} ${expanded ? '' : `line-clamp-${CLAMP_LINES}`}`}
+        >
           {pp.title}
         </h3>
+        {pp.title.length > 120 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="mt-1 text-xs text-white/40 hover:text-white/70 transition-colors"
+          >
+            {expanded ? 'Show less' : 'Read more'}
+          </button>
+        )}
         {pp.description && (
           <p className={`mt-1.5 line-clamp-2 leading-5 text-white/50 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
             {pp.description}
