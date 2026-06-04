@@ -5,12 +5,14 @@ export function hasCompletedRegistration(user) {
     ? user.name.trim()
     : (typeof user?.displayName === 'string' ? user.displayName.trim() : '');
 
-  return Boolean(
-    user &&
-    userName &&
-    Array.isArray(user.skills) &&
-    user.skills.length > 0
-  );
+  // signupCompleted is set server-side (skills !== null) and survives the
+  // skills=="" case that arises when skills are disabled for the event.
+  if (user?.signupCompleted !== undefined) {
+    return Boolean(user && userName && user.signupCompleted);
+  }
+
+  // Fallback for user objects not yet hydrated with signupCompleted.
+  return Boolean(user && userName && Array.isArray(user.skills) && user.skills.length > 0);
 }
 
 export function isProcessTriggeredTeamFormationEligible(user) {
