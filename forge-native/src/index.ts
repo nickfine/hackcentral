@@ -30,6 +30,7 @@ import {
   listHdcPainPoints,
   submitHdcPainPoint,
   reactHdcPainPoint,
+  listHdcHacks,
   movePipelineItem,
   upsertPathway,
   updatePipelineStageCriteria,
@@ -71,6 +72,7 @@ import type {
   ListHdcPainPointsInput,
   SubmitHdcPainPointInput,
   ReactHdcPainPointInput,
+  ListHdcHacksInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   TrackRoiExportInput,
@@ -257,6 +259,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: ReactHdcPainPointInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return reactHdcPainPoint(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcListHacks',
+  async (request: { context?: RawResolverContext; payload: ListHdcHacksInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listHdcHacks(viewer, request.payload || {});
   }
 );
 

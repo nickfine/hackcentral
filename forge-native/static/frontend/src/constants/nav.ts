@@ -1,6 +1,7 @@
 export type View =
   | 'dashboard'
   | 'hacks'
+  | 'hacks_exchange'
   | 'library'
   | 'problem_exchange'
   | 'hackdays'
@@ -31,7 +32,8 @@ export interface NavItem {
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Home', icon: '🏠' },
-  { id: 'hacks', label: 'Hacks', icon: '⚡' },
+  { id: 'hacks', label: 'Showcase', icon: '⚡' },
+  { id: 'hacks_exchange', label: 'HackDay Hacks', icon: '🛠️' },
   { id: 'problem_exchange', label: 'Pains', icon: '🧩' },
   { id: 'hackdays', label: 'HackDays', icon: '🚀' },
   { id: 'pipeline', label: 'Pipeline', icon: '📈' },

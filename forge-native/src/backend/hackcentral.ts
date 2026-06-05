@@ -73,6 +73,9 @@ import type {
   SubmitHdcPainPointResult,
   ReactHdcPainPointInput,
   ReactHdcPainPointResult,
+  HdcHack,
+  ListHdcHacksInput,
+  ListHdcHacksResult,
 } from '../shared/types';
 import { SupabaseRepository } from './supabase/repositories';
 
@@ -1001,4 +1004,52 @@ export async function reactHdcPainPoint(
       : undefined;
   await client.mutation('painPoints:react', { painPointId, ...(reactorId ? { reactorId } : {}) });
   return { success: true };
+}
+
+export async function listHdcHacks(
+  _viewer: ViewerContext,
+  input: ListHdcHacksInput
+): Promise<ListHdcHacksResult> {
+  const { sortBy = 'newest', limit = 100 } = input;
+  const client = asConvexInvoker(getConvexClient());
+
+  const [rawItems, childEvents] = await Promise.all([
+    client.query('hacks:listForHdc', {
+      sortBy,
+      limit: Math.min(limit, 200),
+    }) as Promise<Record<string, unknown>[]>,
+    (async () => {
+      const parentPageId = process.env.CONFLUENCE_HDC_PARENT_PAGE_ID?.trim();
+      if (!parentPageId) return [];
+      return repository.listEventsByParentPageId(parentPageId);
+    })(),
+  ]);
+
+  const nameMap = new Map<string, string>(
+    childEvents.map((e) => [e.id, e.eventName])
+  );
+
+  const items: HdcHack[] = (rawItems ?? []).map((r) => {
+    const eventId = typeof r.eventId === 'string' ? r.eventId : null;
+    return {
+      id: r._id as string,
+      title: r.title as string,
+      description: typeof r.description === 'string' ? r.description : undefined,
+      teamName: r.teamName as string,
+      memberNames: Array.isArray(r.memberNames) ? (r.memberNames as string[]) : [],
+      hackDayName: typeof r.hackDayName === 'string' ? r.hackDayName : null,
+      hackDayDate: typeof r.hackDayDate === 'string' ? r.hackDayDate : null,
+      demoVideoUrl: typeof r.demoVideoUrl === 'string' ? r.demoVideoUrl : null,
+      repoUrl: typeof r.repoUrl === 'string' ? r.repoUrl : null,
+      liveDemoUrl: typeof r.liveDemoUrl === 'string' ? r.liveDemoUrl : null,
+      eventId,
+      eventName: eventId ? (nameMap.get(eventId) ?? r.hackDayName as string ?? 'Unknown HackDay') : null,
+      teamId: typeof r.teamId === 'string' ? r.teamId : null,
+      painPointId: typeof r.painPointId === 'string' ? r.painPointId : null,
+      submitterName: typeof r.submitterName === 'string' ? r.submitterName : null,
+      submittedAt: typeof r.submittedAt === 'number' ? r.submittedAt : (r._creationTime as number),
+    };
+  });
+
+  return { items };
 }

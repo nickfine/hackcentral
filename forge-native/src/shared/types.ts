@@ -599,6 +599,34 @@ export interface ReactHdcPainPointResult {
   success: boolean;
 }
 
+export interface HdcHack {
+  id: string;
+  title: string;
+  description?: string;
+  teamName: string;
+  memberNames: string[];
+  hackDayName: string | null;
+  hackDayDate: string | null;
+  demoVideoUrl: string | null;
+  repoUrl: string | null;
+  liveDemoUrl: string | null;
+  eventId: string | null;
+  eventName: string | null;
+  teamId: string | null;
+  painPointId: string | null;
+  submitterName: string | null;
+  submittedAt: number;
+}
+
+export interface ListHdcHacksInput {
+  sortBy?: 'newest' | 'oldest';
+  limit?: number;
+}
+
+export interface ListHdcHacksResult {
+  items: HdcHack[];
+}
+
 export interface VoteProblemResult {
   problemId: string;
   voteCount: number;
@@ -1480,6 +1508,7 @@ export type Defs = {
   hdcListPainPoints: (payload: ListHdcPainPointsInput) => ListHdcPainPointsResult;
   hdcSubmitPainPoint: (payload: SubmitHdcPainPointInput) => SubmitHdcPainPointResult;
   hdcReactPainPoint: (payload: ReactHdcPainPointInput) => ReactHdcPainPointResult;
+  hdcListHacks: (payload: ListHdcHacksInput) => ListHdcHacksResult;
   hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
   hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
   hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;

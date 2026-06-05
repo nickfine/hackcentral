@@ -379,6 +379,43 @@ export default defineSchema({
     .index("by_pain_point", ["painPointId"]),
 
   // ============================================================================
+  // HACKS (permanent record of every child HackDay submission)
+  // ============================================================================
+  hacks: defineTable({
+    // Snapshot fields captured at submission time
+    title: v.string(),
+    description: v.optional(v.string()),
+    teamName: v.string(),
+    memberNames: v.array(v.string()),
+    hackDayName: v.optional(v.string()),
+    hackDayDate: v.optional(v.string()),
+
+    // Delivery links
+    demoVideoUrl: v.optional(v.string()),
+    repoUrl: v.optional(v.string()),
+    liveDemoUrl: v.optional(v.string()),
+
+    // Cross-reference to Supabase entities
+    projectId: v.string(),           // Supabase Project.id — dedup key
+    eventId: v.optional(v.string()), // Supabase event ID
+    teamId: v.optional(v.string()),  // Supabase team ID
+
+    // Optional linkage to a pain point
+    painPointId: v.optional(v.id("painPoints")),
+
+    // Submission metadata
+    submitterName: v.optional(v.string()),
+    submittedByUserId: v.optional(v.id("profiles")),
+    isHidden: v.boolean(),
+    submittedAt: v.number(),
+  })
+    .index("by_project_id", ["projectId"])
+    .index("by_hidden", ["isHidden"])
+    .index("by_hidden_submitted", ["isHidden", "submittedAt"])
+    .index("by_event_hidden", ["eventId", "isHidden"])
+    .index("by_event_hidden_submitted", ["eventId", "isHidden", "submittedAt"]),
+
+  // ============================================================================
   // HELP REQUESTS (Bulletin Board)
   // ============================================================================
   helpRequests: defineTable({

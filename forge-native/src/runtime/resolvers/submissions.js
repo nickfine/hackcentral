@@ -17,6 +17,7 @@ import {
   ensureSubmissionsParentPage,
   makeId,
 } from "../lib/helpers.js";
+import { convexMutation, convexQuery } from "../lib/convex.js";
 
 export function registerSubmissionResolvers(resolver) {
 // ============================================================================
@@ -334,7 +335,49 @@ resolver.define("submitProject", async (req) => {
     let submissionPageId = null;
     let submissionPageUrl = null;
     let outputPageIds = [];
+
+    // Always fetch the event row — needed for both Convex capture and Confluence sync
     const eventRow = team.eventId ? await getEventById(supabase, team.eventId) : null;
+
+    // Capture to Convex hacks table (non-fatal — submission succeeds regardless)
+    try {
+      const { data: memberRows } = await supabase
+        .from("TeamMember")
+        .select("user:User(name, callsign)")
+        .eq("teamId", teamId)
+        .eq("status", "ACCEPTED");
+      const memberNames = (memberRows || [])
+        .map((m) => m.user?.name || m.user?.callsign || "")
+        .filter(Boolean);
+
+      let painPointId = null;
+      try {
+        const teamLinks = await convexQuery("painPoints:listForTeam", { teamId });
+        if (Array.isArray(teamLinks) && teamLinks[0]?._id) {
+          painPointId = teamLinks[0]._id;
+        }
+      } catch { /* non-fatal */ }
+
+      await convexMutation("hacks:upsertFromForge", {
+        projectId,
+        title: projectData.name,
+        description: projectData.description || undefined,
+        teamName: String(team.name || "").trim() || `Team ${team.id}`,
+        memberNames,
+        hackDayName: eventRow?.name || undefined,
+        hackDayDate: eventRow?.hacking_starts_at || undefined,
+        demoVideoUrl: projectData.videoUrl || undefined,
+        repoUrl: projectData.repoUrl || undefined,
+        liveDemoUrl: projectData.demoUrl || undefined,
+        eventId: team.eventId || undefined,
+        teamId: team.id,
+        painPointId: painPointId || undefined,
+        submitterName: user.name || user.callsign || undefined,
+      });
+    } catch (err) {
+      console.warn("HDC hack capture warning:", err instanceof Error ? err.message : String(err));
+    }
+
     const eventPageId = normalizeConfluencePageId(eventRow?.confluence_page_id);
     if (eventPageId) {
       try {

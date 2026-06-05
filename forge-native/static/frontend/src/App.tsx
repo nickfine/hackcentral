@@ -37,6 +37,7 @@ import type {
   PipelineStage,
   PipelineStageCriteria,
   PainPoint,
+  HdcHack,
   ProblemImportCandidate,
   ProblemFrequency,
   ProblemListItem,
@@ -1487,6 +1488,11 @@ export function App(): JSX.Element {
   const [painSortBy, setPainSortBy] = useState<'votes' | 'newest'>('votes');
   const [painSubmitterName, setPainSubmitterName] = useState('');
   const [painReactPendingId, setPainReactPendingId] = useState<string | null>(null);
+
+  const [hdcHacks, setHdcHacks] = useState<HdcHack[]>([]);
+  const [hdcHacksLoading, setHdcHacksLoading] = useState(false);
+  const [hdcHacksLoaded, setHdcHacksLoaded] = useState(false);
+  const [hdcHacksError, setHdcHacksError] = useState('');
 
   const [pipelineItems, setPipelineItems] = useState<PipelineBoardItem[]>([]);
   const [pipelineStageCriteria, setPipelineStageCriteria] = useState<PipelineStageCriteria[]>([]);
@@ -3727,6 +3733,27 @@ export function App(): JSX.Element {
 
   // Old problem exchange load effect retained for reference but superseded by loadPainItems effect above.
   // void loadProblemExchangeItems is no longer called on problem_exchange view.
+
+  // ── HackDay Hacks tab callbacks (Convex-backed) ──
+
+  const loadHdcHacks = useCallback(async () => {
+    setHdcHacksLoading(true);
+    setHdcHacksError('');
+    try {
+      const result = await invokeTyped('hdcListHacks', { sortBy: 'newest', limit: 100 });
+      setHdcHacks(result.items);
+      setHdcHacksLoaded(true);
+    } catch (error) {
+      setHdcHacksError(error instanceof Error ? error.message : 'Failed to load hacks.');
+    } finally {
+      setHdcHacksLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'hacks_exchange') return;
+    void loadHdcHacks();
+  }, [view, loadHdcHacks]);
 
   const handleProblemSearchKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -7284,6 +7311,89 @@ export function App(): JSX.Element {
                   </section>
                 ) : null
               )}
+            </section>
+          ) : null}
+
+          {view === 'hacks_exchange' ? (
+            <section className="page-stack">
+              <section className="title-row">
+                <div>
+                  <h1>HackDay Hacks</h1>
+                  <p className="subtitle">Every hack submitted across all HackDays - successful or not. Nothing gets lost.</p>
+                </div>
+                <div className="registry-title-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void loadHdcHacks()}
+                    disabled={hdcHacksLoading}
+                  >
+                    {hdcHacksLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </section>
+
+              {hdcHacksError ? (
+                <section className="message message-error">{hdcHacksError}</section>
+              ) : null}
+
+              {hdcHacksLoading ? (
+                <section className="card"><p className="empty-copy">Loading hacks...</p></section>
+              ) : hdcHacksLoaded && hdcHacks.length > 0 ? (
+                <section className="grid pains-grid">
+                  {hdcHacks.map((hack) => (
+                    <article key={hack.id} className="card hack-card problem-card">
+                      <div className="problem-card-shell">
+                        <div className="problem-card-main">
+                          <div className="hack-card-head">
+                            <div className="hack-card-title-wrap"><h3>{hack.title}</h3></div>
+                            <div className="problem-pill-row">
+                              {hack.eventName ? (
+                                <span className="pill pill-event">{hack.eventName}</span>
+                              ) : null}
+                              {hack.painPointId ? (
+                                <span className="pill pill-event" title="This hack addressed a pain point">Addresses a pain</span>
+                              ) : null}
+                            </div>
+                          </div>
+                          {hack.description ? (
+                            <p className="hack-card-copy">{hack.description}</p>
+                          ) : null}
+                          <div className="problem-meta-grid">
+                            <span className="meta">
+                              {hack.teamName}
+                              {hack.memberNames.length > 0 ? ` · ${hack.memberNames.join(', ')}` : ''}
+                            </span>
+                          </div>
+                          {(hack.demoVideoUrl || hack.repoUrl || hack.liveDemoUrl) ? (
+                            <div className="problem-meta-grid">
+                              {hack.demoVideoUrl ? (
+                                <a href={hack.demoVideoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Demo video</a>
+                              ) : null}
+                              {hack.repoUrl ? (
+                                <a href={hack.repoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Repo</a>
+                              ) : null}
+                              {hack.liveDemoUrl ? (
+                                <a href={hack.liveDemoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Live demo</a>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <div className="hack-card-foot">
+                            <span className="meta">
+                              {hack.submitterName ? `Submitted by ${hack.submitterName}` : ''}
+                              {hack.hackDayDate ? ` · ${hack.hackDayDate.slice(0, 10)}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </section>
+              ) : hdcHacksLoaded ? (
+                <section className="card">
+                  <p className="empty-copy">No hacks captured yet. Hacks appear here automatically when teams submit in a child HackDay.</p>
+                </section>
+              ) : null}
             </section>
           ) : null}
 
