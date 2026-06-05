@@ -6398,3 +6398,29 @@ Full-stack feature: pain points assigned to a team now surface on team cards and
 - Exclusive one-pain-point in PainPointsPanel: **v2.65.0**
 - Exclusive one-pain-point in create modal: **v2.66.0**
 - Commit: `af6fe51`
+
+---
+
+## Session Update - Pains Tab Migrated to Convex + hdcReactPainPoint (Jun 5, 2026)
+
+### Phase 5: Problem Exchange → Convex pain points store
+
+The "Pains" tab (`problem_exchange` view) in the HDC frontend has been fully migrated from the old Supabase-backed Problem Exchange to the Convex `painPoints` canonical store.
+
+**What changed:**
+- `hdcReactPainPoint` resolver added end-to-end (Convex `react` mutation → `hackcentral.ts` → `index.ts` → frontend types)
+- `App.tsx`: new parallel state (`painItems`, `painLoading`, `painSortBy` etc.) added alongside the retained `problemItems` state — old Supabase callbacks left as dead code, new rendering replaces the entire `problem_exchange` view
+- New Pains tab UI: sort dropdown (votes/newest), simplified submit form (title + description + name), vote button with optimistic update, eventName attribution chip
+- `APP_VERSION` bumped to `1.2.194` and deployed to production
+
+**Migration decision:** The legacy `Problem` table in the old HackDay Supabase project contained only 4 demo seed rows (fake UUIDs, `demo.hackcentral.local` emails). No real user data existed to migrate — migration script (`scripts/migrate-problems-to-convex.mjs`) created but not run.
+
+**Key gotcha — wrong Supabase project:**
+The HackCentral tag-hackday Supabase project (`easooezlgwbiiqqlpvpb`) has an empty `Problem` table. The 4 demo rows were in the legacy HackDay project (`ssafugtobsqxmqtphwch`). If the migration script is ever needed, the `SUPABASE_URL` must point at `ssafugtobsqxmqtphwch.supabase.co`, not the HackCentral project. The script also uses `legacyId` in the mapped payload — verify this matches what `adminImportLegacyProblems` expects (`legacySourceId`) before running.
+
+**Why parallel state in App.tsx:**
+Changing `problemItems: ProblemListItem[]` to `PainPoint[]` would have broken all the existing Supabase-backed pipeline board callbacks that reference `ProblemListItem`-shaped fields (status, domain etc.). Parallel state was the safer option — new `painItems: PainPoint[]` lives alongside, old callbacks left intact.
+
+### Versions
+- Deployed: **APP_VERSION 1.2.194**
+- Commit: `4c36a2e`
