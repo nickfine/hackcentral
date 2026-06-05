@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 
 // ============================================================================
 // HELPERS
@@ -30,6 +30,7 @@ export const submit = mutation({
     impactEstimate: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
     ),
+    eventId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const title = args.title.trim();
@@ -56,6 +57,7 @@ export const submit = mutation({
       submittedByUserId,
       reactionCount: 0,
       isHidden: false,
+      eventId: args.eventId,
     });
   },
 });
@@ -357,6 +359,167 @@ export const listForTeams = query({
         .map((pp) => ({ id: pp!._id as string, title: pp!.title as string }));
     }
     return grouped;
+  },
+});
+
+// ============================================================================
+// EVENT-SCOPED AND HDC QUERIES
+// ============================================================================
+
+/** Pain points for a specific child hackday (child page uses this after Phase 3 deploy). */
+export const listForEvent = query({
+  args: {
+    eventId: v.string(),
+    sortBy: v.optional(v.union(v.literal("reactions"), v.literal("newest"))),
+    limit: v.optional(v.number()),
+    reactorId: v.optional(v.string()),
+  },
+  handler: async (ctx, { eventId, sortBy = "reactions", limit = 50, reactorId }) => {
+    const page =
+      sortBy === "reactions"
+        ? await ctx.db
+            .query("painPoints")
+            .withIndex("by_event_hidden_reactions", (q) =>
+              q.eq("eventId", eventId).eq("isHidden", false)
+            )
+            .order("desc")
+            .take(limit)
+        : await ctx.db
+            .query("painPoints")
+            .withIndex("by_event_hidden", (q) =>
+              q.eq("eventId", eventId).eq("isHidden", false)
+            )
+            .order("desc")
+            .take(limit);
+
+    if (!reactorId) return page.map((r) => ({ ...r, hasReacted: false }));
+
+    const reacted = await Promise.all(
+      page.map((r) =>
+        ctx.db
+          .query("painPointReactions")
+          .withIndex("by_pain_point_reactor", (q) =>
+            q.eq("painPointId", r._id).eq("reactorId", reactorId)
+          )
+          .first()
+      )
+    );
+    return page.map((r, i) => ({ ...r, hasReacted: !!reacted[i] }));
+  },
+});
+
+/** All visible pain points for HackDay Central: year-round + every hackday. */
+export const listForHdc = query({
+  args: {
+    sortBy: v.optional(v.union(v.literal("reactions"), v.literal("newest"))),
+    limit: v.optional(v.number()),
+    reactorId: v.optional(v.string()),
+  },
+  handler: async (ctx, { sortBy = "reactions", limit = 50, reactorId }) => {
+    const page =
+      sortBy === "reactions"
+        ? await ctx.db
+            .query("painPoints")
+            .withIndex("by_hidden_reactions", (q) => q.eq("isHidden", false))
+            .order("desc")
+            .take(limit)
+        : await ctx.db
+            .query("painPoints")
+            .withIndex("by_hidden", (q) => q.eq("isHidden", false))
+            .order("desc")
+            .take(limit);
+
+    if (!reactorId) return page.map((r) => ({ ...r, hasReacted: false }));
+
+    const reacted = await Promise.all(
+      page.map((r) =>
+        ctx.db
+          .query("painPointReactions")
+          .withIndex("by_pain_point_reactor", (q) =>
+            q.eq("painPointId", r._id).eq("reactorId", reactorId)
+          )
+          .first()
+      )
+    );
+    return page.map((r, i) => ({ ...r, hasReacted: !!reacted[i] }));
+  },
+});
+
+// ============================================================================
+// ADMIN DATA OPERATIONS (internal — CLI / dashboard only, not callable from client)
+// ============================================================================
+
+/**
+ * Backfill a known set of rows with an eventId.
+ * Scoped to explicit row IDs — will never touch rows not in the list.
+ * Idempotent: skips rows that already have an eventId set.
+ */
+export const adminBackfillEventIds = internalMutation({
+  args: {
+    rowIds: v.array(v.id("painPoints")),
+    eventId: v.string(),
+  },
+  handler: async (ctx, { rowIds, eventId }) => {
+    const patchedIds: string[] = [];
+    const skippedIds: string[] = [];
+    for (const rowId of rowIds) {
+      const row = await ctx.db.get(rowId);
+      if (!row || row.eventId) {
+        skippedIds.push(rowId as string);
+        continue;
+      }
+      await ctx.db.patch(rowId, { eventId });
+      patchedIds.push(rowId as string);
+    }
+    return { patchedIds, skippedIds };
+  },
+});
+
+/**
+ * One-time idempotent import of legacy Supabase Problem Exchange rows.
+ * Deduplicates via legacySourceId to make re-runs safe.
+ */
+export const adminImportLegacyProblems = internalMutation({
+  args: {
+    rows: v.array(
+      v.object({
+        legacyId: v.string(),
+        title: v.string(),
+        description: v.optional(v.string()),
+        submitterName: v.string(),
+        voteCount: v.number(),
+        isHidden: v.boolean(),
+        originalCreatedAt: v.optional(v.number()),
+      })
+    ),
+  },
+  handler: async (ctx, { rows }) => {
+    let insertedCount = 0;
+    let skippedCount = 0;
+    for (const row of rows) {
+      const existing = await ctx.db
+        .query("painPoints")
+        .withIndex("by_legacy_source", (q) =>
+          q.eq("legacySource", "problem-exchange").eq("legacySourceId", row.legacyId)
+        )
+        .first();
+      if (existing) {
+        skippedCount++;
+        continue;
+      }
+      await ctx.db.insert("painPoints", {
+        title: row.title,
+        description: row.description,
+        submitterName: row.submitterName,
+        reactionCount: row.voteCount,
+        isHidden: row.isHidden,
+        legacySource: "problem-exchange",
+        legacySourceId: row.legacyId,
+        originalCreatedAt: row.originalCreatedAt,
+      });
+      insertedCount++;
+    }
+    return { insertedCount, skippedCount };
   },
 });
 

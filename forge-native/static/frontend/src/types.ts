@@ -563,6 +563,45 @@ export interface ListProblemsResult {
   nextCursor: string | null;
 }
 
+export interface PainPoint {
+  id: string;
+  title: string;
+  description?: string;
+  submitterName: string;
+  voteCount: number;
+  eventId: string | null;
+  eventName: string | null;
+  createdAt: number;
+  hasReacted: boolean;
+}
+
+export interface ListHdcPainPointsInput {
+  sortBy?: 'votes' | 'newest';
+  limit?: number;
+}
+
+export interface ListHdcPainPointsResult {
+  items: PainPoint[];
+}
+
+export interface SubmitHdcPainPointInput {
+  title: string;
+  description?: string;
+  submitterName: string;
+}
+
+export interface SubmitHdcPainPointResult {
+  id: string;
+}
+
+export interface ReactHdcPainPointInput {
+  painPointId: string;
+}
+
+export interface ReactHdcPainPointResult {
+  success: boolean;
+}
+
 export interface VoteProblemResult {
   problemId: string;
   voteCount: number;
@@ -1449,6 +1488,9 @@ export type Defs = {
   hdcGetArtifact: (payload: { artifactId: string }) => GetArtifactResult;
   hdcMarkArtifactReuse: (payload: { artifactId: string }) => MarkArtifactReuseResult;
   hdcForkArtifact: (payload: ForkArtifactInput) => ForkArtifactResult;
+  hdcListPainPoints: (payload: ListHdcPainPointsInput) => ListHdcPainPointsResult;
+  hdcSubmitPainPoint: (payload: SubmitHdcPainPointInput) => SubmitHdcPainPointResult;
+  hdcReactPainPoint: (payload: ReactHdcPainPointInput) => ReactHdcPainPointResult;
   hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
   hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
   hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;

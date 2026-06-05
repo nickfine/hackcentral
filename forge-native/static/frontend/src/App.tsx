@@ -36,6 +36,7 @@ import type {
   PipelineMetrics,
   PipelineStage,
   PipelineStageCriteria,
+  PainPoint,
   ProblemImportCandidate,
   ProblemFrequency,
   ProblemListItem,
@@ -1477,6 +1478,15 @@ export function App(): JSX.Element {
   const [problemCanModerate, setProblemCanModerate] = useState(false);
   const [problemModerationMode, setProblemModerationMode] = useState<'allowlist' | 'none'>('none');
   const [problemManageOpenId, setProblemManageOpenId] = useState<string | null>(null);
+
+  // ── New Pains tab (Convex-backed, replaces Problem Exchange) ──
+  const [painItems, setPainItems] = useState<PainPoint[]>([]);
+  const [painLoading, setPainLoading] = useState(false);
+  const [painLoaded, setPainLoaded] = useState(false);
+  const [painError, setPainError] = useState('');
+  const [painSortBy, setPainSortBy] = useState<'votes' | 'newest'>('votes');
+  const [painSubmitterName, setPainSubmitterName] = useState('');
+  const [painReactPendingId, setPainReactPendingId] = useState<string | null>(null);
 
   const [pipelineItems, setPipelineItems] = useState<PipelineBoardItem[]>([]);
   const [pipelineStageCriteria, setPipelineStageCriteria] = useState<PipelineStageCriteria[]>([]);
@@ -3591,10 +3601,7 @@ export function App(): JSX.Element {
     [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]
   );
 
-  useEffect(() => {
-    if (view !== 'problem_exchange') return;
-    void loadProblemExchangeCapabilities();
-  }, [view, loadProblemExchangeCapabilities]);
+  // loadProblemExchangeCapabilities no longer used — new pains tab has no moderation.
 
   useEffect(() => {
     if (problemCanModerate) return;
@@ -3655,10 +3662,71 @@ export function App(): JSX.Element {
     setProblemAppliedFilters(getDefaultProblemFilterSet());
   }, []);
 
+  // ── New Pains tab callbacks (Convex-backed) ──
+
+  const loadPainItems = useCallback(async (sortBy: 'votes' | 'newest' = 'votes') => {
+    setPainLoading(true);
+    setPainError('');
+    try {
+      const result = await invokeTyped('hdcListPainPoints', { sortBy, limit: 100 });
+      setPainItems(result.items);
+      setPainLoaded(true);
+    } catch (error) {
+      setPainError(error instanceof Error ? error.message : 'Failed to load pain points.');
+    } finally {
+      setPainLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (view !== 'problem_exchange') return;
-    void loadProblemExchangeItems(problemAppliedFilters);
-  }, [view, loadProblemExchangeItems, problemAppliedFilters]);
+    void loadPainItems(painSortBy);
+  }, [view, loadPainItems, painSortBy]);
+
+  const handleSubmitPain = useCallback(async () => {
+    if (!problemTitle.trim()) return;
+    setProblemSubmitting(true);
+    setActionError('');
+    try {
+      await invokeTyped('hdcSubmitPainPoint', {
+        title: problemTitle.trim(),
+        submitterName: painSubmitterName.trim() || 'Anonymous',
+        description: problemDescription.trim() || undefined,
+      });
+      setActionMessage(`Pain submitted: ${problemTitle.trim()}`);
+      setProblemTitle('');
+      setProblemDescription('');
+      setPainSubmitterName('');
+      setShowCreateProblemForm(false);
+      await loadPainItems(painSortBy);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to submit pain.');
+    } finally {
+      setProblemSubmitting(false);
+    }
+  }, [problemTitle, painSubmitterName, problemDescription, painSortBy, loadPainItems]);
+
+  const handleReactPain = useCallback(async (painPointId: string) => {
+    setPainReactPendingId(painPointId);
+    setActionError('');
+    try {
+      await invokeTyped('hdcReactPainPoint', { painPointId });
+      setPainItems((current) =>
+        current.map((item) =>
+          item.id === painPointId
+            ? { ...item, voteCount: item.voteCount + 1, hasReacted: true }
+            : item
+        )
+      );
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to react to pain point.');
+    } finally {
+      setPainReactPendingId(null);
+    }
+  }, []);
+
+  // Old problem exchange load effect retained for reference but superseded by loadPainItems effect above.
+  // void loadProblemExchangeItems is no longer called on problem_exchange view.
 
   const handleProblemSearchKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -4181,7 +4249,7 @@ export function App(): JSX.Element {
   );
 
   // ── Homepage v3 data loading ──
-  const [hpProblems, setHpProblems] = useState<import('./types').ProblemListItem[]>([]);
+  const [hpProblems, setHpProblems] = useState<import('./types').PainPoint[]>([]);
   const [hpProblemCount, setHpProblemCount] = useState<number | null>(null);
   const [hpProblemsLoading, setHpProblemsLoading] = useState(false);
   const [hpArtifacts, setHpArtifacts] = useState<import('./types').ArtifactListItem[]>([]);
@@ -4193,14 +4261,14 @@ export function App(): JSX.Element {
     if (view !== 'dashboard') return;
     let cancelled = false;
 
-    // Load trending problems (sorted by votes)
+    // Load pain points (sorted by votes)
     (async () => {
       setHpProblemsLoading(true);
       try {
-        const result = await invokeTyped('hdcListProblems', { sortBy: 'votes', limit: 20 });
+        const result = await invokeTyped('hdcListPainPoints', { sortBy: 'votes', limit: 20 });
         if (!cancelled) {
           setHpProblems(result.items);
-          setHpProblemCount(result.items.length + (result.nextCursor ? 99 : 0));
+          setHpProblemCount(result.items.length);
         }
       } catch { /* non-blocking */ }
       finally { if (!cancelled) setHpProblemsLoading(false); }
@@ -4237,21 +4305,12 @@ export function App(): JSX.Element {
     : (bootstrap?.summary.completedProjects ?? 0);
   const hpEventsComing = registry.length;
 
-  const handleHpCreateProblem = useCallback(async (title: string) => {
+  const handleHpCreateProblem = useCallback(async (title: string, submitterName: string, description?: string) => {
     try {
-      await invokeTyped('hdcCreateProblem', {
-        title,
-        description: '',
-        frequency: 'daily',
-        estimatedTimeWastedHours: 1,
-        team: 'Unknown',
-        domain: 'Unknown',
-        contactDetails: '',
-      } as any);
-      // Reload problems
-      const result = await invokeTyped('hdcListProblems', { sortBy: 'votes', limit: 20 });
+      await invokeTyped('hdcSubmitPainPoint', { title, submitterName, description });
+      const result = await invokeTyped('hdcListPainPoints', { sortBy: 'votes', limit: 20 });
       setHpProblems(result.items);
-      setHpProblemCount(result.items.length + (result.nextCursor ? 99 : 0));
+      setHpProblemCount(result.items.length);
     } catch { /* handled silently for now */ }
   }, []);
 
@@ -7059,7 +7118,7 @@ export function App(): JSX.Element {
               <section className="title-row">
                 <div>
                   <h1>Pains</h1>
-                  <p className="subtitle">Surface repeat pain points, vote for impact, and connect solved pains to shipped hacks.</p>
+                  <p className="subtitle">Surface recurring pain points from HackDays and year-round. Vote for impact.</p>
                 </div>
                 <div className="problem-title-actions">
                   <button
@@ -7073,81 +7132,33 @@ export function App(): JSX.Element {
                     type="button"
                     className="btn btn-primary"
                     onClick={() => {
-                      void loadProblemExchangeItems(problemAppliedFilters);
+                      void loadPainItems(painSortBy);
                     }}
-                    disabled={problemLoading}
+                    disabled={painLoading}
                   >
-                    {problemLoading ? 'Refreshing...' : 'Refresh'}
+                    {painLoading ? 'Refreshing...' : 'Refresh'}
                   </button>
                 </div>
               </section>
 
               <section className="card problem-toolbar">
                 <section className="filter-row problem-filter-row">
-                  <input
-                    type="search"
-                    placeholder="Search pains by title or description..."
-                    value={problemSearchInput}
-                    onChange={(event) => setProblemSearchInput(event.target.value)}
-                    onKeyDown={handleProblemSearchKeyDown}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Teams (comma separated)"
-                    value={problemTeamsInput}
-                    onChange={(event) => setProblemTeamsInput(event.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Domains (comma separated)"
-                    value={problemDomainsInput}
-                    onChange={(event) => setProblemDomainsInput(event.target.value)}
-                  />
                   <select
-                    value={problemStatusFilter}
-                    onChange={(event) => setProblemStatusFilter(event.target.value as ProblemStatus | 'all')}
-                  >
-                    <option value="all">All Statuses</option>
-                    {PROBLEM_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {formatLabel(status)}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={problemSortBy}
-                    onChange={(event) => setProblemSortBy(event.target.value as ProblemSortBy)}
+                    value={painSortBy}
+                    onChange={(event) => {
+                      const next = event.target.value as 'votes' | 'newest';
+                      setPainSortBy(next);
+                    }}
                   >
                     <option value="votes">Top Votes</option>
-                    <option value="time_wasted">Highest Time Wasted</option>
                     <option value="newest">Newest</option>
                   </select>
-                  <label className="check-label">
-                    <input
-                      type="checkbox"
-                      checked={problemIncludeHidden}
-                      onChange={(event) => setProblemIncludeHidden(event.target.checked)}
-                      disabled={!problemCanModerate}
-                    />
-                    Include hidden/removed
-                  </label>
                 </section>
 
                 <section className="problem-filter-actions">
-                  <button type="button" className="btn btn-primary" onClick={applyProblemFiltersToList}>
-                    Apply Filters
-                  </button>
-                  <button type="button" className="btn btn-outline" onClick={clearProblemFilters}>
-                    Reset
-                  </button>
                   <span className="meta">
-                    Showing {problemItems.length} pain{problemItems.length === 1 ? '' : 's'}
+                    {painLoaded ? `${painItems.length} pain${painItems.length === 1 ? '' : 's'}` : ''}
                   </span>
-                  {!problemCanModerate ? (
-                    <span className="meta">
-                      Moderation mode: {formatLabel(problemModerationMode)}. Remove/Reinstate actions are restricted.
-                    </span>
-                  ) : null}
                 </section>
               </section>
 
@@ -7156,93 +7167,51 @@ export function App(): JSX.Element {
                   <section className="section-head-row">
                     <div>
                       <h2>Submit Pain</h2>
-                      <p>Share a repeated workflow pain point. Add enough context for others to vote, claim, and solve.</p>
+                      <p>Describe a recurring work problem. HackDay teams can pick it up.</p>
                     </div>
                   </section>
                   <form
                     className="modal-form"
                     onSubmit={(event) => {
                       event.preventDefault();
-                      void handleCreateProblem();
+                      void handleSubmitPain();
                     }}
                   >
-                    <label htmlFor="problem-title">Title</label>
+                    <label htmlFor="pain-title">Title</label>
                     <input
-                      id="problem-title"
+                      id="pain-title"
                       value={problemTitle}
                       onChange={(event) => setProblemTitle(event.target.value)}
                       placeholder="E.g. Manual reporting reconciliation takes half a day weekly"
+                      required
                     />
 
-                    <label htmlFor="problem-description">Description</label>
+                    <label htmlFor="pain-description">Description (optional)</label>
                     <textarea
-                      id="problem-description"
+                      id="pain-description"
                       value={problemDescription}
                       onChange={(event) => setProblemDescription(event.target.value)}
-                      placeholder="Describe current steps, bottlenecks, and impact."
+                      placeholder="Describe steps, bottlenecks, and impact."
                     />
 
-                    <section className="split-form">
-                      <div>
-                        <label htmlFor="problem-frequency">Frequency</label>
-                        <select
-                          id="problem-frequency"
-                          value={problemFrequency}
-                          onChange={(event) => setProblemFrequency(event.target.value as ProblemFrequency)}
-                        >
-                          {PROBLEM_FREQUENCIES.map((frequency) => (
-                            <option key={frequency} value={frequency}>
-                              {formatLabel(frequency)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="problem-time-wasted">Estimated Time Wasted (hours)</label>
-                        <input
-                          id="problem-time-wasted"
-                          inputMode="decimal"
-                          value={problemTimeWastedHours}
-                          onChange={(event) => setProblemTimeWastedHours(event.target.value)}
-                          placeholder="E.g. 6"
-                        />
-                      </div>
-                    </section>
-
-                    <section className="split-form">
-                      <div>
-                        <label htmlFor="problem-team">Team</label>
-                        <input
-                          id="problem-team"
-                          value={problemTeam}
-                          onChange={(event) => setProblemTeam(event.target.value)}
-                          placeholder="E.g. RevOps"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="problem-domain">Domain</label>
-                        <input
-                          id="problem-domain"
-                          value={problemDomain}
-                          onChange={(event) => setProblemDomain(event.target.value)}
-                          placeholder="E.g. Reporting"
-                        />
-                      </div>
-                    </section>
-
-                    <label htmlFor="problem-contact-details">Contact Details</label>
+                    <label htmlFor="pain-submitter-name">Your name (optional)</label>
                     <input
-                      id="problem-contact-details"
-                      value={problemContactDetails}
-                      onChange={(event) => setProblemContactDetails(event.target.value)}
-                      placeholder="E.g. name/email/Slack channel"
+                      id="pain-submitter-name"
+                      value={painSubmitterName}
+                      onChange={(event) => setPainSubmitterName(event.target.value)}
+                      placeholder="Shown alongside your pain point"
                     />
 
                     <section className="modal-actions">
-                      <button type="button" className="btn btn-outline" onClick={resetProblemForm} disabled={problemSubmitting}>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => { setProblemTitle(''); setProblemDescription(''); setPainSubmitterName(''); }}
+                        disabled={problemSubmitting}
+                      >
                         Reset
                       </button>
-                      <button type="submit" className="btn btn-primary" disabled={problemSubmitting}>
+                      <button type="submit" className="btn btn-primary" disabled={problemSubmitting || !problemTitle.trim()}>
                         {problemSubmitting ? 'Submitting...' : 'Submit Pain'}
                       </button>
                     </section>
@@ -7250,230 +7219,69 @@ export function App(): JSX.Element {
                 </article>
               ) : null}
 
-              {problemError ? <section className="message message-error">{problemError}</section> : null}
+              {painError ? <section className="message message-error">{painError}</section> : null}
 
-              {problemLoading ? (
+              {painLoading ? (
                 <section className="card">
-                  <p className="empty-copy">Loading pains...</p>
+                  <p className="empty-copy">Loading pain points...</p>
                 </section>
               ) : null}
 
-              {!problemLoading && problemLoaded && problemItems.length > 0 ? (
+              {!painLoading && painLoaded && painItems.length > 0 ? (
                 <section className="grid pains-grid">
-                  {problemItems.map((problem) => {
-                    const statusValue = problemStatusDraftById[problem.id] ?? problem.status;
-                    const linkedHackProjectValue = problemLinkHackProjectById[problem.id] ?? problem.linkedHackProjectId ?? '';
-                    const linkedArtifactValue = problemLinkArtifactById[problem.id] ?? problem.linkedArtifactId ?? '';
-                    const statusNoteValue = problemStatusNoteById[problem.id] ?? '';
-                    const flagReasonValue = problemFlagReasonById[problem.id] ?? '';
-                    const moderationAction = resolveProblemModerationAction(problemCanModerate, problem.moderationState);
-                    const manageDrawerOpen = problemCanModerate && problemManageOpenId === problem.id;
-                    const canRemoveProblem = problem.canRemove && problem.moderationState !== 'removed';
-                    const canReinstateProblem = moderationAction === 'reinstate';
+                  {painItems.map((pain) => {
                     return (
                       <article
-                        key={problem.id}
-                        className={`card hack-card problem-card${manageDrawerOpen ? ' problem-card-open' : ''}`}
+                        key={pain.id}
+                        className="card hack-card problem-card"
                       >
                         <div className="problem-card-shell">
                           <div className="problem-card-main">
                             <div className="hack-card-head">
                               <div className="hack-card-title-wrap">
-                                <h3>{problem.title}</h3>
+                                <h3>{pain.title}</h3>
                               </div>
-                              <div className="problem-pill-row">
-                                <span className={`pill pill-${problem.status}`}>{formatLabel(problem.status)}</span>
-                                {problem.moderationState !== 'visible' ? (
-                                  <span className={`pill pill-moderation-${problem.moderationState}`}>
-                                    {formatLabel(problem.moderationState)}
-                                  </span>
-                                ) : null}
-                              </div>
+                              {pain.eventName ? (
+                                <div className="problem-pill-row">
+                                  <span className="pill pill-event">{pain.eventName}</span>
+                                </div>
+                              ) : null}
                             </div>
 
-                            <p className="hack-card-copy">{problem.description}</p>
+                            {pain.description ? (
+                              <p className="hack-card-copy">{pain.description}</p>
+                            ) : null}
 
                             <div className="problem-meta-grid">
-                              <span className="meta">Team: {problem.team}</span>
-                              <span className="meta">Domain: {problem.domain}</span>
-                              <span className="meta">Frequency: {formatLabel(problem.frequency)}</span>
-                              <span className="meta">Time wasted: {problem.estimatedTimeWastedHours}h</span>
-                              <span className="meta">Submitted by {problem.createdByName}</span>
-                              <span className="meta">Contact: {problem.contactDetails}</span>
+                              <span className="meta">Submitted by {pain.submitterName}</span>
                             </div>
 
                             <div className="hack-card-foot">
                               <div className="problem-actions">
                                 <button
                                   type="button"
-                                  className="btn btn-primary"
-                                  onClick={() => {
-                                    void handleVoteProblem(problem.id);
-                                  }}
-                                  disabled={problemVotePendingId === problem.id || problem.moderationState === 'removed'}
+                                  className={`btn btn-primary${pain.hasReacted ? ' btn-reacted' : ''}`}
+                                  onClick={() => { void handleReactPain(pain.id); }}
+                                  disabled={painReactPendingId === pain.id || pain.hasReacted}
                                 >
-                                  {problemVotePendingId === problem.id ? 'Saving...' : 'Vote'}
+                                  {painReactPendingId === pain.id ? 'Saving...' : pain.hasReacted ? 'Voted' : 'Vote'}
                                 </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-outline"
-                                  onClick={() => {
-                                    void handleFlagProblem(problem);
-                                  }}
-                                  disabled={problemFlagPendingId === problem.id || problem.moderationState === 'removed'}
-                                >
-                                  {problemFlagPendingId === problem.id ? 'Saving...' : 'Flag'}
-                                </button>
-                                {canRemoveProblem ? (
-                                  <button
-                                    type="button"
-                                    className="btn btn-outline btn-outline-danger"
-                                    onClick={() => {
-                                      void handleModerateProblem(problem, 'remove');
-                                    }}
-                                    disabled={problemModerationPendingId === problem.id}
-                                  >
-                                    {problemModerationPendingId === problem.id ? 'Saving...' : 'Remove'}
-                                  </button>
-                                ) : null}
-                                {canReinstateProblem ? (
-                                  <button
-                                    type="button"
-                                    className="btn btn-outline"
-                                    onClick={() => {
-                                      void handleModerateProblem(problem, 'reinstate');
-                                    }}
-                                    disabled={problemModerationPendingId === problem.id}
-                                  >
-                                    {problemModerationPendingId === problem.id ? 'Saving...' : 'Reinstate'}
-                                  </button>
-                                ) : null}
                               </div>
                               <span className="meta">
-                                {problem.voteCount} vote{problem.voteCount === 1 ? '' : 's'} · {problem.flagCount} flag{problem.flagCount === 1 ? '' : 's'}
+                                {pain.voteCount} vote{pain.voteCount === 1 ? '' : 's'}
                               </span>
                             </div>
                           </div>
-
-                          {problemCanModerate ? (
-                            <div className="problem-manage-rail">
-                              <button
-                                type="button"
-                                className={`btn btn-outline problem-manage-trigger${manageDrawerOpen ? ' problem-manage-trigger-open' : ''}`}
-                                onClick={() => {
-                                  setProblemManageOpenId((current) => (current === problem.id ? null : problem.id));
-                                }}
-                                aria-expanded={manageDrawerOpen}
-                                aria-controls={`problem-manage-drawer-${problem.id}`}
-                              >
-                                {manageDrawerOpen ? 'Close' : 'Manage'}
-                              </button>
-                            </div>
-                          ) : null}
                         </div>
-
-                        {manageDrawerOpen ? (
-                          <section id={`problem-manage-drawer-${problem.id}`} className="problem-manage-drawer">
-                            <div className="problem-manage-content">
-                              <section className="problem-inline-section">
-                                <label htmlFor={`problem-flag-reason-${problem.id}`}>Flag reason (optional)</label>
-                                <input
-                                  id={`problem-flag-reason-${problem.id}`}
-                                  value={flagReasonValue}
-                                  onChange={(event) =>
-                                    setProblemFlagReasonById((current) => ({ ...current, [problem.id]: event.target.value }))
-                                  }
-                                  placeholder="Reason to help moderators review"
-                                />
-                              </section>
-
-                              <section className="problem-status-panel">
-                                <h4>Update status</h4>
-                                <div className="problem-status-grid">
-                                  <select
-                                    className="problem-status-field problem-status-field-wide"
-                                    value={statusValue}
-                                    onChange={(event) =>
-                                      setProblemStatusDraftById((current) => ({
-                                        ...current,
-                                        [problem.id]: event.target.value as ProblemStatus,
-                                      }))
-                                    }
-                                  >
-                                    {PROBLEM_STATUSES.map((status) => (
-                                      <option key={status} value={status}>
-                                        {formatLabel(status)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <input
-                                    className="problem-status-field"
-                                    value={linkedHackProjectValue}
-                                    onChange={(event) =>
-                                      setProblemLinkHackProjectById((current) => ({
-                                        ...current,
-                                        [problem.id]: event.target.value,
-                                      }))
-                                    }
-                                    placeholder="Linked hack project ID (required for solved unless artifact linked)"
-                                  />
-                                  <input
-                                    className="problem-status-field"
-                                    value={linkedArtifactValue}
-                                    onChange={(event) =>
-                                      setProblemLinkArtifactById((current) => ({
-                                        ...current,
-                                        [problem.id]: event.target.value,
-                                      }))
-                                    }
-                                    placeholder="Linked artifact ID (required for solved unless project linked)"
-                                  />
-                                  <input
-                                    className="problem-status-field problem-status-field-wide"
-                                    value={statusNoteValue}
-                                    onChange={(event) =>
-                                      setProblemStatusNoteById((current) => ({
-                                        ...current,
-                                        [problem.id]: event.target.value,
-                                      }))
-                                    }
-                                    placeholder="Transition note (optional)"
-                                  />
-                                </div>
-                                <div className="problem-status-actions">
-                                  <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={() => {
-                                      void handleUpdateProblemStatus(problem);
-                                    }}
-                                    disabled={problemStatusPendingId === problem.id}
-                                  >
-                                    {problemStatusPendingId === problem.id ? 'Saving...' : 'Save Status'}
-                                  </button>
-                                </div>
-                                {(problem.linkedHackProjectId || problem.linkedArtifactId) ? (
-                                  <p className="meta">
-                                    Linked sources:
-                                    {problem.linkedHackProjectId ? ` Hack ${problem.linkedHackProjectId}` : ''}
-                                    {problem.linkedArtifactId ? ` Artifact ${problem.linkedArtifactId}` : ''}
-                                  </p>
-                                ) : null}
-                              </section>
-                            </div>
-                          </section>
-                        ) : null}
                       </article>
                     );
                   })}
                 </section>
               ) : (
-                !problemLoading && problemLoaded ? (
-                  <DemoState
-                    title="Pain examples"
-                    description="Example problem statements so the exchange still feels active in demos."
-                    items={DEMO_PAIN_EXAMPLES}
-                  />
+                !painLoading && painLoaded ? (
+                  <section className="card">
+                    <p className="empty-copy">No pain points yet. Be the first to submit one.</p>
+                  </section>
                 ) : null
               )}
             </section>

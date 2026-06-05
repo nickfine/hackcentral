@@ -1,6 +1,50 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** March 14, 2026
+**Last Updated:** June 4, 2026
+
+---
+
+## Session Update - Signup Loop Bug + Participation Step UX (Jun 4, 2026)
+
+### The `isNewUser` Signup Loop (skills-disabled events)
+
+**Symptom:** Users who completed signup were sent back to the signup wizard on every subsequent visit, even though their record existed in the DB.
+
+**Root cause:** In `getCurrentUser` (auth.js), `isNewUser` was derived as `!existingUser.skills`. When skills are disabled for an event, `updateRegistration` stores `skills = ""` (empty string from `[].join(", ")`). `!""` evaluates to `true`, so every reload marked them as a new user and redirected to signup.
+
+**Fix:** Changed to `existingUser.skills === null` in all three return paths of `getCurrentUser`. `null` = genuinely never set; `""` = completed signup with no skills selected.
+
+**Diagnostic pattern:** When users report being sent back to signup after completing it, check `updatedAt` vs `createdAt` in the `User` table. If they match, the `updateRegistration` resolver never landed. If `updatedAt` is newer but they're still looping, the `isNewUser` check is the culprit.
+
+**DB patch for stuck users:**
+```sql
+UPDATE "User"
+SET skills = '', "isFreeAgent" = true, "updatedAt" = NOW()
+WHERE id = '<user-id>';
+```
+
+### Participation Step - Observer-Only Affordance
+
+**Symptom:** One user reported being unable to sign up. The participation step only rendered "Join as Observer" as a clickable card; "Joining as a Participant" was a static grey info box. Users couldn't tell Participant was the currently selected state and didn't know to scroll down and click "Complete Signup".
+
+**Fix:** Both options are now explicit radio-style selectable cards. Participant card is pre-selected on load (highlighted in brand colour), Observer card is deselected. Clicking either switches selection.
+
+### The `hasCompletedRegistration` False Negative (skills-disabled events)
+
+**Symptom:** Users who completed signup still saw the signup view on every page load, even after the `isNewUser` loop fix was deployed.
+
+**Root cause:** `transformUser` converts `skills=""` to `[]` because `""` is falsy (`user.skills ? ... : []`). `hasCompletedRegistration` requires `skills.length > 0`, so it returned `false` for all users who signed up with skills disabled. `AppLayout`, `Dashboard`, and `TeamDetail` all independently call `hasCompletedRegistration` — so the signup view was shown regardless of the `isNewUser` flag.
+
+**Fix:** Added `signupCompleted: user.skills !== null` to `transformUser` output. Updated `hasCompletedRegistration` to use this flag when present, falling back to the skills-length check. Also added `.filter(Boolean)` to the skills split to guard against `[""]` from malformed DB values.
+
+**Affected users:** 25 users with `skills=""` going back to 21 May — all fixed automatically on next page load, no DB patches needed.
+
+**Diagnostic pattern:** When `isNewUser=false` but the signup view still appears, the issue is `hasCompletedRegistration` returning false independently. Check `AppLayout.jsx` `showSignup` and trace back to what `transformUser` returns for the user's skills field.
+
+### Versions
+- Signup loop + participation UX fix: **v1.2.191**
+- `hasCompletedRegistration` + `signupCompleted` fix: **v1.2.192**
+- Commits: `b89db52`, `db6e014`
 
 ## Project Overview
 

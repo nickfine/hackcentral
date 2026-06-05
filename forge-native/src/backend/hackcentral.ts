@@ -66,6 +66,13 @@ import type {
   UpdateMentorProfileResult,
   VoteProblemResult,
   ViewerContext,
+  ListHdcPainPointsInput,
+  ListHdcPainPointsResult,
+  PainPoint,
+  SubmitHdcPainPointInput,
+  SubmitHdcPainPointResult,
+  ReactHdcPainPointInput,
+  ReactHdcPainPointResult,
 } from '../shared/types';
 import { SupabaseRepository } from './supabase/repositories';
 
@@ -913,4 +920,85 @@ export async function setShowcaseFeatured(
     },
     () => Promise.resolve(unsupportedShowcaseBackendError())
   );
+}
+
+export async function listHdcPainPoints(
+  viewer: ViewerContext,
+  input: ListHdcPainPointsInput
+): Promise<ListHdcPainPointsResult> {
+  const { sortBy = 'votes', limit = 50 } = input;
+  const client = asConvexInvoker(getConvexClient());
+
+  const reactorId =
+    viewer.accountId && viewer.accountId !== 'unknown-atlassian-account'
+      ? viewer.accountId
+      : undefined;
+
+  const [rawItems, childEvents] = await Promise.all([
+    client.query('painPoints:listForHdc', {
+      sortBy: sortBy === 'votes' ? 'reactions' : 'newest',
+      limit: Math.min(limit, 200),
+      ...(reactorId ? { reactorId } : {}),
+    }) as Promise<Record<string, unknown>[]>,
+    (async () => {
+      const parentPageId = process.env.CONFLUENCE_HDC_PARENT_PAGE_ID?.trim();
+      if (!parentPageId) return [];
+      return repository.listEventsByParentPageId(parentPageId);
+    })(),
+  ]);
+
+  const nameMap = new Map<string, string>(
+    childEvents.map((e) => [e.id, e.eventName])
+  );
+
+  const items: PainPoint[] = (rawItems ?? []).map((r) => {
+    const eventId = typeof r.eventId === 'string' ? r.eventId : null;
+    return {
+      id: r._id as string,
+      title: r.title as string,
+      description: typeof r.description === 'string' ? r.description : undefined,
+      submitterName: r.submitterName as string,
+      voteCount: typeof r.reactionCount === 'number' ? r.reactionCount : 0,
+      eventId,
+      eventName: eventId ? (nameMap.get(eventId) ?? 'Unknown HackDay') : null,
+      createdAt: typeof r.originalCreatedAt === 'number'
+        ? r.originalCreatedAt
+        : (r._creationTime as number),
+      hasReacted: !!(r.hasReacted),
+    };
+  });
+
+  return { items };
+}
+
+export async function submitHdcPainPoint(
+  _viewer: ViewerContext,
+  input: SubmitHdcPainPointInput
+): Promise<SubmitHdcPainPointResult> {
+  const { title, description, submitterName } = input;
+  if (!title?.trim()) throw new Error('Title is required');
+  if (!submitterName?.trim()) throw new Error('Name is required');
+
+  const client = asConvexInvoker(getConvexClient());
+  const id = await client.mutation('painPoints:submit', {
+    title: title.trim(),
+    submitterName: submitterName.trim(),
+    ...(description?.trim() ? { description: description.trim() } : {}),
+  }) as string;
+
+  return { id };
+}
+
+export async function reactHdcPainPoint(
+  viewer: ViewerContext,
+  input: ReactHdcPainPointInput
+): Promise<ReactHdcPainPointResult> {
+  const { painPointId } = input;
+  const client = asConvexInvoker(getConvexClient());
+  const reactorId =
+    viewer.accountId && viewer.accountId !== 'unknown-atlassian-account'
+      ? viewer.accountId
+      : undefined;
+  await client.mutation('painPoints:react', { painPointId, ...(reactorId ? { reactorId } : {}) });
+  return { success: true };
 }

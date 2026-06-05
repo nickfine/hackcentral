@@ -1,16 +1,11 @@
-/**
- * PainPointsSection — pain submission input + trending tags.
- * Wired to hdcListProblems (sorted by votes) and hdcCreateProblem.
- */
-
 import { useState } from 'react';
-import type { ProblemListItem } from '../../types';
+import type { PainPoint } from '../../types';
 
 interface PainPointsSectionProps {
-  problems: ProblemListItem[];
+  problems: PainPoint[];
   totalCount: number;
   loading: boolean;
-  onSubmit: (title: string) => void;
+  onSubmit: (title: string, submitterName: string, description?: string) => void;
 }
 
 const HOT_THRESHOLD = 15;
@@ -22,11 +17,13 @@ export function PainPointsSection({
   onSubmit,
 }: PainPointsSectionProps): JSX.Element {
   const [painText, setPainText] = useState('');
+  const [nameText, setNameText] = useState('');
 
   const handleSubmit = () => {
     if (!painText.trim()) return;
-    onSubmit(painText.trim());
+    onSubmit(painText.trim(), nameText.trim() || 'Anonymous');
     setPainText('');
+    setNameText('');
   };
 
   const displayed = problems.slice(0, 6);
@@ -51,6 +48,16 @@ export function PainPointsSection({
               onChange={(e) => setPainText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
+          </div>
+          <div className="hp-pain-row" style={{ marginTop: '8px' }}>
+            <input
+              type="text"
+              className="hp-pain-input"
+              placeholder="Your name (optional)"
+              value={nameText}
+              onChange={(e) => setNameText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            />
             <button type="button" className="hp-pain-submit" onClick={handleSubmit}>
               Submit
             </button>
@@ -70,6 +77,9 @@ export function PainPointsSection({
                     key={p.id}
                     className={`hp-tag${p.voteCount >= HOT_THRESHOLD ? ' hp-tag-hot' : ''}`}
                   >
+                    {p.eventName && (
+                      <span className="hp-tag-event">{p.eventName} &middot; </span>
+                    )}
                     {p.title}
                     <span className="hp-tag-votes"> +{p.voteCount}</span>
                   </span>

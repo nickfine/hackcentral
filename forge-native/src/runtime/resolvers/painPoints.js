@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "../lib/supabase";
 import { convexQuery, convexMutation } from "../lib/convex.js";
+import { getCurrentEvent } from "../lib/helpers.js";
 
 export function registerPainPointResolvers(resolver) {
 resolver.define("getPainPoints", async (req) => {
@@ -9,7 +10,20 @@ resolver.define("getPainPoints", async (req) => {
   try {
     const args = { sortBy, limit };
     if (accountId) args.reactorId = accountId;
-    const painPoints = await convexQuery("painPoints:list", args);
+
+    let painPoints;
+    try {
+      const event = await getCurrentEvent(supabase, req);
+      if (event?.id) {
+        painPoints = await convexQuery("painPoints:listForEvent", { ...args, eventId: event.id });
+      }
+    } catch {
+      // fall through to global list
+    }
+    if (!painPoints) {
+      painPoints = await convexQuery("painPoints:list", args);
+    }
+
     const list = painPoints ?? [];
 
     if (!includeTeams || list.length === 0) return { painPoints: list };
@@ -52,15 +66,26 @@ resolver.define("getPainPoints", async (req) => {
 });
 
 resolver.define("submitPainPoint", async (req) => {
+  const supabase = getSupabaseClient();
   const { title, submitterName, description, effortEstimate, impactEstimate } = req.payload || {};
   if (!title?.trim()) throw new Error("Title is required");
   if (!submitterName?.trim()) throw new Error("Name is required");
+
+  let eventId;
+  try {
+    const event = await getCurrentEvent(supabase, req);
+    if (event?.id) eventId = event.id;
+  } catch {
+    // non-fatal — submit without eventId if we can't resolve context
+  }
+
   const id = await convexMutation("painPoints:submit", {
     title: title.trim(),
     submitterName: submitterName.trim(),
     description: description?.trim() || undefined,
     effortEstimate: effortEstimate || undefined,
     impactEstimate: impactEstimate || undefined,
+    eventId,
   });
   return { id };
 });

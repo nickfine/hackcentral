@@ -348,10 +348,17 @@ export default defineSchema({
     ),
     reactionCount: v.number(),
     isHidden: v.boolean(),
+    eventId: v.optional(v.string()),
+    legacySource: v.optional(v.string()),
+    legacySourceId: v.optional(v.string()),
+    originalCreatedAt: v.optional(v.number()),
   })
     .index("by_reactions", ["reactionCount"])
     .index("by_hidden", ["isHidden"])
-    .index("by_hidden_reactions", ["isHidden", "reactionCount"]),
+    .index("by_hidden_reactions", ["isHidden", "reactionCount"])
+    .index("by_event_hidden", ["eventId", "isHidden"])
+    .index("by_event_hidden_reactions", ["eventId", "isHidden", "reactionCount"])
+    .index("by_legacy_source", ["legacySource", "legacySourceId"]),
 
   // Per-user reactions (one per accountId per pain point)
   painPointReactions: defineTable({

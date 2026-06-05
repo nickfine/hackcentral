@@ -27,6 +27,9 @@ import {
   listProblemImportCandidates,
   listProblems,
   listArtifacts,
+  listHdcPainPoints,
+  submitHdcPainPoint,
+  reactHdcPainPoint,
   movePipelineItem,
   upsertPathway,
   updatePipelineStageCriteria,
@@ -65,6 +68,9 @@ import type {
   ListArtifactsInput,
   ListProblemsInput,
   ListProblemImportCandidatesInput,
+  ListHdcPainPointsInput,
+  SubmitHdcPainPointInput,
+  ReactHdcPainPointInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   TrackRoiExportInput,
@@ -227,6 +233,30 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: ForkArtifactInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return forkArtifact(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcListPainPoints',
+  async (request: { context?: RawResolverContext; payload: ListHdcPainPointsInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listHdcPainPoints(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcSubmitPainPoint',
+  async (request: { context?: RawResolverContext; payload: SubmitHdcPainPointInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return submitHdcPainPoint(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcReactPainPoint',
+  async (request: { context?: RawResolverContext; payload: ReactHdcPainPointInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return reactHdcPainPoint(viewer, request.payload);
   }
 );
 
