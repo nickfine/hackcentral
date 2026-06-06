@@ -31,6 +31,10 @@ import {
   submitHdcPainPoint,
   reactHdcPainPoint,
   listHdcHacks,
+  listHdcLearnings,
+  uploadHdcLearning,
+  updateHdcLearning,
+  deleteHdcLearning,
   movePipelineItem,
   upsertPathway,
   updatePipelineStageCriteria,
@@ -73,6 +77,9 @@ import type {
   SubmitHdcPainPointInput,
   ReactHdcPainPointInput,
   ListHdcHacksInput,
+  UploadLearningInput,
+  UpdateLearningInput,
+  DeleteLearningInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   TrackRoiExportInput,
@@ -267,6 +274,38 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: ListHdcHacksInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return listHdcHacks(viewer, request.payload || {});
+  }
+);
+
+resolver.define(
+  'hdcListLearnings',
+  async (request: { context?: RawResolverContext; payload: Record<string, never> }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return listHdcLearnings(viewer, {});
+  }
+);
+
+resolver.define(
+  'hdcUploadLearning',
+  async (request: { context?: RawResolverContext; payload: UploadLearningInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return uploadHdcLearning(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcUpdateLearning',
+  async (request: { context?: RawResolverContext; payload: UpdateLearningInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return updateHdcLearning(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcDeleteLearning',
+  async (request: { context?: RawResolverContext; payload: DeleteLearningInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return deleteHdcLearning(viewer, request.payload);
   }
 );
 

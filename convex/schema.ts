@@ -441,4 +441,18 @@ export default defineSchema({
     .index("by_author", ["authorId"])
     .index("by_status", ["status"])
     .index("by_category", ["category"]),
+
+  // ============================================================================
+  // LEARNINGS & MEMORIES
+  // ============================================================================
+  learnings: defineTable({
+    filename: v.string(),
+    content: v.string(),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    tags: v.array(v.string()),
+    authorAccountId: v.string(),
+    authorName: v.string(),
+  })
+    .index("by_author", ["authorAccountId"]),
 });

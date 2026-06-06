@@ -1487,6 +1487,56 @@ export interface ApplyEventBackupRestoreInput {
   confirmationToken: string;
 }
 
+// ── Learnings & Memories ──────────────────────────────────────────────────────
+
+export interface LearningItem {
+  id: string;
+  filename: string;
+  content: string;
+  title?: string;
+  description?: string;
+  tags: string[];
+  authorAccountId: string;
+  authorName: string;
+  createdAt: number;
+}
+
+export interface ListLearningsResult {
+  items: LearningItem[];
+}
+
+export interface UploadLearningInput {
+  filename: string;
+  content: string;
+  title?: string;
+  description?: string;
+  tags: string[];
+  authorName: string;
+}
+
+export interface UploadLearningResult {
+  id: string;
+}
+
+export interface UpdateLearningInput {
+  learningId: string;
+  title?: string;
+  description?: string;
+  tags: string[];
+}
+
+export interface UpdateLearningResult {
+  success: true;
+}
+
+export interface DeleteLearningInput {
+  learningId: string;
+}
+
+export interface DeleteLearningResult {
+  success: true;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
@@ -1509,6 +1559,10 @@ export type Defs = {
   hdcSubmitPainPoint: (payload: SubmitHdcPainPointInput) => SubmitHdcPainPointResult;
   hdcReactPainPoint: (payload: ReactHdcPainPointInput) => ReactHdcPainPointResult;
   hdcListHacks: (payload: ListHdcHacksInput) => ListHdcHacksResult;
+  hdcListLearnings: (payload: Record<string, never>) => ListLearningsResult;
+  hdcUploadLearning: (payload: UploadLearningInput) => UploadLearningResult;
+  hdcUpdateLearning: (payload: UpdateLearningInput) => UpdateLearningResult;
+  hdcDeleteLearning: (payload: DeleteLearningInput) => DeleteLearningResult;
   hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
   hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
   hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;

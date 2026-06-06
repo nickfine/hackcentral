@@ -38,6 +38,7 @@ import type {
   PipelineStageCriteria,
   PainPoint,
   HdcHack,
+  LearningItem,
   ProblemImportCandidate,
   ProblemFrequency,
   ProblemListItem,
@@ -1383,6 +1384,7 @@ export function App(): JSX.Element {
 
   const [globalSearch, setGlobalSearch] = useState('');
 
+  const [toolingTab, setToolingTab] = useState<'all' | 'skill' | 'prompt' | 'app' | 'learnings'>('all');
   const [hackTab, setHackTab] = useState<HackTab>('completed');
   const [hackSearch, setHackSearch] = useState('');
   const [hackTypeFilter, setHackTypeFilter] = useState<HackTypeFilter>('all');
@@ -1408,6 +1410,17 @@ export function App(): JSX.Element {
   const [showcaseDetail, setShowcaseDetail] = useState<GetShowcaseHackDetailResult | null>(null);
   const [showcaseDetailLoading, setShowcaseDetailLoading] = useState(false);
   const [showcaseDetailError, setShowcaseDetailError] = useState('');
+
+  const [learningItems, setLearningItems] = useState<LearningItem[]>([]);
+  const [learningsLoading, setLearningsLoading] = useState(false);
+  const [learningsLoaded, setLearningsLoaded] = useState(false);
+  const [learningsError, setLearningsError] = useState('');
+  const [learningsDragOver, setLearningsDragOver] = useState(false);
+  const [learningsEditingId, setLearningsEditingId] = useState<string | null>(null);
+  const [learningsEditTitle, setLearningsEditTitle] = useState('');
+  const [learningsEditDescription, setLearningsEditDescription] = useState('');
+  const [learningsEditTags, setLearningsEditTags] = useState('');
+
   const [registrySearchInput, setRegistrySearchInput] = useState('');
   const [registryTagsInput, setRegistryTagsInput] = useState('');
   const [registryTypeFilter, setRegistryTypeFilter] = useState<ArtifactType | 'all'>('all');
@@ -1504,7 +1517,7 @@ export function App(): JSX.Element {
   const [pipelineMovePendingProjectId, setPipelineMovePendingProjectId] = useState<string | null>(null);
   const [pipelineMoveStageByProjectId, setPipelineMoveStageByProjectId] = useState<Record<string, PipelineStage>>({});
   const [pipelineMoveNoteByProjectId, setPipelineMoveNoteByProjectId] = useState<Record<string, string>>({});
-  const [pipelinePainsItems, setPipelinePainsItems] = useState<ProblemListItem[]>([]);
+  const [pipelinePainsItems, setPipelinePainsItems] = useState<PainPoint[]>([]);
   const [pipelinePainsLoading, setPipelinePainsLoading] = useState(false);
   const [pipelinePainsError, setPipelinePainsError] = useState('');
 
@@ -1839,22 +1852,15 @@ export function App(): JSX.Element {
   }, [effectivePipelineItems]);
   const pipelinePainsSummary = useMemo(() => {
     const painsCount = pipelinePainsItems.length;
-    const linkedHackCount = pipelinePainsItems.filter((item) => Boolean(item.linkedHackProjectId)).length;
     const ageDays = pipelinePainsItems
-      .map((item) => {
-        const parsed = Date.parse(item.createdAt);
-        if (!Number.isFinite(parsed)) return 0;
-        return Math.max(0, (Date.now() - parsed) / (1000 * 60 * 60 * 24));
-      })
-      .filter((value) => Number.isFinite(value));
+      .map((item) => Math.max(0, (Date.now() - item.createdAt) / (1000 * 60 * 60 * 24)));
     const averageDays =
       ageDays.length > 0 ? Math.round((ageDays.reduce((sum, value) => sum + value, 0) / ageDays.length) * 10) / 10 : null;
-    const painsToHackConversionRate = painsCount > 0 ? (linkedHackCount / painsCount) * 100 : null;
 
     return {
       painsCount,
       averageDays,
-      painsToHackConversionRate,
+      painsToHackConversionRate: null,
     };
   }, [pipelinePainsItems]);
 
@@ -1920,33 +1926,14 @@ export function App(): JSX.Element {
     setPipelinePainsLoading(true);
     setPipelinePainsError('');
     try {
-      if (previewMode) {
-        const fallbackAuthor = bootstrap?.viewer.accountId ?? 'Local Preview User';
-        const seed = problemPreviewItems.length > 0 ? problemPreviewItems : seedPreviewProblems(featuredHacks, fallbackAuthor);
-        const visible = seed
-          .filter((item) => item.moderationState === 'visible')
-          .filter((item) => PIPELINE_PAIN_STATUSES.includes(item.status))
-          .slice(0, 200);
-        if (problemPreviewItems.length === 0) {
-          setProblemPreviewItems(seed);
-        }
-        setPipelinePainsItems(visible);
-        return;
-      }
-
-      const result = await invokeTyped('hdcListProblems', {
-        statuses: PIPELINE_PAIN_STATUSES,
-        includeHidden: false,
-        sortBy: 'newest',
-        limit: 200,
-      });
+      const result = await invokeTyped('hdcListPainPoints', { sortBy: 'newest', limit: 200 });
       setPipelinePainsItems(result.items);
     } catch (error) {
       setPipelinePainsError(error instanceof Error ? error.message : 'Failed to load pains.');
     } finally {
       setPipelinePainsLoading(false);
     }
-  }, [bootstrap?.viewer.accountId, featuredHacks, previewMode, problemPreviewItems]);
+  }, []);
 
   useEffect(() => {
     if (view !== 'pipeline') return;
@@ -3755,6 +3742,84 @@ export function App(): JSX.Element {
     void loadHdcHacks();
   }, [view, loadHdcHacks]);
 
+  // ── Learnings & Memories callbacks ──
+
+  const loadLearnings = useCallback(async () => {
+    setLearningsLoading(true);
+    setLearningsError('');
+    try {
+      const result = await invokeTyped('hdcListLearnings', {});
+      setLearningItems(result.items);
+      setLearningsLoaded(true);
+    } catch (error) {
+      setLearningsError(error instanceof Error ? error.message : 'Failed to load learnings.');
+    } finally {
+      setLearningsLoading(false);
+    }
+  }, []);
+
+  const handleLearningFileDrop = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const mdFiles = Array.from(files).filter((f) => f.name.endsWith('.md'));
+    if (mdFiles.length === 0) return;
+    const authorName = bootstrap?.viewer.accountId ?? 'Unknown';
+    for (const file of mdFiles) {
+      try {
+        const content = await file.text();
+        await invokeTyped('hdcUploadLearning', {
+          filename: file.name,
+          content,
+          tags: [],
+          authorName,
+        });
+      } catch (error) {
+        setLearningsError(error instanceof Error ? error.message : 'Failed to upload file.');
+      }
+    }
+    void loadLearnings();
+  }, [bootstrap?.viewer.accountId, loadLearnings]);
+
+  const handleLearningDelete = useCallback(async (learningId: string) => {
+    try {
+      await invokeTyped('hdcDeleteLearning', { learningId });
+      setLearningItems((prev) => prev.filter((item) => item.id !== learningId));
+    } catch (error) {
+      setLearningsError(error instanceof Error ? error.message : 'Failed to delete learning.');
+    }
+  }, []);
+
+  const handleLearningEditSave = useCallback(async (learningId: string) => {
+    try {
+      await invokeTyped('hdcUpdateLearning', {
+        learningId,
+        title: learningsEditTitle || undefined,
+        description: learningsEditDescription || undefined,
+        tags: learningsEditTags.split(',').map((t) => t.trim()).filter(Boolean),
+      });
+      setLearningItems((prev) =>
+        prev.map((item) =>
+          item.id === learningId
+            ? {
+                ...item,
+                title: learningsEditTitle || undefined,
+                description: learningsEditDescription || undefined,
+                tags: learningsEditTags.split(',').map((t) => t.trim()).filter(Boolean),
+              }
+            : item
+        )
+      );
+      setLearningsEditingId(null);
+    } catch (error) {
+      setLearningsError(error instanceof Error ? error.message : 'Failed to save changes.');
+    }
+  }, [learningsEditTitle, learningsEditDescription, learningsEditTags]);
+
+  useEffect(() => {
+    if (view !== 'hacks' || toolingTab !== 'learnings') return;
+    if (learningsLoaded) return;
+    void loadLearnings();
+  }, [view, toolingTab, learningsLoaded, loadLearnings]);
+
   const handleProblemSearchKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLInputElement>) => {
       if (event.key !== 'Enter') return;
@@ -5541,30 +5606,195 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Showcase</h1>
-                  <p className="subtitle">Curated and searchable hacks with demo context and delivery evidence.</p>
+                  <h1>Tooling</h1>
+                  <p className="subtitle">Skills, prompts, apps and learnings from the team.</p>
                 </div>
-                <div className="registry-title-actions">
-                  <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
-                    + Submit Hack
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => void loadShowcaseHacks()}
-                    disabled={showcaseLoading}
-                  >
-                    {showcaseLoading ? 'Refreshing...' : 'Refresh'}
-                  </button>
-                </div>
+                {toolingTab !== 'learnings' ? (
+                  <div className="registry-title-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
+                      + Submit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void loadShowcaseHacks()}
+                      disabled={showcaseLoading}
+                    >
+                      {showcaseLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                ) : null}
               </section>
 
-              {hackTab === 'completed' && HACKS_SCOPE_NOTE ? <section className="message message-preview">{HACKS_SCOPE_NOTE}</section> : null}
+              <section className="tab-bar" role="tablist">
+                {(
+                  [
+                    { id: 'all', label: 'All' },
+                    { id: 'skill', label: 'Skills' },
+                    { id: 'prompt', label: 'Prompts' },
+                    { id: 'app', label: 'Apps' },
+                    { id: 'learnings', label: 'Learnings & Memories' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={toolingTab === tab.id}
+                    className={`tab-btn${toolingTab === tab.id ? ' tab-btn--active' : ''}`}
+                    type="button"
+                    onClick={() => {
+                      setToolingTab(tab.id);
+                      if (tab.id !== 'learnings') {
+                        setHackTypeFilter(tab.id === 'all' ? 'all' : tab.id);
+                      }
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </section>
 
-              {HDC_SHOWCASE_UX_V1 ? (
+              {toolingTab === 'learnings' ? (
+                <section className="learnings-section">
+                  <div
+                    className={`learnings-dropzone${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
+                    onDragLeave={() => setLearningsDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setLearningsDragOver(false);
+                      void handleLearningFileDrop(e.dataTransfer.files);
+                    }}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.md';
+                      input.multiple = true;
+                      input.onchange = (e) => {
+                        const files = (e.target as HTMLInputElement).files;
+                        void handleLearningFileDrop(files);
+                      };
+                      input.click();
+                    }}
+                  >
+                    <p>Drop .md files here or click to browse</p>
+                    <p className="meta">Accepts LEARNINGS.md, MEMORY.md, and any other .md files</p>
+                  </div>
+
+                  {learningsError ? <p className="message message-error">{learningsError}</p> : null}
+                  {learningsLoading ? <p className="meta">Loading...</p> : null}
+
+                  {!learningsLoading && learningsLoaded && learningItems.length === 0 ? (
+                    <p className="empty-state">No learnings uploaded yet. Drop a .md file above to get started.</p>
+                  ) : null}
+
+                  {learningItems.length > 0 ? (
+                    <table className="learnings-table">
+                      <thead>
+                        <tr>
+                          <th>File</th>
+                          <th>Title</th>
+                          <th>Tags</th>
+                          <th>Author</th>
+                          <th>Date</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {learningItems.map((item) => {
+                          const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
+                          const canEdit = isOwner || showcaseCanManage;
+                          const isEditing = learningsEditingId === item.id;
+                          return (
+                            <tr key={item.id}>
+                              <td className="learnings-filename">{item.filename}</td>
+                              <td>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={learningsEditTitle}
+                                    onChange={(e) => setLearningsEditTitle(e.target.value)}
+                                    placeholder="Title (optional)"
+                                  />
+                                ) : (
+                                  item.title ?? <span className="meta">—</span>
+                                )}
+                              </td>
+                              <td>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={learningsEditTags}
+                                    onChange={(e) => setLearningsEditTags(e.target.value)}
+                                    placeholder="tag1, tag2"
+                                  />
+                                ) : (
+                                  item.tags.length > 0 ? item.tags.join(', ') : <span className="meta">—</span>
+                                )}
+                              </td>
+                              <td>{item.authorName}</td>
+                              <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                              <td className="learnings-actions">
+                                {isEditing ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => void handleLearningEditSave(item.id)}
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => setLearningsEditingId(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                ) : canEdit ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => {
+                                        setLearningsEditingId(item.id);
+                                        setLearningsEditTitle(item.title ?? '');
+                                        setLearningsEditDescription(item.description ?? '');
+                                        setLearningsEditTags(item.tags.join(', '));
+                                      }}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm btn-danger"
+                                      onClick={() => void handleLearningDelete(item.id)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="meta">View only</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {toolingTab !== 'learnings' && hackTab === 'completed' && HACKS_SCOPE_NOTE ? (
+                <section className="message message-preview">{HACKS_SCOPE_NOTE}</section>
+              ) : null}
+
+              {toolingTab !== 'learnings' && (HDC_SHOWCASE_UX_V1 ? (
                 <section className="showcase-filter-shell">
                   <fieldset className="showcase-filter-group">
-                    <legend>Filter hacks</legend>
+                    <legend>Filter</legend>
                     <label className="showcase-filter-field">
                       <span>Search</span>
                       <input
@@ -5573,18 +5803,6 @@ export function App(): JSX.Element {
                         value={hackSearch}
                         onChange={(event) => setHackSearch(event.target.value)}
                       />
-                    </label>
-                    <label className="showcase-filter-field">
-                      <span>Type</span>
-                      <select
-                        value={hackTypeFilter}
-                        onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
-                      >
-                        <option value="all">All types</option>
-                        <option value="prompt">Prompts</option>
-                        <option value="skill">Skills</option>
-                        <option value="app">Apps</option>
-                      </select>
                     </label>
                     <label className="showcase-filter-field">
                       <span>Status</span>
@@ -5687,8 +5905,9 @@ export function App(): JSX.Element {
                     Featured only
                   </label>
                 </section>
-              )}
+              ))}
 
+              {toolingTab !== 'learnings' ? (
               <section className="tab-row" aria-label="Hacks tabs">
                 <button
                   type="button"
@@ -5705,15 +5924,16 @@ export function App(): JSX.Element {
                   In progress
                 </button>
               </section>
+              ) : null}
 
-              {showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
-              {HDC_SHOWCASE_PAGE_ONLY_V1 && showcaseLegacyCount > 0 ? (
+              {toolingTab !== 'learnings' && showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
+              {toolingTab !== 'learnings' && HDC_SHOWCASE_PAGE_ONLY_V1 && showcaseLegacyCount > 0 ? (
                 <section className="message message-warning">
                   Page-only mode is enabled but {showcaseLegacyCount} legacy showcase hack(s) are still missing Confluence pages.
                 </section>
               ) : null}
 
-              {HDC_SHOWCASE_UX_V1 ? (
+              {toolingTab !== 'learnings' ? (HDC_SHOWCASE_UX_V1 ? (
                 <section className={`showcase-layout${showcaseShouldRenderLegacyDetail ? '' : ' showcase-layout-single'}`}>
                   <div className="showcase-main-column">
                     {hackTab === 'completed' ? (
@@ -6206,7 +6426,7 @@ export function App(): JSX.Element {
                     </article>
                   ) : null}
                 </>
-              )}
+              )) : null}
             </section>
           ) : null}
 

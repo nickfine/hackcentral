@@ -76,6 +76,14 @@ import type {
   HdcHack,
   ListHdcHacksInput,
   ListHdcHacksResult,
+  LearningItem,
+  ListLearningsResult,
+  UploadLearningInput,
+  UploadLearningResult,
+  UpdateLearningInput,
+  UpdateLearningResult,
+  DeleteLearningInput,
+  DeleteLearningResult,
 } from '../shared/types';
 import { SupabaseRepository } from './supabase/repositories';
 
@@ -1052,4 +1060,95 @@ export async function listHdcHacks(
   });
 
   return { items };
+}
+
+export async function listHdcLearnings(
+  _viewer: ViewerContext,
+  _input: Record<string, never>
+): Promise<ListLearningsResult> {
+  const client = asConvexInvoker(getConvexClient());
+  const raw = await client.query('learnings:list', {}) as Record<string, unknown>[];
+  const items: LearningItem[] = (raw ?? []).map((r) => ({
+    id: r._id as string,
+    filename: r.filename as string,
+    content: r.content as string,
+    title: typeof r.title === 'string' ? r.title : undefined,
+    description: typeof r.description === 'string' ? r.description : undefined,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+    authorAccountId: r.authorAccountId as string,
+    authorName: r.authorName as string,
+    createdAt: r._creationTime as number,
+  }));
+  return { items };
+}
+
+export async function uploadHdcLearning(
+  viewer: ViewerContext,
+  input: UploadLearningInput
+): Promise<UploadLearningResult> {
+  const { filename, content, title, description, tags, authorName } = input;
+  if (!filename.trim()) throw new Error('Filename is required');
+  const client = asConvexInvoker(getConvexClient());
+  const id = await client.mutation('learnings:upload', {
+    filename: filename.trim(),
+    content,
+    ...(title?.trim() ? { title: title.trim() } : {}),
+    ...(description?.trim() ? { description: description.trim() } : {}),
+    tags,
+    authorAccountId: viewer.accountId,
+    authorName: authorName.trim() || viewer.accountId,
+  }) as string;
+  return { id };
+}
+
+export async function updateHdcLearning(
+  viewer: ViewerContext,
+  input: UpdateLearningInput
+): Promise<UpdateLearningResult> {
+  const { learningId, title, description, tags } = input;
+  const client = asConvexInvoker(getConvexClient());
+
+  const rows = await client.query('learnings:list', {}) as Record<string, unknown>[];
+  const row = rows.find((r) => r._id === learningId);
+  if (!row) throw new Error('Learning not found');
+
+  const isOwner = row.authorAccountId === viewer.accountId;
+  const adminStatus = await checkIsAdmin(viewer.accountId, client);
+  if (!isOwner && !adminStatus) throw new Error('Permission denied');
+
+  await client.mutation('learnings:updateMetadata', {
+    learningId,
+    ...(title?.trim() ? { title: title.trim() } : {}),
+    ...(description?.trim() ? { description: description.trim() } : {}),
+    tags,
+  });
+  return { success: true };
+}
+
+export async function deleteHdcLearning(
+  viewer: ViewerContext,
+  input: DeleteLearningInput
+): Promise<DeleteLearningResult> {
+  const { learningId } = input;
+  const client = asConvexInvoker(getConvexClient());
+
+  const rows = await client.query('learnings:list', {}) as Record<string, unknown>[];
+  const row = rows.find((r) => r._id === learningId);
+  if (!row) throw new Error('Learning not found');
+
+  const isOwner = row.authorAccountId === viewer.accountId;
+  const adminStatus = await checkIsAdmin(viewer.accountId, client);
+  if (!isOwner && !adminStatus) throw new Error('Permission denied');
+
+  await client.mutation('learnings:remove', { learningId });
+  return { success: true };
+}
+
+async function checkIsAdmin(accountId: string, client: ConvexClientInvoker): Promise<boolean> {
+  try {
+    const result = await client.query('learnings:getAdminStatus', { accountId }) as { isAdmin: boolean } | null;
+    return result?.isAdmin === true;
+  } catch {
+    return false;
+  }
 }

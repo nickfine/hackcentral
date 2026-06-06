@@ -32,7 +32,7 @@ export interface NavItem {
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Home', icon: '🏠' },
-  { id: 'hacks', label: 'Showcase', icon: '⚡' },
+  { id: 'hacks', label: 'Tooling', icon: '⚡' },
   { id: 'hacks_exchange', label: 'HackDay Hacks', icon: '🛠️' },
   { id: 'problem_exchange', label: 'Pains', icon: '🧩' },
   { id: 'hackdays', label: 'HackDays', icon: '🚀' },
@@ -40,7 +40,6 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 export const OVERFLOW_NAV_ITEMS: NavItem[] = [
-  { id: 'library', label: 'AI Tooling', icon: '📚' },
   { id: 'team_up', label: 'Team Up', icon: '🤝' },
   { id: 'team_pulse', label: 'Team Pulse', icon: '📊' },
   { id: 'guide', label: 'Guide', icon: '📖' },

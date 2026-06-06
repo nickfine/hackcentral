@@ -5641,3 +5641,76 @@ button {
   .hp-hero { grid-template-columns: 1fr 1fr; }
   .hp-mentor-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ── Tooling tabs ── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.tab-btn--active {
+  color: var(--text);
+  border-bottom-color: var(--brand);
+}
+
+/* ── Learnings & Memories ── */
+.learnings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.learnings-dropzone {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-xl);
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--surface);
+}
+
+.learnings-dropzone:hover,
+.learnings-dropzone--active {
+  border-color: var(--brand);
+  background: var(--surface-raised, var(--surface));
+}
+
+.learnings-dropzone p {
+  margin: 0;
+}
+
+.learnings-dropzone p + p {
+  margin-top: 4px;
+}
+
+.learnings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--tier3-size);
+}
+
+.learnings-table th,
+.learnings-table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.learnings-table th {
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.learnings-filename {
+  font-family: monospace;
+  font-size: 0.85em;
+}
+
+.learnings-actions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
