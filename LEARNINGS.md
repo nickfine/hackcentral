@@ -1,6 +1,39 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 4, 2026
+**Last Updated:** June 7, 2026
+
+---
+
+## Session Update - HackDay Central Dashboard Redesign (Jun 7, 2026)
+
+### What Changed
+
+The HackDay Central macro frontend homepage (5-section "brochure" layout) was redesigned to a 4-section "mission brief" structure. Shipped at v0.6.92 / Forge 2.207.0.
+
+**New section order:**
+
+1. **Hero** (`HeroSection.tsx`) — proposition-led headline ("Surface pains. Build prototypes. Ship products."), 3 CTAs, stat row where every stat is a clickable button navigating to its view (pain points → `problem_exchange`, hacks/prototypes → `pipeline`, events → `hackdays`). Right column shows the next upcoming event as a live card (from `registry`), or a clickable 5-stage pipeline teaser if no event is scheduled.
+
+2. **Activity Feed** (`ActivityFeed.tsx`, new) — surfaces `homeFeedSnapshot.items`, which App.tsx was already loading via `loadHomeFeed()` but never rendering. 6 clickable activity cards, colour-coded by type. This was the biggest missed opportunity: live personalised feed already computed server-side, just not shown.
+
+3. **Pain Points + Pipeline** (side by side, 60/40) — pain points now render as full-text cards instead of truncated tag chips. Submission form is below the feed, not above it. `PipelineFunnel.tsx` now has clickable stage rows, each navigating to `pipeline` view. Wrapped in `hp-two-col--pain-pipeline` div in App.tsx.
+
+4. **Events + Tools + Mentoring** — events get proper card treatment with status labels and Register/View CTAs. Tools now show author name. `MentoringSection.tsx` trimmed from 3 cards to 2 (dropped the "Drop-in sessions" card that duplicated the "Find a mentor" routing).
+
+### Key Implementation Notes
+
+- `ActivityFeed` is a new file at `components/Homepage/ActivityFeed.tsx`. Uses `HomeFeedActivityItem[]` type and `handleHomeFeedItemClick` callback (existing in App.tsx at ~line 2743).
+- `hpNextEvent` is derived inline near the other `hp*` consts (~line 4472) — finds first registry event with an active/open/future status.
+- The `hp-two-col--pain-pipeline` wrapper div in App.tsx sets 1.5fr/1fr column ratio at 641px+.
+- `hp-hero-right` is hidden below 961px — the hero stays single-column on mobile.
+- New CSS added before the responsive block in `styles.css`: `hp-feed-*`, `hp-pain-card`, `hp-pipeline-stage-row`, `hp-event-card`, `hp-pipeline-teaser-*`, `hp-hero-stat--btn`.
+- `HACKCENTRAL_UI_VERSION` in `App.tsx` bumped to `0.6.92`.
+
+### UX Personas Used
+
+**Petra Vance** (UX consultant) and **Mav** (Maverick Osei, senior art director, Fold Studio) both reviewed the dashboard independently. Key shared diagnosis: the page read as a brochure, not a product — static, impersonal, no live data rendered despite it being loaded. Their agreed direction: mission brief over homepage, pipeline as the distinctive centrepiece, seduction before submission form, every number should navigate somewhere.
+
+---
 
 ---
 
