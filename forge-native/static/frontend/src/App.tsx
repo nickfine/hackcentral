@@ -5748,7 +5748,7 @@ export function App(): JSX.Element {
                   ) : null}
 
                   {learningItems.length > 0 ? (
-                    <div className={`learnings-layout${selectedLearningId ? ' learnings-layout--split' : ''}`}>
+                    <div className="learnings-layout learnings-layout--split">
                       <div className="learnings-card-list">
                         {learningItems.map((item) => {
                           const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
@@ -5800,9 +5800,13 @@ export function App(): JSX.Element {
                         })}
                       </div>
 
-                      {selectedLearningId ? (() => {
-                        const rail = learningItems.find((i) => i.id === selectedLearningId);
-                        if (!rail) return null;
+                      {(() => {
+                        const rail = selectedLearningId ? learningItems.find((i) => i.id === selectedLearningId) : null;
+                        if (!rail) return (
+                          <aside className="learnings-rail card learnings-rail--empty">
+                            <p className="meta">Select a learning to preview it.</p>
+                          </aside>
+                        );
                         const isOwner = bootstrap?.viewer.accountId === rail.authorAccountId;
                         const canEdit = isOwner || showcaseCanManage;
                         return (
@@ -5931,7 +5935,7 @@ export function App(): JSX.Element {
                             </div>
                           </aside>
                         );
-                      })() : null}
+                      })()}
                     </div>
                   ) : null}
                 </section>

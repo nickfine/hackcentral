@@ -5946,3 +5946,11 @@ button {
   padding: 0 10px;
   font-size: var(--tier4-size);
 }
+
+.learnings-rail--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border-style: dashed;
+}
