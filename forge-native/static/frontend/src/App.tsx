@@ -5609,22 +5609,36 @@ export function App(): JSX.Element {
                   <h1>Tooling</h1>
                   <p className="subtitle">Skills, prompts, apps and learnings from the team.</p>
                 </div>
-                {toolingTab !== 'learnings' ? (
-                  <div className="registry-title-actions">
-                    <button type="button" className="btn btn-outline" onClick={() => setModalView('submit_hack')}>
-                      + Submit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => void loadShowcaseHacks()}
-                      disabled={showcaseLoading}
-                    >
-                      {showcaseLoading ? 'Refreshing...' : 'Refresh'}
-                    </button>
-                  </div>
-                ) : null}
               </section>
+
+              <div
+                className={`learnings-dropzone${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
+                onDragLeave={() => setLearningsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setLearningsDragOver(false);
+                  setToolingTab('learnings');
+                  void handleLearningFileDrop(e.dataTransfer.files);
+                }}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.md';
+                  input.multiple = true;
+                  input.onchange = (ev) => {
+                    const files = (ev.target as HTMLInputElement).files;
+                    setToolingTab('learnings');
+                    void handleLearningFileDrop(files);
+                  };
+                  input.click();
+                }}
+              >
+                <p>Drop .md files here or click to browse</p>
+                <p className="meta">LEARNINGS.md, MEMORY.md, or any .md file — goes to Learnings & Memories</p>
+              </div>
+
+              {learningsError ? <p className="message message-error">{learningsError}</p> : null}
 
               <section className="tab-bar" role="tablist">
                 {(
@@ -5656,32 +5670,6 @@ export function App(): JSX.Element {
 
               {toolingTab === 'learnings' ? (
                 <section className="learnings-section">
-                  <div
-                    className={`learnings-dropzone${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
-                    onDragLeave={() => setLearningsDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setLearningsDragOver(false);
-                      void handleLearningFileDrop(e.dataTransfer.files);
-                    }}
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = '.md';
-                      input.multiple = true;
-                      input.onchange = (e) => {
-                        const files = (e.target as HTMLInputElement).files;
-                        void handleLearningFileDrop(files);
-                      };
-                      input.click();
-                    }}
-                  >
-                    <p>Drop .md files here or click to browse</p>
-                    <p className="meta">Accepts LEARNINGS.md, MEMORY.md, and any other .md files</p>
-                  </div>
-
-                  {learningsError ? <p className="message message-error">{learningsError}</p> : null}
                   {learningsLoading ? <p className="meta">Loading...</p> : null}
 
                   {!learningsLoading && learningsLoaded && learningItems.length === 0 ? (
@@ -6046,14 +6034,10 @@ export function App(): JSX.Element {
                         );
                       })}
                     </section>
-                    {!showcaseLoading && standardShowcaseItems.length === 0 && featuredShowcaseItems.length === 0 && showcaseLoaded ? (
-                      <DemoState
-                        title="Sample showcase results"
-                        description="If live results are empty, use these examples to show what a healthy showcase looks like."
-                        items={DEMO_SHOWCASE_EXAMPLES}
-                      />
+                    {!showcaseLoading && standardShowcaseItems.length === 0 && showcaseLoaded ? (
+                      <p className="empty-copy">No items found.</p>
                     ) : null}
-                    {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
+                    {showcaseLoading ? <p className="empty-copy">Loading...</p> : null}
                   </div>
 
                   {showcaseShouldRenderLegacyDetail ? (
@@ -6135,11 +6119,7 @@ export function App(): JSX.Element {
                               ))}
                             </ul>
                           ) : (
-                            <DemoState
-                              title="Example linked artifacts"
-                              items={DEMO_ARTIFACT_EXAMPLES}
-                              compact
-                            />
+                            <p className="meta">None linked.</p>
                           )}
                           <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                           {showcaseDetail.problemsSolved.length > 0 ? (
@@ -6151,11 +6131,7 @@ export function App(): JSX.Element {
                               ))}
                             </ul>
                           ) : (
-                            <DemoState
-                              title="Example solved pains"
-                              items={DEMO_PAIN_EXAMPLES}
-                              compact
-                            />
+                            <p className="meta">None linked.</p>
                           )}
                         </div>
                       </div>
@@ -6165,26 +6141,6 @@ export function App(): JSX.Element {
                 </section>
               ) : (
                 <>
-                  {hackTab === 'completed' ? (
-                    <article className="card featured-block">
-                      <h2>Featured Hacks</h2>
-                      <p>High-trust, curated collection of proven AI hacks</p>
-                      <div className="grid featured-grid">
-                        {featuredTop.map((hack) => (
-                          <article key={`featured-${hack.id}`} className="card featured-hack-card-shell">
-                            <HackCard item={hack} />
-                          </article>
-                        ))}
-                        {featuredTop.length === 0 ? (
-                          <DemoState
-                            title="Featured hack examples"
-                            description="Use these examples to keep the showcase lively in demos."
-                            items={DEMO_SHOWCASE_EXAMPLES}
-                          />
-                        ) : null}
-                      </div>
-                    </article>
-                  ) : null}
 
                   <section className="grid hacks-grid">
                     {standardShowcaseItems.map((showcaseItem) => (
@@ -6250,14 +6206,10 @@ export function App(): JSX.Element {
                       </article>
                     ))}
                   </section>
-                  {!showcaseLoading && standardShowcaseItems.length === 0 && featuredTop.length === 0 && showcaseLoaded ? (
-                    <DemoState
-                      title="Sample showcase results"
-                      description="Use these examples for demos until live showcase data is available."
-                      items={DEMO_SHOWCASE_EXAMPLES}
-                    />
+                  {!showcaseLoading && standardShowcaseItems.length === 0 && showcaseLoaded ? (
+                    <p className="empty-copy">No items found.</p>
                   ) : null}
-                  {showcaseLoading ? <p className="empty-copy">Loading showcase hacks...</p> : null}
+                  {showcaseLoading ? <p className="empty-copy">Loading...</p> : null}
 
                   {showcaseSelectedProjectId ? (
                     <article className="card registry-detail-block">
@@ -6314,11 +6266,7 @@ export function App(): JSX.Element {
                                 ))}
                               </ul>
                             ) : (
-                              <DemoState
-                                title="Example linked artifacts"
-                                items={DEMO_ARTIFACT_EXAMPLES}
-                                compact
-                              />
+                              <p className="meta">None linked.</p>
                             )}
                             <h3>Pains Solved ({showcaseDetail.problemsSolved.length})</h3>
                             {showcaseDetail.problemsSolved.length > 0 ? (
@@ -6330,11 +6278,7 @@ export function App(): JSX.Element {
                                 ))}
                               </ul>
                             ) : (
-                              <DemoState
-                                title="Example solved pains"
-                                items={DEMO_PAIN_EXAMPLES}
-                                compact
-                              />
+                              <p className="meta">None linked.</p>
                             )}
                           </div>
                         </div>
