@@ -1,7 +1,3 @@
-/**
- * EventsToolsRow — two-column: upcoming events + recently added tools.
- */
-
 import type { EventRegistryItem, ArtifactListItem } from '../../types';
 
 interface EventsToolsRowProps {
@@ -11,24 +7,31 @@ interface EventsToolsRowProps {
   artifactsLoading: boolean;
   onProposeHackDay: () => void;
   onViewArtifact: (id: string) => void;
+  onViewAllEvents: () => void;
 }
 
 function formatEventDate(event: EventRegistryItem): string {
   const dateStr = event.hackingStartsAt;
-  if (!dateStr) return '\u2014';
+  if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   } catch {
-    return '\u2014';
+    return '—';
   }
 }
 
-function eventStatusClass(status: string): string {
+function eventStatusMod(status: string): string {
   const s = status.toLowerCase();
-  if (s === 'active' || s === 'running' || s === 'hacking') return 'hp-status-soon';
-  if (s === 'published' || s === 'open') return 'hp-status-open';
-  return 'hp-status-muted';
+  if (s === 'active' || s === 'running' || s === 'hacking') return 'live';
+  if (s === 'published' || s === 'open') return 'open';
+  return 'soon';
+}
+
+function eventStatusLabel(status: string): string {
+  const s = status.toLowerCase();
+  if (s === 'active' || s === 'running' || s === 'hacking') return 'Live now';
+  if (s === 'published' || s === 'open') return 'Registration open';
+  return 'Coming soon';
 }
 
 function artifactTypeIcon(type: string): { letter: string; className: string } {
@@ -44,44 +47,52 @@ export function EventsToolsRow({
   artifactsLoading,
   onProposeHackDay,
   onViewArtifact,
+  onViewAllEvents,
 }: EventsToolsRowProps): JSX.Element {
   const displayEvents = events.slice(0, 3);
   const displayArtifacts = artifacts.slice(0, 4);
 
   return (
-    <div className="hp-two-col" id="hp-events">
-      {/* Upcoming Events */}
-      <section className="hp-section" aria-label="Upcoming events">
+    <div className="hp-events-tools">
+      {/* Events — full-width, prominent */}
+      <section className="hp-section" aria-label="Upcoming HackDays" id="hp-events">
         <div className="hp-eyebrow">Upcoming events</div>
-        <div className="hp-card-title">HackDays</div>
-        <div className="hp-card-sub">Register or pitch a challenge</div>
+        <div className="hp-sec-title">HackDays</div>
+        <div className="hp-sec-sub">Register now or propose a challenge for the next one.</div>
 
-        <div className="hp-list">
+        <div className="hp-event-cards">
           {eventsLoading ? (
-            <>
-              <div className="hp-skeleton" />
-              <div className="hp-skeleton" />
-              <div className="hp-skeleton" />
-            </>
+            Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="hp-skeleton" style={{ height: 100 }} />
+            ))
           ) : displayEvents.length === 0 ? (
-            <p style={{ padding: '16px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-soft)' }}>
-              No upcoming events
+            <p style={{ padding: '16px 0', fontSize: 13, color: 'var(--text-soft)' }}>
+              No upcoming events scheduled yet.
             </p>
           ) : (
             displayEvents.map((ev) => (
-              <div key={ev.id} className="hp-list-item">
-                <div className="hp-date-badge">{formatEventDate(ev)}</div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="hp-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {ev.eventName}
-                  </div>
-                  {ev.tagline ? (
-                    <div className="hp-item-meta">{ev.tagline}</div>
-                  ) : null}
+              <div key={ev.id} className="hp-event-card">
+                <div className="hp-event-card-header">
+                  <div className="hp-event-card-name">{ev.eventName}</div>
+                  <span className={`hp-status-badge hp-status-${eventStatusMod(ev.lifecycleStatus)}`}>
+                    {eventStatusLabel(ev.lifecycleStatus)}
+                  </span>
                 </div>
-                <span className={`hp-status-badge ${eventStatusClass(ev.lifecycleStatus)}`}>
-                  {ev.lifecycleStatus}
-                </span>
+                {ev.tagline && <div className="hp-event-card-tagline">{ev.tagline}</div>}
+                <div className="hp-event-card-footer">
+                  {formatEventDate(ev) !== '—' && (
+                    <span className="hp-date-badge">{formatEventDate(ev)}</span>
+                  )}
+                  {ev.isNavigable && (
+                    <button
+                      type="button"
+                      className="hp-event-card-cta"
+                      onClick={onViewAllEvents}
+                    >
+                      {eventStatusMod(ev.lifecycleStatus) === 'open' ? 'Register' : 'View'} &rsaquo;
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -92,7 +103,7 @@ export function EventsToolsRow({
         </button>
       </section>
 
-      {/* Recently Added Tools & Skills */}
+      {/* Tools — compact list, below events */}
       <section className="hp-section" aria-label="Recently added tools and skills" id="hp-tools">
         <div className="hp-eyebrow">Recently added</div>
         <div className="hp-card-title">Tools &amp; skills</div>
@@ -100,12 +111,9 @@ export function EventsToolsRow({
 
         <div className="hp-list">
           {artifactsLoading ? (
-            <>
-              <div className="hp-skeleton" />
-              <div className="hp-skeleton" />
-              <div className="hp-skeleton" />
-              <div className="hp-skeleton" />
-            </>
+            Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="hp-skeleton" />
+            ))
           ) : displayArtifacts.length === 0 ? (
             <p style={{ padding: '16px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-soft)' }}>
               No tools or skills yet
@@ -114,6 +122,7 @@ export function EventsToolsRow({
             displayArtifacts.map((art) => {
               const icon = artifactTypeIcon(art.artifactType);
               const isRecent = Date.now() - new Date(art.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+              const typeLabel = art.artifactType.charAt(0).toUpperCase() + art.artifactType.slice(1).replace('_', ' ');
               return (
                 <button
                   key={art.id}
@@ -128,8 +137,8 @@ export function EventsToolsRow({
                       {art.title}
                     </div>
                     <div className="hp-item-meta">
-                      {art.artifactType.charAt(0).toUpperCase() + art.artifactType.slice(1).replace('_', ' ')}
-                      {art.description ? ` \u00B7 ${art.description}` : ''}
+                      {typeLabel}
+                      {art.authorName ? ` · Built by ${art.authorName}` : ''}
                     </div>
                   </div>
                   {isRecent ? <span className="hp-tool-new">New</span> : null}

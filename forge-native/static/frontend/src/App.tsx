@@ -71,6 +71,7 @@ import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import {
   HeroSection,
+  ActivityFeed,
   PainPointsSection,
   PipelineFunnel,
   EventsToolsRow,
@@ -136,7 +137,7 @@ import {
 } from './demo/examples';
 
 /** Bump when deploying to help bust Atlassian CDN cache; check console to confirm loaded bundle */
-const HACKCENTRAL_UI_VERSION = '0.6.91';
+const HACKCENTRAL_UI_VERSION = '0.6.92';
 if (typeof console !== 'undefined' && console.log) {
   console.log('[HackCentral Confluence UI] loaded', HACKCENTRAL_UI_VERSION);
 }
@@ -4470,6 +4471,15 @@ export function App(): JSX.Element {
     ? (hpPipelineMetrics.itemsPerStage.find((s) => s.stage === 'validated_prototype')?.count ?? 0)
     : (bootstrap?.summary.completedProjects ?? 0);
   const hpEventsComing = registry.length;
+  const hpNextEvent = (() => {
+    const now = Date.now();
+    return registry.find((ev) => {
+      const s = ev.lifecycleStatus.toLowerCase();
+      if (s === 'active' || s === 'running' || s === 'hacking' || s === 'published' || s === 'open') return true;
+      if (ev.hackingStartsAt) return new Date(ev.hackingStartsAt).getTime() > now;
+      return false;
+    }) ?? null;
+  })();
 
   const handleHpCreateProblem = useCallback(async (title: string, submitterName: string, description?: string) => {
     try {
@@ -5646,20 +5656,32 @@ export function App(): JSX.Element {
                 hacksActive={hpHacksActive}
                 prototypes={hpPrototypes}
                 eventsComing={hpEventsComing}
-                onGetStarted={() => setView('onboarding')}
-                onExploreHacks={() => { setHackTab('completed'); setView('hacks'); }}
+                nextEvent={hpNextEvent}
+                onNavigatePainPoints={() => setView('problem_exchange')}
+                onNavigateHacks={() => { setHackTab('completed'); setView('hacks'); }}
+                onNavigateHackdays={() => setView('hackdays')}
+                onNavigatePipeline={() => setView('pipeline')}
               />
-              <PainPointsSection
-                problems={hpProblems}
-                totalCount={hpProblemCount ?? 0}
-                loading={hpProblemsLoading}
-                onSubmit={handleHpCreateProblem}
+              <ActivityFeed
+                items={homeFeedItems}
+                loading={homeFeedLoading}
+                onItemClick={handleHomeFeedItemClick}
               />
-              <PipelineFunnel
-                metrics={hpPipelineMetrics}
-                painCount={hpProblemCount}
-                loading={hpPipelineLoading}
-              />
+              <div className="hp-two-col hp-two-col--pain-pipeline">
+                <PainPointsSection
+                  problems={hpProblems}
+                  totalCount={hpProblemCount ?? 0}
+                  loading={hpProblemsLoading}
+                  onSubmit={handleHpCreateProblem}
+                  onViewAll={() => setView('problem_exchange')}
+                />
+                <PipelineFunnel
+                  metrics={hpPipelineMetrics}
+                  painCount={hpProblemCount}
+                  loading={hpPipelineLoading}
+                  onNavigatePipeline={() => setView('pipeline')}
+                />
+              </div>
               <EventsToolsRow
                 events={registry}
                 artifacts={hpArtifacts}
@@ -5667,12 +5689,12 @@ export function App(): JSX.Element {
                 artifactsLoading={hpArtifactsLoading}
                 onProposeHackDay={() => setView('create_hackday')}
                 onViewArtifact={(id) => { setView('library'); }}
+                onViewAllEvents={() => setView('hackdays')}
               />
               <MentoringSection
                 onNavigateGuide={() => setView('guide')}
                 onNavigateMentors={() => setView('team_up')}
               />
-              {/* Old dashboard sections removed — replaced by Homepage v3 components above */}
             </section>
           ) : null}
 
