@@ -5706,7 +5706,7 @@ button {
 
 .learnings-layout--split {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 30%;
   gap: 16px;
   align-items: start;
 }
