@@ -1420,6 +1420,9 @@ export function App(): JSX.Element {
   const [learningsEditTitle, setLearningsEditTitle] = useState('');
   const [learningsEditDescription, setLearningsEditDescription] = useState('');
   const [learningsEditTags, setLearningsEditTags] = useState('');
+  const [selectedLearningId, setSelectedLearningId] = useState<string | null>(null);
+  const [learningsRailEditingDescription, setLearningsRailEditingDescription] = useState(false);
+  const [learningsRailDescriptionDraft, setLearningsRailDescriptionDraft] = useState('');
 
   const [registrySearchInput, setRegistrySearchInput] = useState('');
   const [registryTagsInput, setRegistryTagsInput] = useState('');
@@ -3814,6 +3817,41 @@ export function App(): JSX.Element {
     }
   }, [learningsEditTitle, learningsEditDescription, learningsEditTags]);
 
+  const handleLikeLearning = useCallback(async (learningId: string) => {
+    try {
+      const result = await invokeTyped('hdcLikeLearning', { learningId });
+      setLearningItems((prev) =>
+        prev.map((item) =>
+          item.id === learningId
+            ? { ...item, likeCount: result.likeCount, hasLiked: result.liked }
+            : item
+        )
+      );
+    } catch (error) {
+      setLearningsError(error instanceof Error ? error.message : 'Failed to like.');
+    }
+  }, []);
+
+  const handleRailDescriptionSave = useCallback(async (learningId: string) => {
+    try {
+      await invokeTyped('hdcUpdateLearning', {
+        learningId,
+        description: learningsRailDescriptionDraft || undefined,
+        tags: learningItems.find((i) => i.id === learningId)?.tags ?? [],
+      });
+      setLearningItems((prev) =>
+        prev.map((item) =>
+          item.id === learningId
+            ? { ...item, description: learningsRailDescriptionDraft || undefined }
+            : item
+        )
+      );
+      setLearningsRailEditingDescription(false);
+    } catch (error) {
+      setLearningsError(error instanceof Error ? error.message : 'Failed to save description.');
+    }
+  }, [learningsRailDescriptionDraft, learningItems]);
+
   useEffect(() => {
     if (view !== 'hacks' || toolingTab !== 'learnings') return;
     if (learningsLoaded) return;
@@ -5677,100 +5715,211 @@ export function App(): JSX.Element {
                   ) : null}
 
                   {learningItems.length > 0 ? (
-                    <table className="learnings-table">
-                      <thead>
-                        <tr>
-                          <th>File</th>
-                          <th>Title</th>
-                          <th>Tags</th>
-                          <th>Author</th>
-                          <th>Date</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {learningItems.map((item) => {
-                          const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
-                          const canEdit = isOwner || showcaseCanManage;
-                          const isEditing = learningsEditingId === item.id;
-                          return (
-                            <tr key={item.id}>
-                              <td className="learnings-filename">{item.filename}</td>
-                              <td>
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={learningsEditTitle}
-                                    onChange={(e) => setLearningsEditTitle(e.target.value)}
-                                    placeholder="Title (optional)"
+                    <div className={`learnings-layout${selectedLearningId ? ' learnings-layout--split' : ''}`}>
+                      <table className="learnings-table">
+                        <thead>
+                          <tr>
+                            <th>File</th>
+                            <th>Title</th>
+                            <th>Tags</th>
+                            <th>Author</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {learningItems.map((item) => {
+                            const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
+                            const canEdit = isOwner || showcaseCanManage;
+                            const isEditing = learningsEditingId === item.id;
+                            const isSelected = selectedLearningId === item.id;
+                            return (
+                              <tr
+                                key={item.id}
+                                className={`learnings-row${isSelected ? ' learnings-row--selected' : ''}`}
+                                onClick={() => {
+                                  if (isEditing) return;
+                                  if (isSelected) {
+                                    setSelectedLearningId(null);
+                                  } else {
+                                    setSelectedLearningId(item.id);
+                                    setLearningsRailEditingDescription(false);
+                                    setLearningsRailDescriptionDraft(item.description ?? '');
+                                  }
+                                }}
+                              >
+                                <td className="learnings-filename">{item.filename}</td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      type="text"
+                                      value={learningsEditTitle}
+                                      onChange={(e) => setLearningsEditTitle(e.target.value)}
+                                      placeholder="Title (optional)"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    item.title ?? <span className="meta">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input
+                                      type="text"
+                                      value={learningsEditTags}
+                                      onChange={(e) => setLearningsEditTags(e.target.value)}
+                                      placeholder="tag1, tag2"
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    item.tags.length > 0 ? item.tags.join(', ') : <span className="meta">—</span>
+                                  )}
+                                </td>
+                                <td>{item.authorName}</td>
+                                <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                                <td className="learnings-actions" onClick={(e) => e.stopPropagation()}>
+                                  {isEditing ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => void handleLearningEditSave(item.id)}
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => setLearningsEditingId(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  ) : canEdit ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => {
+                                          setLearningsEditingId(item.id);
+                                          setLearningsEditTitle(item.title ?? '');
+                                          setLearningsEditDescription(item.description ?? '');
+                                          setLearningsEditTags(item.tags.join(', '));
+                                        }}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost btn-sm btn-danger"
+                                        onClick={() => {
+                                          setSelectedLearningId(null);
+                                          void handleLearningDelete(item.id);
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="meta">View only</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+
+                      {selectedLearningId ? (() => {
+                        const rail = learningItems.find((i) => i.id === selectedLearningId);
+                        if (!rail) return null;
+                        const isOwner = bootstrap?.viewer.accountId === rail.authorAccountId;
+                        const canEditDescription = isOwner || showcaseCanManage;
+                        const preview = rail.content.length > 600
+                          ? rail.content.slice(0, 600).trimEnd() + '…'
+                          : rail.content;
+                        return (
+                          <aside className="learnings-rail card">
+                            <div className="learnings-rail-head">
+                              <span className="learnings-filename">{rail.filename}</span>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setSelectedLearningId(null)}
+                                aria-label="Close"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <p className="meta">
+                              {rail.authorName} · {new Date(rail.createdAt).toLocaleDateString()}
+                            </p>
+
+                            {rail.tags.length > 0 ? (
+                              <p className="meta">{rail.tags.join(', ')}</p>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              className={`learnings-like-btn${rail.hasLiked ? ' learnings-like-btn--active' : ''}`}
+                              onClick={() => void handleLikeLearning(rail.id)}
+                            >
+                              {rail.hasLiked ? '♥' : '♡'} {rail.likeCount > 0 ? rail.likeCount : ''} Like
+                            </button>
+
+                            <div className="learnings-rail-description">
+                              <p className="learnings-rail-label">Description</p>
+                              {learningsRailEditingDescription ? (
+                                <>
+                                  <textarea
+                                    className="learnings-rail-textarea"
+                                    value={learningsRailDescriptionDraft}
+                                    onChange={(e) => setLearningsRailDescriptionDraft(e.target.value)}
+                                    rows={4}
+                                    placeholder="Add a description…"
+                                    autoFocus
                                   />
-                                ) : (
-                                  item.title ?? <span className="meta">—</span>
-                                )}
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={learningsEditTags}
-                                    onChange={(e) => setLearningsEditTags(e.target.value)}
-                                    placeholder="tag1, tag2"
-                                  />
-                                ) : (
-                                  item.tags.length > 0 ? item.tags.join(', ') : <span className="meta">—</span>
-                                )}
-                              </td>
-                              <td>{item.authorName}</td>
-                              <td>{new Date(item.createdAt).toLocaleDateString()}</td>
-                              <td className="learnings-actions">
-                                {isEditing ? (
-                                  <>
+                                  <div className="learnings-actions">
                                     <button
                                       type="button"
                                       className="btn btn-primary btn-sm"
-                                      onClick={() => void handleLearningEditSave(item.id)}
+                                      onClick={() => void handleRailDescriptionSave(rail.id)}
                                     >
                                       Save
                                     </button>
                                     <button
                                       type="button"
                                       className="btn btn-ghost btn-sm"
-                                      onClick={() => setLearningsEditingId(null)}
+                                      onClick={() => setLearningsRailEditingDescription(false)}
                                     >
                                       Cancel
                                     </button>
-                                  </>
-                                ) : canEdit ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
-                                      onClick={() => {
-                                        setLearningsEditingId(item.id);
-                                        setLearningsEditTitle(item.title ?? '');
-                                        setLearningsEditDescription(item.description ?? '');
-                                        setLearningsEditTags(item.tags.join(', '));
-                                      }}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm btn-danger"
-                                      onClick={() => void handleLearningDelete(item.id)}
-                                    >
-                                      Delete
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="meta">View only</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                  </div>
+                                </>
+                              ) : (
+                                <p
+                                  className={`learnings-rail-desc-text${canEditDescription ? ' learnings-rail-desc-text--editable' : ''}`}
+                                  onClick={() => {
+                                    if (!canEditDescription) return;
+                                    setLearningsRailDescriptionDraft(rail.description ?? '');
+                                    setLearningsRailEditingDescription(true);
+                                  }}
+                                  title={canEditDescription ? 'Click to edit' : undefined}
+                                >
+                                  {rail.description ?? <span className="meta">{canEditDescription ? 'Click to add a description…' : 'No description.'}</span>}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="learnings-rail-preview">
+                              <p className="learnings-rail-label">Preview</p>
+                              <pre className="learnings-rail-pre">{preview}</pre>
+                            </div>
+                          </aside>
+                        );
+                      })() : null}
+                    </div>
                   ) : null}
                 </section>
               ) : null}

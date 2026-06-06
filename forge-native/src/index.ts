@@ -35,6 +35,7 @@ import {
   uploadHdcLearning,
   updateHdcLearning,
   deleteHdcLearning,
+  likeHdcLearning,
   movePipelineItem,
   upsertPathway,
   updatePipelineStageCriteria,
@@ -80,6 +81,7 @@ import type {
   UploadLearningInput,
   UpdateLearningInput,
   DeleteLearningInput,
+  LikeLearningInput,
   SetActiveAppModeContextResult,
   SubmitHackInput,
   TrackRoiExportInput,
@@ -306,6 +308,14 @@ resolver.define(
   async (request: { context?: RawResolverContext; payload: DeleteLearningInput }) => {
     const viewer = getViewer(request.context as RawResolverContext | undefined);
     return deleteHdcLearning(viewer, request.payload);
+  }
+);
+
+resolver.define(
+  'hdcLikeLearning',
+  async (request: { context?: RawResolverContext; payload: LikeLearningInput }) => {
+    const viewer = getViewer(request.context as RawResolverContext | undefined);
+    return likeHdcLearning(viewer, request.payload);
   }
 );
 

@@ -2,9 +2,16 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    return ctx.db.query("learnings").order("desc").collect();
+  args: { viewerAccountId: v.optional(v.string()) },
+  handler: async (ctx, { viewerAccountId }) => {
+    const rows = await ctx.db.query("learnings").order("desc").collect();
+    return rows.map((r) => ({
+      ...r,
+      likeCount: r.likeCount ?? 0,
+      hasLiked: viewerAccountId
+        ? (r.likedBy ?? []).includes(viewerAccountId)
+        : false,
+    }));
   },
 });
 
@@ -57,6 +64,31 @@ export const remove = mutation({
     const row = await ctx.db.get(learningId);
     if (!row) throw new ConvexError("Learning not found");
     await ctx.db.delete(learningId);
+  },
+});
+
+export const like = mutation({
+  args: {
+    learningId: v.id("learnings"),
+    viewerAccountId: v.string(),
+  },
+  handler: async (ctx, { learningId, viewerAccountId }) => {
+    const row = await ctx.db.get(learningId);
+    if (!row) throw new ConvexError("Learning not found");
+    const likedBy = row.likedBy ?? [];
+    if (likedBy.includes(viewerAccountId)) {
+      // toggle off
+      await ctx.db.patch(learningId, {
+        likedBy: likedBy.filter((id) => id !== viewerAccountId),
+        likeCount: Math.max(0, (row.likeCount ?? 0) - 1),
+      });
+      return { liked: false, likeCount: Math.max(0, (row.likeCount ?? 0) - 1) };
+    }
+    await ctx.db.patch(learningId, {
+      likedBy: [...likedBy, viewerAccountId],
+      likeCount: (row.likeCount ?? 0) + 1,
+    });
+    return { liked: true, likeCount: (row.likeCount ?? 0) + 1 };
   },
 });
 

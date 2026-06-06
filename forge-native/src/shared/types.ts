@@ -1499,6 +1499,8 @@ export interface LearningItem {
   authorAccountId: string;
   authorName: string;
   createdAt: number;
+  likeCount: number;
+  hasLiked: boolean;
 }
 
 export interface ListLearningsResult {
@@ -1537,6 +1539,15 @@ export interface DeleteLearningResult {
   success: true;
 }
 
+export interface LikeLearningInput {
+  learningId: string;
+}
+
+export interface LikeLearningResult {
+  liked: boolean;
+  likeCount: number;
+}
+
 export type Defs = {
   getBootstrapData: () => BootstrapData;
   hdcGetHomeFeed: (payload: GetHomeFeedInput) => HomeFeedSnapshot;
@@ -1563,6 +1574,7 @@ export type Defs = {
   hdcUploadLearning: (payload: UploadLearningInput) => UploadLearningResult;
   hdcUpdateLearning: (payload: UpdateLearningInput) => UpdateLearningResult;
   hdcDeleteLearning: (payload: DeleteLearningInput) => DeleteLearningResult;
+  hdcLikeLearning: (payload: LikeLearningInput) => LikeLearningResult;
   hdcCreateProblem: (payload: CreateProblemInput) => CreateProblemResult;
   hdcListProblems: (payload: ListProblemsInput) => ListProblemsResult;
   hdcVoteProblem: (payload: { problemId: string }) => VoteProblemResult;

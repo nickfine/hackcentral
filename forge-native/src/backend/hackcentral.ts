@@ -84,6 +84,8 @@ import type {
   UpdateLearningResult,
   DeleteLearningInput,
   DeleteLearningResult,
+  LikeLearningInput,
+  LikeLearningResult,
 } from '../shared/types';
 import { SupabaseRepository } from './supabase/repositories';
 
@@ -1063,11 +1065,15 @@ export async function listHdcHacks(
 }
 
 export async function listHdcLearnings(
-  _viewer: ViewerContext,
+  viewer: ViewerContext,
   _input: Record<string, never>
 ): Promise<ListLearningsResult> {
   const client = asConvexInvoker(getConvexClient());
-  const raw = await client.query('learnings:list', {}) as Record<string, unknown>[];
+  const viewerAccountId =
+    viewer.accountId && viewer.accountId !== 'unknown-atlassian-account'
+      ? viewer.accountId
+      : undefined;
+  const raw = await client.query('learnings:list', viewerAccountId ? { viewerAccountId } : {}) as Record<string, unknown>[];
   const items: LearningItem[] = (raw ?? []).map((r) => ({
     id: r._id as string,
     filename: r.filename as string,
@@ -1078,8 +1084,26 @@ export async function listHdcLearnings(
     authorAccountId: r.authorAccountId as string,
     authorName: r.authorName as string,
     createdAt: r._creationTime as number,
+    likeCount: typeof r.likeCount === 'number' ? r.likeCount : 0,
+    hasLiked: !!(r.hasLiked),
   }));
   return { items };
+}
+
+export async function likeHdcLearning(
+  viewer: ViewerContext,
+  input: LikeLearningInput
+): Promise<LikeLearningResult> {
+  const { learningId } = input;
+  if (!viewer.accountId || viewer.accountId === 'unknown-atlassian-account') {
+    throw new Error('Must be signed in to like');
+  }
+  const client = asConvexInvoker(getConvexClient());
+  const result = await client.mutation('learnings:like', {
+    learningId,
+    viewerAccountId: viewer.accountId,
+  }) as { liked: boolean; likeCount: number };
+  return { liked: result.liked, likeCount: result.likeCount };
 }
 
 export async function uploadHdcLearning(

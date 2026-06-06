@@ -5714,3 +5714,134 @@ button {
   gap: 8px;
   white-space: nowrap;
 }
+
+/* ── Learnings layout + rail ── */
+.learnings-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.learnings-layout--split {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.learnings-row {
+  cursor: pointer;
+}
+
+.learnings-row:hover td {
+  background: var(--surface-raised, rgba(0,0,0,0.03));
+}
+
+.learnings-row--selected td {
+  background: var(--surface-raised, rgba(0,0,0,0.04));
+}
+
+.learnings-rail {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 16px;
+}
+
+.learnings-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.learnings-rail-label {
+  font-size: var(--tier3-size);
+  color: var(--text-soft);
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.learnings-rail-description {
+  display: flex;
+  flex-direction: column;
+}
+
+.learnings-rail-desc-text {
+  font-size: var(--tier3-size);
+  margin: 0;
+  min-height: 24px;
+}
+
+.learnings-rail-desc-text--editable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+}
+
+.learnings-rail-desc-text--editable:hover {
+  background: var(--surface-raised, rgba(0,0,0,0.04));
+}
+
+.learnings-rail-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: var(--tier3-size);
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.learnings-rail-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.learnings-rail-pre {
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface-sunken, rgba(0,0,0,0.03));
+  border-radius: 6px;
+  padding: 10px;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.learnings-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 4px 14px;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--tier3-size);
+  color: var(--text-soft);
+  transition: border-color 0.15s, color 0.15s;
+  align-self: flex-start;
+}
+
+.learnings-like-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.learnings-like-btn--active {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+}

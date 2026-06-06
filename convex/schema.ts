@@ -453,6 +453,8 @@ export default defineSchema({
     tags: v.array(v.string()),
     authorAccountId: v.string(),
     authorName: v.string(),
+    likeCount: v.optional(v.number()),
+    likedBy: v.optional(v.array(v.string())),
   })
     .index("by_author", ["authorAccountId"]),
 });
