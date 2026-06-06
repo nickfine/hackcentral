@@ -1,4 +1,4 @@
-import type { PipelineBoardItem, PipelineStage, PipelineStageCriteria, ProblemListItem } from '../../types';
+import type { PainPoint, PipelineBoardItem, PipelineStage, PipelineStageCriteria } from '../../types';
 import { DEMO_PIPELINE_ITEM_EXAMPLES, DEMO_PIPELINE_PAIN_EXAMPLES } from '../../demo/examples';
 import { DemoState } from '../shared/DemoState';
 import { getInitials } from '../../utils/format';
@@ -19,17 +19,16 @@ function avatarToneClass(value: string): string {
   return `pipeline-avatar-tone-${hashName(value) % AVATAR_TONE_COUNT}`;
 }
 
-function formatAgeDays(createdAt: string): string {
-  const parsed = Date.parse(createdAt);
-  if (!Number.isFinite(parsed)) return '0 days old';
-  const days = Math.max(0, Math.round((Date.now() - parsed) / (1000 * 60 * 60 * 24)));
+function formatAgeDays(createdAt: number): string {
+  if (!Number.isFinite(createdAt)) return '0 days old';
+  const days = Math.max(0, Math.round((Date.now() - createdAt) / (1000 * 60 * 60 * 24)));
   return `${days} days old`;
 }
 
 interface StageDetailProps {
   stage: HeroStageDefinition;
   items: PipelineBoardItem[];
-  painsItems: ProblemListItem[];
+  painsItems: PainPoint[];
   stages: PipelineStageCriteria[];
   canManage: boolean;
   pipelineMovePendingProjectId: string | null;
@@ -109,12 +108,12 @@ export function StageDetail({
               visiblePainItems.map((pain) => (
                 <article key={pain.id} className="pipeline-detail-item">
                   <div className="pipeline-detail-item-main">
-                    <span className={`pipeline-item-avatar ${avatarToneClass(pain.team)}`} aria-hidden>
-                      {getInitials(pain.team)}
+                    <span className={`pipeline-item-avatar ${avatarToneClass(pain.submitterName)}`} aria-hidden>
+                      {getInitials(pain.submitterName)}
                     </span>
                     <div>
                       <p className="pipeline-item-title">{pain.title}</p>
-                      <p className="pipeline-item-meta">Team: {pain.team} • Domain: {pain.domain} • {formatAgeDays(pain.createdAt)}</p>
+                      <p className="pipeline-item-meta">Submitted by: {pain.submitterName} • Event: {pain.eventName ?? 'Unknown'} • {formatAgeDays(pain.createdAt)}</p>
                     </div>
                   </div>
                   <div className="pipeline-pain-item-actions">

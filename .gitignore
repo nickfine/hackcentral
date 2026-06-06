@@ -19,7 +19,7 @@ dist-ssr
 
 # Convex
 .convex/
-convex/_generated/
+**/convex/_generated/
 
 # Supabase
 supabase/.temp/

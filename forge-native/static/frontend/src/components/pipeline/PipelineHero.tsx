@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import type { PipelineBoardItem, PipelineMetrics, PipelineStage, PipelineStageCriteria, ProblemListItem } from '../../types';
+import type { PainPoint, PipelineBoardItem, PipelineMetrics, PipelineStage, PipelineStageCriteria } from '../../types';
 import { DEMO_PIPELINE_STAGE_EXAMPLES } from '../../demo/examples';
 import { DemoState } from '../shared/DemoState';
 import { ConversionArrow } from './ConversionArrow';
@@ -12,7 +12,7 @@ interface PipelineHeroProps {
   stages: PipelineStageCriteria[];
   itemsByStage: Record<PipelineStage, PipelineBoardItem[]>;
   metrics: PipelineMetrics;
-  painsItems: ProblemListItem[];
+  painsItems: PainPoint[];
   painsAverageDays: number | null;
   painsToHackConversionRate: number | null;
   canManage: boolean;
