@@ -439,6 +439,12 @@
   --rail-card-border:         #EAE5DA;
   --activity-panel-gradient:  linear-gradient(180deg, #FEFBF4 0%, #F7F3EA 100%);
   --readiness-track-bg:       rgba(25, 31, 57, 0.08);
+  --hero-left-card-bg:        #FEFBF4;
+  --hero-left-card-border:    #EAE5DA;
+  --hero-left-card-shadow:    none;
+  --hero-left-card-text:      #191F39;
+  --hero-left-card-muted:     #6B6E76;
+  --hero-page-ambient:        none;
 }
 
 [data-color-mode="dark"] {
@@ -526,6 +532,12 @@
   --rail-card-border:         rgba(255,255,255,0.07);
   --activity-panel-gradient:  linear-gradient(180deg, rgba(0,245,255,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(0,245,255,0.02) 100%);
   --readiness-track-bg:       rgba(255,255,255,0.06);
+  --hero-left-card-bg:        radial-gradient(circle at 80% 15%, rgba(139,92,246,0.08), transparent 45%), linear-gradient(180deg, #0a1428 0%, #070e1e 100%);
+  --hero-left-card-border:    rgba(255,255,255,0.08);
+  --hero-left-card-shadow:    inset 0 1px 0 rgba(255,255,255,0.08);
+  --hero-left-card-text:      #ffffff;
+  --hero-left-card-muted:     rgba(255,255,255,0.65);
+  --hero-page-ambient:        radial-gradient(ellipse 75% 100% at 12% 0%, rgba(40,210,255,0.09), transparent), radial-gradient(ellipse 60% 80% at 88% 0%, rgba(106,91,255,0.07), transparent);
 }
 
 [data-theme-preset="editorial"] {

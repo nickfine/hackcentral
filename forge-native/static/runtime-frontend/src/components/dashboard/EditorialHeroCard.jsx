@@ -132,10 +132,11 @@ export default function EditorialHeroCard({ scheduleMilestones, eventPhase, chil
     <section className="grid gap-6 lg:grid-cols-[1.55fr_0.75fr]" data-testid="dashboard-row1-status-card">
       {/* Left: editorial hero content */}
       <div
-        className="relative rounded-[28px] border border-white/[0.08] p-8"
+        className="relative rounded-[28px] border p-8"
         style={{
-          background: 'radial-gradient(circle at 80% 15%, rgba(139,92,246,0.08), transparent 45%), linear-gradient(180deg, #0a1428 0%, #070e1e 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          background: 'var(--hero-left-card-bg)',
+          borderColor: 'var(--hero-left-card-border)',
+          boxShadow: 'var(--hero-left-card-shadow)',
           overflow: 'hidden'
         }}
         data-testid="dashboard-hero-card"

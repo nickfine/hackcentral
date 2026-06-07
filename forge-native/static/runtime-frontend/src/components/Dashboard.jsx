@@ -1108,8 +1108,8 @@ function Dashboard({
             fallback={heroTitleFallback}
             as="h1"
             data-testid="dashboard-hero-headline"
-            displayClassName="text-5xl font-semibold tracking-tight text-white lg:text-7xl"
-            style={{ fontFamily: 'var(--font-heading)', lineHeight: 1.1 }}
+            displayClassName="text-5xl font-semibold tracking-tight lg:text-7xl"
+            style={{ fontFamily: 'var(--font-heading)', lineHeight: 1.1, color: 'var(--hero-left-card-text)' }}
           />
         </div>
 
@@ -1119,7 +1119,8 @@ function Dashboard({
           fallback={heroSubtitlePrimaryFallback}
           as="p"
           rows={2}
-          displayClassName="mt-4 max-w-2xl text-lg leading-[1.65] text-white/65"
+          displayClassName="mt-4 max-w-2xl text-lg leading-[1.65]"
+          style={{ color: 'var(--hero-left-card-muted)' }}
         />
 
         {/* CTAs */}
@@ -1129,7 +1130,8 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={() => onNavigate?.('signup')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition hover:scale-[1.01] active:scale-[0.99] dark:bg-cyan-400 dark:text-slate-950 dark:shadow-[0_0_12px_rgba(0,245,255,0.15)] dark:hover:shadow-[0_0_24px_rgba(0,245,255,0.35)]"
+              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
             >
               Sign up
               <ArrowRight className="h-4 w-4" />
@@ -1138,7 +1140,8 @@ function Dashboard({
             <button
               type="button"
               onClick={() => onNavigate?.('painpoints')}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition hover:scale-[1.01] active:scale-[0.99] dark:bg-cyan-400 dark:text-slate-950 dark:shadow-[0_0_12px_rgba(0,245,255,0.15)] dark:hover:shadow-[0_0_24px_rgba(0,245,255,0.35)]"
+              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
             >
               Post a pain point
             </button>
@@ -1147,7 +1150,8 @@ function Dashboard({
               type="button"
               data-testid="dashboard-row1-open-next-step"
               onClick={handlePrimaryAction}
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:scale-[1.01] shadow-[0_0_12px_rgba(0,245,255,0.15)] hover:shadow-[0_0_24px_rgba(0,245,255,0.35)] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition hover:scale-[1.01] active:scale-[0.99] dark:bg-cyan-400 dark:text-slate-950 dark:shadow-[0_0_12px_rgba(0,245,255,0.15)] dark:hover:shadow-[0_0_24px_rgba(0,245,255,0.35)]"
+              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
             >
               <span>{nextAction.label}</span>
               <ArrowRight className="h-4 w-4" />
@@ -1157,7 +1161,8 @@ function Dashboard({
             <button
               type="button"
               onClick={() => onNavigate?.('painpoints')}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:border-white/25"
+              className="inline-flex items-center gap-2 rounded-2xl border px-6 py-3 text-sm font-semibold transition"
+              style={{ borderColor: 'var(--hero-left-card-border)', color: 'var(--hero-left-card-muted)' }}
             >
               Explore Pain Points
             </button>
@@ -1165,7 +1170,7 @@ function Dashboard({
         </div>
 
         {/* Meta row */}
-        <div className="mt-6 flex flex-wrap gap-5 text-xs text-white/40">
+        <div className="mt-6 flex flex-wrap gap-5 text-xs" style={{ color: 'var(--hero-left-card-muted)' }}>
           {activeMetaText && (
             <span className="inline-flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
