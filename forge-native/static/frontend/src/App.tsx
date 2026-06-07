@@ -5745,13 +5745,19 @@ export function App(): JSX.Element {
 
               {/* Filter row — every tab */}
               {toolingTab === 'learnings' ? (
-                <section className="filter-row">
-                  <input
-                    type="search"
-                    placeholder="Search learnings &amp; memories..."
-                    value={learningsSearch}
-                    onChange={(e) => setLearningsSearch(e.target.value)}
-                  />
+                <section className="showcase-filter-shell">
+                  <fieldset className="showcase-filter-group">
+                    <legend>Filter</legend>
+                    <label className="showcase-filter-field">
+                      <span>Search</span>
+                      <input
+                        type="search"
+                        placeholder="Search learnings &amp; memories..."
+                        value={learningsSearch}
+                        onChange={(e) => setLearningsSearch(e.target.value)}
+                      />
+                    </label>
+                  </fieldset>
                 </section>
               ) : (HDC_SHOWCASE_UX_V1 ? (
                 <section className="showcase-filter-shell">
