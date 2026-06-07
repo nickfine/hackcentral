@@ -5742,32 +5742,26 @@ export function App(): JSX.Element {
 
               {learningsError ? <p className="message message-error">{learningsError}</p> : null}
 
+              {/* Dropzone always visible so any tab can accept .md uploads */}
+              <div
+                className={`learnings-dropzone learnings-dropzone--compact${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
+                onDragLeave={() => setLearningsDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setLearningsDragOver(false); void handleLearningFileDrop(e.dataTransfer.files); }}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.md';
+                  input.multiple = true;
+                  input.onchange = (ev) => { void handleLearningFileDrop((ev.target as HTMLInputElement).files); };
+                  input.click();
+                }}
+              >
+                <p className="meta">Drop a .md file or <span style={{ textDecoration: 'underline' }}>browse</span> to add a learning or memory</p>
+              </div>
+
               {toolingTab === 'learnings' ? (
                 <section className="learnings-section">
-                  <div
-                    className={`learnings-dropzone${learningsDragOver ? ' learnings-dropzone--active' : ''}${learningItems.length > 0 ? ' learnings-dropzone--compact' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
-                    onDragLeave={() => setLearningsDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setLearningsDragOver(false); void handleLearningFileDrop(e.dataTransfer.files); }}
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = '.md';
-                      input.multiple = true;
-                      input.onchange = (ev) => { void handleLearningFileDrop((ev.target as HTMLInputElement).files); };
-                      input.click();
-                    }}
-                  >
-                    {learningItems.length > 0 ? (
-                      <p className="meta">Drop .md file or <span style={{ textDecoration: 'underline' }}>browse</span></p>
-                    ) : (
-                      <>
-                        <p>Drop .md files here or click to browse</p>
-                        <p className="meta">LEARNINGS.md, MEMORY.md, or any .md file</p>
-                      </>
-                    )}
-                  </div>
-
                   {learningsLoading ? <p className="meta">Loading...</p> : null}
 
                   {!learningsLoading && learningsLoaded && learningItems.length === 0 ? (
