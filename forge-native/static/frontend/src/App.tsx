@@ -1450,6 +1450,10 @@ export function App(): JSX.Element {
   const [learningsRailEditingTags, setLearningsRailEditingTags] = useState(false);
   const [learningsRailTagsDraft, setLearningsRailTagsDraft] = useState('');
   const [learningsSearch, setLearningsSearch] = useState('');
+  const [learningsTagsFilter, setLearningsTagsFilter] = useState('');
+  const [learningsUsefulOnly, setLearningsUsefulOnly] = useState(false);
+  const [learningsAuthorFilter, setLearningsAuthorFilter] = useState('');
+  const [learningsAdvancedOpen, setLearningsAdvancedOpen] = useState(false);
 
   const [registrySearchInput, setRegistrySearchInput] = useState('');
   const [registryTagsInput, setRegistryTagsInput] = useState('');
@@ -5752,12 +5756,53 @@ export function App(): JSX.Element {
                       <span>Search</span>
                       <input
                         type="search"
-                        placeholder="Search learnings &amp; memories..."
+                        placeholder="Search title or description"
                         value={learningsSearch}
                         onChange={(e) => setLearningsSearch(e.target.value)}
                       />
                     </label>
+                    <label className="showcase-filter-field">
+                      <span>Tags</span>
+                      <input
+                        type="text"
+                        placeholder="ai, automation, atlassian"
+                        value={learningsTagsFilter}
+                        onChange={(e) => setLearningsTagsFilter(e.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={learningsUsefulOnly}
+                        onChange={(e) => setLearningsUsefulOnly(e.target.checked)}
+                      />
+                      Marked as useful only
+                    </label>
                   </fieldset>
+                  <div className="showcase-filter-advanced">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      aria-expanded={learningsAdvancedOpen}
+                      onClick={() => setLearningsAdvancedOpen((open) => !open)}
+                    >
+                      {learningsAdvancedOpen ? 'Hide advanced filters' : 'Show advanced filters'}
+                    </button>
+                  </div>
+                  {learningsAdvancedOpen ? (
+                    <fieldset className="showcase-filter-group showcase-filter-group-advanced">
+                      <legend>Advanced</legend>
+                      <label className="showcase-filter-field">
+                        <span>Author</span>
+                        <input
+                          type="text"
+                          placeholder="Filter by author name"
+                          value={learningsAuthorFilter}
+                          onChange={(e) => setLearningsAuthorFilter(e.target.value)}
+                        />
+                      </label>
+                    </fieldset>
+                  ) : null}
                 </section>
               ) : (HDC_SHOWCASE_UX_V1 ? (
                 <section className="showcase-filter-shell">
@@ -5902,16 +5947,20 @@ export function App(): JSX.Element {
 
                   {(() => {
                     const q = learningsSearch.trim().toLowerCase();
-                    const filteredLearnings = q
-                      ? learningItems.filter((i) =>
-                          (i.title ?? i.filename).toLowerCase().includes(q) ||
-                          i.description?.toLowerCase().includes(q) ||
-                          i.tags.some((t) => t.toLowerCase().includes(q)) ||
-                          i.authorName.toLowerCase().includes(q)
-                        )
-                      : learningItems;
+                    const tagTerms = learningsTagsFilter.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+                    const authorQ = learningsAuthorFilter.trim().toLowerCase();
+                    const filteredLearnings = learningItems.filter((i) => {
+                      if (q && !(
+                        (i.title ?? i.filename).toLowerCase().includes(q) ||
+                        i.description?.toLowerCase().includes(q)
+                      )) return false;
+                      if (tagTerms.length > 0 && !tagTerms.some((term) => i.tags.some((t) => t.toLowerCase().includes(term)))) return false;
+                      if (learningsUsefulOnly && !i.hasLiked) return false;
+                      if (authorQ && !i.authorName.toLowerCase().includes(authorQ)) return false;
+                      return true;
+                    });
                     if (filteredLearnings.length === 0 && learningItems.length > 0) {
-                      return <p className="empty-state">No learnings match your search.</p>;
+                      return <p className="empty-state">No learnings match your filters.</p>;
                     }
                     return filteredLearnings.length > 0 ? (
                     <div className="learnings-layout learnings-layout--split">
