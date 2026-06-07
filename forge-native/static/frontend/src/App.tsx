@@ -6097,7 +6097,8 @@ export function App(): JSX.Element {
                         );
                       })()}
                     </div>
-                  ) : null}
+                  ) : null;
+                  })()}
                 </section>
               ) : null}
 
