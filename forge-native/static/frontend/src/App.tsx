@@ -3890,7 +3890,10 @@ export function App(): JSX.Element {
   }, [learningsRailDescriptionDraft, learningItems]);
 
   useEffect(() => {
-    if (view !== 'hacks' || toolingTab !== 'learnings') return;
+    const shouldLoad =
+      view === 'dashboard' ||
+      (view === 'hacks' && (toolingTab === 'learnings' || toolingTab === 'all'));
+    if (!shouldLoad) return;
     if (learningsLoaded) return;
     void loadLearnings();
   }, [view, toolingTab, learningsLoaded, loadLearnings]);
@@ -5685,11 +5688,13 @@ export function App(): JSX.Element {
               <EventsToolsRow
                 events={registry}
                 artifacts={hpArtifacts}
+                learnings={learningItems}
                 eventsLoading={!bootstrap}
                 artifactsLoading={hpArtifactsLoading}
                 onProposeHackDay={() => setView('create_hackday')}
                 onViewArtifact={(id) => { setView('library'); }}
                 onViewAllEvents={() => setView('hackdays')}
+                onViewLearnings={() => { setView('hacks'); setToolingTab('learnings'); }}
               />
               <MentoringSection
                 onNavigateGuide={() => setView('guide')}
@@ -6475,6 +6480,48 @@ export function App(): JSX.Element {
                   ) : null}
                 </>
               )) : null}
+
+              {toolingTab === 'all' && learningItems.length > 0 ? (
+                <section className="learnings-section" style={{ marginTop: '2rem' }}>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Learnings &amp; Memories</h2>
+                  <div className="learnings-card-list">
+                    {learningItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="learnings-card card"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          setToolingTab('learnings');
+                          setSelectedLearningId(item.id);
+                          setLearningsRailDescriptionDraft(item.description ?? '');
+                          setLearningsRailTitleDraft(item.title ?? '');
+                          setLearningsRailTagsDraft(item.tags.join(', '));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setToolingTab('learnings');
+                            setSelectedLearningId(item.id);
+                          }
+                        }}
+                      >
+                        <p className="learnings-card-name">{item.title || item.filename}</p>
+                        <p className="learnings-card-meta">
+                          {item.authorName} · {new Date(item.createdAt).toLocaleDateString()}
+                          {item.likeCount > 0 ? ` · ${item.likeCount} found useful` : ''}
+                        </p>
+                        {item.tags.length > 0 ? (
+                          <div className="learnings-card-tags">
+                            {item.tags.map((tag) => (
+                              <span key={tag} className="pill pill-outline">{tag}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </section>
           ) : null}
 

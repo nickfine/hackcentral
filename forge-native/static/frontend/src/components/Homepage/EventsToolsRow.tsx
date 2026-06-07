@@ -1,13 +1,15 @@
-import type { EventRegistryItem, ArtifactListItem } from '../../types';
+import type { EventRegistryItem, ArtifactListItem, LearningItem } from '../../types';
 
 interface EventsToolsRowProps {
   events: EventRegistryItem[];
   artifacts: ArtifactListItem[];
+  learnings?: LearningItem[];
   eventsLoading: boolean;
   artifactsLoading: boolean;
   onProposeHackDay: () => void;
   onViewArtifact: (id: string) => void;
   onViewAllEvents: () => void;
+  onViewLearnings?: () => void;
 }
 
 function formatEventDate(event: EventRegistryItem): string {
@@ -43,14 +45,19 @@ function artifactTypeIcon(type: string): { letter: string; className: string } {
 export function EventsToolsRow({
   events,
   artifacts,
+  learnings = [],
   eventsLoading,
   artifactsLoading,
   onProposeHackDay,
   onViewArtifact,
   onViewAllEvents,
+  onViewLearnings,
 }: EventsToolsRowProps): JSX.Element {
   const displayEvents = events.slice(0, 3);
+  // Show up to 4 items total: prefer artifacts, backfill with learnings
+  const remainingSlots = Math.max(0, 4 - artifacts.length);
   const displayArtifacts = artifacts.slice(0, 4);
+  const displayLearnings = learnings.slice(0, remainingSlots);
 
   return (
     <div className="hp-events-tools">
@@ -114,37 +121,62 @@ export function EventsToolsRow({
             Array.from({ length: 3 }, (_, i) => (
               <div key={i} className="hp-skeleton" />
             ))
-          ) : displayArtifacts.length === 0 ? (
+          ) : displayArtifacts.length === 0 && displayLearnings.length === 0 ? (
             <p style={{ padding: '16px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-soft)' }}>
               No tools or skills yet
             </p>
           ) : (
-            displayArtifacts.map((art) => {
-              const icon = artifactTypeIcon(art.artifactType);
-              const isRecent = Date.now() - new Date(art.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
-              const typeLabel = art.artifactType.charAt(0).toUpperCase() + art.artifactType.slice(1).replace('_', ' ');
-              return (
-                <button
-                  key={art.id}
-                  type="button"
-                  className="hp-list-item"
-                  onClick={() => onViewArtifact(art.id)}
-                  style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }}
-                >
-                  <div className={icon.className}>{icon.letter}</div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="hp-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {art.title}
+            <>
+              {displayArtifacts.map((art) => {
+                const icon = artifactTypeIcon(art.artifactType);
+                const isRecent = Date.now() - new Date(art.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+                const typeLabel = art.artifactType.charAt(0).toUpperCase() + art.artifactType.slice(1).replace('_', ' ');
+                return (
+                  <button
+                    key={art.id}
+                    type="button"
+                    className="hp-list-item"
+                    onClick={() => onViewArtifact(art.id)}
+                    style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                  >
+                    <div className={icon.className}>{icon.letter}</div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="hp-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {art.title}
+                      </div>
+                      <div className="hp-item-meta">
+                        {typeLabel}
+                        {art.authorName ? ` · Built by ${art.authorName}` : ''}
+                      </div>
                     </div>
-                    <div className="hp-item-meta">
-                      {typeLabel}
-                      {art.authorName ? ` · Built by ${art.authorName}` : ''}
+                    {isRecent ? <span className="hp-tool-new">New</span> : null}
+                  </button>
+                );
+              })}
+              {displayLearnings.map((item) => {
+                const isRecent = Date.now() - item.createdAt < 7 * 24 * 60 * 60 * 1000;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="hp-list-item"
+                    onClick={() => onViewLearnings?.()}
+                    style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                  >
+                    <div className="hp-tool-icon hp-tool-icon-skill">L</div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="hp-item-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.title || item.filename}
+                      </div>
+                      <div className="hp-item-meta">
+                        Learning · {item.authorName}
+                      </div>
                     </div>
-                  </div>
-                  {isRecent ? <span className="hp-tool-new">New</span> : null}
-                </button>
-              );
-            })
+                    {isRecent ? <span className="hp-tool-new">New</span> : null}
+                  </button>
+                );
+              })}
+            </>
           )}
         </div>
       </section>
