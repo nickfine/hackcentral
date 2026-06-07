@@ -1088,7 +1088,7 @@ function Dashboard({
 
         {/* Phase badge */}
         <div data-testid="dashboard-row1-meta">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/[0.08] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]" style={{ borderColor: 'var(--phase-active-border)', background: 'var(--phase-active-bg)', color: 'var(--phase-active-text)' }}>
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" aria-hidden="true" />
             {PHASE_LABELS[eventPhase] || eventPhase}
           </span>
@@ -1232,12 +1232,13 @@ function Dashboard({
               <PainPointsSection appModeResolverPayload={appModeResolverPayload} onNavigate={onNavigate} />
             ) : (
               <div
-                className="rounded-[28px] border border-white/[0.08] bg-[var(--activity-panel-gradient)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+                className="rounded-[28px] border p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+                style={{ borderColor: 'var(--rail-card-border)', background: 'var(--activity-panel-gradient)' }}
                 data-testid="dashboard-live-activity"
               >
-                <div className="flex items-center justify-between border-b border-white/[0.05] pb-5">
-                  <div className="text-xs uppercase tracking-[0.16em] text-white/55">Live Activity</div>
-                  <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs text-white/50">
+                <div className="flex items-center justify-between border-b pb-5" style={{ borderColor: 'var(--rail-card-border)' }}>
+                  <div className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--stat-label-color)' }}>Live Activity</div>
+                  <span data-testid="dashboard-live-indicator" className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--stat-label-color)' }}>
                     <span data-testid="dashboard-live-indicator-dot" className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)] animate-[live-pulse_2s_ease-in-out_infinite]" />
                     Live
                   </span>
@@ -1255,7 +1256,8 @@ function Dashboard({
                         key={activity.id || `activity-${index}`}
                         data-testid="dashboard-activity-item"
                         data-activity-team-id={resolvedTeamId || undefined}
-                        className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 text-left transition hover:border-cyan-400/20 hover:bg-white/[0.04]"
+                        className="flex cursor-pointer items-start gap-3 rounded-[18px] border px-4 py-3.5 text-left transition"
+                        style={{ borderColor: 'var(--rail-card-border)', background: 'var(--countdown-tile-bg)' }}
                         onClick={() => handleActivityItemClick(activity)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -1269,20 +1271,21 @@ function Dashboard({
                       >
                         <div
                           data-testid="dashboard-activity-avatar"
-                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[10px] font-bold text-cyan-300/90"
+                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                          style={{ background: 'var(--phase-active-bg)', color: 'var(--stat-accent-color)' }}
                         >
                           {getInitials(activity.user)}
                         </div>
                         <div className="min-w-0 text-sm leading-5">
-                          <p className="text-white/70">
-                            <span className="font-medium text-white">{activity.user}</span>
+                          <p style={{ color: 'var(--stat-meta-color)' }}>
+                            <span className="font-medium" style={{ color: 'var(--stat-value-color)' }}>{activity.user}</span>
                             {' '}
                             <span>{verb}</span>
                             {activity.team ? (
-                              <> <span className="font-medium text-white">{activity.team}</span></>
+                              <> <span className="font-medium" style={{ color: 'var(--stat-value-color)' }}>{activity.team}</span></>
                             ) : null}
                           </p>
-                          <p className="text-xs text-white/35">{timestamp}</p>
+                          <p className="text-xs" style={{ color: 'var(--stat-label-color)' }}>{timestamp}</p>
                         </div>
                       </div>
                     );
@@ -1292,7 +1295,8 @@ function Dashboard({
                   <button
                     type="button"
                     data-testid="dashboard-view-all-activity"
-                    className="rounded-full border border-white/[0.06] px-5 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/70"
+                    className="rounded-full border px-5 py-2.5 text-sm font-medium transition-colors"
+                    style={{ borderColor: 'var(--rail-card-border)', color: 'var(--stat-label-color)' }}
                     onClick={() => onNavigate?.('marketplace', { tab: 'teams' })}
                   >
                     View all activity
@@ -1307,17 +1311,18 @@ function Dashboard({
             {/* Announcements / Admin message */}
             {showAdminMessagePod && (
               <div
-                className="mb-6 rounded-[26px] border border-white/8 bg-white/[0.03] p-6"
+                className="mb-6 rounded-[26px] border p-6"
+                style={{ borderColor: 'var(--rail-card-border)', background: 'var(--rail-card-bg)' }}
                 data-testid="dashboard-admin-message"
               >
-                <div className="text-xs uppercase tracking-[0.18em] text-white/45">Announcements</div>
-                <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+                <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--stat-label-color)' }}>Announcements</div>
+                <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: 'var(--rail-card-border)', background: 'var(--countdown-tile-bg)' }}>
                   {(String(configMotdTitle || '').trim() || (configMode.isEnabled && configMode.canEdit)) && (
                     <EditableText
                       contentKey="dashboard.motd.title"
                       fallback={configMotdTitle}
                       as="p"
-                      displayClassName="text-xs font-semibold uppercase tracking-wider text-white/45 mb-1"
+                      displayClassName="text-xs font-semibold uppercase tracking-wider text-[var(--stat-label-color)] mb-1"
                       placeholder={configMode.isEnabled ? 'Optional message title' : ''}
                     />
                   )}
@@ -1326,7 +1331,7 @@ function Dashboard({
                     fallback={configMotdBody}
                     as="p"
                     rows={3}
-                    displayClassName="text-sm text-white/70 leading-snug"
+                    displayClassName="text-sm text-[var(--stat-meta-color)] leading-snug"
                     placeholder={configMode.isEnabled ? 'Set a participant-facing dashboard message' : ''}
                   />
                 </div>

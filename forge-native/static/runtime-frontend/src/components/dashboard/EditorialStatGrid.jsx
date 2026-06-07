@@ -6,18 +6,19 @@ function StatCard({ label, value, rawValue, meta, accent, testId }) {
 
   return (
     <div
-      className="rounded-[22px] border border-white/[0.10] bg-[var(--stat-card-gradient)] p-5 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle),0_2px_6px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-cyan-400/20 hover:shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle),0_2px_6px_rgba(0,0,0,0.25),0_0_12px_rgba(0,245,255,0.08)]"
+      className="rounded-[22px] border bg-[var(--stat-card-bg)] p-5 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)] transition-all duration-200 hover:border-[var(--accent)]"
+      style={{ borderColor: 'var(--stat-card-border)' }}
       data-testid={testId}
     >
-      <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-white/50">{label}</div>
+      <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-[var(--stat-label-color)]">{label}</div>
       <div
-        className="mt-2.5 text-4xl font-semibold tracking-tight text-white"
+        className="mt-2.5 text-4xl font-semibold tracking-tight text-[var(--stat-value-color)]"
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {displayValue}
       </div>
-      {meta && <div className="mt-1.5 text-sm text-white/55">{meta}</div>}
-      {accent && <div className="mt-3.5 text-sm font-medium text-cyan-300">{accent}</div>}
+      {meta && <div className="mt-1.5 text-sm text-[var(--stat-meta-color)]">{meta}</div>}
+      {accent && <div className="mt-3.5 text-sm font-medium text-[var(--stat-accent-color)]">{accent}</div>}
     </div>
   );
 }

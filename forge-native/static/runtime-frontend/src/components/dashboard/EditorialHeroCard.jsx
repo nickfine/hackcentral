@@ -70,8 +70,8 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
 
   if (!tiles) {
     return (
-      <div className="mt-6 rounded-full border border-cyan-400/35 bg-cyan-400/[0.10] px-5 py-2.5 text-center">
-        <div className="text-sm font-semibold text-cyan-300">
+      <div className="mt-6 rounded-full border px-5 py-2.5 text-center" style={{ borderColor: 'var(--phase-active-border)', background: 'var(--phase-active-bg)' }}>
+        <div className="text-sm font-semibold" style={{ color: 'var(--phase-active-text)' }}>
           {targetMilestone
             ? targetMilestone.title.replace(/\s+opens?$/i, ' is now open')
             : 'Loading schedule…'}
@@ -83,18 +83,26 @@ function EditorialCountdown({ scheduleMilestones, eventPhase }) {
   return (
     <div className="mt-6 grid grid-cols-3 gap-4 text-center">
       {tiles.map(([n, l], idx) => (
-        <div key={l} className={`relative rounded-2xl border border-cyan-400/[0.20] bg-cyan-400/[0.05] px-3 py-5 ${idx === 2 ? 'ring-1 ring-cyan-400/30' : ''}`}>
+        <div
+          key={l}
+          className="relative rounded-2xl border px-3 py-5"
+          style={{ borderColor: 'var(--countdown-tile-border)', background: 'var(--countdown-tile-bg)' }}
+        >
           {/* Pulsing indicator on minutes tile only */}
           {idx === 2 && (
-            <div className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(0,245,255,0.6)] animate-pulse" aria-hidden="true" />
+            <div
+              className="absolute -top-2 -right-2 h-4 w-4 rounded-full animate-pulse dark:shadow-[0_0_8px_rgba(0,245,255,0.6)]"
+              style={{ background: 'var(--accent)' }}
+              aria-hidden="true"
+            />
           )}
           <div
-            className="text-4xl font-semibold tracking-tight text-cyan-300 lg:text-5xl"
-            style={{ filter: 'drop-shadow(0 0 14px rgba(0,245,255,0.35))' }}
+            className="text-4xl font-semibold tracking-tight lg:text-5xl"
+            style={{ color: 'var(--countdown-digit-color)', filter: 'var(--countdown-label-filter)' }}
           >
             {n}
           </div>
-          <div className="mt-2 text-[0.6875rem] uppercase tracking-[0.16em] text-white/40">{l}</div>
+          <div className="mt-2 text-[0.6875rem] uppercase tracking-[0.16em]" style={{ color: 'var(--countdown-label-color)' }}>{l}</div>
         </div>
       ))}
     </div>
@@ -136,13 +144,24 @@ export default function EditorialHeroCard({ scheduleMilestones, eventPhase, chil
       </div>
 
       {/* Right: countdown + what matters now */}
-      <div className="rounded-[28px] border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(0,245,255,0.06)_0%,rgba(255,255,255,0.015)_100%)] p-8 shadow-[var(--cyan-electric-glow-subtle),var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]">
-        <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+      <div
+        className="rounded-[28px] border p-8 dark:shadow-[var(--cyan-electric-glow-subtle),var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)]"
+        style={{ background: 'var(--hero-right-panel-bg)', borderColor: 'var(--hero-right-panel-border)' }}
+      >
+        <div className="text-xs uppercase tracking-[0.22em]" style={{ color: 'var(--countdown-label-color)' }}>
           {countdownLabel}
         </div>
         <EditorialCountdown scheduleMilestones={scheduleMilestones} eventPhase={eventPhase} />
-        <div className="mt-6 rounded-2xl border border-white/[0.07] border-l-2 border-l-cyan-400/25 bg-[rgba(10,18,34,0.60)] p-4 text-sm leading-relaxed text-white/60">
-          <div className="font-semibold text-white/95">What matters now</div>
+        <div
+          className="mt-6 rounded-2xl border border-l-2 p-4 text-sm leading-relaxed"
+          style={{
+            borderColor: 'var(--rail-card-border)',
+            borderLeftColor: 'var(--accent)',
+            background: 'var(--phase-inactive-bg, var(--rail-card-bg))',
+            color: 'var(--stat-meta-color)',
+          }}
+        >
+          <div className="font-semibold" style={{ color: 'var(--stat-value-color)' }}>What matters now</div>
           <div className="mt-1">
             Get a pain point posted early and find your team before hacking starts.
           </div>

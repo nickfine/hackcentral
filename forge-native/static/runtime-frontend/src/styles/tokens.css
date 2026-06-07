@@ -307,22 +307,23 @@
    ============================================================================= */
 
 :root {
-  --accent: #14b8a6;
-  --accent-hover: #0d9488;
-  --accent-subtle: rgba(20, 184, 166, 0.1);
+  /* EIS Design System — warm light theme */
+  --accent: #FF5C25;
+  --accent-hover: #e04a18;
+  --accent-subtle: rgba(255, 92, 37, 0.10);
   --accent-on: #ffffff;
-  --surface-page: #f9fafb;
-  --surface-card: #ffffff;
-  --surface-elevated: #ffffff;
-  --surface-hero: #ffffff;
-  --surface-hero-text: #111827;
-  --border-default: #e5e7eb;
-  --border-subtle: #f3f4f6;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.12);
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6b7280;
+  --surface-page: #F7F3EA;
+  --surface-card: #FEFBF4;
+  --surface-elevated: #FEFBF4;
+  --surface-hero: #FEFBF4;
+  --surface-hero-text: #191F39;
+  --border-default: #EAE5DA;
+  --border-subtle: #EAE5DA;
+  --shadow-card: 0 1px 2px rgba(25, 31, 57, 0.06);
+  --shadow-elevated: 0 4px 16px rgba(25, 31, 57, 0.08);
+  --text-primary: #191F39;
+  --text-secondary: #6B6E76;
+  --text-muted: #6B6E76;
 
   --surface-primary: var(--surface-card);
   --surface-secondary: var(--surface-page);
@@ -409,6 +410,35 @@
   --pain-column-border: rgba(0,0,0,0.04);
   --pain-vote-surface: rgba(0,0,0,0.03);
   --pain-vote-border: rgba(0,0,0,0.08);
+
+  /* ── Dashboard component backgrounds (mode-switching) ── */
+  --hero-right-panel-bg:      #FEFBF4;
+  --hero-right-panel-border:  #EAE5DA;
+  --countdown-tile-bg:        rgba(25, 31, 57, 0.04);
+  --countdown-tile-border:    #EAE5DA;
+  --countdown-digit-color:    #191F39;
+  --countdown-label-color:    #6B6E76;
+  --countdown-label-filter:   none;
+  --phase-container-bg:       #FEFBF4;
+  --phase-container-border:   #EAE5DA;
+  --phase-active-bg:          rgba(255, 92, 37, 0.08);
+  --phase-active-border:      rgba(255, 92, 37, 0.40);
+  --phase-active-text:        #FF5C25;
+  --phase-active-status:      #FF5C25;
+  --phase-inactive-bg:        transparent;
+  --phase-inactive-border:    #EAE5DA;
+  --phase-label-color:        #6B6E76;
+  --phase-connector-color:    #EAE5DA;
+  --stat-card-bg:             #FEFBF4;
+  --stat-card-border:         #EAE5DA;
+  --stat-value-color:         #191F39;
+  --stat-label-color:         #6B6E76;
+  --stat-meta-color:          #6B6E76;
+  --stat-accent-color:        #FF5C25;
+  --rail-card-bg:             #FEFBF4;
+  --rail-card-border:         #EAE5DA;
+  --activity-panel-gradient:  linear-gradient(180deg, #FEFBF4 0%, #F7F3EA 100%);
+  --readiness-track-bg:       rgba(25, 31, 57, 0.08);
 }
 
 [data-color-mode="dark"] {
@@ -467,6 +497,35 @@
     repeating-linear-gradient(
       90deg, transparent, transparent 59px, rgba(0,245,255,0.015) 59px, rgba(0,245,255,0.015) 60px
     );
+
+  /* ── Dashboard component backgrounds — dark overrides ── */
+  --hero-right-panel-bg:      linear-gradient(180deg, rgba(0,245,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+  --hero-right-panel-border:  rgba(0,245,255,0.25);
+  --countdown-tile-bg:        rgba(0,245,255,0.05);
+  --countdown-tile-border:    rgba(0,245,255,0.20);
+  --countdown-digit-color:    #67e8f9;
+  --countdown-label-color:    rgba(255,255,255,0.40);
+  --countdown-label-filter:   drop-shadow(0 0 14px rgba(0,245,255,0.35));
+  --phase-container-bg:       linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.015) 100%);
+  --phase-container-border:   rgba(255,255,255,0.07);
+  --phase-active-bg:          rgba(0,245,255,0.18);
+  --phase-active-border:      rgba(0,245,255,0.55);
+  --phase-active-text:        #a5f3fc;
+  --phase-active-status:      rgba(0,245,255,0.85);
+  --phase-inactive-bg:        rgba(255,255,255,0.01);
+  --phase-inactive-border:    rgba(255,255,255,0.06);
+  --phase-label-color:        rgba(255,255,255,0.55);
+  --phase-connector-color:    rgba(255,255,255,0.10);
+  --stat-card-bg:             var(--stat-card-surface);
+  --stat-card-border:         rgba(255,255,255,0.10);
+  --stat-value-color:         #ffffff;
+  --stat-label-color:         rgba(255,255,255,0.50);
+  --stat-meta-color:          rgba(255,255,255,0.55);
+  --stat-accent-color:        #67e8f9;
+  --rail-card-bg:             rgba(255,255,255,0.03);
+  --rail-card-border:         rgba(255,255,255,0.07);
+  --activity-panel-gradient:  linear-gradient(180deg, rgba(0,245,255,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(0,245,255,0.02) 100%);
+  --readiness-track-bg:       rgba(255,255,255,0.06);
 }
 
 [data-theme-preset="editorial"] {

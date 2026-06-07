@@ -36,34 +36,40 @@ function formatScheduleTime(milestone, isFirst) {
 
 function ScheduleCard({ comingUpMilestones, onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/[0.07] bg-white/[0.03] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Upcoming schedule</div>
+    <div className="rounded-[26px] border p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]" style={{ background: 'var(--rail-card-bg)', borderColor: 'var(--rail-card-border)' }}>
+      <div className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--stat-label-color)' }}>Upcoming schedule</div>
       <div className="mt-5 space-y-4">
         {comingUpMilestones.length > 0 ? (
           comingUpMilestones.map((milestone, index) => (
             <div
               key={milestone.id}
               data-testid="dashboard-coming-up-item"
-              className="flex items-start justify-between gap-4 border-b border-white/[0.05] pb-4 last:border-b-0 last:pb-0"
+              className="flex items-start justify-between gap-4 border-b pb-4 last:border-b-0 last:pb-0"
+              style={{ borderColor: 'var(--rail-card-border)' }}
             >
               <div
-                className={`text-sm font-medium ${milestone.isNow && index === 0 ? 'text-cyan-300 font-semibold' : 'text-white/50'}`}
-                style={{ fontVariantNumeric: 'tabular-nums' }}
+                className="text-sm font-medium"
+                style={{
+                  color: milestone.isNow && index === 0 ? 'var(--stat-accent-color)' : 'var(--stat-label-color)',
+                  fontWeight: milestone.isNow && index === 0 ? 600 : 500,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
               >
                 {formatScheduleTime(milestone, index === 0)}
               </div>
-              <div className="flex-1 text-sm text-white/80">{milestone.title}</div>
+              <div className="flex-1 text-sm" style={{ color: 'var(--stat-value-color)' }}>{milestone.title}</div>
             </div>
           ))
         ) : (
-          <p className="py-3 text-sm text-white/45">No upcoming milestones</p>
+          <p className="py-3 text-sm" style={{ color: 'var(--stat-label-color)' }}>No upcoming milestones</p>
         )}
       </div>
       <button
         type="button"
         data-testid="dashboard-view-full-schedule"
         onClick={() => onNavigate?.('schedule')}
-        className="mt-5 text-sm font-medium text-cyan-300/80 hover:text-cyan-200 transition-colors"
+        className="mt-5 text-sm font-medium transition-colors"
+        style={{ color: 'var(--stat-accent-color)' }}
       >
         View full schedule
       </button>
@@ -75,15 +81,15 @@ function ScheduleCard({ comingUpMilestones, onNavigate }) {
 
 export function NewHereCard({ onNavigate }) {
   return (
-    <div className="rounded-[26px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(0,245,255,0.03)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/40">Everyone Vibing Together</div>
+    <div className="rounded-[26px] border p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]" style={{ background: 'var(--rail-card-bg)', borderColor: 'var(--rail-card-border)' }}>
+      <div className="text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--stat-label-color)' }}>Everyone Vibing Together</div>
       <h3
-        className="mt-3 text-2xl font-semibold tracking-tight text-white/95"
-        style={{ fontFamily: 'var(--font-heading)' }}
+        className="mt-3 text-2xl font-semibold tracking-tight"
+        style={{ color: 'var(--stat-value-color)', fontFamily: 'var(--font-heading)' }}
       >
         New to HackDay?
       </h3>
-      <p className="mt-2 text-sm text-white/55">Build something together with your colleagues</p>
+      <p className="mt-2 text-sm" style={{ color: 'var(--stat-meta-color)' }}>Build something together with your colleagues</p>
       <ul className="mt-4 space-y-1.5">
         {[
           'Bring your work problem',
@@ -92,17 +98,17 @@ export function NewHereCard({ onNavigate }) {
           'Bring your eye for what feels wrong',
           'Bring your patience to test what others make',
         ].map((line) => (
-          <li key={line} className="flex items-start gap-2 text-sm text-white/65">
-            <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-cyan-400/60" />
+          <li key={line} className="flex items-start gap-2 text-sm" style={{ color: 'var(--stat-meta-color)' }}>
+            <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ background: 'var(--accent)' }} />
             {line}
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-sm leading-relaxed text-white/55">
+      <p className="mt-4 text-sm leading-relaxed" style={{ color: 'var(--stat-meta-color)' }}>
         The barrier to joining in and building with others is lower than you think. Even if you
         do not want to code, you still have plenty to contribute.
       </p>
-      <ul className="mt-4 space-y-1 text-sm font-medium text-white/75">
+      <ul className="mt-4 space-y-1 text-sm font-medium" style={{ color: 'var(--stat-value-color)' }}>
         {['Describe it', 'Shape it', 'Build it together', 'Vibe together'].map((line) => (
           <li key={line}>{line}</li>
         ))}
@@ -111,14 +117,16 @@ export function NewHereCard({ onNavigate }) {
         <button
           type="button"
           onClick={() => onNavigate?.('painpoints')}
-          className="w-full rounded-2xl bg-cyan-400/10 border border-cyan-400/25 px-4 py-3 text-sm font-semibold text-cyan-300 transition-colors hover:bg-cyan-400/20 hover:border-cyan-400/40"
+          className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors"
+          style={{ background: 'var(--phase-active-bg)', borderColor: 'var(--phase-active-border)', color: 'var(--stat-accent-color)' }}
         >
           Post a pain point
         </button>
         <button
           type="button"
           onClick={() => onNavigate?.('signup')}
-          className="w-full rounded-2xl border border-white/[0.08] px-4 py-3 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.04] hover:text-white/80"
+          className="w-full rounded-2xl border px-4 py-3 text-sm font-medium transition-colors"
+          style={{ borderColor: 'var(--rail-card-border)', color: 'var(--stat-label-color)' }}
         >
           Take the 2-minute tour
         </button>
@@ -135,15 +143,16 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
 
   return (
     <div
-      className="rounded-[26px] border border-cyan-400/[0.22] bg-[linear-gradient(180deg,rgba(64,212,255,0.06)_0%,rgba(255,255,255,0.02)_70%,rgba(64,212,255,0.02)_100%)] p-6 shadow-[var(--cyan-electric-glow-subtle),var(--cyan-electric-inner-edge),var(--card-inner-edge-bottom)]"
+      className="rounded-[26px] border p-6"
+      style={{ background: 'var(--rail-card-bg)', borderColor: 'var(--phase-active-border)' }}
       data-testid="dashboard-row2-readiness"
     >
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-white/45">Your readiness</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{readinessProgressPercent}%</div>
+          <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--stat-label-color)' }}>Your readiness</div>
+          <div className="mt-2 text-2xl font-semibold" style={{ color: 'var(--stat-value-color)' }}>{readinessProgressPercent}%</div>
         </div>
-        <div className="text-sm font-medium text-cyan-300">{statusLabel}</div>
+        <div className="text-sm font-medium" style={{ color: 'var(--stat-accent-color)' }}>{statusLabel}</div>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -156,9 +165,10 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
               title={item.detail}
               className={`flex items-center justify-between rounded-2xl px-4 py-3 ${
                 isGreen
-                  ? 'bg-emerald-400/10 text-emerald-200'
-                  : 'bg-white/[0.03] text-white/70'
+                  ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200'
+                  : ''
               }`}
+              style={!isGreen ? { background: 'var(--phase-inactive-bg, var(--countdown-tile-bg))', color: 'var(--stat-label-color)' } : undefined}
             >
               <span className="text-sm font-medium">{item.pillLabel}</span>
               <span className="text-sm">{item.value}</span>
@@ -170,12 +180,15 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
       <div
         className="mt-5 h-2 overflow-hidden rounded-full"
         data-testid="dashboard-readiness-progress"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--readiness-track-bg)' }}
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 transition-[width] duration-300"
+          className="h-full rounded-full transition-[width] duration-300"
           data-testid="dashboard-readiness-progress-fill"
-          style={{ width: `${readinessProgressPercent}%`, boxShadow: '0 0 8px rgba(0,245,255,0.2)' }}
+          style={{
+            width: `${readinessProgressPercent}%`,
+            background: 'linear-gradient(90deg, var(--accent), #10b981)',
+          }}
         />
       </div>
 
@@ -183,7 +196,8 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
         type="button"
         onClick={() => onNavigate?.(nextBestAction.route, nextBestAction.params)}
         aria-label={`Next action: ${nextBestAction.label}`}
-        className="mt-5 w-full rounded-2xl border border-cyan-400/[0.25] px-4 py-3.5 text-sm font-medium text-cyan-200/90 transition-all hover:bg-cyan-400/[0.08] hover:border-cyan-400/35 hover:shadow-[0_0_16px_rgba(0,245,255,0.12)]"
+        className="mt-5 w-full rounded-2xl border px-4 py-3.5 text-sm font-medium transition-all"
+        style={{ borderColor: 'var(--phase-active-border)', color: 'var(--stat-accent-color)' }}
       >
         Complete next step
       </button>
