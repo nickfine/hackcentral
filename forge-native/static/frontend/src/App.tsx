@@ -1451,7 +1451,7 @@ export function App(): JSX.Element {
   const [learningsRailTagsDraft, setLearningsRailTagsDraft] = useState('');
   const [learningsSearch, setLearningsSearch] = useState('');
   const [learningsTagsFilter, setLearningsTagsFilter] = useState('');
-  const [learningsUsefulOnly, setLearningsUsefulOnly] = useState(false);
+  const [learningsStatusFilter, setLearningsStatusFilter] = useState<'all' | 'useful' | 'not_rated'>('all');
   const [learningsAuthorFilter, setLearningsAuthorFilter] = useState('');
   const [learningsAdvancedOpen, setLearningsAdvancedOpen] = useState(false);
 
@@ -5770,13 +5770,16 @@ export function App(): JSX.Element {
                         onChange={(e) => setLearningsTagsFilter(e.target.value)}
                       />
                     </label>
-                    <label className="showcase-filter-check">
-                      <input
-                        type="checkbox"
-                        checked={learningsUsefulOnly}
-                        onChange={(e) => setLearningsUsefulOnly(e.target.checked)}
-                      />
-                      Marked as useful only
+                    <label className="showcase-filter-field">
+                      <span>Status</span>
+                      <select
+                        value={learningsStatusFilter}
+                        onChange={(e) => setLearningsStatusFilter(e.target.value as typeof learningsStatusFilter)}
+                      >
+                        <option value="all">All statuses</option>
+                        <option value="useful">Marked as useful</option>
+                        <option value="not_rated">Not yet rated</option>
+                      </select>
                     </label>
                   </fieldset>
                   <div className="showcase-filter-advanced">
@@ -5955,7 +5958,8 @@ export function App(): JSX.Element {
                         i.description?.toLowerCase().includes(q)
                       )) return false;
                       if (tagTerms.length > 0 && !tagTerms.some((term) => i.tags.some((t) => t.toLowerCase().includes(term)))) return false;
-                      if (learningsUsefulOnly && !i.hasLiked) return false;
+                      if (learningsStatusFilter === 'useful' && !i.hasLiked) return false;
+                      if (learningsStatusFilter === 'not_rated' && i.hasLiked) return false;
                       if (authorQ && !i.authorName.toLowerCase().includes(authorQ)) return false;
                       return true;
                     });
