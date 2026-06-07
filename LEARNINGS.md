@@ -1,6 +1,88 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 7, 2026
+**Last Updated:** June 8, 2026
+
+---
+
+## Session Update — EIS Light Mode Implementation + Contrast Fixes (Jun 8, 2026)
+
+### What Changed
+
+Full light mode pass across both the custom-ui-frontend (macro) and the runtime-frontend (HackCentral Runtime Internal). Shipped as v1.2.207 → v1.2.211.
+
+### Key Approach
+
+**Two-layer pattern throughout:**
+1. CSS variables in `tokens.css` — mode-switching vars defined in both the light `:root` block and the `[data-color-mode="dark"]` block so components reference a variable rather than hardcoding a colour
+2. `dark:` Tailwind prefix — for Tailwind utility classes, the light default is the accessible value and `dark:` guards the neon/dark-mode version
+
+**Never use `!important`.** All overrides go through CSS variable cascading or `dark:` prefix. The precedent of `!important` in the marketplace overrides is a technical debt pattern to avoid going forward.
+
+### EIS Design System tokens applied (light mode only)
+
+```
+Page:     #F7F3EA   --surface-page
+Surface:  #FEFBF4   --surface-card
+Ink:      #191F39   --text-primary
+Muted:    #6B6E76   --text-secondary / --text-muted
+Hairline: #EAE5DA   --border-default
+Accent:   #FF5C25   --accent  (button fill only — see contrast note below)
+```
+
+### Contrast ratio gotcha — orange text
+
+`#FF5C25` on `#FEFBF4` = **2.95:1** — fails WCAG AA for text (needs 4.5:1).
+
+**Rule:** `#FF5C25` is only safe as a button fill (with white `#ffffff` text = 3.3:1 for large bold, passes for UI components). For text-only uses (labels, links, status indicators), use `#c2410c` (Tailwind's orange-700) which gives **4.8:1** on cream.
+
+Split the variables:
+- `--accent: #FF5C25` — button backgrounds, borders (fill context)
+- `--phase-active-text`, `--stat-accent-color`, `--phase-active-status` all use `#c2410c` in light
+
+### Hero card `body::before` ambient gradient
+
+The `body::before` pseudo-element in `index.css` renders a neon cyan/purple radial gradient that is decorative in dark mode but shows as a visible teal smear on the cream page. Fix: moved the value to `var(--hero-page-ambient)` which is `none` in the light `:root` block and the original gradient value in the `[data-color-mode="dark"]` block.
+
+### Nav active state in horizontal layout
+
+`NavItem.jsx` had `text-cyan-100` in the active horizontal style. Cyan-100 (`#cffafe`) has a luminance of 0.91 — essentially invisible on any light surface. Fix: active horizontal state now uses `var(--phase-active-text)` / `var(--phase-active-bg)` with `dark:` prefixes preserving the original cyan treatment in dark mode.
+
+### Hero card left column
+
+The dark navy hero card (`background: linear-gradient(180deg, #0a1428 0%, #070e1e 100%)`) was hardcoded in an inline `style` prop — cannot be overridden with a class. Moved to `var(--hero-left-card-bg)`:
+- Light: `#FEFBF4`
+- Dark: original dark navy gradient
+
+All text inside (title, subtitle, CTAs, meta row) also need CSS var treatment since `EditableText` `displayClassName` strings can't conditionally use `dark:` prefixes. Used the same pattern with `--hero-left-card-text` and `--hero-left-card-muted`.
+
+### Files modified in this session
+
+**runtime-frontend:**
+- `src/styles/tokens.css` — EIS token values in `:root`, 28+ new mode-switching vars, dark counterparts
+- `src/index.css` — `body::before` moved to `var(--hero-page-ambient)`
+- `src/components/dashboard/EditorialStatGrid.jsx`
+- `src/components/dashboard/EditorialTimeline.jsx`
+- `src/components/dashboard/EditorialHeroCard.jsx`
+- `src/components/dashboard/EditorialRightRail.jsx`
+- `src/components/Dashboard.jsx` — phase badge, activity feed, announcements, hero CTAs
+- `src/components/shared/NavItem.jsx` — active + highlight variant contrast
+- `src/components/PainPointsSection.jsx`
+- `src/components/PainPoints.jsx`
+- `src/components/shared/PainItem.jsx`
+- `src/components/painBoard/BoardColumn.jsx`
+- `src/components/painBoard/ClustersStrip.jsx`
+
+**custom-ui-frontend (macro):**
+- `src/App.tsx` — load learnings on dashboard + hacks/all views; pass to `EventsToolsRow`; show in tooling all tab
+- `src/components/Homepage/EventsToolsRow.tsx` — learnings backfill in tools/skills section
+
+### Diagnostic process for future light mode issues
+
+1. Search for `text-white`, `border-white/`, `bg-white/[0.0`, `bg-[rgba(` without `dark:` prefix — these are the source of invisible-in-light-mode content
+2. Check `body::before` and any `::before`/`::after` that use hardcoded colour values — move to CSS vars
+3. Check inline `style` props — these cannot be overridden by Tailwind classes, must use CSS vars
+4. Run contrast check on any orange text: `#FF5C25` fails, use `#c2410c` instead for text contexts
+5. Check nav highlight variants (`amber`, `purple`, `success`) — all were dark-only, needed light defaults
 
 ---
 
