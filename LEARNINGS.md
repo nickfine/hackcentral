@@ -4,6 +4,77 @@
 
 ---
 
+## Session Update — EIS Design System Full Migration (Jun 8, 2026)
+
+### What Changed
+
+Full EIS migration for the runtime-frontend. Teal retired as the default accent; IBM Plex Sans replaces Manrope; IBM Plex Mono added. Shipped as v1.2.212 → v1.2.213.
+
+### Font swap pattern
+
+Remove `@fontsource/manrope` from `package.json`, add `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono`. Update `main.jsx` imports and the `--font-body` / `--font-mono` vars in the first `:root` block of `tokens.css`. Also update `fontFamily` in `tailwind.config.js` so Tailwind utility classes (`font-sans`, `font-mono`, `font-heading`) resolve to the right families.
+
+### Token cascade for retiring a brand colour
+
+The migration was half-done — the first `:root` block still had `--event-accent-base: #0f766e` (teal) and the dark mode block had `--accent: #2dd4bf`. The EIS `:root` block (defined later in the same file) already set `--event-accent-base: var(--accent)` so the cascade was correct in light mode, but the dark mode block set `--accent` to teal directly, bypassing EIS. Fix: update both `--accent` values in the dark mode block to orange and drop `--nav-active-glow`.
+
+### Verification grep pattern for colour sweeps
+
+```bash
+grep -rn "OldFont|OldHex1|OldHex2" src --include="*.jsx" --include="*.js" --include="*.css"
+```
+
+Result should only show explicitly out-of-scope files. Any other hit is a sweep miss. Run this before declaring done.
+
+### Hardcoded colour misses outside the sweep scope
+
+The original plan listed 8 specific component files. Two additional files had hardcoded non-token colours that showed up after deploy:
+
+- `PainPoints.jsx` — submit button was `bg-emerald-400 text-slate-950`
+- `PainPointsSection.jsx` — submit button was `bg-emerald-400 ... hover:shadow-[0_0_16px_rgba(0,240,255,0.3)]` (also had a cyan neon glow)
+
+Both replaced with `bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white`.
+
+**Pattern to watch:** any button using a hardcoded Tailwind colour class (`bg-emerald-*`, `bg-teal-*`, `bg-green-*`, `bg-sky-*`) rather than a CSS var reference will survive a token swap invisibly. After any accent migration, do a secondary grep for these literal colour classes across all components, not just the planned sweep files.
+
+### Per-event accent stored in DB overrides the EIS default
+
+The EIS default (`#FF5C25`) is the fallback when no event accent is configured. Existing events with `event_branding.accentColor` set to the old teal will still render teal until the DB record is updated. This is intentional (per-event branding is an AdminPanel feature), but means a deploy alone won't fix existing events.
+
+To update a specific event directly in Supabase:
+```sql
+UPDATE "Event"
+SET event_branding = jsonb_set(event_branding, '{accentColor}', '"#FF5C25"')
+WHERE id = '<event-id>';
+
+UPDATE "HackdayTemplateSeed"
+SET seed_payload = jsonb_set(seed_payload, '{branding,accentColor}', '"#FF5C25"')
+WHERE hackday_event_id = '<event-id>'
+AND seed_payload->'branding' IS NOT NULL;
+```
+
+### Files modified in this session
+
+- `src/styles/tokens.css` — accent/font/radius/shadow token changes, dark mode accent flipped to orange
+- `tailwind.config.js` — fontFamily, borderRadius, boxShadow
+- `src/main.jsx` — font imports
+- `package.json` — font dependencies
+- `src/index.css` — `.eis-label` utility, `.font-mono` via var, teal CSS class sweep
+- `src/data/constants.js` — APP_VERSION bump, `DEFAULT_EVENT_ACCENT` → `#FF5C25`
+- `src/App.jsx` — `DEFAULT_EVENT_ACCENT` → `#FF5C25`
+- `src/components/shared/NavItem.jsx` — drop cyan dark active overrides
+- `src/components/shared/TeamCard.jsx`
+- `src/components/ui/Tabs.jsx` (no changes needed — already token-driven)
+- `src/components/ui/Progress.jsx` (no changes needed — already token-driven)
+- `src/components/Marketplace.jsx`
+- `src/components/Schedule.jsx`
+- `src/components/TeamDetail.jsx`
+- `src/components/teamDetail/PainPointsPanel.jsx`
+- `src/components/PainPoints.jsx` — submit button emerald → accent
+- `src/components/PainPointsSection.jsx` — submit button emerald + cyan glow → accent
+
+---
+
 ## Session Update — EIS Light Mode Implementation + Contrast Fixes (Jun 8, 2026)
 
 ### What Changed
