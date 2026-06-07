@@ -5762,15 +5762,6 @@ export function App(): JSX.Element {
                       />
                     </label>
                     <label className="showcase-filter-field">
-                      <span>Tags</span>
-                      <input
-                        type="text"
-                        placeholder="ai, automation, atlassian"
-                        value={learningsTagsFilter}
-                        onChange={(e) => setLearningsTagsFilter(e.target.value)}
-                      />
-                    </label>
-                    <label className="showcase-filter-field">
                       <span>Status</span>
                       <select
                         value={learningsStatusFilter}
@@ -5780,6 +5771,23 @@ export function App(): JSX.Element {
                         <option value="useful">Marked as useful</option>
                         <option value="not_rated">Not yet rated</option>
                       </select>
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Tags</span>
+                      <input
+                        type="text"
+                        placeholder="ai, automation, atlassian"
+                        value={learningsTagsFilter}
+                        onChange={(e) => setLearningsTagsFilter(e.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={learningsStatusFilter === 'useful'}
+                        onChange={(e) => setLearningsStatusFilter(e.target.checked ? 'useful' : 'all')}
+                      />
+                      Marked as useful only
                     </label>
                   </fieldset>
                   <div className="showcase-filter-advanced">
