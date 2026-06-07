@@ -11,7 +11,7 @@ export default function ClustersStrip({ clusters, onNavigate }) {
 
   return (
     <div className="mt-5">
-      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-text-body dark:text-white/40">
         Clusters forming
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
@@ -20,15 +20,15 @@ export default function ClustersStrip({ clusters, onNavigate }) {
           return (
             <div
               key={cluster.category}
-              className="flex shrink-0 flex-col gap-2 rounded-[14px] border border-white/8 bg-white/[0.03] p-3 min-w-[180px] max-w-[220px]"
+              className="flex shrink-0 flex-col gap-2 rounded-[14px] border border-arena-border dark:border-white/8 bg-arena-card dark:bg-white/[0.03] p-3 min-w-[180px] max-w-[220px]"
               style={{ borderLeftColor: colour.border, borderLeftWidth: '2px' }}
             >
-              <div className="text-sm font-semibold text-white truncate">
+              <div className="text-sm font-semibold text-text-primary truncate">
                 {cluster.category} pains
               </div>
-              <div className="flex items-center gap-2 text-xs text-white/45">
+              <div className="flex items-center gap-2 text-xs text-text-body dark:text-white/45">
                 <span>{cluster.count} related pains</span>
-                <span className="text-white/20">·</span>
+                <span className="text-arena-border dark:text-white/20">·</span>
                 <span style={{ color: colour.text }}>{cluster.totalVotes} votes</span>
               </div>
               <button

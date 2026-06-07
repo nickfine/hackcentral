@@ -144,7 +144,7 @@ export function UpvoteButton({ count, voted, onVote, disabled, compact = false }
       onClick={onVote}
       disabled={disabled}
       aria-label={`Upvote - ${count} votes`}
-      className={`pain-vote-hover flex shrink-0 flex-col items-center justify-center rounded-xl px-2 text-cyan-300 disabled:cursor-not-allowed ${
+      className={`pain-vote-hover flex shrink-0 flex-col items-center justify-center rounded-xl px-2 text-[var(--text-cyan-primary)] dark:text-cyan-300 disabled:cursor-not-allowed ${
         compact ? 'w-14 py-2' : 'w-16 py-3'
       }`}
       style={{
@@ -156,7 +156,7 @@ export function UpvoteButton({ count, voted, onVote, disabled, compact = false }
       }}
     >
       <div className={`font-semibold leading-none ${compact ? 'text-xl' : 'text-2xl'}`}>{count}</div>
-      <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45">Up</div>
+      <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-arena-muted dark:text-white/45">Up</div>
     </button>
   );
 }
@@ -211,7 +211,7 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
       />
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/35">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-arena-muted dark:text-white/35">
           <span
             className="rounded-full px-2.5 py-1 font-medium"
             style={{ color: colour.text, background: colour.bg, border: `1px solid ${colour.border}` }}
@@ -219,15 +219,15 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
             {tagLabel}
           </span>
           {isTrending && (
-            <span className="rounded-full bg-cyan-400/[0.08] px-2 py-0.5 font-semibold uppercase tracking-wide text-cyan-300" style={{ border: '1px solid rgba(0,245,255,0.18)', fontSize: '10px' }}>
+            <span className="rounded-full bg-cyan-400/[0.08] px-2 py-0.5 font-semibold uppercase tracking-wide text-[var(--text-cyan-primary)] dark:text-cyan-300" style={{ border: '1px solid rgba(0,245,255,0.18)', fontSize: '10px' }}>
               Trending
             </span>
           )}
-          <span className="font-medium text-white/60">{authorName}</span>
-          {timeAgo && <span className="text-white/28">{timeAgo}</span>}
+          <span className="font-medium text-text-body dark:text-white/60">{authorName}</span>
+          {timeAgo && <span className="text-arena-muted dark:text-white/28">{timeAgo}</span>}
         </div>
         <h3
-          className={`mt-1.5 font-semibold leading-snug text-white ${isBoard ? 'text-base' : 'text-lg'} ${expanded ? '' : `line-clamp-${CLAMP_LINES}`}`}
+          className={`mt-1.5 font-semibold leading-snug text-text-primary ${isBoard ? 'text-base' : 'text-lg'} ${expanded ? '' : `line-clamp-${CLAMP_LINES}`}`}
         >
           {pp.title}
         </h3>
@@ -235,13 +235,13 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
-            className="mt-1 text-xs text-white/40 hover:text-white/70 transition-colors"
+            className="mt-1 text-xs text-text-body dark:text-white/40 hover:text-text-primary dark:hover:text-white/70 transition-colors"
           >
             {expanded ? 'Show less' : 'Read more'}
           </button>
         )}
         {pp.description && (
-          <p className={`mt-1.5 line-clamp-2 leading-5 text-white/50 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
+          <p className={`mt-1.5 line-clamp-2 leading-5 text-text-body dark:text-white/50 ${isBoard ? 'text-xs' : 'text-sm leading-6'}`}>
             {pp.description}
           </p>
         )}
@@ -250,7 +250,7 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
             {pp.teams.map((t) => (
               <span
                 key={t.id}
-                className="rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-2.5 py-0.5 text-xs text-cyan-200"
+                className="rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-2.5 py-0.5 text-xs text-[var(--text-cyan-primary)] dark:text-cyan-200"
               >
                 {t.name}
               </span>

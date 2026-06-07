@@ -32,11 +32,11 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="flex items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.025] lg:cursor-default"
+        className="flex items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-arena-border dark:hover:bg-white/[0.025] lg:cursor-default"
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-semibold text-white truncate">{category}</span>
+          <span className="text-sm font-semibold text-text-primary truncate">{category}</span>
           <span
             className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums"
             style={{ color: colour.text, background: colour.bg }}
@@ -46,11 +46,11 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {totalVotes > 0 && (
-            <span className="text-xs text-white/35 tabular-nums">{totalVotes} votes</span>
+            <span className="text-xs text-arena-muted dark:text-white/35 tabular-nums">{totalVotes} votes</span>
           )}
           {/* Collapse chevron - visible on mobile only */}
           <svg
-            className={`lg:hidden h-4 w-4 text-white/35 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+            className={`lg:hidden h-4 w-4 text-arena-muted dark:text-white/35 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -69,7 +69,7 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
       {!isCollapsed && (
         <div className="flex flex-col gap-3 p-2.5 overflow-y-auto max-h-[65vh]">
           {sorted.length === 0 ? (
-            <p className="py-6 text-center text-xs text-white/30">
+            <p className="py-6 text-center text-xs text-arena-muted dark:text-white/30">
               No {category} pains match your search
             </p>
           ) : (

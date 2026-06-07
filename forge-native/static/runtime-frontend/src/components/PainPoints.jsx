@@ -155,14 +155,14 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="text-xs uppercase tracking-[0.22em] text-cyan-300">Live problem feed</div>
+          <div className="text-xs uppercase tracking-[0.22em] text-[var(--text-cyan-primary)] dark:text-cyan-300">Live problem feed</div>
           <h2
-            className="mt-1.5 text-4xl font-black tracking-tight text-white sm:text-5xl"
+            className="mt-1.5 text-4xl font-black tracking-tight text-text-primary sm:text-5xl"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Pain Points
           </h2>
-          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/65">
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-text-body">
             Tell us about any pain points you have at work - where's the friction? What can be improved?
           </p>
         </div>
@@ -183,8 +183,8 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
                 onClick={() => setSortBy(f.key)}
                 className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-cyan-400/12 text-cyan-200'
-                    : 'border border-white/10 text-white/65 hover:text-white'
+                    ? 'bg-cyan-400/12 text-[var(--text-cyan-primary)] dark:text-cyan-200'
+                    : 'border border-arena-border dark:border-white/10 text-text-body dark:text-white/65 hover:text-text-primary dark:hover:text-white'
                 }`}
               >
                 {f.label}
@@ -195,8 +195,8 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
       </div>
 
       {/* ── Composer ───────────────────────────────────────────────────────── */}
-      <div className="rounded-[20px] border border-white/8 bg-[rgba(10,22,40,0.85)] p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+      <div className="rounded-[20px] border border-arena-border dark:border-white/8 bg-arena-card dark:bg-[rgba(10,22,40,0.85)] p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-body dark:text-white/50">
           Record your pain points here
         </p>
         <form onSubmit={handleSubmit}>
@@ -205,7 +205,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
             onChange={(e) => setGripe(e.target.value)}
             placeholder="What is slowing you down? A sentence is enough. Describe the friction, not the solution"
             rows={3}
-            className="min-h-[80px] w-full resize-none rounded-xl border border-white/8 bg-white/[0.02] p-3 text-sm text-white outline-none placeholder:text-white/30"
+            className="min-h-[80px] w-full resize-none rounded-xl border border-arena-border dark:border-white/8 bg-arena-card dark:bg-white/[0.02] p-3 text-sm text-text-primary dark:text-white outline-none placeholder:text-arena-muted dark:placeholder:text-white/30"
             style={{ fontFamily: 'inherit' }}
           />
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -214,7 +214,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
               placeholder="Your name"
-              className="rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30"
+              className="rounded-xl border border-arena-border dark:border-white/8 bg-arena-card dark:bg-white/[0.02] px-3 py-2 text-sm text-text-primary dark:text-white outline-none placeholder:text-arena-muted dark:placeholder:text-white/30"
               style={{ fontFamily: 'inherit' }}
             />
             <div className="flex items-center gap-3">
@@ -240,7 +240,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search pain points…"
-          className="w-full rounded-xl border border-white/8 bg-white/[0.02] px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-400/30"
+          className="w-full rounded-xl border border-arena-border dark:border-white/8 bg-arena-card dark:bg-white/[0.02] px-4 py-2.5 text-sm text-text-primary dark:text-white outline-none placeholder:text-arena-muted dark:placeholder:text-white/30 focus:border-[var(--text-cyan-primary)] dark:focus:border-cyan-400/30"
           style={{ fontFamily: 'inherit' }}
         />
       </div>
@@ -254,12 +254,12 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
           /* Loading: skeleton columns */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-64 animate-pulse rounded-[18px] border border-white/8 bg-white/[0.02]" />
+              <div key={i} className="h-64 animate-pulse rounded-[18px] border border-arena-border dark:border-white/8 bg-arena-card dark:bg-white/[0.02]" />
             ))}
           </div>
         ) : activeCategories.length === 0 ? (
           /* Empty state */
-          <p className="py-12 text-center text-sm text-white/40">
+          <p className="py-12 text-center text-sm text-text-body dark:text-white/40">
             {searchQuery
               ? 'No pain points match your search.'
               : 'No pain points yet - be the first to submit one!'}

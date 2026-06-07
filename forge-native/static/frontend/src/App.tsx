@@ -1449,6 +1449,7 @@ export function App(): JSX.Element {
   const [learningsRailTitleDraft, setLearningsRailTitleDraft] = useState('');
   const [learningsRailEditingTags, setLearningsRailEditingTags] = useState(false);
   const [learningsRailTagsDraft, setLearningsRailTagsDraft] = useState('');
+  const [learningsSearch, setLearningsSearch] = useState('');
 
   const [registrySearchInput, setRegistrySearchInput] = useState('');
   const [registryTagsInput, setRegistryTagsInput] = useState('');
@@ -5742,7 +5743,132 @@ export function App(): JSX.Element {
 
               {learningsError ? <p className="message message-error">{learningsError}</p> : null}
 
-              {/* Dropzone always visible so any tab can accept .md uploads */}
+              {/* Filter row — every tab */}
+              {toolingTab === 'learnings' ? (
+                <section className="filter-row">
+                  <input
+                    type="search"
+                    placeholder="Search learnings &amp; memories..."
+                    value={learningsSearch}
+                    onChange={(e) => setLearningsSearch(e.target.value)}
+                  />
+                </section>
+              ) : (HDC_SHOWCASE_UX_V1 ? (
+                <section className="showcase-filter-shell">
+                  <fieldset className="showcase-filter-group">
+                    <legend>Filter</legend>
+                    <label className="showcase-filter-field">
+                      <span>Search</span>
+                      <input
+                        type="search"
+                        placeholder="Search title or description"
+                        value={hackSearch}
+                        onChange={(event) => setHackSearch(event.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Status</span>
+                      <select
+                        value={hackStatusFilter}
+                        onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
+                      >
+                        <option value="all">All statuses</option>
+                        <option value="verified">Completed</option>
+                        <option value="in_progress">In progress</option>
+                      </select>
+                    </label>
+                    <label className="showcase-filter-field">
+                      <span>Tags</span>
+                      <input
+                        type="text"
+                        placeholder="ai, automation, atlassian"
+                        value={showcaseTagsInput}
+                        onChange={(event) => setShowcaseTagsInput(event.target.value)}
+                      />
+                    </label>
+                    <label className="showcase-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={showcaseFeaturedOnly}
+                        onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                      />
+                      Featured only
+                    </label>
+                  </fieldset>
+                  <div className="showcase-filter-advanced">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      aria-expanded={showcaseAdvancedFiltersOpen}
+                      onClick={() => setShowcaseAdvancedFiltersOpen((open) => !open)}
+                    >
+                      {showcaseAdvancedFiltersOpen ? 'Hide advanced filters' : 'Show advanced filters'}
+                    </button>
+                  </div>
+                  {showcaseAdvancedFiltersOpen ? (
+                    <fieldset className="showcase-filter-group showcase-filter-group-advanced">
+                      <legend>Advanced</legend>
+                      <label className="showcase-filter-field">
+                        <span>HackDay event ID</span>
+                        <input
+                          type="text"
+                          placeholder="Optional event scope"
+                          value={showcaseSourceEventInput}
+                          onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
+                        />
+                      </label>
+                    </fieldset>
+                  ) : null}
+                </section>
+              ) : (
+                <section className="filter-row">
+                  <input
+                    type="search"
+                    placeholder={hackTab === 'completed' ? 'Search completed hacks...' : 'Search in-progress hacks...'}
+                    value={hackSearch}
+                    onChange={(event) => setHackSearch(event.target.value)}
+                  />
+                  <select
+                    value={hackTypeFilter}
+                    onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="prompt">Prompts</option>
+                    <option value="skill">Skills</option>
+                    <option value="app">Apps</option>
+                  </select>
+                  <select
+                    value={hackStatusFilter}
+                    onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="verified">Completed</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Tags (comma separated)"
+                    value={showcaseTagsInput}
+                    onChange={(event) => setShowcaseTagsInput(event.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="HackDay event ID"
+                    value={showcaseSourceEventInput}
+                    onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
+                  />
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={showcaseFeaturedOnly}
+                      onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
+                    />
+                    Featured only
+                  </label>
+                </section>
+              ))}
+
+              {/* Dropzone below filter, visible on every tab */}
               <div
                 className={`learnings-dropzone learnings-dropzone--compact${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
@@ -5768,10 +5894,23 @@ export function App(): JSX.Element {
                     <p className="empty-state">No learnings yet. Drop a .md file above to get started.</p>
                   ) : null}
 
-                  {learningItems.length > 0 ? (
+                  {(() => {
+                    const q = learningsSearch.trim().toLowerCase();
+                    const filteredLearnings = q
+                      ? learningItems.filter((i) =>
+                          (i.title ?? i.filename).toLowerCase().includes(q) ||
+                          i.description?.toLowerCase().includes(q) ||
+                          i.tags.some((t) => t.toLowerCase().includes(q)) ||
+                          i.authorName.toLowerCase().includes(q)
+                        )
+                      : learningItems;
+                    if (filteredLearnings.length === 0 && learningItems.length > 0) {
+                      return <p className="empty-state">No learnings match your search.</p>;
+                    }
+                    return filteredLearnings.length > 0 ? (
                     <div className="learnings-layout learnings-layout--split">
                       <div className="learnings-card-list">
-                        {learningItems.map((item) => {
+                        {filteredLearnings.map((item) => {
                           const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
                           const canEdit = isOwner || showcaseCanManage;
                           const isSelected = selectedLearningId === item.id;
@@ -5965,122 +6104,6 @@ export function App(): JSX.Element {
               {toolingTab !== 'learnings' && hackTab === 'completed' && HACKS_SCOPE_NOTE ? (
                 <section className="message message-preview">{HACKS_SCOPE_NOTE}</section>
               ) : null}
-
-              {toolingTab !== 'learnings' && (HDC_SHOWCASE_UX_V1 ? (
-                <section className="showcase-filter-shell">
-                  <fieldset className="showcase-filter-group">
-                    <legend>Filter</legend>
-                    <label className="showcase-filter-field">
-                      <span>Search</span>
-                      <input
-                        type="search"
-                        placeholder="Search title or description"
-                        value={hackSearch}
-                        onChange={(event) => setHackSearch(event.target.value)}
-                      />
-                    </label>
-                    <label className="showcase-filter-field">
-                      <span>Status</span>
-                      <select
-                        value={hackStatusFilter}
-                        onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
-                      >
-                        <option value="all">All statuses</option>
-                        <option value="verified">Completed</option>
-                        <option value="in_progress">In progress</option>
-                      </select>
-                    </label>
-                    <label className="showcase-filter-field">
-                      <span>Tags</span>
-                      <input
-                        type="text"
-                        placeholder="ai, automation, atlassian"
-                        value={showcaseTagsInput}
-                        onChange={(event) => setShowcaseTagsInput(event.target.value)}
-                      />
-                    </label>
-                    <label className="showcase-filter-check">
-                      <input
-                        type="checkbox"
-                        checked={showcaseFeaturedOnly}
-                        onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
-                      />
-                      Featured only
-                    </label>
-                  </fieldset>
-                  <div className="showcase-filter-advanced">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      aria-expanded={showcaseAdvancedFiltersOpen}
-                      onClick={() => setShowcaseAdvancedFiltersOpen((open) => !open)}
-                    >
-                      {showcaseAdvancedFiltersOpen ? 'Hide advanced filters' : 'Show advanced filters'}
-                    </button>
-                  </div>
-                  {showcaseAdvancedFiltersOpen ? (
-                    <fieldset className="showcase-filter-group showcase-filter-group-advanced">
-                      <legend>Advanced</legend>
-                      <label className="showcase-filter-field">
-                        <span>HackDay event ID</span>
-                        <input
-                          type="text"
-                          placeholder="Optional event scope"
-                          value={showcaseSourceEventInput}
-                          onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
-                        />
-                      </label>
-                    </fieldset>
-                  ) : null}
-                </section>
-              ) : (
-                <section className="filter-row">
-                  <input
-                    type="search"
-                    placeholder={hackTab === 'completed' ? 'Search completed hacks...' : 'Search in-progress hacks...'}
-                    value={hackSearch}
-                    onChange={(event) => setHackSearch(event.target.value)}
-                  />
-
-                  <select
-                    value={hackTypeFilter}
-                    onChange={(event) => setHackTypeFilter(event.target.value as HackTypeFilter)}
-                  >
-                    <option value="all">All Types</option>
-                    <option value="prompt">Prompts</option>
-                    <option value="skill">Skills</option>
-                    <option value="app">Apps</option>
-                  </select>
-                  <select
-                    value={hackStatusFilter}
-                    onChange={(event) => setHackStatusFilter(event.target.value as HackStatusFilter)}
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="verified">Completed</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Tags (comma separated)"
-                    value={showcaseTagsInput}
-                    onChange={(event) => setShowcaseTagsInput(event.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="HackDay event ID"
-                    value={showcaseSourceEventInput}
-                    onChange={(event) => setShowcaseSourceEventInput(event.target.value)}
-                  />
-                  <label className="check-label">
-                    <input
-                      type="checkbox"
-                      checked={showcaseFeaturedOnly}
-                      onChange={(event) => setShowcaseFeaturedOnly(event.target.checked)}
-                    />
-                    Featured only
-                  </label>
-                </section>
-              ))}
 
               {toolingTab !== 'learnings' ? (
               <section className="tab-row" aria-label="Hacks tabs">
