@@ -22,23 +22,23 @@ const NavItem = forwardRef(({
 
   const highlightStyles = {
     vertical: {
-      amber: 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-l-4 border-amber-400',
-      purple: 'text-purple-300/70 bg-purple-500/[0.06] hover:bg-purple-500/[0.10] border-l-4 border-purple-400/50',
-      success: 'text-success bg-success/10 hover:bg-success/20 border-l-4 border-success',
+      amber: 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-600 dark:text-amber-400 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 dark:border-amber-400',
+      purple: 'text-purple-700 bg-purple-50 hover:bg-purple-100 border-l-4 border-purple-500 dark:text-purple-300/70 dark:bg-purple-500/[0.06] dark:hover:bg-purple-500/[0.10] dark:border-purple-400/50',
+      success: 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-l-4 border-emerald-600 dark:text-success dark:bg-success/10 dark:hover:bg-success/20 dark:border-success',
       signup: 'nav-item-signup-vertical border-l-4',
-      error: 'text-error bg-error/10 hover:bg-error/20 border-l-4 border-error',
+      error: 'text-red-700 bg-red-50 hover:bg-red-100 border-l-4 border-red-600 dark:text-error dark:bg-error/10 dark:hover:bg-error/20 dark:border-error',
     },
     horizontal: {
-      amber: 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40',
-      purple: 'text-purple-300/70 bg-purple-500/[0.06] hover:bg-purple-500/[0.10] border border-purple-400/20',
-      success: 'text-success bg-success/10 hover:bg-success/20 border border-success/40',
+      amber: 'text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 dark:text-amber-400 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 dark:border-amber-400/40',
+      purple: 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 dark:text-purple-300/70 dark:bg-purple-500/[0.06] dark:hover:bg-purple-500/[0.10] dark:border-purple-400/20',
+      success: 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 dark:text-success dark:bg-success/10 dark:hover:bg-success/20 dark:border-success/40',
       signup: 'nav-item-signup-horizontal border',
-      error: 'text-error bg-error/10 hover:bg-error/20 border border-error/40',
+      error: 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-300 dark:text-error dark:bg-error/10 dark:hover:bg-error/20 dark:border-error/40',
     },
   };
 
   const activeStyles = isHorizontal
-    ? 'bg-cyan-400/[0.08] text-cyan-100 border border-cyan-400/30 shadow-[var(--nav-active-glow)]'
+    ? 'bg-[var(--phase-active-bg)] text-[var(--phase-active-text)] border border-[var(--phase-active-border)] dark:bg-cyan-400/[0.08] dark:text-cyan-100 dark:border-cyan-400/30 dark:shadow-[var(--nav-active-glow)]'
     : 'bg-arena-elevated text-text-primary border-l-4 border-brand';
 
   const defaultStyles = isHorizontal

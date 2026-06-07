@@ -423,8 +423,9 @@
   --phase-container-border:   #EAE5DA;
   --phase-active-bg:          rgba(255, 92, 37, 0.08);
   --phase-active-border:      rgba(255, 92, 37, 0.40);
-  --phase-active-text:        #FF5C25;
-  --phase-active-status:      #FF5C25;
+  /* #c2410c on #FEFBF4 = 4.8:1 — passes WCAG AA for all text sizes */
+  --phase-active-text:        #c2410c;
+  --phase-active-status:      #c2410c;
   --phase-inactive-bg:        transparent;
   --phase-inactive-border:    #EAE5DA;
   --phase-label-color:        #6B6E76;
@@ -434,7 +435,7 @@
   --stat-value-color:         #191F39;
   --stat-label-color:         #6B6E76;
   --stat-meta-color:          #6B6E76;
-  --stat-accent-color:        #FF5C25;
+  --stat-accent-color:        #c2410c;
   --rail-card-bg:             #FEFBF4;
   --rail-card-border:         #EAE5DA;
   --activity-panel-gradient:  linear-gradient(180deg, #FEFBF4 0%, #F7F3EA 100%);
