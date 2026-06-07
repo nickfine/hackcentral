@@ -135,7 +135,7 @@ const resolvePageIdFromUrlLike = (value) => {
 
 const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = String(import.meta.env.VITE_HDC_PERF_RUNTIME_BOOTSTRAP_V2 || '').trim().toLowerCase() === 'true';
 const HDC_PERF_LOADING_UX_V1 = String(import.meta.env.VITE_HDC_PERF_LOADING_UX_V1 || '').trim().toLowerCase() === 'true';
-const DEFAULT_EVENT_ACCENT = '#0f766e';
+const DEFAULT_EVENT_ACCENT = '#FF5C25';
 
 const normalizeEventAccentColor = (value) => {
   const candidate = String(value || '').trim();

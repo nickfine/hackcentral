@@ -25,11 +25,11 @@ const CATEGORY_STYLES = {
 
 const SIGNAL_COLORS = {
   start: {
-    bg: '#f0fdfa',
-    border: 'rgba(20, 184, 166, 0.21)',
-    accent: '#14b8a6',
-    text: '#0d9488',
-    iconBg: '#ccfbf1',
+    bg: '#f0fdf4',
+    border: 'rgba(34, 197, 94, 0.21)',
+    accent: '#16a34a',
+    text: '#15803d',
+    iconBg: '#dcfce7',
   },
   deadline: {
     bg: '#fef2f2',
@@ -616,7 +616,7 @@ function UnpublishedScheduleState({ canEdit, isConfigEnabled, onToggleConfigMode
     <Card
       variant="ghost"
       padding="lg"
-      className="border border-teal-400/25 bg-[linear-gradient(135deg,rgba(8,19,45,0.96)_0%,rgba(10,26,60,0.98)_58%,rgba(5,15,36,0.99)_100%)] shadow-[0_20px_44px_rgba(2,8,23,0.42)]"
+      className="border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[linear-gradient(135deg,rgba(8,19,45,0.96)_0%,rgba(10,26,60,0.98)_58%,rgba(5,15,36,0.99)_100%)] shadow-[0_20px_44px_rgba(2,8,23,0.42)]"
     >
       <div className="flex flex-col gap-4">
         <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-300/80">Schedule</p>
@@ -763,7 +763,7 @@ function Schedule({ onNavigate, appModeResolverPayload = null }) {
 
       {showEditor ? (
         <div className="space-y-6">
-          <Card padding="md" className="border-teal-500/20 bg-teal-500/5">
+          <Card padding="md" className="border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-[var(--accent-subtle)]">
             <p className="text-sm font-semibold text-text-primary">Editing in Config Mode</p>
             <p className="mt-1 text-sm text-text-secondary">
               Schedule changes stay in draft until you publish from the Config Mode panel.

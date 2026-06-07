@@ -587,15 +587,15 @@ function TeamDetail({
       {/* Zone A - Team Identity Header (design system: solid surface only, no gradient) */}
       <div
         className={cn(
-          'team-detail-hero-card p-5 mb-6 border-l-2 border-teal-500 rounded-xl',
+          'team-detail-hero-card p-5 mb-6 border-l-2 border-[var(--accent)] rounded-xl',
           'border border-arena-border'
         )}
       >
         <div className="space-y-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0 flex items-start gap-3">
-              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-teal-500/10 text-teal-500 shrink-0">
-                <Lightbulb className="w-5 h-5 text-teal-500" aria-hidden />
+              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-[var(--accent-subtle)] text-[var(--accent)] shrink-0">
+                <Lightbulb className="w-5 h-5 text-[var(--accent)]" aria-hidden />
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -606,7 +606,7 @@ function TeamDetail({
                     <Badge
                       variant="default"
                       size="sm"
-                      className="bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30"
+                      className="bg-[var(--accent-subtle)] text-[var(--accent)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
                     >
                       Team Captain
                     </Badge>
@@ -662,7 +662,7 @@ function TeamDetail({
                           className={cn(
                             'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors',
                             teamVibe === option.value
-                              ? 'bg-teal-100 dark:bg-teal-900/40 border border-teal-400 dark:border-teal-500 text-teal-700 dark:text-teal-300'
+                              ? 'bg-[var(--accent-subtle)] border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] text-[var(--accent)]'
                               : 'border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-text-primary hover:bg-gray-200 dark:hover:bg-gray-600'
                           )}
                         >
@@ -707,7 +707,7 @@ function TeamDetail({
                   <Button
                     variant="primary"
                     size="md"
-                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                     onClick={() => setShowLeaveModal(true)}
                   >
                     Leave Team
@@ -730,7 +730,7 @@ function TeamDetail({
                   <Button
                     variant="primary"
                     size="md"
-                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                     onClick={() => onNavigate('signup')}
                     rightIcon={<ChevronRight className="w-4 h-4" />}
                   >
@@ -741,7 +741,7 @@ function TeamDetail({
                 {!isMember && !hasPendingRequest && !isTeamFull && hasCompletedSignup && (
                   <button
                     type="button"
-                    className="team-detail-cta-join inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium px-2.5 py-2 transition-colors border-0"
+                    className="team-detail-cta-join inline-flex items-center justify-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-medium px-2.5 py-2 transition-colors border-0"
                     style={{ borderRadius: '0.5rem' }}
                     onClick={() => setShowRequestModal(true)}
                   >
@@ -760,7 +760,7 @@ function TeamDetail({
             </p>
             <div className="team-detail-progress-track h-1.5 rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-500 transition-all duration-500"
+                className="h-full bg-[var(--accent)] transition-all duration-500"
                 style={{ width: `${capacityPercent}%` }}
                 aria-hidden="true"
               />
@@ -832,7 +832,7 @@ function TeamDetail({
                   <Button
                     variant="primary"
                     size="sm"
-                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                     onClick={handleSaveLookingFor}
                   >
                     Save
@@ -852,7 +852,7 @@ function TeamDetail({
                       'team-detail-looking-for-tag inline-flex items-center rounded-lg border px-2 py-0.5 text-xs font-medium transition-colors duration-150',
                       isMatch && 'team-detail-looking-for-tag--match',
                       isMatch
-                        ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
+                        ? 'bg-[var(--accent-subtle)] text-[var(--accent)] border-[color-mix(in_srgb,var(--accent)_20%,transparent)]'
                         : 'bg-gray-100 dark:bg-gray-700 text-text-primary border-gray-200 dark:border-gray-600',
                       !isMember && 'cursor-pointer hover:opacity-90'
                     )}
@@ -887,7 +887,7 @@ function TeamDetail({
                           key={`${category.label}-${i}`}
                           className={cn(
                             'w-2.5 h-2.5 rounded-full shrink-0',
-                            i < lit ? 'bg-teal-500' : 'team-detail-dot-empty'
+                            i < lit ? 'bg-[var(--accent)]' : 'team-detail-dot-empty'
                           )}
                           aria-hidden="true"
                         />
@@ -941,7 +941,7 @@ function TeamDetail({
                       'bg-gray-50 dark:bg-gray-800 text-text-primary placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-lg',
                       descriptionInput.trim().length < 10
                         ? 'border-error/50'
-                        : 'border-gray-200 dark:border-gray-600 focus:border-teal-500'
+                        : 'border-gray-200 dark:border-gray-600 focus:border-[var(--accent)]'
                     )}
                     rows={3}
                     maxLength={500}
@@ -969,7 +969,7 @@ function TeamDetail({
                     <Button
                       variant="primary"
                       size="sm"
-                      className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                       onClick={handleSaveDescription}
                       disabled={descriptionInput.trim().length < 10}
                     >
@@ -1018,7 +1018,7 @@ function TeamDetail({
                       'bg-gray-50 dark:bg-gray-800 text-text-primary placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-lg',
                       problemInput.trim().length < 10
                         ? 'border-error/50'
-                        : 'border-gray-200 dark:border-gray-600 focus:border-teal-500'
+                        : 'border-gray-200 dark:border-gray-600 focus:border-[var(--accent)]'
                     )}
                     rows={3}
                     maxLength={500}
@@ -1047,7 +1047,7 @@ function TeamDetail({
                     <Button
                       variant="primary"
                       size="sm"
-                      className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                       onClick={handleSaveProblem}
                       disabled={problemInput.trim().length < 10 || isSavingProblem}
                       loading={isSavingProblem}
@@ -1108,7 +1108,7 @@ function TeamDetail({
                     <Button
                       variant="primary"
                       size="sm"
-                      className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                       onClick={handleSaveMoreInfo}
                       disabled={isSavingMoreInfo}
                       loading={isSavingMoreInfo}
@@ -1150,7 +1150,7 @@ function TeamDetail({
                       className={cn(
                         'team-detail-reaction-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-normal transition-transform transition-colors',
                         'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-text-primary',
-                        isActive && 'scale-105 bg-teal-500/10 border-teal-500/30 text-teal-600 dark:text-teal-400'
+                        isActive && 'scale-105 bg-[var(--accent-subtle)] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] text-[var(--accent)]'
                       )}
                       onClick={() => toggleReaction(reaction.key)}
                     >
@@ -1175,7 +1175,7 @@ function TeamDetail({
         >
           {isCaptain && pendingRequestCount > 0 && (
             <div className="flex items-center justify-end gap-2 mb-4">
-              <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
+              <span className="text-xs font-semibold text-[var(--accent)]">
                 {pendingRequestCount} pending
               </span>
             </div>
@@ -1185,7 +1185,7 @@ function TeamDetail({
               {pendingRequestCount === 0 ? (
                 <p className="team-detail-pending-empty text-xs italic text-text-secondary">No pending requests</p>
               ) : (
-                <div className="rounded-lg border border-teal-500/30 bg-teal-500/10 p-3 space-y-3">
+                <div className="rounded-lg border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--accent-subtle)] p-3 space-y-3">
                   {(team.joinRequests || []).map((request) => (
                     <div key={request.id} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1220,7 +1220,7 @@ function TeamDetail({
                         <Button
                           variant="primary"
                           size="sm"
-                          className="flex-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                          className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                           onClick={() => handleRespondToRequest(request.id, true)}
                           disabled={activeRequestId === request.id}
                           leftIcon={<Check className="w-4 h-4" />}
@@ -1278,7 +1278,7 @@ function TeamDetail({
 
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {member.id === team.captainId && (
-                        <span className="inline-flex items-center rounded-lg bg-teal-500/10 px-2 py-0.5 text-xs font-medium text-teal-600 dark:text-teal-400">
+                        <span className="inline-flex items-center rounded-lg bg-[var(--accent-subtle)] px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
                           Captain
                         </span>
                       )}
@@ -1303,7 +1303,7 @@ function TeamDetail({
                         setMemberToTransfer(member);
                         setShowTransferModal(true);
                       }}
-                      className="p-2 text-text-secondary hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-500/10 rounded-md transition-colors flex-shrink-0"
+                      className="p-2 text-text-secondary hover:text-[var(--accent)] hover:bg-[var(--accent-subtle)] rounded-md transition-colors flex-shrink-0"
                       title="Make Captain"
                     >
                       <Crown className="w-4 h-4" />
@@ -1385,7 +1385,7 @@ function TeamDetail({
           </Button>
           <Button
             variant="primary"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
             onClick={handleSubmitRequest}
             loading={isSubmittingRequest}
             disabled={isSubmittingRequest}
@@ -1421,7 +1421,7 @@ function TeamDetail({
                 'bg-gray-50 dark:bg-gray-800 text-text-primary placeholder:text-gray-500 dark:placeholder:text-gray-400 rounded-lg',
                 teamNameInput.trim().length < 3
                   ? 'border-error/50'
-                  : 'border-gray-200 dark:border-gray-600 focus:border-teal-500'
+                  : 'border-gray-200 dark:border-gray-600 focus:border-[var(--accent)]'
               )}
               autoFocus
               onKeyDown={(e) => {
@@ -1456,7 +1456,7 @@ function TeamDetail({
           </Button>
           <Button
             variant="primary"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
             onClick={handleSaveTeamName}
             disabled={teamNameInput.trim().length < 3}
           >
@@ -1522,7 +1522,7 @@ function TeamDetail({
               </Button>
               <Button
                 variant="primary"
-                className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
                 onClick={handleTransferCaptain}
               >
                 <Crown className="w-4 h-4 mr-2" />
@@ -1559,7 +1559,7 @@ function TeamDetail({
           </Button>
           <Button
             variant="primary"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
             onClick={handleLeaveTeam}
             loading={isLeavingTeam}
             disabled={isLeavingTeam}
@@ -1633,7 +1633,7 @@ function TeamDetail({
           </Button>
           <Button
             variant="primary"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
             onClick={handleSaveMaxMembers}
             disabled={maxMembersInput < memberCount}
           >

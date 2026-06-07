@@ -48,7 +48,7 @@
   --trend-down: #BE123C;
   --shadow-cyan-glow: 0 0 20px 4px rgba(6, 182, 212, 0.2);
   --status-active-dot-color: #06B6D4;
-  --event-accent-base: #0f766e;
+  --event-accent-base: var(--accent);
   --event-accent-contrast: #ffffff;
   --event-accent-hover: color-mix(in srgb, var(--event-accent-base) 85%, black);
   --event-accent-soft: color-mix(in srgb, var(--event-accent-base) 16%, transparent);
@@ -132,9 +132,9 @@
 
   /* Typography */
   --font-heading: 'Fraunces', Georgia, serif;
-  --font-body: 'Manrope', 'Segoe UI', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
   --font-display: 'Fraunces', Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
 
   /* Shadows */
   --shadow-sm: 0 4px 6px -1px rgba(9, 17, 40, 0.12), 0 2px 4px -1px rgba(9, 17, 40, 0.08);
@@ -142,8 +142,6 @@
   --shadow-lg: 0 20px 25px -5px rgba(9, 17, 40, 0.2), 0 10px 10px -5px rgba(9, 17, 40, 0.12);
   --shadow-xl: 0 24px 32px -10px rgba(9, 17, 40, 0.24), 0 12px 14px -8px rgba(9, 17, 40, 0.14);
   --shadow-card-hover: var(--shadow-md);
-  --shadow-glow-purple: 0 0 20px 4px rgba(160, 32, 240, 0.35);
-  --shadow-glow-orange: 0 0 20px 4px rgba(255, 107, 0, 0.32);
 
   /* Animation */
   --duration-fast: 150ms;
@@ -158,10 +156,10 @@
   --radius-none: 0;
   --radius-sm: 10px;
   --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 22px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
   --radius-2xl: 28px;
-  --radius-card: 14px;
+  --radius-card: var(--radius-xl);
   --radius-full: 9999px;
 
   /* Z-Index */
@@ -449,10 +447,10 @@
 }
 
 [data-color-mode="dark"] {
-  --accent: #2dd4bf;
-  --accent-hover: #14b8a6;
-  --accent-subtle: rgba(45, 212, 191, 0.1);
-  --accent-on: #042f2e;
+  --accent: #FF5C25;
+  --accent-hover: #ff7548;
+  --accent-subtle: rgba(255, 92, 37, 0.10);
+  --accent-on: #ffffff;
   --surface-page: #111827;
   --surface-card: #1f2937;
   --surface-elevated: #374151;
@@ -472,9 +470,9 @@
   --cyan-electric-hover: #00d4e8;
   --cyan-electric-bg: rgba(0, 245, 255, 0.08);
   --cyan-electric-border: rgba(0, 245, 255, 0.3);
-  --cyan-electric-glow: 0 0 22px rgba(0, 245, 255, 0.28);
+  --cyan-electric-glow: none;
   --cyan-electric-text: #00d4e8;
-  --cyan-electric-glow-subtle: 0 0 32px rgba(0, 245, 255, 0.18);
+  --cyan-electric-glow-subtle: none;
   --cyan-electric-inner-edge: inset 0 1px 0 rgba(0, 245, 255, 0.06);
   --cyan-electric-inner-edge-strong: inset 0 1px 0 rgba(0, 245, 255, 0.18);
   --card-inner-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -484,8 +482,7 @@
   --stat-card-surface: rgba(255, 255, 255, 0.035);
   --stat-card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
   --footer-separator: rgba(255, 255, 255, 0.08);
-  --timeline-active-glow: 0 0 16px rgba(0, 245, 255, 0.18), 0 0 4px rgba(0, 245, 255, 0.3);
-  --nav-active-glow: 0 0 12px rgba(0, 245, 255, 0.15), inset 0 -2px 0 var(--cyan-electric);
+  --timeline-active-glow: none;
   --hero-depth: 0 8px 32px rgba(0, 0, 0, 0.25);
   --activity-panel-gradient: linear-gradient(180deg, rgba(0, 245, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 245, 255, 0.02) 100%);
   --pain-card-surface: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.035) 100%);

@@ -82,7 +82,7 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, o
       <p className="text-xs text-text-secondary mb-2">Problems this team is tackling.</p>
 
       {painPointStatus && (
-        <div className={`mb-2 rounded-lg px-3 py-2 text-xs ${painPointStatus.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400'}`}>
+        <div className={`mb-2 rounded-lg px-3 py-2 text-xs ${painPointStatus.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-[var(--accent-subtle)] text-[var(--accent)]'}`}>
           {painPointStatus.message}
         </div>
       )}
@@ -91,13 +91,13 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, o
       {teamPainPoints.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {teamPainPoints.map((pp) => (
-            <span key={pp._id} className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 text-xs text-teal-700 dark:text-teal-300">
+            <span key={pp._id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] px-2.5 py-0.5 text-xs text-[var(--accent)]">
               🔥 {pp.title}
               {isCaptain && EDITABLE_PHASES.includes(eventPhase) && (
                 <button
                   type="button"
                   onClick={() => handleUnlinkPainPoint(pp._id)}
-                  className="ml-0.5 text-teal-500 hover:text-teal-700 dark:hover:text-teal-200"
+                  className="ml-0.5 text-[var(--accent)] hover:opacity-70"
                   aria-label="Remove"
                 >
                   ×
@@ -116,7 +116,7 @@ function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, o
             value={painPointSearch}
             onChange={(e) => setPainPointSearch(e.target.value)}
             placeholder="Search pain points to link…"
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 mb-1"
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-[var(--accent-subtle)] focus:border-[var(--accent)] mb-1"
           />
           {painPointsLoading ? (
             <div className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />

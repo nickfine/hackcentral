@@ -42,8 +42,8 @@ const TeamCard = forwardRef(({
       >
         <div className="flex items-center gap-3">
           {/* Team Icon */}
-          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full bg-teal-500/10 text-teal-500">
-            <Users className="w-5 h-5 text-teal-500" />
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]">
+            <Users className="w-5 h-5 text-[var(--accent)]" />
           </div>
 
           {/* Team Info */}
@@ -82,8 +82,8 @@ const TeamCard = forwardRef(({
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-teal-500/10 text-teal-500 shrink-0">
-              <Users className="w-6 h-6 text-teal-500" />
+            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] shrink-0">
+              <Users className="w-6 h-6 text-[var(--accent)]" />
             </div>
             <div>
               <h3 className="marketplace-card-team-name text-lg font-semibold text-gray-900 dark:text-white">
@@ -156,8 +156,8 @@ const TeamCard = forwardRef(({
       {/* Header Row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full bg-teal-500/10 text-teal-500">
-            <Users className="w-5 h-5 text-teal-500" />
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]">
+            <Users className="w-5 h-5 text-[var(--accent)]" />
           </div>
           <div>
 <h4 className="marketplace-card-team-name text-lg font-semibold text-gray-900 dark:text-white">

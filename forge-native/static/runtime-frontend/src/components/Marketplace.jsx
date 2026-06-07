@@ -227,7 +227,7 @@ function Marketplace({
             <button
               type="button"
               disabled={!!userTeam || !canCreateTeam}
-              className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              className="inline-flex items-center justify-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-[var(--accent)] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors border-0 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
               onClick={() => {
                 setCreateTeamStatus(null);
                 setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: Math.min(maxTeamSize, 6) });
@@ -288,7 +288,7 @@ function Marketplace({
               }}
               onClear={() => setSearchTerm('')}
               placeholder="Search teams by name or skills…"
-              inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              inputClassName="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-[var(--accent-subtle)] focus:border-[var(--accent)]"
               leftIconClassName="text-gray-400"
             />
           </div>
@@ -301,7 +301,7 @@ function Marketplace({
               className={cn(
                 'p-1.5 rounded-md transition-colors',
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-[var(--accent)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               )}
               aria-label="Grid view"
@@ -316,7 +316,7 @@ function Marketplace({
               className={cn(
                 'p-1.5 rounded-md transition-colors',
                 viewMode === 'row'
-                  ? 'bg-white dark:bg-gray-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                  ? 'bg-white dark:bg-gray-700 text-[var(--accent)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               )}
               aria-label="List view"
@@ -344,7 +344,7 @@ function Marketplace({
               <span className="flex items-center gap-2">
                 Teams
                 {filteredTeams.length > 0 && (
-                  <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-full">
                     {filteredTeams.length}
                   </span>
                 )}
@@ -363,7 +363,7 @@ function Marketplace({
               <span className="flex items-center gap-2">
                 Free Agents
                 {filteredAgents.length > 0 && (
-                  <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-full">
                     {filteredAgents.length}
                   </span>
                 )}
@@ -444,7 +444,7 @@ function Marketplace({
                       : 'Be the first to create a team and recruit teammates.'}
                   </p>
                   <Button
-                    className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => {
                       setCreateTeamStatus(null);
                       setShowCreateTeamModal(true);
@@ -601,7 +601,7 @@ function Marketplace({
                     className={cn(
                       'px-3 py-1.5 text-sm rounded-lg border transition-all',
                       isSelected
-                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-700 dark:text-teal-300'
+                        ? 'bg-[var(--accent-subtle)] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] text-[var(--accent)]'
                         : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
                     )}
                   >
@@ -638,12 +638,12 @@ function Marketplace({
                 {selectedPainPointIds.map((id) => {
                   const pp = modalPainPoints.find((p) => p._id === id);
                   return pp ? (
-                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 border border-teal-500/30 px-2.5 py-0.5 text-xs text-teal-700 dark:text-teal-300">
+                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] px-2.5 py-0.5 text-xs text-[var(--accent)]">
                       {pp.title}
                       <button
                         type="button"
                         onClick={() => setSelectedPainPointIds([])}
-                        className="ml-0.5 text-teal-500 hover:text-teal-700 dark:hover:text-teal-200"
+                        className="ml-0.5 text-[var(--accent)] hover:opacity-70"
                         aria-label="Remove"
                       >
                         ×
@@ -659,7 +659,7 @@ function Marketplace({
               value={modalPainSearch}
               onChange={(e) => setModalPainSearch(e.target.value)}
               placeholder="Search pain points…"
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 mb-1.5"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-subtle)] focus:border-[var(--accent)] mb-1.5"
             />
             )}
             {selectedPainPointIds.length === 0 && (modalPainsLoading ? (
@@ -684,12 +684,12 @@ function Marketplace({
                           className={cn(
                             'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
                             isSelected
-                              ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                              ? 'bg-[var(--accent-subtle)] text-[var(--accent)]'
                               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
                           )}
                         >
                           <span className={cn('flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px]',
-                            isSelected ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300 dark:border-gray-600'
+                            isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-gray-300 dark:border-gray-600'
                           )}>
                             {isSelected && '✓'}
                           </span>
@@ -716,7 +716,7 @@ function Marketplace({
             Cancel
           </Button>
           <Button
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg"
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
             onClick={handleCreateTeam}
             loading={isCreatingTeam}
             disabled={!newTeam.name.trim()}

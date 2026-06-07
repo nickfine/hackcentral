@@ -91,10 +91,11 @@ export default {
       // TYPOGRAPHY
       // =======================================================================
       fontFamily: {
-        heading: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'monospace'],
-        display: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        heading: ['Fraunces', 'Georgia', 'serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['IBM Plex Sans', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        body: ['IBM Plex Sans', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'JetBrains Mono', 'SF Mono', 'Consolas', 'monospace'],
       },
       
       fontSize: {
@@ -119,11 +120,11 @@ export default {
         'sm': '6px',
         'DEFAULT': '0.375rem',
         'md': '0.75rem',
-        'lg': '1rem',
-        'xl': '1.25rem',
+        'lg': '12px',
+        'xl': '16px',
         '2xl': '1.5rem',
         '3xl': '1.5rem',
-        'card': '12px',
+        'card': '16px',
         'full': '9999px',
       },
       
@@ -131,16 +132,14 @@ export default {
       // BOX SHADOW
       // =======================================================================
       boxShadow: {
-        'sm': '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
-        'DEFAULT': '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
-        'md': '0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
-        'lg': '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
-        'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+        'sm': 'var(--shadow-card)',
+        'DEFAULT': 'var(--shadow-card)',
+        'md': 'var(--shadow-elevated)',
+        'lg': 'var(--shadow-elevated)',
+        'xl': 'var(--shadow-elevated)',
         'inner': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.3)',
         'none': 'none',
-        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
-        'glow-purple': '0 0 20px 4px rgba(160, 32, 240, 0.4)',
-        'glow-orange': '0 0 20px 4px rgba(255, 107, 0, 0.4)',
+        'card-hover': 'var(--shadow-elevated)',
       },
       
       // =======================================================================

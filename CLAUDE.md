@@ -195,3 +195,4 @@ forge webtrigger list -e production -s tag-hackday.atlassian.net -p Confluence -
 - `DEPLOY.md` — full deploy reference, tenant URLs, install runbook pointer
 - `LEARNINGS.md` — session history, gotchas, architectural decisions with context
 - `docs/HDC-TENANT-INSTALL-RUNBOOK.md` — new tenant setup
+- `EIS_DESIGN_SYSTEM_PLAN.md` — EIS Design System migration plan for HDC (runtime-frontend), HD children excluded
