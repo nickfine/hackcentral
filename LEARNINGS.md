@@ -6457,3 +6457,46 @@ Changing `problemItems: ProblemListItem[]` to `PainPoint[]` would have broken al
 ### Versions
 - Deployed: **APP_VERSION 1.2.194**
 - Commit: `4c36a2e`
+
+---
+
+## Session Update - Tooling Page: Learnings in All Tab, Homepage, Filters & Dropzone (Jun 7, 2026)
+
+### What changed
+
+**`forge-native/static/frontend/src/App.tsx` (macro frontend)**
+
+1. **Learnings visible in "All" tab** — the `useEffect` that loads learnings was scoped to `toolingTab === 'learnings'` only. Extended it to also trigger when `toolingTab === 'all'` or `view === 'dashboard'`. A "Learnings & Memories" subsection now appends below showcase items on the All tab; clicking a card navigates to the learnings tab with that item selected.
+
+2. **Learnings in homepage tooling section** — `EventsToolsRow` now accepts a `learnings?: LearningItem[]` prop and an `onViewLearnings?` callback. Dashboard passes `learningItems` (loaded on `view === 'dashboard'`). Learnings backfill the remaining slots up to 4 total after artifacts.
+
+3. **Dropzone on every tooling tab** — the `.md` file dropzone was only visible on the Learnings & Memories tab. Moved it to render above the tab content on all tabs (All, Skills, Prompts, Apps, Learnings) so users can upload from any context.
+
+4. **Filter section on every tooling tab, including Learnings** — filters (previously absent on the learnings tab) now render on all tabs. The learnings filter uses the exact same `showcase-filter-shell` structure and field order as every other tab:
+   - Search (title / description)
+   - Status (`All statuses` / `Marked as useful` / `Not yet rated` — maps to `hasLiked`)
+   - Tags (comma-separated, matches any tag on the item)
+   - "Marked as useful only" checkbox (mirrors "Featured only")
+   - Advanced: Author name
+
+   Filter state: `learningsSearch`, `learningsStatusFilter`, `learningsTagsFilter`, `learningsAuthorFilter`, `learningsAdvancedOpen`.
+
+**`forge-native/static/frontend/src/components/Homepage/EventsToolsRow.tsx`**
+- Added `learnings?: LearningItem[]` and `onViewLearnings?` props.
+- Renders learning items (type icon `L`, label `Learning · authorName`) in the "Recently added" list, backfilling after artifacts up to 4 items total.
+
+### Gotcha — `filter-row` vs `showcase-filter-shell`
+
+`filter-row` is a bare `display: flex` wrapper with no visible container. Using it for the learnings filter made the search input render invisibly (no border, no panel). Always use `showcase-filter-shell` for tooling tab filters — it provides the bordered/padded card that makes the filter section visible.
+
+### Gotcha — minified bundles
+
+Grepping for TypeScript state variable names (e.g. `learningsSearch`) in a Vite-built dist bundle always returns 0 results — Vite minifies all identifiers. Grep for string literals (placeholder text, labels) instead to verify a feature made it into the built bundle.
+
+### Versions
+- Learnings in all tab + homepage: **APP_VERSION 1.2.205** / Forge v2.208.0 — commit `120b849`
+- Dropzone on all tabs: **APP_VERSION 1.2.206** / Forge v2.209.0 — commit `cf8ffc2`
+- Filter restructure + learnings filter (search only): **APP_VERSION 1.2.208** / Forge v2.212.0 — commit `92f423c`
+- Full learnings filter (search + status + tags + advanced): **APP_VERSION 1.2.209** / Forge v2.213.0 — commit `d35a7bf`
+- Status dropdown added: **APP_VERSION 1.2.210** / Forge v2.215.0 — commit `3c5a39a`
+- Filter order fixed (Search→Status→Tags→checkbox→Advanced): **APP_VERSION 1.2.211** / Forge v2.217.0 — commit `d1baa90`
