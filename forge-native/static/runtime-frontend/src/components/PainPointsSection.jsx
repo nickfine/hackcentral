@@ -151,7 +151,7 @@ export default function PainPointsSection({ appModeResolverPayload, onNavigate }
               <button
                 type="submit"
                 disabled={!gripe.trim() || submitting}
-                className="rounded-2xl bg-emerald-400 px-10 py-4 text-base font-semibold text-slate-950 transition-all shadow-lg hover:shadow-[0_0_16px_rgba(0,240,255,0.3)] hover:bg-emerald-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] px-10 py-4 text-base font-semibold text-white transition-all shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Submitting…' : 'Submit pain point'}
               </button>
