@@ -71,6 +71,7 @@ function Marketplace({
   const [modalPainSearch, setModalPainSearch] = useState('');
   const [modalPainPoints, setModalPainPoints] = useState([]);
   const [modalPainsLoading, setModalPainsLoading] = useState(false);
+  const [showPainPointPicker, setShowPainPointPicker] = useState(false);
 
   // Load pain points for Create Team modal
   useEffect(() => {
@@ -232,6 +233,7 @@ function Marketplace({
                 setNewTeam({ name: '', description: '', lookingFor: [], maxMembers: Math.min(maxTeamSize, 6) });
                 setSelectedPainPointIds([]);
                 setModalPainSearch('');
+                setShowPainPointPicker(false);
                 setShowCreateTeamModal(true);
               }}
               title={
@@ -446,6 +448,9 @@ function Marketplace({
                     className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => {
                       setCreateTeamStatus(null);
+                      setSelectedPainPointIds([]);
+                      setModalPainSearch('');
+                      setShowPainPointPicker(false);
                       setShowCreateTeamModal(true);
                     }}
                     disabled={!canCreateTeam}
@@ -629,85 +634,105 @@ function Marketplace({
             })}
           />
 
-          {/* Pain point selector */}
+          {/* Pain point selector — optional, collapsed by default */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Pain Points <span className="text-xs font-normal text-gray-400">(optional)</span>
-            </label>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Link one pain point that your team plans to tackle.
-            </p>
-            {selectedPainPointIds.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedPainPointIds.map((id) => {
-                  const pp = modalPainPoints.find((p) => p._id === id);
-                  return pp ? (
-                    <span key={id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] px-2.5 py-0.5 text-xs text-[var(--accent)]">
-                      {pp.title}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPainPointIds([])}
-                        className="ml-0.5 text-[var(--accent)] hover:opacity-70"
-                        aria-label="Remove"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            )}
-            {selectedPainPointIds.length === 0 && (
-            <input
-              type="text"
-              value={modalPainSearch}
-              onChange={(e) => setModalPainSearch(e.target.value)}
-              placeholder="Search pain points…"
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-subtle)] focus:border-[var(--accent)] mb-1.5"
-            />
-            )}
-            {selectedPainPointIds.length === 0 && (modalPainsLoading ? (
-              <div className="space-y-1">
-                {[1, 2, 3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />)}
-              </div>
-            ) : (
-              <ul className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                {modalPainPoints
-                  .filter((pp) => {
-                    const q = modalPainSearch.toLowerCase();
-                    return !q || pp.title?.toLowerCase().includes(q) || pp.submitterName?.toLowerCase().includes(q);
-                  })
-                  .slice(0, 50)
-                  .map((pp) => {
-                    const isSelected = selectedPainPointIds.includes(pp._id);
-                    return (
-                      <li key={pp._id}>
+            {selectedPainPointIds.length > 0 ? (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Pain Point
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedPainPointIds.map((id) => {
+                    const pp = modalPainPoints.find((p) => p._id === id);
+                    return pp ? (
+                      <span key={id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] px-2.5 py-0.5 text-xs text-[var(--accent)]">
+                        {pp.title}
                         <button
                           type="button"
-                          onClick={() => setSelectedPainPointIds(isSelected ? [] : [pp._id])}
-                          className={cn(
-                            'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
-                            isSelected
-                              ? 'bg-[var(--accent-subtle)] text-[var(--accent)]'
-                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
-                          )}
+                          onClick={() => { setSelectedPainPointIds([]); setShowPainPointPicker(false); }}
+                          className="ml-0.5 text-[var(--accent)] hover:opacity-70"
+                          aria-label="Remove"
                         >
-                          <span className={cn('flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px]',
-                            isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-gray-300 dark:border-gray-600'
-                          )}>
-                            {isSelected && '✓'}
-                          </span>
-                          <span className="flex-1 truncate">{pp.title}</span>
-                          <span className="flex-shrink-0 text-[10px] text-gray-400">🔥 {pp.reactionCount}</span>
+                          ×
                         </button>
-                      </li>
-                    );
+                      </span>
+                    ) : null;
                   })}
-                {modalPainPoints.length === 0 && (
-                  <li className="px-3 py-3 text-sm text-gray-400 text-center">No pain points yet</li>
+                </div>
+              </div>
+            ) : showPainPointPicker ? (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Link a Pain Point <span className="text-xs font-normal text-gray-400">(optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowPainPointPicker(false); setModalPainSearch(''); }}
+                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={modalPainSearch}
+                  onChange={(e) => setModalPainSearch(e.target.value)}
+                  placeholder="Search pain points…"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-subtle)] focus:border-[var(--accent)] mb-1.5"
+                />
+                {modalPainsLoading ? (
+                  <div className="space-y-1">
+                    {[1, 2, 3].map((i) => <div key={i} className="h-8 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />)}
+                  </div>
+                ) : (
+                  <ul className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                    {modalPainPoints
+                      .filter((pp) => {
+                        const q = modalPainSearch.toLowerCase();
+                        return !q || pp.title?.toLowerCase().includes(q) || pp.submitterName?.toLowerCase().includes(q);
+                      })
+                      .slice(0, 50)
+                      .map((pp) => {
+                        const isSelected = selectedPainPointIds.includes(pp._id);
+                        return (
+                          <li key={pp._id}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPainPointIds(isSelected ? [] : [pp._id])}
+                              className={cn(
+                                'w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
+                                isSelected
+                                  ? 'bg-[var(--accent-subtle)] text-[var(--accent)]'
+                                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
+                              )}
+                            >
+                              <span className={cn('flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px]',
+                                isSelected ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-gray-300 dark:border-gray-600'
+                              )}>
+                                {isSelected && '✓'}
+                              </span>
+                              <span className="flex-1 truncate">{pp.title}</span>
+                              <span className="flex-shrink-0 text-[10px] text-gray-400">🔥 {pp.reactionCount}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    {modalPainPoints.length === 0 && (
+                      <li className="px-3 py-3 text-sm text-gray-400 text-center">No pain points yet</li>
+                    )}
+                  </ul>
                 )}
-              </ul>
-            ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPainPointPicker(true)}
+                className="text-sm text-[var(--accent)] hover:underline"
+              >
+                + Link a pain point (optional)
+              </button>
+            )}
           </div>
         </VStack>
 
