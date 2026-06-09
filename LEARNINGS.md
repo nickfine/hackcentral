@@ -1,6 +1,24 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 8, 2026
+**Last Updated:** June 9, 2026
+
+---
+
+## Session Update — Pain Point Picker UX Fix (Jun 9, 2026)
+
+### What Changed
+
+Made pain point selection opt-in in the Create Team modal (v1.2.220).
+
+### Symptom
+
+Users reported the Create Team CTA appeared disabled even after filling in all content. The full pain point list was always rendered in the modal, scrolling the Create Team button out of view and implying that a pain point selection was required before submitting.
+
+### Fix
+
+Added `showPainPointPicker` state (default `false`). The modal now shows a minimal `+ Link a pain point (optional)` text button. Clicking it expands the search + list picker. Selecting a pain point shows a removable tag chip. The picker collapses back if cancelled. Reset on every modal open.
+
+The submit button was and remains `disabled={!newTeam.name.trim()}` — only team name is required.
 
 ---
 
