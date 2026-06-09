@@ -95,6 +95,11 @@ function Marketplace({
     return () => { cancelled = true; };
   }, [showCreateTeamModal, appModeResolverPayload]);
 
+  const [inviteAgent, setInviteAgent] = useState(null);
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState(null);
+
   const itemsPerPage = 12;
 
   // Find user's team
@@ -105,6 +110,8 @@ function Marketplace({
       team.members?.some((m) => m.id === user.id)
     );
   }, [user?.id, teams]);
+
+  const isCaptain = userTeam?.captainId === user?.id;
 
   // Filter teams by search
   const filteredTeams = useMemo(() => {
@@ -140,9 +147,10 @@ function Marketplace({
     );
   }, [freeAgents, searchTerm, user?.id]);
 
-  // Determine if team creation is allowed in current phase
+  // Determine if team creation / inviting is allowed in current phase
   const EDITABLE_PHASES = ['signup', 'team_formation'];
   const canCreateTeam = EDITABLE_PHASES.includes(eventPhase);
+  const canInvite = canCreateTeam;
 
   // Show skeleton while loading (after all hooks)
   if (isLoading) {
@@ -196,6 +204,27 @@ function Marketplace({
       });
     } finally {
       setIsCreatingTeam(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteAgent || !userTeam) return;
+    setIsSendingInvite(true);
+    setInviteStatus(null);
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'sendInvite', appModeResolverPayload, {
+        teamId: userTeam.id,
+        userId: inviteAgent.id,
+        message: inviteMessage.trim() || null,
+      });
+      setInviteStatus({ type: 'success', message: `Invite sent to ${inviteAgent.name}` });
+      setInviteAgent(null);
+      setInviteMessage('');
+    } catch (e) {
+      setInviteStatus({ type: 'error', message: e.message || 'Failed to send invite' });
+    } finally {
+      setIsSendingInvite(false);
     }
   };
 
@@ -489,6 +518,16 @@ function Marketplace({
         </Tabs.Panel>
 
         <Tabs.Panel value="agents">
+          {inviteStatus && (
+            <Alert
+              variant={inviteStatus.type}
+              dismissible
+              onDismiss={() => setInviteStatus(null)}
+              className="mt-4 mb-2"
+            >
+              {inviteStatus.message}
+            </Alert>
+          )}
           {filteredAgents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
               {filteredAgents.map((agent) => (
@@ -525,6 +564,15 @@ function Marketplace({
                     <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                       {agent.bio}
                     </p>
+                  )}
+                  {isCaptain && canInvite && agent.id !== user?.id && (
+                    <button
+                      type="button"
+                      onClick={() => { setInviteAgent(agent); setInviteMessage(''); setInviteStatus(null); }}
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors border-0"
+                    >
+                      Invite to {userTeam.name}
+                    </button>
                   )}
                 </div>
               ))}
@@ -751,6 +799,42 @@ function Marketplace({
             disabled={!newTeam.name.trim()}
           >
             Create Team
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Invite Free Agent Modal */}
+      <Modal
+        isOpen={!!inviteAgent}
+        onClose={() => { setInviteAgent(null); setInviteMessage(''); }}
+        title={`Invite ${inviteAgent?.name || ''}`}
+        description={`Send a personal invite to join ${userTeam?.name || 'your team'}`}
+        size="sm"
+        panelClassName={DESIGN_SYSTEM_CARD}
+      >
+        <VStack gap="4">
+          <TextArea
+            label="Personal message (optional)"
+            placeholder="Tell them why you'd love them on the team…"
+            value={inviteMessage}
+            onChange={(e) => setInviteMessage(e.target.value)}
+            rows={3}
+          />
+        </VStack>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            className="border border-gray-300 dark:border-gray-600 rounded-lg"
+            onClick={() => { setInviteAgent(null); setInviteMessage(''); }}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
+            onClick={handleSendInvite}
+            loading={isSendingInvite}
+          >
+            Send Invite
           </Button>
         </Modal.Footer>
       </Modal>

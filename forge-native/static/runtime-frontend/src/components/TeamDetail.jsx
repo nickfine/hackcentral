@@ -31,6 +31,7 @@ import { BackButton } from './shared';
 import { SKILLS } from '../data/constants';
 import DeleteTeamModal from './teamDetail/DeleteTeamModal';
 import PainPointsPanel from './teamDetail/PainPointsPanel';
+import InvitationsPanel from './teamDetail/InvitationsPanel';
 
 const CONTENT_HELPERS = {
   goal: 'What are you building? Describe it in one sentence',
@@ -230,6 +231,8 @@ function buildInitialReactionCounts(team) {
 function TeamDetail({
   team,
   user,
+  teams,
+  freeAgents = [],
   onNavigate,
   onUpdateTeam,
   onDeleteTeam,
@@ -1314,6 +1317,16 @@ function TeamDetail({
             ))}
           </div>
           )}
+
+          <InvitationsPanel
+            teamId={team?.id}
+            teamName={team?.name}
+            isCaptain={isCaptain}
+            freeAgents={freeAgents}
+            appModeResolverPayload={appModeResolverPayload}
+            eventPhase={eventPhase}
+            onNavigate={onNavigate}
+          />
         </div>
       </div>
 

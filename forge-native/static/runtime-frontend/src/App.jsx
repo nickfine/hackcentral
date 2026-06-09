@@ -1834,6 +1834,7 @@ function App() {
             team={selectedTeam}
             user={effectiveUser}
             teams={teams}
+            freeAgents={freeAgents}
             onNavigate={handleNavigate}
             onUpdateTeam={handleUpdateTeam}
             onDeleteTeam={handleDeleteTeam}
