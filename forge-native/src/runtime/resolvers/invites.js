@@ -148,7 +148,7 @@ resolver.define("sendInvite", async (req) => {
     expiresAt.setDate(expiresAt.getDate() + 7);
     
     const { error: inviteError } = await supabase.from("TeamInvite").insert({
-      id: makeId("invite"),
+      id: randomUUID(),
       teamId,
       userId,
       message: message || null,
