@@ -110,7 +110,7 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
           fullWidth
           variant={isVoted ? 'primary' : 'secondary'}
           onClick={() => onVote(team.id)}
-          disabled={isLoading || (!isVoted && !canVote)}
+          disabled={isLoading || !canVote}
           loading={isLoading}
           leftIcon={!isLoading ? <Star className={cn('w-5 h-5', isVoted && 'fill-white')} /> : undefined}
           className={cn(isVoted && !isLoading && 'bg-amber-500 hover:bg-amber-600 border-amber-500')}
