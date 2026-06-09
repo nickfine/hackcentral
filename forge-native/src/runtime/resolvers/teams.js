@@ -793,7 +793,7 @@ resolver.define("requestToJoin", async (req) => {
         type: "JOIN_REQUEST",
         title: "Join Request Received",
         message: `${user.name || "Someone"} wants to join your team`,
-        actionUrl: `teams?teamId=${teamId}`,
+        actionUrl: `team-detail?teamId=${teamId}`,
       });
     }
 
@@ -890,7 +890,7 @@ resolver.define("handleJoinRequest", async (req) => {
           type: "JOIN_REQUEST",
           title: "Join Request Accepted",
           message: "Your request to join the team has been accepted",
-          actionUrl: "teams",
+          actionUrl: `team-detail?teamId=${request.teamId}`,
         });
       } else {
       // Reject request - delete it

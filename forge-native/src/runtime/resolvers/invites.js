@@ -268,7 +268,7 @@ resolver.define("respondToInvite", async (req) => {
           type: "TEAM_INVITE",
           title: "Invite Accepted",
           message: `${user.name || "Someone"} accepted your team invite`,
-          actionUrl: `teams?teamId=${invite.teamId}`,
+          actionUrl: `team-detail?teamId=${invite.teamId}`,
         });
       }
     } else {
