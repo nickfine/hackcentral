@@ -3,7 +3,7 @@
  * People's Choice voting for submitted projects
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Star,
   Grid3x3,
@@ -143,6 +143,27 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
   const [voteError, setVoteError] = useState('');
 
   const MAX_VOTES = Math.max(1, Math.floor(Number(maxVotesPerUser) || 1));
+
+  // Load existing votes on mount so state survives page reloads
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    async function loadVotes() {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'getVotes', appModeResolverPayload, {});
+        if (cancelled) return;
+        const myVoteTeamIds = (result?.votes || [])
+          .filter((v) => v.voterId === user.id)
+          .map((v) => v.teamId);
+        setVotes(myVoteTeamIds);
+      } catch (err) {
+        console.error('Failed to load votes:', err);
+      }
+    }
+    loadVotes();
+    return () => { cancelled = true; };
+  }, [user?.id, appModeResolverPayload]);
 
   // Get projects with submissions
   const submittedProjects = useMemo(() => {
