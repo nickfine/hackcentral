@@ -1745,6 +1745,7 @@ function App() {
             devRoleOverride={devRoleOverride}
             onAutoAssignOptIn={handleAutoAssignOptIn}
             allUsers={allUsers}
+            freeAgents={freeAgents}
             bootstrapActivityFeed={bootstrapActivityFeed}
             bootstrapSchedule={bootstrapSchedule}
           />

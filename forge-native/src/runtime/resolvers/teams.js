@@ -1071,18 +1071,54 @@ resolver.define("getFreeAgents", async (req) => {
   }
 
   try {
-    // Get all free agents
+    // Get teams for this event
+    const { data: eventTeams, error: teamsError } = await supabase
+      .from("Team")
+      .select("id")
+      .eq("eventId", event.id);
+
+    if (teamsError) throw teamsError;
+
+    const teamIds = (eventTeams || []).map(t => t.id);
+
+    // Get user IDs who are accepted members of those teams
+    const teamMemberIds = new Set();
+    if (teamIds.length > 0) {
+      const { data: teamMembers, error: membersError } = await supabase
+        .from("TeamMember")
+        .select("userId")
+        .in("teamId", teamIds)
+        .eq("status", "ACCEPTED");
+
+      if (membersError) throw membersError;
+      (teamMembers || []).forEach(m => teamMemberIds.add(m.userId));
+    }
+
+    // Get all users registered for this event who are not on a team
+    const { data: registrations, error: regError } = await supabase
+      .from("EventRegistration")
+      .select("userId")
+      .eq("eventId", event.id);
+
+    if (regError) throw regError;
+
+    const freeAgentIds = (registrations || [])
+      .map(r => r.userId)
+      .filter(id => !teamMemberIds.has(id));
+
+    if (freeAgentIds.length === 0) return { freeAgents: [] };
+
+    // Fetch full user records
     const { data: freeAgents, error } = await supabase
       .from("User")
       .select("*")
-      .eq("isFreeAgent", true)
-      .eq("role", "USER")
+      .in("id", freeAgentIds)
       .order("createdAt", { ascending: false });
 
     if (error) throw error;
 
     // Get pending invites for these users
-    const userIds = (freeAgents || []).map(u => u.id);
+    const userIds = freeAgentIds;
     const { data: invites, error: invitesError } = await supabase
       .from("TeamInvite")
       .select(`
@@ -1115,6 +1151,8 @@ resolver.define("getFreeAgents", async (req) => {
       accountId: user.atlassian_account_id,
       name: user.name || "Unknown",
       email: user.email,
+      callsign: user.callsign || null,
+      bio: user.bio || null,
       skills: user.skills ? user.skills.split(",").map(s => s.trim()) : [],
       invites: invitesByUser[user.id] || [],
     }));

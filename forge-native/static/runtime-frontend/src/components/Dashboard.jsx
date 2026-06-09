@@ -448,6 +448,7 @@ function Dashboard({
   eventMeta = null,
   appModeResolverPayload = null,
   allUsers = null,
+  freeAgents = null,
   bootstrapActivityFeed = null,
   bootstrapSchedule = null,
 }) {
@@ -612,10 +613,10 @@ function Dashboard({
     return {
       participants: registrations.length,
       teams: activeTeams.length,
-      freeAgents: registrations.filter((r) => r.isFreeAgent).length,
+      freeAgents: freeAgents !== null ? freeAgents.length : registrations.filter((r) => r.isFreeAgent).length,
       submissions: activeTeams.filter((t) => t.submission?.status === 'submitted').length,
     };
-  }, [data, teams]);
+  }, [data, teams, freeAgents]);
 
   // CORE UX IMPROVEMENT 3 - Dynamic trends from real createdAt timestamps
   const dailyDeltas = useDailyDeltas(data?.registrations, teams);

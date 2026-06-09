@@ -236,24 +236,33 @@ const TeamCard = forwardRef(({
         </div>
       )}
 
-      {/* Looking For Tags */}
-      {showLookingFor && team.lookingFor && team.lookingFor.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-auto">
-          {team.lookingFor.slice(0, 3).map((skill, idx) => (
-            <span
-              key={idx}
-              className="marketplace-card-skill-tag rounded-lg text-xs px-2 py-0.5 bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-            >
-              {skill}
-            </span>
-          ))}
-          {team.lookingFor.length > 3 && (
-            <span className="marketplace-card-skill-tag rounded-lg text-xs px-2 py-0.5 bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
-              +{team.lookingFor.length - 3}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Bottom section: looking-for tags + CTA, pushed to bottom of card */}
+      <div className="mt-auto flex flex-col gap-2">
+        {showLookingFor && team.lookingFor && team.lookingFor.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {team.lookingFor.slice(0, 3).map((skill, idx) => (
+              <span
+                key={idx}
+                className="marketplace-card-skill-tag rounded-lg text-xs px-2 py-0.5 bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                {skill}
+              </span>
+            ))}
+            {team.lookingFor.length > 3 && (
+              <span className="marketplace-card-skill-tag rounded-lg text-xs px-2 py-0.5 bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                +{team.lookingFor.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+
+        {clickable && (
+          <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-1 text-xs font-medium text-[var(--accent)]">
+            See team details
+            <ChevronRight className="w-3.5 h-3.5" />
+          </div>
+        )}
+      </div>
     </div>
   );
 });

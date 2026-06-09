@@ -4,6 +4,54 @@
 
 ---
 
+## Session Update — Join Team Schema Drift Fix (Jun 8, 2026)
+
+### What Changed
+
+DB-only fix. Added `message TEXT NULL` column to the `TeamMember` table on the production tag-hackday Supabase project (`easooezlgwbiiqqlpvpb`).
+
+### Symptom
+
+Users hitting "Request to Join" on a team saw:
+
+> There was an error invoking the function - Failed to request join: Could not find the 'message' column of 'TeamMember' in the schema cache
+
+### Root Cause
+
+`resolvers/teams.js:775` (`requestToJoin`) inserts `message: message?.trim() || null` into `TeamMember`, but the column had never been added to the Supabase schema. The join-request modal in `TeamDetail.jsx` has always collected a `requestMessage` and sent it through `App.jsx:1421` — code and UI were in place, only the DB column was missing.
+
+### Fix
+
+```sql
+ALTER TABLE "TeamMember" ADD COLUMN IF NOT EXISTS message TEXT NULL;
+```
+
+No code or deploy needed. The read path was already correct:
+- `getTeam` selects `*` from `TeamMember` (resolvers/teams.js:400)
+- `transformTeam` maps `m.message || ""` into `joinRequests[].message` (lib/transforms.js:78)
+- `TeamDetail.jsx` renders `joinRequests` to the captain
+
+### PostgREST schema cache
+
+After a DDL migration applied via the Supabase management API (which `apply_migration` uses), PostgREST normally auto-reloads its schema cache within ~30s. If you hit the same "schema cache" error after a migration, force a reload manually:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+### Pattern to watch
+
+Code + UI shipped without the matching DB column is invisible until a user triggers the write path. Worth a periodic sweep:
+
+```bash
+# Find all Supabase inserts/upserts in resolvers
+grep -rn "\.from(.*).insert\|\.from(.*).upsert" forge-native/src/runtime/resolvers --include="*.js"
+```
+
+Then cross-reference inserted column names against `information_schema.columns` for each table.
+
+---
+
 ## Session Update — EIS Design System Full Migration (Jun 8, 2026)
 
 ### What Changed
@@ -6653,3 +6701,63 @@ Grepping for TypeScript state variable names (e.g. `learningsSearch`) in a Vite-
 - Full learnings filter (search + status + tags + advanced): **APP_VERSION 1.2.209** / Forge v2.213.0 — commit `d35a7bf`
 - Status dropdown added: **APP_VERSION 1.2.210** / Forge v2.215.0 — commit `3c5a39a`
 - Filter order fixed (Search→Status→Tags→checkbox→Advanced): **APP_VERSION 1.2.211** / Forge v2.217.0 — commit `d1baa90`
+
+---
+
+## Session Update - Free Agent Discovery Improvements (Jun 9, 2026)
+
+### Problem
+
+Free agents and team formation were stalled. Investigation revealed two bugs:
+
+1. **`isFreeAgent` flag was wrong for ~59 users.** The flag was only set to `true` during the signup flow. Anyone whose flag was never initialised, or where it was reset, showed as `isFreeAgent = false` despite having no team. The `getFreeAgents` resolver trusted this flag blindly, so 59 of 83 real free agents were invisible.
+
+2. **Dashboard free agent count used the same stale flag** (`registrations.filter(r => r.isFreeAgent).length`), so the stat was consistently wrong.
+
+### Fix
+
+**Resolver rewrite (`getFreeAgents` in `resolvers/teams.js`):**
+- No longer queries `isFreeAgent = true`
+- Now derives free agents from `EventRegistration` (scoped to current event) minus `TeamMember` (status = `ACCEPTED`) for that event's teams
+- Source of truth is actual membership, not a flag
+
+**Dashboard stat (`Dashboard.jsx`):**
+- `freeAgents` array is now passed explicitly from `App.jsx` as a prop
+- `stats.freeAgents` uses `freeAgents.length` directly (falls back to old flag-based count only if prop is null)
+- Both the Marketplace tab count and the dashboard stat now use the same data source
+
+**Data fix (one-off SQL):**
+Bulk-updated all `USER` role accounts with `isFreeAgent = false` and no `TeamMember` record to `isFreeAgent = true`. This was a clean-up only — the resolver no longer depends on the flag.
+
+### Other changes this session
+
+**TeamCard — "See team details" CTA:**
+- Default variant now has a border-separated footer row at the bottom: "See team details →" in accent colour
+- Only rendered when `clickable = true`
+- Looking-for tags and the CTA are wrapped in a single `mt-auto` container to keep both pinned to the card bottom
+
+**Free agent cards — callsign + bio:**
+- `getFreeAgents` transform now includes `callsign` and `bio` fields (were fetched via `select("*")` but never mapped)
+- Bio renders as up to 2 lines (`line-clamp-2`) below the skills badges on each free agent card
+- Callsign was already rendering in the JSX but was always null due to the missing mapping
+
+**Free agent list — self-exclusion removed:**
+- `filteredAgents` previously excluded the current user (`agent.id !== user?.id`)
+- Filter removed; all registered free agents (including the viewing user) now appear
+
+**`isFreeAgent` flag on admin accounts:**
+- Admins are excluded from `role = 'USER'` queries but can appear in `EventRegistration`
+- The new resolver includes admins naturally if they have an `EventRegistration` record and no team
+- Role filter removed from `getFreeAgents` entirely
+
+### Gotcha — `isFreeAgent` flag is now vestigial for free agent listing
+
+The flag is still written when users join/leave teams (existing resolver logic), but `getFreeAgents` no longer reads it. Do not re-introduce a flag-based filter here — the flag drifts and caused the original bug.
+
+### Versions
+- "See team details" CTA on TeamCard: **v1.2.214** / Forge v2.221.0
+- Free agent callsign + bio: **v1.2.215** / Forge v2.222.0
+- Admins included in free agents (role filter removed): **v1.2.216** / Forge v2.223.0
+- Self-exclusion filter removed from Marketplace: **v1.2.217** / Forge v2.224.0
+- `getFreeAgents` rewritten to use EventRegistration − TeamMember: **v1.2.218** / Forge v2.225.0
+- Dashboard free agent stat fixed: **v1.2.219** / Forge v2.226.0

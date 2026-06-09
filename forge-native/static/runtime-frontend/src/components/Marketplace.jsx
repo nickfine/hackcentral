@@ -132,11 +132,10 @@ function Marketplace({
     const searchLower = searchTerm.toLowerCase();
     return freeAgents.filter(
       (agent) =>
-        agent.id !== user?.id &&
-        (agent.name?.toLowerCase().includes(searchLower) ||
-          agent.skills?.some((skill) =>
-            skill.toLowerCase().includes(searchLower)
-          ))
+        agent.name?.toLowerCase().includes(searchLower) ||
+        agent.skills?.some((skill) =>
+          skill.toLowerCase().includes(searchLower)
+        )
     );
   }, [freeAgents, searchTerm, user?.id]);
 
@@ -517,6 +516,11 @@ function Marketplace({
                       )}
                     </div>
                   </div>
+                  {agent.bio && (
+                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                      {agent.bio}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
