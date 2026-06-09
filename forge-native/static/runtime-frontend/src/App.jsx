@@ -699,14 +699,16 @@ function App() {
 
   // Navigation handler
   const handleNavigate = useCallback((view, params = {}, options = {}) => {
-    setCurrentView(view);
+    // 'teams' was used in notification actionUrls before being corrected to 'team-detail'
+    const resolvedView = view === 'teams' ? 'team-detail' : view;
+    setCurrentView(resolvedView);
     setViewParams(params);
 
     if (!urlRoutingEnabled || options.skipHistory) {
       return;
     }
 
-    const nextPath = resolvePathForView(view, params);
+    const nextPath = resolvePathForView(resolvedView, params);
     if (!nextPath) {
       return;
     }
@@ -715,7 +717,7 @@ function App() {
       const currentUrl = `${window.location.pathname}${window.location.search}`;
       if (currentUrl !== nextPath) {
         const historyMethod = options.replace ? 'replaceState' : 'pushState';
-        window.history[historyMethod]({ view, params }, '', nextPath);
+        window.history[historyMethod]({ view: resolvedView, params }, '', nextPath);
       }
     } catch (historyError) {
       console.warn('Failed to sync URL route:', historyError);
