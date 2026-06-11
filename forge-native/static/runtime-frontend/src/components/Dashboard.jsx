@@ -1236,7 +1236,7 @@ function Dashboard({
                 label: 'Community',
                 value: '#hackday',
                 meta: 'Slack channel',
-                accent: 'Join the conversation',
+                accent: 'Find teammates',
                 href: slackChannelUrl,
                 testId: 'dashboard-kpi-community',
               }
