@@ -458,6 +458,7 @@ function App() {
           accentColor: getThemePresetAccent(devThemePreset, 'light'),
           themePreset: devThemePreset,
           ...(devTheme && ['light', 'dark', 'system'].includes(devTheme) ? { themePreference: devTheme } : {}),
+          slackChannelUrl: 'https://slack.com/app_redirect?channel=hackday',
         });
         if (devPageId && typeof devPageId === 'string') {
           setEventPageId(devPageId.trim() || null);
