@@ -96,6 +96,7 @@ resolver.define("updateEventBranding", async (req) => {
   if (payload.bannerImageUrl !== undefined) updates.bannerImageUrl = String(payload.bannerImageUrl).trim();
   if (payload.heroIconImageUrl !== undefined) updates.heroIconImageUrl = String(payload.heroIconImageUrl).trim();
   if (payload.newToHackdayImageUrl !== undefined) updates.newToHackdayImageUrl = String(payload.newToHackdayImageUrl).trim();
+  if (payload.slackChannelUrl !== undefined) updates.slackChannelUrl = String(payload.slackChannelUrl).trim();
   if (payload.themePreference !== undefined) updates.themePreference = ["light", "dark", "system"].includes(payload.themePreference) ? payload.themePreference : existingBranding.themePreference;
   if (payload.themePreset !== undefined) {
     const preset = String(payload.themePreset || "").trim();

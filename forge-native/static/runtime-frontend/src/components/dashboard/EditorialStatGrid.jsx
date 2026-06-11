@@ -1,10 +1,10 @@
 import { useCountUp } from '../../hooks/useCountUp';
 
-function StatCard({ label, value, rawValue, meta, accent, testId }) {
+function StatCard({ label, value, rawValue, meta, accent, href, testId }) {
   const animatedNum = useCountUp(typeof rawValue === 'number' ? rawValue : 0, 900);
   const displayValue = typeof rawValue === 'number' ? animatedNum.toLocaleString() : value;
 
-  return (
+  const card = (
     <div
       className="rounded-[22px] border bg-[var(--stat-card-bg)] p-5 shadow-[var(--card-inner-edge),var(--card-inner-edge-bottom),var(--card-depth-subtle)] transition-all duration-200 hover:border-[var(--accent)]"
       style={{ borderColor: 'var(--stat-card-border)' }}
@@ -21,6 +21,16 @@ function StatCard({ label, value, rawValue, meta, accent, testId }) {
       {accent && <div className="mt-3.5 text-sm font-medium text-[var(--stat-accent-color)]">{accent}</div>}
     </div>
   );
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+        {card}
+      </a>
+    );
+  }
+
+  return card;
 }
 
 /**

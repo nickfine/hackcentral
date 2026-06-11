@@ -153,6 +153,7 @@ function buildNormalizedBrandingState(branding = {}) {
     bannerImageUrl: typeof branding?.bannerImageUrl === 'string' ? branding.bannerImageUrl.trim() : '',
     heroIconImageUrl: typeof branding?.heroIconImageUrl === 'string' ? branding.heroIconImageUrl.trim() : '',
     newToHackdayImageUrl: typeof branding?.newToHackdayImageUrl === 'string' ? branding.newToHackdayImageUrl.trim() : '',
+    slackChannelUrl: typeof branding?.slackChannelUrl === 'string' ? branding.slackChannelUrl.trim() : '',
     themePreference: normalizeThemePreference(branding?.themePreference, 'system'),
     themePreset,
   };
@@ -164,6 +165,7 @@ function brandingStatesEqual(a, b) {
     a?.bannerImageUrl === b?.bannerImageUrl &&
     a?.heroIconImageUrl === b?.heroIconImageUrl &&
     a?.newToHackdayImageUrl === b?.newToHackdayImageUrl &&
+    a?.slackChannelUrl === b?.slackChannelUrl &&
     a?.themePreference === b?.themePreference &&
     a?.themePreset === b?.themePreset
   );
@@ -332,6 +334,7 @@ function AdminPanel({
     bannerImageUrl: '',
     heroIconImageUrl: '',
     newToHackdayImageUrl: '',
+    slackChannelUrl: '',
     themePreference: 'system',
     themePreset: DEFAULT_THEME_PRESET,
   });
@@ -1142,11 +1145,13 @@ function AdminPanel({
       const bannerImageUrl = brandingForm.bannerImageUrl.trim();
       const heroIconImageUrl = brandingForm.heroIconImageUrl.trim();
       const newToHackdayImageUrl = brandingForm.newToHackdayImageUrl.trim();
+      const slackChannelUrl = brandingForm.slackChannelUrl.trim();
       const nextBranding = {
         accentColor,
         bannerImageUrl,
         heroIconImageUrl,
         newToHackdayImageUrl,
+        slackChannelUrl,
         themePreference: normalizeThemePreference(brandingForm.themePreference, 'system'),
         themePreset,
       };
@@ -1155,6 +1160,7 @@ function AdminPanel({
         configMode.setFieldValue('branding.bannerImageUrl', bannerImageUrl);
         configMode.setFieldValue('branding.heroIconImageUrl', heroIconImageUrl);
         configMode.setFieldValue('branding.newToHackdayImageUrl', newToHackdayImageUrl);
+        configMode.setFieldValue('branding.slackChannelUrl', slackChannelUrl);
         configMode.setFieldValue('branding.themePreference', nextBranding.themePreference);
         configMode.setFieldValue('branding.themePreset', themePreset);
         const result = await configMode.saveDraft();
@@ -1174,6 +1180,7 @@ function AdminPanel({
         bannerImageUrl,
         heroIconImageUrl,
         newToHackdayImageUrl,
+        slackChannelUrl,
         themePreference: nextBranding.themePreference || undefined,
         themePreset,
       });
@@ -2785,6 +2792,26 @@ function AdminPanel({
                       ) : null}
                     </div>
                     </div>
+                  </div>
+                </section>
+
+                <div className="branding-section-break" aria-hidden="true" />
+
+                <section className="branding-section" data-branding-section="community">
+                  <div className="branding-section-header">
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">Community</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Slack channel link shown on the dashboard during team formation phase.</span>
+                  </div>
+                  <div className="branding-field-group">
+                    <Input
+                      label="Slack channel URL"
+                      type="url"
+                      value={brandingForm.slackChannelUrl}
+                      onChange={(e) => setBrandingForm((prev) => ({ ...prev, slackChannelUrl: e.target.value }))}
+                      placeholder="https://yourworkspace.slack.com/archives/..."
+                      helperText="Paste the link to your #hackday Slack channel. Opens in a new tab."
+                      disabled={!isEventAdmin || isSavingBranding}
+                    />
                   </div>
                 </section>
 

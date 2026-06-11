@@ -2341,6 +2341,9 @@ export function sanitizeManagedBrandingValue(value) {
   if (value.newToHackdayImageUrl !== undefined && value.newToHackdayImageUrl !== null) {
     next.newToHackdayImageUrl = String(value.newToHackdayImageUrl).trim();
   }
+  if (value.slackChannelUrl !== undefined && value.slackChannelUrl !== null) {
+    next.slackChannelUrl = String(value.slackChannelUrl).trim();
+  }
   if (value.themePreference !== undefined && value.themePreference !== null) {
     const pref = String(value.themePreference).trim();
     if (["light", "dark", "system"].includes(pref)) {

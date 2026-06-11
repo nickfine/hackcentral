@@ -577,6 +577,12 @@ function Dashboard({
   })();
   const heroLogoSrc = heroIconImageUrl || './hackday-icon.png';
   const heroLogoAlt = heroIconImageUrl ? 'HackDay hero icon' : 'HackDay';
+  const slackChannelUrl = (() => {
+    const fallback = typeof eventBranding?.slackChannelUrl === 'string' ? eventBranding.slackChannelUrl : '';
+    const next = configMode?.getFieldValue?.('branding.slackChannelUrl', fallback);
+    return typeof next === 'string' ? next.trim() : '';
+  })();
+  const showCommunityCard = eventPhase === 'team_formation' && Boolean(slackChannelUrl);
 
   // Check for free agent reminders when dashboard loads
   useEffect(() => {
@@ -850,32 +856,39 @@ function Dashboard({
     };
   }, [myProgress.submissionReady, myProgress.deadlineRisk, hasSubmitted, eventPhase, isEarlyExecutionPhase]);
 
-  const readinessItems = useMemo(() => ([
-    {
-      id: 'team',
-      pillLabel: 'Team',
-      value: teamReadiness.label,
-      tone: teamReadiness.tone,
-      detail: teamReadiness.detail,
-      testId: 'readiness-pill-team',
-    },
-    {
-      id: 'submission',
-      pillLabel: 'Submission',
-      value: submissionReadiness.label,
-      tone: submissionReadiness.tone,
-      detail: submissionReadiness.detail,
-      testId: 'readiness-pill-submission',
-    },
-    {
-      id: 'profile',
-      pillLabel: 'Profile',
-      value: profileReadiness.label,
-      tone: profileReadiness.tone,
-      detail: profileReadiness.detail,
-      testId: 'readiness-pill-profile',
-    },
-  ]), [teamReadiness, submissionReadiness, profileReadiness]);
+  const readinessItems = useMemo(() => {
+    const base = [
+      {
+        id: 'team',
+        pillLabel: 'Team',
+        value: teamReadiness.label,
+        tone: teamReadiness.tone,
+        detail: teamReadiness.detail,
+        testId: 'readiness-pill-team',
+      },
+      {
+        id: 'profile',
+        pillLabel: 'Profile',
+        value: profileReadiness.label,
+        tone: profileReadiness.tone,
+        detail: profileReadiness.detail,
+        testId: 'readiness-pill-profile',
+      },
+    ];
+    if (isEarlyExecutionPhase) return base;
+    return [
+      base[0],
+      {
+        id: 'submission',
+        pillLabel: 'Submission',
+        value: submissionReadiness.label,
+        tone: submissionReadiness.tone,
+        detail: submissionReadiness.detail,
+        testId: 'readiness-pill-submission',
+      },
+      base[1],
+    ];
+  }, [teamReadiness, submissionReadiness, profileReadiness, isEarlyExecutionPhase]);
 
   const readinessCompleteCount = useMemo(
     () => readinessItems.filter((item) => item.tone === 'green').length,
@@ -1218,13 +1231,22 @@ function Dashboard({
             accent: dailyDeltas.newTeamsToday > 0 ? `+${dailyDeltas.newTeamsToday} today` : 'Forming now',
             testId: 'dashboard-kpi-teams',
           },
-          {
-            label: 'Submissions',
-            rawValue: stats.submissions,
-            meta: isEarlyExecutionPhase ? 'Not open yet' : null,
-            accent: isEarlyExecutionPhase ? 'Awaiting launch' : null,
-            testId: 'dashboard-kpi-submissions',
-          },
+          showCommunityCard
+            ? {
+                label: 'Community',
+                value: '#hackday',
+                meta: 'Slack channel',
+                accent: 'Join the conversation',
+                href: slackChannelUrl,
+                testId: 'dashboard-kpi-community',
+              }
+            : {
+                label: 'Submissions',
+                rawValue: stats.submissions,
+                meta: isEarlyExecutionPhase ? 'Not open yet' : null,
+                accent: isEarlyExecutionPhase ? 'Awaiting launch' : null,
+                testId: 'dashboard-kpi-submissions',
+              },
         ]} />
       )}
 
