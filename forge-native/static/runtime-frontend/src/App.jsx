@@ -1746,6 +1746,7 @@ function App() {
             freeAgents={freeAgents}
             bootstrapActivityFeed={bootstrapActivityFeed}
             bootstrapSchedule={bootstrapSchedule}
+            updateUser={handleUpdateUser}
           />
         );
 
