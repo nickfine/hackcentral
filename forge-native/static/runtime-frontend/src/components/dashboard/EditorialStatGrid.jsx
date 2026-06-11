@@ -24,9 +24,16 @@ function StatCard({ label, value, rawValue, meta, accent, href, testId }) {
 
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="block">
+      <button
+        type="button"
+        className="block w-full text-left cursor-pointer"
+        onClick={async () => {
+          const { router } = await import('@forge/bridge');
+          router.open(href);
+        }}
+      >
         {card}
-      </a>
+      </button>
     );
   }
 
