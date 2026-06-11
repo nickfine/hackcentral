@@ -1867,7 +1867,7 @@ function App() {
         );
 
       default:
-        return <Dashboard context={context} {...commonProps} />;
+        return <Dashboard context={context} {...commonProps} updateUser={handleUpdateUser} />;
     }
   };
 

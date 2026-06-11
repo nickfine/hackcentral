@@ -205,6 +205,30 @@ function Profile({
                   )}
                   <Badge variant="default">{user?.role || 'Participant'}</Badge>
                 </div>
+
+                {/* Availability */}
+                {(!userTeam && (user?.availabilityStatus || isEditing)) && (
+                  <div className="mt-3">
+                    <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--stat-label-color)' }}>Availability</span>
+                    {user?.availabilityStatus ? (
+                      <div className="mt-1.5 flex flex-col gap-1">
+                        <span
+                          className="inline-flex self-start rounded-full px-3 py-1 text-xs font-medium"
+                          style={{ background: 'var(--phase-active-bg)', color: 'var(--stat-accent-color)', border: '1px solid var(--accent)' }}
+                        >
+                          {user.availabilityStatus}
+                        </span>
+                        {user?.lookingFor && (
+                          <p className="text-sm" style={{ color: 'var(--stat-meta-color)' }}>{user.lookingFor}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm" style={{ color: 'var(--stat-label-color)' }}>
+                        Not set — signal your availability from the Dashboard
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </Card>

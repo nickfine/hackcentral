@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Modal } from './ui';
+import { Modal, Button, TextArea } from './ui';
 import {
   EVENT_PHASE_ORDER,
   EVENT_PHASES,
@@ -451,6 +451,7 @@ function Dashboard({
   freeAgents = null,
   bootstrapActivityFeed = null,
   bootstrapSchedule = null,
+  updateUser = null,
 }) {
   const configMode = useConfigMode();
   const [loading, setLoading] = useState(true);
@@ -458,6 +459,10 @@ function Dashboard({
   const [error, setError] = useState(null);
   const [showOwnerWelcome, setShowOwnerWelcome] = useState(false);
   const [dataLoadedAt, setDataLoadedAt] = useState(() => new Date().toISOString());
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
+  const [availabilityPreset, setAvailabilityPreset] = useState('');
+  const [availabilityBlurb, setAvailabilityBlurb] = useState('');
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -713,6 +718,8 @@ function Dashboard({
   );
 
   const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation' || eventPhase === 'setup';
+  const isFreeAgentUser = isRegisteredUser && !userTeam;
+  const isAvailable = Boolean(user?.availabilityStatus);
 
   const profileReadiness = useMemo(() => {
     if (!isRegisteredUser) {
@@ -1236,8 +1243,37 @@ function Dashboard({
                 label: 'Community',
                 value: '#hackday',
                 meta: 'Slack channel',
-                accent: 'Find teammates',
-                href: slackChannelUrl,
+                accent: isFreeAgentUser ? undefined : 'Find teammates',
+                href: isFreeAgentUser ? undefined : slackChannelUrl,
+                footer: isFreeAgentUser ? (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-left"
+                      style={{ color: 'var(--accent)' }}
+                      onClick={async () => { const { router } = await import('@forge/bridge'); router.open(slackChannelUrl); }}
+                    >
+                      Open #hackday →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvailabilityPreset(user?.availabilityStatus || '');
+                        setAvailabilityBlurb(user?.lookingFor || '');
+                        setShowAvailabilityModal(true);
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-sm font-medium text-left transition-all"
+                      style={{
+                        background: isAvailable ? 'var(--phase-active-bg)' : 'var(--countdown-tile-bg)',
+                        color: isAvailable ? 'var(--stat-accent-color)' : 'var(--stat-label-color)',
+                        border: '1px solid',
+                        borderColor: isAvailable ? 'var(--accent)' : 'var(--rail-card-border)',
+                      }}
+                    >
+                      {isAvailable ? `✓ ${user.availabilityStatus}` : "I'm available — let teams know"}
+                    </button>
+                  </div>
+                ) : undefined,
                 testId: 'dashboard-kpi-community',
               }
             : {
@@ -1386,6 +1422,66 @@ function Dashboard({
 
       {/* Diagnostic values for tests */}
       <span className="sr-only" data-testid="dashboard-phase-label">{PHASE_LABELS[eventPhase] || eventPhase}</span>
+
+      {showAvailabilityModal && (
+        <Modal title="Signal your availability" onClose={() => setShowAvailabilityModal(false)}>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {['Open to anything', 'Looking for a team', 'Invite me!', 'Just tell me where to show up', 'Find me a problem to solve'].map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setAvailabilityPreset(option)}
+                  className="rounded-full px-3 py-1.5 text-sm font-medium border transition-all"
+                  style={{
+                    borderColor: availabilityPreset === option ? 'var(--accent)' : 'var(--rail-card-border)',
+                    background: availabilityPreset === option ? 'var(--phase-active-bg)' : 'transparent',
+                    color: availabilityPreset === option ? 'var(--accent)' : 'var(--stat-label-color)',
+                  }}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <TextArea
+              label="Anything to add? (optional)"
+              value={availabilityBlurb}
+              onChange={(e) => setAvailabilityBlurb(e.target.value)}
+              placeholder="What are you looking for? What do you bring?"
+              rows={2}
+            />
+            <div className="flex justify-between gap-3">
+              {isAvailable && (
+                <Button variant="ghost" onClick={async () => {
+                  await updateUser?.({ availabilityStatus: null, lookingFor: null });
+                  setShowAvailabilityModal(false);
+                }}>
+                  Clear status
+                </Button>
+              )}
+              <div className="flex gap-3 ml-auto">
+                <Button variant="secondary" onClick={() => setShowAvailabilityModal(false)}>Cancel</Button>
+                <Button
+                  variant="primary"
+                  disabled={!availabilityPreset}
+                  loading={isSavingAvailability}
+                  onClick={async () => {
+                    setIsSavingAvailability(true);
+                    try {
+                      await updateUser?.({ availabilityStatus: availabilityPreset, lookingFor: availabilityBlurb.trim() || null });
+                      setShowAvailabilityModal(false);
+                    } finally {
+                      setIsSavingAvailability(false);
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

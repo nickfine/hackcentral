@@ -1,6 +1,6 @@
 import { useCountUp } from '../../hooks/useCountUp';
 
-function StatCard({ label, value, rawValue, meta, accent, href, testId }) {
+function StatCard({ label, value, rawValue, meta, accent, href, footer, testId }) {
   const animatedNum = useCountUp(typeof rawValue === 'number' ? rawValue : 0, 900);
   const displayValue = typeof rawValue === 'number' ? animatedNum.toLocaleString() : value;
 
@@ -23,6 +23,7 @@ function StatCard({ label, value, rawValue, meta, accent, href, testId }) {
       </div>
       {meta && <div className="mt-1.5 text-sm text-[var(--stat-meta-color)]">{meta}</div>}
       {accent && <div className="mt-3.5 text-sm font-medium text-[var(--stat-accent-color)]">{accent}</div>}
+      {footer && <div className="mt-3.5 border-t pt-3" style={{ borderColor: 'var(--stat-card-border)' }}>{footer}</div>}
     </div>
   );
 

@@ -438,6 +438,12 @@ resolver.define("updateRegistration", async (req) => {
     if (updates.vibe !== undefined) {
       dbUpdates.vibe = updates.vibe || null;
     }
+    if (updates.lookingFor !== undefined) {
+      dbUpdates.lookingFor = updates.lookingFor || null;
+    }
+    if (updates.availabilityStatus !== undefined) {
+      dbUpdates.availabilityStatus = updates.availabilityStatus || null;
+    }
     if (updates.isFreeAgent !== undefined) {
       dbUpdates.isFreeAgent = !!updates.isFreeAgent;
     }

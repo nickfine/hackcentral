@@ -1155,6 +1155,8 @@ resolver.define("getFreeAgents", async (req) => {
       bio: user.bio || null,
       skills: user.skills ? user.skills.split(",").map(s => s.trim()) : [],
       invites: invitesByUser[user.id] || [],
+      lookingFor: user.lookingFor || user.looking_for || null,
+      availabilityStatus: user.availabilityStatus || user.availability_status || null,
     }));
 
     return { freeAgents: transformedAgents };

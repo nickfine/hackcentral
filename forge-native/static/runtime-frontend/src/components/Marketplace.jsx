@@ -558,6 +558,19 @@ function Marketplace({
                           ))}
                         </div>
                       )}
+                      {agent.availabilityStatus && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span
+                            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            style={{ background: 'var(--phase-active-bg)', color: 'var(--stat-accent-color)', border: '1px solid var(--accent)' }}
+                          >
+                            {agent.availabilityStatus}
+                          </span>
+                        </div>
+                      )}
+                      {agent.lookingFor && (
+                        <p className="mt-1.5 text-xs italic" style={{ color: 'var(--stat-meta-color)' }}>{agent.lookingFor}</p>
+                      )}
                     </div>
                   </div>
                   {agent.bio && (

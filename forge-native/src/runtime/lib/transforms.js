@@ -30,6 +30,8 @@ export function transformUser(user) {
     autoAssignOptIn: !!user.autoAssignOptIn,
     trackSide: user.trackSide || null,
     registeredAt: user.createdAt || new Date().toISOString(),
+    lookingFor: user.lookingFor || user.looking_for || null,
+    availabilityStatus: user.availabilityStatus || user.availability_status || null,
   };
 }
 
