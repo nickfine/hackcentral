@@ -1424,7 +1424,7 @@ function Dashboard({
       <span className="sr-only" data-testid="dashboard-phase-label">{PHASE_LABELS[eventPhase] || eventPhase}</span>
 
       {showAvailabilityModal && (
-        <Modal title="Signal your availability" onClose={() => setShowAvailabilityModal(false)}>
+        <Modal isOpen={showAvailabilityModal} title="Signal your availability" onClose={() => setShowAvailabilityModal(false)}>
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {['Open to anything', 'Looking for a team', 'Invite me!', 'Just tell me where to show up', 'Find me a problem to solve'].map((option) => (
