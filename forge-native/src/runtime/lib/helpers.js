@@ -2534,6 +2534,23 @@ export function normalizeRuntimeEventSchedule(input, fallback = {}) {
     }
   }
 
+  const closingDaysVal = Number(schedule.closingDays);
+  if (Number.isFinite(closingDaysVal) && closingDaysVal > 0) {
+    normalized.closingDays = closingDaysVal;
+  }
+
+  if (schedule.closingDayLabels && typeof schedule.closingDayLabels === "object" && !Array.isArray(schedule.closingDayLabels)) {
+    const sanitizedLabels = {};
+    for (const [key, val] of Object.entries(schedule.closingDayLabels)) {
+      if (typeof key === "string" && typeof val === "string") {
+        sanitizedLabels[key] = val;
+      }
+    }
+    if (Object.keys(sanitizedLabels).length > 0) {
+      normalized.closingDayLabels = sanitizedLabels;
+    }
+  }
+
   return normalized;
 }
 

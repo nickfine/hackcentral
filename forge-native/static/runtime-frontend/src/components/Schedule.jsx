@@ -456,7 +456,7 @@ function buildLocalPreviewMilestones(schedule) {
   return milestones;
 }
 
-function buildLocalizedScheduleColumns(milestones, userTimezone, userLocale) {
+function buildLocalizedScheduleColumns(milestones, userTimezone, userLocale, schedule = null) {
   const phaseIconMap = {
     REGISTRATION: { icon: Flag, category: 'logistics' },
     TEAM_FORMATION: { icon: Users, category: 'social' },
@@ -534,12 +534,33 @@ function buildLocalizedScheduleColumns(milestones, userTimezone, userLocale) {
     return acc;
   }, {});
 
+  const hackDuration = Number(schedule?.duration) || 0;
+  const closingDays = Number(schedule?.closingDays) || 0;
+  const closingDayLabels = schedule?.closingDayLabels || {};
+  const hackAnchor = schedule?.hackingStartsAt ? new Date(schedule.hackingStartsAt) : null;
+
   Object.keys(milestonesByDate)
     .sort()
     .forEach((date, index, allDates) => {
+      let label;
+      if (hackAnchor && hackDuration > 0 && closingDays > 0) {
+        const colDate = new Date(`${date}T12:00:00Z`);
+        const anchorMidnight = new Date(hackAnchor);
+        anchorMidnight.setUTCHours(0, 0, 0, 0);
+        colDate.setUTCHours(0, 0, 0, 0);
+        const daysFromAnchor = Math.round((colDate - anchorMidnight) / 86400000);
+        if (daysFromAnchor >= hackDuration) {
+          const closingIdx = daysFromAnchor - hackDuration;
+          label = closingDayLabels[`closing-${closingIdx}`] || (allDates.length === 1 ? 'Hack Day' : `Day ${index + 1}`);
+        }
+      }
+      if (!label) {
+        label = allDates.length === 1 ? 'Hack Day' : `Day ${index + 1}`;
+      }
+
       columns.push({
         id: `day-${index + 1}`,
-        label: allDates.length === 1 ? 'Hack Day' : `Day ${index + 1}`,
+        label,
         date: formatLocalDate(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
         events: milestonesByDate[date].map((milestone) => {
           const meta = phaseIconMap[milestone.phase] || { icon: Calendar, category: 'logistics' };
@@ -776,8 +797,8 @@ function Schedule({ onNavigate, appModeResolverPayload = null }) {
   }, [configMode.hasUnsavedChanges, configMode.draftEnvelope, publishedSchedule]);
 
   const dayColumns = useMemo(
-    () => buildLocalizedScheduleColumns(milestones, userTimezone, userLocale),
-    [milestones, userTimezone, userLocale]
+    () => buildLocalizedScheduleColumns(milestones, userTimezone, userLocale, publishedSchedule),
+    [milestones, userTimezone, userLocale, publishedSchedule]
   );
 
   const builderInitialState = useMemo(
