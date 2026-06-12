@@ -50,14 +50,15 @@ export function TimelineMinimap({
           {phases.map((phase, index) => {
             const isActive = phase.key === activePhase;
             const isHackDay = phase.type === 'hack-day';
+            const isClosingDay = phase.type === 'closing-day';
 
             return (
               <div
                 key={phase.key}
-                className={`sb2-timeline-segment ${isHackDay ? 'sb2-timeline-segment--hack' : ''}`}
+                className={`sb2-timeline-segment ${isHackDay ? 'sb2-timeline-segment--hack' : ''} ${isClosingDay ? 'sb2-timeline-segment--closing' : ''}`}
               >
                 <div
-                  className={`sb2-timeline-segment-bar ${isActive ? 'sb2-timeline-segment-bar--active' : ''} ${isHackDay ? 'sb2-timeline-segment-bar--hack' : ''}`}
+                  className={`sb2-timeline-segment-bar ${isActive ? 'sb2-timeline-segment-bar--active' : ''} ${isHackDay ? 'sb2-timeline-segment-bar--hack' : ''} ${isClosingDay ? 'sb2-timeline-segment-bar--closing' : ''}`}
                   onClick={() => onPhaseClick(phase.key)}
                   title={phase.label}
                   role="button"

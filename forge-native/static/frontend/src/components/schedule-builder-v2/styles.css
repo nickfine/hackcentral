@@ -159,12 +159,47 @@
   color: #1f2937;
 }
 
+.sb2-phase-tab--closing {
+  color: #7c3aed;
+}
+
+.sb2-phase-tab--closing.sb2-phase-tab--active {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
 .sb2-phase-tab-dot {
   width: 6px;
   height: 6px;
   border-radius: 3px;
   background: #14b8a6;
   flex-shrink: 0;
+}
+
+/* ── Closing Day Label Input ──────────────────────────────────────── */
+
+.sb2-closing-day-label-input {
+  font-size: 18px;
+  font-weight: 700;
+  color: #6d28d9;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #ede9fe;
+  border-radius: 0;
+  padding: 2px 0;
+  outline: none;
+  width: 100%;
+  max-width: 280px;
+  transition: border-color 0.15s ease;
+}
+
+.sb2-closing-day-label-input:focus {
+  border-bottom-color: #7c3aed;
+}
+
+.sb2-closing-day-label-input::placeholder {
+  color: #a78bfa;
 }
 
 /* ── Phase Content ─────────────────────────────────────────────────── */
@@ -851,6 +886,18 @@
 
 .sb2-timeline-segment--hack {
   flex: 2;
+}
+
+.sb2-timeline-segment--closing {
+  flex: 1;
+}
+
+.sb2-timeline-segment-bar--closing {
+  background: #ede9fe;
+}
+
+.sb2-timeline-segment-bar--closing:hover {
+  background: #ddd6fe;
 }
 
 .sb2-timeline-segment-bar {

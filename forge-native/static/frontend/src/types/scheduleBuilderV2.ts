@@ -24,11 +24,11 @@ export type EventSignal =
   | 'judging'
   | 'neutral';
 
-/** Phase type - either pre-event milestones or hack day events */
-export type PhaseType = 'pre-event' | 'hack-day';
+/** Phase type - either pre-event milestones, hack day events, or closing day events */
+export type PhaseType = 'pre-event' | 'hack-day' | 'closing-day';
 
-/** Phase key - 'pre' for pre-event, 'hack-0', 'hack-1', 'hack-2' for hack days */
-export type PhaseKey = 'pre' | `hack-${number}`;
+/** Phase key - 'pre' for pre-event, 'hack-N' for hack days, 'closing-N' for closing days */
+export type PhaseKey = 'pre' | `hack-${number}` | `closing-${number}`;
 
 /**
  * Definition for a standard event in the schedule.
@@ -113,6 +113,8 @@ export interface PhaseDefinition {
   type: PhaseType;
   /** Day index for hack days (0, 1, 2) */
   dayIndex?: number;
+  /** Day index for closing days (0, 1, ...) */
+  closingDayIndex?: number;
 }
 
 /**
@@ -133,6 +135,10 @@ export interface ScheduleBuilderState {
   eventStates: Record<string, EventState>;
   /** User-created custom events */
   customEvents: CustomEvent[];
+  /** Number of closing days after hacking ends (default 0) */
+  closingDays: number;
+  /** Admin-set labels for closing day tabs, keyed by phase key e.g. 'closing-0' */
+  closingDayLabels: Record<string, string>;
 }
 
 /**
@@ -144,6 +150,10 @@ export interface ScheduleBuilderOutput {
   timezone: string;
   /** Event duration */
   duration: EventDuration;
+  /** Number of closing days after hacking ends */
+  closingDays?: number;
+  /** Admin-set labels for closing day tabs */
+  closingDayLabels?: Record<string, string>;
   /** Selected event types for compatibility */
   selectedEvents?: string[];
 

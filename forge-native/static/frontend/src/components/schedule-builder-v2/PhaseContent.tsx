@@ -22,6 +22,7 @@ import { EventCard } from './EventCard';
 interface PhaseContentProps {
   phase: PhaseDefinition;
   duration: EventDuration;
+  closingDays?: number;
   anchorDate: string;
   eventStates: Record<string, EventState>;
   customEvents: CustomEvent[];
@@ -38,6 +39,8 @@ interface PhaseContentProps {
   onCustomEventFocusHandled: (eventId: string | null) => void;
   pendingCustomEventConfirmIds: Record<string, true>;
   onCustomEventConfirm: (eventId: string) => void;
+  closingDayLabel?: string;
+  onClosingDayLabelChange?: (phaseKey: string, label: string) => void;
 }
 
 const CUSTOM_SIGNAL_OPTIONS: Array<{ value: EventSignal; label: string }> = [
@@ -97,6 +100,10 @@ function getPhaseDescription(phase: PhaseDefinition, duration: EventDuration): s
     return 'Set the milestones leading up to your hack. Dates are relative to your hack start date.';
   }
 
+  if (phase.type === 'closing-day') {
+    return 'Enable milestone events for this closing day. The label above is what participants will see.';
+  }
+
   if (duration === 1) {
     return 'Define the schedule for your hack day. Set the times for each event.';
   }
@@ -105,20 +112,20 @@ function getPhaseDescription(phase: PhaseDefinition, duration: EventDuration): s
   const isLastDay = dayIndex === duration - 1;
 
   if (isLastDay) {
-    return 'Final day — hacking wraps up, submissions close, and results are announced.';
+    return 'Final day — hacking wraps up and submissions close.';
   }
 
   return `Schedule for Day ${dayIndex + 1}. Set the times for each event.`;
 }
 
 /**
- * Format the date for a specific hack day.
+ * Format the date for a specific day offset from anchor.
  */
-function formatHackDayDate(anchorDate: string, dayIndex: number): string {
+function formatDayDate(anchorDate: string, dayOffset: number): string {
   if (!anchorDate) return '';
 
   const date = new Date(anchorDate);
-  date.setDate(date.getDate() + dayIndex);
+  date.setDate(date.getDate() + dayOffset);
 
   return date.toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -131,6 +138,7 @@ function formatHackDayDate(anchorDate: string, dayIndex: number): string {
 export function PhaseContent({
   phase,
   duration,
+  closingDays = 0,
   anchorDate,
   eventStates,
   customEvents,
@@ -144,8 +152,10 @@ export function PhaseContent({
   onCustomEventFocusHandled,
   pendingCustomEventConfirmIds,
   onCustomEventConfirm,
+  closingDayLabel,
+  onClosingDayLabelChange,
 }: PhaseContentProps) {
-  const events = getEventsForPhase(phase, duration);
+  const events = getEventsForPhase(phase, duration, closingDays);
   const phaseType = phase.type === 'pre-event' ? 'milestone' : 'timed';
   const description = getPhaseDescription(phase, duration);
   const phaseCustomEvents = customEvents
@@ -166,11 +176,12 @@ export function PhaseContent({
     onCustomEventFocusHandled(null);
   }, [pendingCustomEventFocusId, phase.key, onCustomEventFocusHandled]);
 
-  // Get the formatted date for hack days
-  const hackDayDate =
+  const phaseDayDate =
     phase.type === 'hack-day' && phase.dayIndex !== undefined
-      ? formatHackDayDate(anchorDate, phase.dayIndex)
-      : null;
+      ? formatDayDate(anchorDate, phase.dayIndex)
+      : phase.type === 'closing-day' && phase.closingDayIndex !== undefined
+        ? formatDayDate(anchorDate, duration + phase.closingDayIndex)
+        : null;
 
   const orderedRows = [
     ...events.map((event, eventIndex) => {
@@ -227,8 +238,19 @@ export function PhaseContent({
       {/* Phase header */}
       <div className="sb2-phase-header">
         <div className="sb2-phase-title-row">
-          <h2 className="sb2-phase-title">{phase.label}</h2>
-          {hackDayDate && <span className="sb2-phase-date">{hackDayDate}</span>}
+          {phase.type === 'closing-day' && onClosingDayLabelChange ? (
+            <input
+              type="text"
+              className="sb2-closing-day-label-input"
+              value={closingDayLabel ?? phase.label}
+              onChange={(e) => onClosingDayLabelChange(phase.key, e.target.value)}
+              aria-label="Closing day label"
+              placeholder={phase.label}
+            />
+          ) : (
+            <h2 className="sb2-phase-title">{phase.label}</h2>
+          )}
+          {phaseDayDate && <span className="sb2-phase-date">{phaseDayDate}</span>}
         </div>
         <p className="sb2-phase-description">{description}</p>
       </div>

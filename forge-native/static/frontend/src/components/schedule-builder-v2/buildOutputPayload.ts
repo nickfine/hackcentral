@@ -6,6 +6,7 @@ import type {
   CustomEvent,
 } from '../../types/scheduleBuilderV2';
 import {
+  CLOSING_DAY_EVENTS,
   EVENT_TO_OUTPUT_FIELD,
   HACK_DAY_EVENTS,
   PRE_EVENT_MILESTONES,
@@ -13,6 +14,15 @@ import {
 
 export function parseHackPhaseDayIndex(phaseKey: PhaseKey): number | null {
   if (!phaseKey.startsWith('hack-')) {
+    return null;
+  }
+
+  const parsed = parseInt(phaseKey.split('-')[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseClosingPhaseDayIndex(phaseKey: PhaseKey): number | null {
+  if (!phaseKey.startsWith('closing-')) {
     return null;
   }
 
@@ -37,13 +47,20 @@ function getHackDayEventPresentation(
   };
 }
 
-export function isPhaseKeyWithinDuration(phaseKey: PhaseKey, duration: EventDuration): boolean {
-  if (phaseKey === 'pre') {
-    return true;
-  }
+export function isPhaseKeyWithinDuration(
+  phaseKey: PhaseKey,
+  duration: EventDuration,
+  closingDays = 0
+): boolean {
+  if (phaseKey === 'pre') return true;
 
-  const dayIndex = parseHackPhaseDayIndex(phaseKey);
-  return dayIndex !== null && dayIndex >= 0 && dayIndex < duration;
+  const hackDayIndex = parseHackPhaseDayIndex(phaseKey);
+  if (hackDayIndex !== null) return hackDayIndex >= 0 && hackDayIndex < duration;
+
+  const closingDayIndex = parseClosingPhaseDayIndex(phaseKey);
+  if (closingDayIndex !== null) return closingDayIndex >= 0 && closingDayIndex < closingDays;
+
+  return false;
 }
 
 export function buildOutputPayload(
@@ -52,7 +69,9 @@ export function buildOutputPayload(
   anchorTime: string,
   timezone: string,
   eventStates: Record<string, EventState>,
-  customEvents: CustomEvent[]
+  customEvents: CustomEvent[],
+  closingDays = 0,
+  closingDayLabels: Record<string, string> = {}
 ): ScheduleBuilderOutput {
   const toISOTimestamp = (date: string, time: string): string => {
     return new Date(`${date}T${time}:00`).toISOString();
@@ -115,8 +134,32 @@ export function buildOutputPayload(
     });
   }
 
+  for (let closingIndex = 0; closingIndex < closingDays; closingIndex++) {
+    const phaseKey = `closing-${closingIndex}` as PhaseKey;
+    const dayOffset = duration + closingIndex;
+
+    CLOSING_DAY_EVENTS.forEach((event) => {
+      const compositeKey = `${phaseKey}:${event.id}`;
+      const state = eventStates[compositeKey];
+      if (!state?.enabled) return;
+
+      const time = state.time ?? event.defaultTime;
+      if (!time) return;
+
+      const outputField = EVENT_TO_OUTPUT_FIELD[event.id];
+      if (outputField) {
+        const eventDate = calculateDateFromOffset(dayOffset);
+        timestamps[outputField] = toISOTimestamp(eventDate, time);
+        selectedEvents.add(event.id);
+      }
+    });
+  }
+
   let customEventOutput: ScheduleBuilderOutput['customEvents'];
-  const activeCustomEvents = customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration));
+  const activeCustomEvents = customEvents.filter((ce) =>
+    isPhaseKeyWithinDuration(ce.phase, duration, closingDays)
+  );
+
   if (activeCustomEvents.length > 0 || syntheticCustomEvents.length > 0) {
     customEventOutput = [
       ...activeCustomEvents.map((ce) => {
@@ -125,8 +168,13 @@ export function buildOutputPayload(
           const eventDate = calculateDateFromOffset(ce.offsetDays);
           timestamp = toISOTimestamp(eventDate, '09:00');
         } else if (ce.time) {
-          const dayIndex = parseHackPhaseDayIndex(ce.phase) ?? 0;
-          const eventDate = calculateDateFromOffset(dayIndex);
+          const hackIndex = parseHackPhaseDayIndex(ce.phase);
+          const closingIndex = parseClosingPhaseDayIndex(ce.phase);
+          const dayOffset =
+            hackIndex !== null ? hackIndex
+            : closingIndex !== null ? duration + closingIndex
+            : 0;
+          const eventDate = calculateDateFromOffset(dayOffset);
           timestamp = toISOTimestamp(eventDate, ce.time);
         } else {
           timestamp = toISOTimestamp(anchorDate, anchorTime || '12:00');
@@ -146,6 +194,7 @@ export function buildOutputPayload(
   return {
     timezone,
     duration,
+    ...(closingDays > 0 ? { closingDays, closingDayLabels } : {}),
     selectedEvents: Array.from(selectedEvents),
     ...timestamps,
     ...(customEventOutput && { customEvents: customEventOutput }),

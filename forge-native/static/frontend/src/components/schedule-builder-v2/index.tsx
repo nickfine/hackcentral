@@ -23,13 +23,14 @@ import {
   getEventsForPhase,
   PRE_EVENT_MILESTONES,
   HACK_DAY_EVENTS,
+  CLOSING_DAY_EVENTS,
 } from '../../schedule-builder-v2/scheduleEvents';
 import { getSignalStyle, hasAccentBorder } from '../../schedule-builder-v2/signalStyles';
 import { ConfigStrip } from './ConfigStrip';
 import { PhaseTabBar } from './PhaseTabBar';
 import { PhaseContent } from './PhaseContent';
 import { TimelineMinimap } from './TimelineMinimap';
-import { buildOutputPayload, isPhaseKeyWithinDuration, parseHackPhaseDayIndex } from './buildOutputPayload';
+import { buildOutputPayload, isPhaseKeyWithinDuration, parseHackPhaseDayIndex, parseClosingPhaseDayIndex } from './buildOutputPayload';
 import './styles.css';
 
 /** Default anchor date: 2 weeks from today */
@@ -78,7 +79,9 @@ function buildPreviewColumnsFromState(
   anchorDate: string,
   timezone: string,
   eventStates: Record<string, EventState>,
-  customEvents: CustomEvent[]
+  customEvents: CustomEvent[],
+  closingDays = 0,
+  closingDayLabels: Record<string, string> = {}
 ): PreviewColumn[] {
   const toISOTimestamp = (date: string, time: string): string => new Date(`${date}T${time}:00`).toISOString();
   const calculateDateFromOffset = (offsetDays: number): string => {
@@ -88,21 +91,26 @@ function buildPreviewColumnsFromState(
   };
 
   const events: PreviewEvent[] = [];
-  const phases = buildPhaseDefinitions(duration);
+  const phases = buildPhaseDefinitions(duration, closingDays, closingDayLabels);
 
   for (const phase of phases) {
-    const phaseEvents = getEventsForPhase(phase, duration);
+    const phaseEvents = getEventsForPhase(phase, duration, closingDays);
 
     for (const event of phaseEvents) {
       const stateKey = getEventStateKey(phase.key, event.id);
       const state = eventStates[stateKey];
-      const enabled = state?.enabled ?? true;
+      const enabled = state?.enabled ?? (phase.type !== 'closing-day');
       if (!enabled) continue;
 
       let timestamp: string | null = null;
       if (phase.type === 'pre-event') {
         const offsetDays = state?.offsetDays ?? event.defaultOffsetDays ?? 0;
         timestamp = toISOTimestamp(calculateDateFromOffset(offsetDays), '09:00');
+      } else if (phase.type === 'closing-day') {
+        const time = state?.time ?? event.defaultTime;
+        if (!time) continue;
+        const dayOffset = duration + (phase.closingDayIndex ?? 0);
+        timestamp = toISOTimestamp(calculateDateFromOffset(dayOffset), time);
       } else {
         const time = state?.time ?? event.defaultTime;
         if (!time) continue;
@@ -121,13 +129,20 @@ function buildPreviewColumnsFromState(
     }
   }
 
-  for (const customEvent of customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration))) {
+  for (const customEvent of customEvents.filter((ce) =>
+    isPhaseKeyWithinDuration(ce.phase, duration, closingDays)
+  )) {
     let timestamp: string;
     if (customEvent.phase === 'pre') {
       timestamp = toISOTimestamp(calculateDateFromOffset(customEvent.offsetDays ?? -3), '09:00');
     } else {
-      const dayIndex = parseHackPhaseDayIndex(customEvent.phase) ?? 0;
-      timestamp = toISOTimestamp(calculateDateFromOffset(dayIndex), customEvent.time ?? '12:00');
+      const hackIndex = parseHackPhaseDayIndex(customEvent.phase);
+      const closingIndex = parseClosingPhaseDayIndex(customEvent.phase);
+      const dayOffset =
+        hackIndex !== null ? hackIndex
+        : closingIndex !== null ? duration + closingIndex
+        : 0;
+      timestamp = toISOTimestamp(calculateDateFromOffset(dayOffset), customEvent.time ?? '12:00');
     }
 
     events.push({
@@ -167,12 +182,24 @@ function buildPreviewColumnsFromState(
     groupedHackEvents.set(dayKey, bucket);
   }
 
+  // Build a map of date → closing day label for the preview column headers
+  const closingDayDateToLabel = new Map<string, string>();
+  for (let i = 0; i < closingDays; i++) {
+    const phaseKey = `closing-${i}` as PhaseKey;
+    const dayOffset = duration + i;
+    const dateKey = calculateDateFromOffset(dayOffset);
+    const defaultLabel = `Day ${duration + i + 1}`;
+    closingDayDateToLabel.set(dateKey, closingDayLabels[phaseKey] ?? defaultLabel);
+  }
+
   Array.from(groupedHackEvents.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .forEach(([dayKey, dayEvents], index) => {
+      const closingLabel = closingDayDateToLabel.get(dayKey);
+      const label = closingLabel ?? (groupedHackEvents.size === 1 ? 'Hack Day' : `Day ${index + 1}`);
       columns.push({
         id: `day-${index + 1}`,
-        label: groupedHackEvents.size === 1 ? 'Hack Day' : `Day ${index + 1}`,
+        label,
         dateLabel: formatPreviewDate(dayKey, timezone, {
           weekday: 'short',
           month: 'short',
@@ -192,6 +219,8 @@ export function ScheduleBuilderV2Preview({
   timezone,
   eventStates,
   customEvents,
+  closingDays = 0,
+  closingDayLabels = {},
   showHeaderText = true,
   surfaceVariant = 'card',
 }: {
@@ -200,17 +229,19 @@ export function ScheduleBuilderV2Preview({
   timezone: string;
   eventStates: Record<string, EventState>;
   customEvents: CustomEvent[];
+  closingDays?: number;
+  closingDayLabels?: Record<string, string>;
   showHeaderText?: boolean;
   surfaceVariant?: 'card' | 'flat';
 }) {
   const columns = useMemo(
-    () => buildPreviewColumnsFromState(duration, anchorDate, timezone, eventStates, customEvents),
-    [duration, anchorDate, timezone, eventStates, customEvents]
+    () => buildPreviewColumnsFromState(duration, anchorDate, timezone, eventStates, customEvents, closingDays, closingDayLabels),
+    [duration, anchorDate, timezone, eventStates, customEvents, closingDays, closingDayLabels]
   );
   const previewTimezone = timezone || 'UTC';
   const visibleCustomCount = useMemo(
-    () => customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration)).length,
-    [customEvents, duration]
+    () => customEvents.filter((ce) => isPhaseKeyWithinDuration(ce.phase, duration, closingDays)).length,
+    [customEvents, duration, closingDays]
   );
 
   return (
@@ -237,7 +268,7 @@ export function ScheduleBuilderV2Preview({
         <div className="sb2-preview-stats" aria-label="Preview summary">
           <span>{columns.reduce((sum, column) => sum + column.events.length, 0)} events</span>
           <span>{visibleCustomCount} custom</span>
-          <span>{duration} day{duration === 1 ? '' : 's'}</span>
+          <span>{duration + closingDays} day{duration + closingDays === 1 ? '' : 's'}</span>
         </div>
       </div>
 
@@ -304,12 +335,16 @@ export function ScheduleBuilderV2({
 }: ScheduleBuilderV2Props) {
   // Core state
   const [duration, setDuration] = useState<EventDuration>(initialState?.duration ?? 2);
+  const [closingDays, setClosingDays] = useState<number>(initialState?.closingDays ?? 0);
+  const [closingDayLabels, setClosingDayLabels] = useState<Record<string, string>>(
+    initialState?.closingDayLabels ?? {}
+  );
   const [anchorDate, setAnchorDate] = useState(initialState?.anchorDate ?? getDefaultAnchorDate());
   const [anchorTime, setAnchorTime] = useState(initialState?.anchorTime ?? '09:00');
   const [timezone, setTimezone] = useState(initialState?.timezone ?? initialTimezone);
   const [activePhase, setActivePhase] = useState<PhaseKey>(initialState?.activePhase ?? 'pre');
   const [eventStates, setEventStates] = useState<Record<string, EventState>>(
-    initialState?.eventStates ?? initializeEventStates(initialState?.duration ?? 2)
+    initialState?.eventStates ?? initializeEventStates(initialState?.duration ?? 2, initialState?.closingDays ?? 0)
   );
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(initialState?.customEvents ?? []);
   const [pendingCustomEventFocusId, setPendingCustomEventFocusId] = useState<string | null>(null);
@@ -318,12 +353,15 @@ export function ScheduleBuilderV2({
   );
 
   const outputPreview = useMemo(
-    () => buildOutputPayload(duration, anchorDate, anchorTime, timezone, eventStates, customEvents),
-    [duration, anchorDate, anchorTime, timezone, eventStates, customEvents]
+    () => buildOutputPayload(duration, anchorDate, anchorTime, timezone, eventStates, customEvents, closingDays, closingDayLabels),
+    [duration, anchorDate, anchorTime, timezone, eventStates, customEvents, closingDays, closingDayLabels]
   );
 
-  // Build phase definitions based on duration
-  const phases = useMemo(() => buildPhaseDefinitions(duration), [duration]);
+  // Build phase definitions based on duration and closing days
+  const phases = useMemo(
+    () => buildPhaseDefinitions(duration, closingDays, closingDayLabels),
+    [duration, closingDays, closingDayLabels]
+  );
 
   // Find current phase
   const currentPhase = useMemo(
@@ -353,7 +391,14 @@ export function ScheduleBuilderV2({
           customEvents.some((ce) => ce.phase === 'pre')
         );
       }
-      // For hack days, check events using composite keys (e.g., "hack-0:opening")
+      if (phaseKey.startsWith('closing-')) {
+        return (
+          CLOSING_DAY_EVENTS.some((e) => {
+            const stateKey = getEventStateKey(phaseKey, e.id);
+            return eventStates[stateKey]?.enabled;
+          }) || customEvents.some((ce) => ce.phase === phaseKey)
+        );
+      }
       return (
         HACK_DAY_EVENTS.some((e) => {
           const stateKey = getEventStateKey(phaseKey, e.id);
@@ -368,9 +413,7 @@ export function ScheduleBuilderV2({
   const handleDurationChange = useCallback(
     (newDuration: EventDuration) => {
       setDuration(newDuration);
-      // Ensure event states exist for the new duration (adds missing day states)
-      setEventStates((prev) => ensureEventStatesForDuration(prev, newDuration));
-      // If current phase is beyond new duration, reset to last valid hack day
+      setEventStates((prev) => ensureEventStatesForDuration(prev, newDuration, closingDays));
       if (activePhase.startsWith('hack-')) {
         const dayIndex = parseInt(activePhase.split('-')[1], 10);
         if (dayIndex >= newDuration) {
@@ -378,8 +421,26 @@ export function ScheduleBuilderV2({
         }
       }
     },
-    [activePhase]
+    [activePhase, closingDays]
   );
+
+  const handleClosingDaysChange = useCallback(
+    (newClosingDays: number) => {
+      setClosingDays(newClosingDays);
+      setEventStates((prev) => ensureEventStatesForDuration(prev, duration, newClosingDays));
+      if (activePhase.startsWith('closing-')) {
+        const closingIndex = parseInt(activePhase.split('-')[1], 10);
+        if (closingIndex >= newClosingDays) {
+          setActivePhase(newClosingDays > 0 ? `closing-${newClosingDays - 1}` as PhaseKey : `hack-${duration - 1}` as PhaseKey);
+        }
+      }
+    },
+    [activePhase, duration]
+  );
+
+  const handleClosingDayLabelChange = useCallback((phaseKey: string, label: string) => {
+    setClosingDayLabels((prev) => ({ ...prev, [phaseKey]: label }));
+  }, []);
 
   const handleEventToggle = useCallback((eventId: string) => {
     setEventStates((prev) => ({
@@ -497,8 +558,10 @@ export function ScheduleBuilderV2({
       activePhase,
       eventStates,
       customEvents,
+      closingDays,
+      closingDayLabels,
     } satisfies ScheduleBuilderState);
-  }, [duration, anchorDate, anchorTime, timezone, activePhase, eventStates, customEvents, onStateChange]);
+  }, [duration, anchorDate, anchorTime, timezone, activePhase, eventStates, customEvents, closingDays, closingDayLabels, onStateChange]);
 
   return (
     <div className="sb2-container">
@@ -506,6 +569,8 @@ export function ScheduleBuilderV2({
       <ConfigStrip
         duration={duration}
         onDurationChange={handleDurationChange}
+        closingDays={closingDays}
+        onClosingDaysChange={handleClosingDaysChange}
         anchorDate={anchorDate}
         onAnchorDateChange={setAnchorDate}
         anchorTime={anchorTime}
@@ -540,6 +605,9 @@ export function ScheduleBuilderV2({
           onCustomEventFocusHandled={setPendingCustomEventFocusId}
           pendingCustomEventConfirmIds={pendingCustomEventConfirmIds}
           onCustomEventConfirm={handleCustomEventConfirm}
+          closingDays={closingDays}
+          closingDayLabel={currentPhase.type === 'closing-day' ? closingDayLabels[currentPhase.key] : undefined}
+          onClosingDayLabelChange={handleClosingDayLabelChange}
         />
       </div>
 
@@ -550,6 +618,8 @@ export function ScheduleBuilderV2({
           timezone={timezone}
           eventStates={eventStates}
           customEvents={customEvents}
+          closingDays={closingDays}
+          closingDayLabels={closingDayLabels}
         />
       ) : null}
 

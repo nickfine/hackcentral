@@ -86,6 +86,17 @@ const LAST_DAY_FIELDS = {
   results: 'resultsAnnounceAt',
 };
 
+const CLOSING_DAY_FIELDS = {
+  judging: 'judgingStartsAt',
+  'voting-opens': 'votingStartsAt',
+  'voting-closes': 'votingEndsAt',
+  presentations: 'presentationsAt',
+  results: 'resultsAnnounceAt',
+};
+
+// These LAST_DAY_FIELDS events move to closing days when closingDays > 0
+const LAST_DAY_TO_CLOSING_IDS = new Set(['judging', 'presentations', 'results']);
+
 const NON_EDITABLE_SCHEDULE_FIELDS = [
   'teamFormationEndsAt',
   'lunchBreakDay1At',
@@ -204,7 +215,14 @@ export function buildBuilderInitialState(schedule) {
   const anchorIso = typeof schedule.hackingStartsAt === 'string' ? schedule.hackingStartsAt : null;
   const anchorDate = anchorIso ? formatIsoDate(new Date(anchorIso)) : undefined;
   const duration = inferDuration(schedule);
-  const eventStates = initializeEventStates(duration);
+  const closingDays = Number.isFinite(Number(schedule.closingDays)) && Number(schedule.closingDays) >= 0
+    ? Number(schedule.closingDays)
+    : 0;
+  const closingDayLabels = schedule.closingDayLabels && typeof schedule.closingDayLabels === 'object'
+    ? schedule.closingDayLabels
+    : {};
+
+  const eventStates = initializeEventStates(duration, closingDays);
 
   Object.entries(PRE_EVENT_FIELDS).forEach(([eventId, field]) => {
     if (!schedule[field]) {
@@ -238,6 +256,8 @@ export function buildBuilderInitialState(schedule) {
 
   const lastPhaseKey = `hack-${Math.max(duration - 1, 0)}`;
   Object.entries(LAST_DAY_FIELDS).forEach(([eventId, field]) => {
+    // When closing days are configured, these events move to closing day tabs
+    if (closingDays > 0 && LAST_DAY_TO_CLOSING_IDS.has(eventId)) return;
     const stateKey = getEventStateKey(lastPhaseKey, eventId);
     if (!eventStates[stateKey]) return;
     if (!schedule[field]) {
@@ -251,6 +271,26 @@ export function buildBuilderInitialState(schedule) {
     };
   });
 
+  // Hydrate closing day events from their saved timestamps
+  if (closingDays > 0 && anchorDate) {
+    Object.entries(CLOSING_DAY_FIELDS).forEach(([eventId, field]) => {
+      if (!schedule[field]) return;
+      const fieldDate = formatIsoDate(new Date(schedule[field]));
+      const offsetFromAnchor = diffInWholeDays(anchorDate, fieldDate);
+      const closingDayIndex = offsetFromAnchor - duration;
+      if (closingDayIndex >= 0 && closingDayIndex < closingDays) {
+        const stateKey = getEventStateKey(`closing-${closingDayIndex}`, eventId);
+        if (eventStates[stateKey] !== undefined) {
+          eventStates[stateKey] = {
+            ...eventStates[stateKey],
+            enabled: true,
+            time: formatIsoTime(schedule[field]),
+          };
+        }
+      }
+    });
+  }
+
   const customEvents = Array.isArray(schedule.customEvents)
     ? schedule.customEvents
         .map((event, index) => {
@@ -262,7 +302,17 @@ export function buildBuilderInitialState(schedule) {
           if (!timestamp || Number.isNaN(timestamp.getTime())) return null;
           const eventDate = formatIsoDate(timestamp);
           const dayOffset = anchorDate ? diffInWholeDays(anchorDate, eventDate) : 0;
-          const phase = dayOffset < 0 ? 'pre' : `hack-${Math.max(0, Math.min(duration - 1, dayOffset))}`;
+          let phase;
+          if (dayOffset < 0) {
+            phase = 'pre';
+          } else if (dayOffset < duration) {
+            phase = `hack-${dayOffset}`;
+          } else if (closingDays > 0 && dayOffset < duration + closingDays) {
+            phase = `closing-${dayOffset - duration}`;
+          } else {
+            phase = `hack-${duration - 1}`;
+          }
+
           return {
             id: `custom-${index}-${timestamp.getTime()}`,
             name: String(event.name || 'Custom Event'),
@@ -287,6 +337,8 @@ export function buildBuilderInitialState(schedule) {
     activePhase: 'pre',
     eventStates,
     customEvents,
+    closingDays,
+    closingDayLabels,
   };
 }
 

@@ -31,6 +31,8 @@ export function PhaseTabBar({
         const hasEvents = phaseHasEvents(phase.key);
         const isPreEvent = phase.type === 'pre-event';
 
+        const isClosingDay = phase.type === 'closing-day';
+
         return (
           <button
             key={phase.key}
@@ -38,7 +40,7 @@ export function PhaseTabBar({
             role="tab"
             aria-selected={isActive}
             aria-controls={`phase-panel-${phase.key}`}
-            className={`sb2-phase-tab ${isActive ? 'sb2-phase-tab--active' : ''} ${isPreEvent ? 'sb2-phase-tab--pre' : ''}`}
+            className={`sb2-phase-tab ${isActive ? 'sb2-phase-tab--active' : ''} ${isPreEvent ? 'sb2-phase-tab--pre' : ''} ${isClosingDay ? 'sb2-phase-tab--closing' : ''}`}
             onClick={() => onPhaseChange(phase.key)}
           >
             <span>{phase.label}</span>
