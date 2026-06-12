@@ -364,6 +364,23 @@ export function normalizeConfigModeSchedulePatch(value) {
     }
   }
 
+  const closingDaysVal = Number(value.closingDays);
+  if (Number.isFinite(closingDaysVal) && closingDaysVal > 0) {
+    next.closingDays = closingDaysVal;
+  }
+
+  if (value.closingDayLabels && typeof value.closingDayLabels === 'object' && !Array.isArray(value.closingDayLabels)) {
+    const sanitizedLabels = {};
+    for (const [key, val] of Object.entries(value.closingDayLabels)) {
+      if (typeof key === 'string' && typeof val === 'string') {
+        sanitizedLabels[key] = val;
+      }
+    }
+    if (Object.keys(sanitizedLabels).length > 0) {
+      next.closingDayLabels = sanitizedLabels;
+    }
+  }
+
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
