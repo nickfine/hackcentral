@@ -71,7 +71,7 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
           {submission?.demoVideoUrl && (
             <a
               href={submission.demoVideoUrl}
-              onClick={(e) => { e.preventDefault(); window.open(submission.demoVideoUrl, '_blank', 'noopener,noreferrer'); }}
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(submission.demoVideoUrl); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Video className="w-3 h-3" />
@@ -81,7 +81,7 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
           {submission?.repoUrl && (
             <a
               href={submission.repoUrl}
-              onClick={(e) => { e.preventDefault(); window.open(submission.repoUrl, '_blank', 'noopener,noreferrer'); }}
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(submission.repoUrl); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Github className="w-3 h-3" />
@@ -91,7 +91,7 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
           {submission?.liveDemoUrl && (
             <a
               href={submission.liveDemoUrl}
-              onClick={(e) => { e.preventDefault(); window.open(submission.liveDemoUrl, '_blank', 'noopener,noreferrer'); }}
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(submission.liveDemoUrl); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Globe className="w-3 h-3" />

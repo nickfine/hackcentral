@@ -201,7 +201,7 @@ function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired
                 {field.type === 'url' ? (
                   <a
                     href={value}
-                    onClick={(e) => { e.preventDefault(); window.open(value, '_blank', 'noopener,noreferrer'); }}
+                    onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(value); }}
                     className="text-sm text-blue-500 hover:underline break-all inline-flex items-center gap-1"
                   >
                     {value}
