@@ -1,30 +1,33 @@
 /**
  * Submission Page
- * Project submission form for team captains
+ * Two states: EDITING (form) and SUBMITTED (read-only summary).
+ * Countdown timer to submission deadline.
+ * Auto-save on change (debounced 2s, draft only).
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Send,
-  Save,
   Check,
-  Circle,
+  CheckCircle2,
   FileText,
   Video,
   Github,
   Globe,
   Users,
-  CheckCircle2,
   Edit3,
+  ExternalLink,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '../lib/design-system';
-import { Card, Button, Input, TextArea, Badge, Progress, Alert } from './ui';
+import { Card, Button, Input, TextArea, Alert } from './ui';
 import { BackButton } from './shared';
 import { VStack, HStack } from './layout';
 import { EmptyState } from './ui/ErrorState';
 
 // ============================================================================
-// SUBMISSION REQUIREMENTS
+// FIELDS CONFIG
 // ============================================================================
 
 const SUBMISSION_FIELDS = [
@@ -51,7 +54,7 @@ const SUBMISSION_FIELDS = [
     icon: Video,
     type: 'url',
     placeholder: 'https://youtube.com/...',
-    subtext: 'Submit your pitch as either a YouTube link, Confluence page or Infographic. Video max 3 mins. Less is more.',
+    subtext: 'Submit your pitch as a YouTube link, Confluence page or Infographic. Video max 3 mins.',
   },
   {
     id: 'repoUrl',
@@ -74,90 +77,236 @@ const SUBMISSION_FIELDS = [
 ];
 
 // ============================================================================
-// SUB-COMPONENTS
+// DEADLINE COUNTDOWN
 // ============================================================================
 
-function ReviewScreen({ formData, onEdit, onConfirm, isSaving }) {
+function getTimeLeft(deadlineIso) {
+  if (!deadlineIso) return null;
+  const diff = new Date(deadlineIso).getTime() - Date.now();
+  if (diff <= 0) return { expired: true, diff: 0 };
+  const totalSeconds = Math.floor(diff / 1000);
+  return {
+    expired: false,
+    diff,
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+}
+
+function useCountdown(deadlineIso) {
+  const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(deadlineIso));
+  useEffect(() => {
+    if (!deadlineIso) return;
+    const id = setInterval(() => setTimeLeft(getTimeLeft(deadlineIso)), 1000);
+    return () => clearInterval(id);
+  }, [deadlineIso]);
+  return timeLeft;
+}
+
+function DeadlineCountdown({ deadlineIso }) {
+  const timeLeft = useCountdown(deadlineIso);
+  if (!deadlineIso || !timeLeft) return null;
+
+  if (timeLeft.expired) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-3 mb-6 rounded-card bg-error/15 border border-error/30 text-error text-sm font-bold">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        Submissions are closed
+      </div>
+    );
+  }
+
+  const isUrgent = timeLeft.diff < 2 * 60 * 60 * 1000;
+  const isWarning = timeLeft.diff < 24 * 60 * 60 * 1000;
+
+  const parts = [];
+  if (timeLeft.days > 0) parts.push(`${timeLeft.days}d`);
+  if (timeLeft.hours > 0 || timeLeft.days > 0) parts.push(`${timeLeft.hours}h`);
+  parts.push(`${String(timeLeft.minutes).padStart(2, '0')}m`);
+  if (isUrgent) parts.push(`${String(timeLeft.seconds).padStart(2, '0')}s`);
+
   return (
-    <Card padding="lg">
-      <div className="mb-6">
-        <h2 className="text-2xl font-black text-text-primary mb-1">
-          This is what we have from you
-        </h2>
-        <p className="text-text-secondary">
-          This is what you are submitting and will be judged on.
-        </p>
+    <div className={cn(
+      'flex items-center gap-2 px-4 py-3 mb-6 rounded-card border text-sm font-medium',
+      isUrgent  ? 'bg-error/15 border-error/30 text-error' :
+      isWarning ? 'bg-warning/15 border-warning/30 text-warning' :
+                  'bg-arena-card border-arena-border text-text-secondary'
+    )}>
+      <Clock className="w-4 h-4 flex-shrink-0" />
+      <span>
+        Submissions close in{' '}
+        <span className="font-black font-mono">{parts.join(' ')}</span>
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+// SUBMITTED VIEW (read-only summary)
+// ============================================================================
+
+function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired, deadlineIso, votingOpensAt }) {
+  return (
+    <div>
+      {/* Status header */}
+      <div className="flex items-center gap-3 mb-6 p-5 rounded-card bg-green-500/20 border-2 border-green-500/40">
+        <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-lg font-black text-green-700 dark:text-green-300">Submitted</p>
+          <p className="text-sm text-green-600 dark:text-green-400">
+            {isDeadlineExpired
+              ? 'Submissions are now closed.'
+              : 'You can still edit until the deadline.'}
+          </p>
+        </div>
+        {!isDeadlineExpired && onEdit && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onEdit}
+            leftIcon={<Edit3 className="w-3 h-3" />}
+          >
+            Edit
+          </Button>
+        )}
       </div>
 
-      <VStack gap="4" className="mb-8">
+      {/* Deadline countdown */}
+      {!isDeadlineExpired && <DeadlineCountdown deadlineIso={deadlineIso} />}
+
+      {/* Summary */}
+      <Card padding="lg" className="mb-4">
+        <VStack gap="4">
+          {SUBMISSION_FIELDS.map((field) => {
+            const value = formData[field.id];
+            if (!value) return null;
+            return (
+              <div key={field.id} className="border-b border-arena-border pb-4 last:border-0 last:pb-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">
+                  {field.label}
+                </p>
+                {field.type === 'url' ? (
+                  <a
+                    href={value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-500 hover:underline break-all inline-flex items-center gap-1"
+                  >
+                    {value}
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                  </a>
+                ) : (
+                  <p className="text-sm text-text-primary whitespace-pre-wrap">{value}</p>
+                )}
+              </div>
+            );
+          })}
+        </VStack>
+      </Card>
+
+      {/* Confluence link */}
+      {submissionPageHref && (
+        <div className="mb-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.open(submissionPageHref, '_blank', 'noopener,noreferrer')}
+            leftIcon={<ExternalLink className="w-3 h-3" />}
+          >
+            View submission page
+          </Button>
+        </div>
+      )}
+
+      {/* Voting nudge */}
+      {votingOpensAt && !isDeadlineExpired && (
+        <p className="text-sm text-text-muted">
+          Voting opens{' '}
+          {new Date(votingOpensAt).toLocaleDateString('en-GB', {
+            weekday: 'long',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Europe/London',
+          })}
+          .
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// SUBMISSION FORM
+// ============================================================================
+
+function SubmissionForm({ formData, onChange, errors, isSaving, canSubmit, isDeadlineExpired, autoSaveStatus, onSubmit, onCancel, isEditingSubmitted }) {
+  return (
+    <Card padding="lg">
+      <VStack gap="6">
         {SUBMISSION_FIELDS.map((field) => {
-          const value = formData[field.id];
-          if (!value) return null;
+          const Icon = field.icon;
+          const isCompleted = Boolean(formData[field.id]?.trim());
           return (
-            <div
-              key={field.id}
-              className="border-b border-arena-border pb-4 last:border-0 last:pb-0"
-            >
-              <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">
-                {field.label}
-              </p>
-              {field.type === 'url' ? (
-                <a
-                  href={value}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-500 hover:underline break-all"
-                >
-                  {value}
-                </a>
+            <div key={field.id}>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={cn('w-4 h-4', isCompleted ? 'text-green-600 dark:text-green-400' : 'text-text-muted')} />
+                {isCompleted && <Check className="w-4 h-4 text-green-600 dark:text-green-400" />}
+              </div>
+              {field.type === 'textarea' ? (
+                <TextArea
+                  label={field.label}
+                  value={formData[field.id]}
+                  onChange={(e) => onChange(field.id, e.target.value)}
+                  required={field.required}
+                  rows={4}
+                  placeholder={`Enter ${field.label.toLowerCase()}...`}
+                  error={errors[field.id]}
+                />
               ) : (
-                <p className="text-sm text-text-primary whitespace-pre-wrap">{value}</p>
+                <Input
+                  label={field.label}
+                  type={field.type}
+                  value={formData[field.id]}
+                  onChange={(e) => onChange(field.id, e.target.value)}
+                  required={field.required}
+                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                  error={errors[field.id]}
+                />
+              )}
+              {field.subtext && (
+                <p className="mt-1 text-xs text-text-muted">{field.subtext}</p>
               )}
             </div>
           );
         })}
       </VStack>
 
-      <HStack gap="3">
-        <Button
-          variant="secondary"
-          onClick={onEdit}
-          disabled={isSaving}
-          leftIcon={<Edit3 className="w-4 h-4" />}
-        >
-          Edit
-        </Button>
-        <Button
-          onClick={onConfirm}
-          loading={isSaving}
-          leftIcon={!isSaving ? <Send className="w-4 h-4" /> : undefined}
-        >
-          Confirm &amp; Submit
-        </Button>
-      </HStack>
+      <div className="mt-8 pt-6 border-t border-arena-border">
+        <HStack justify="between" align="center">
+          <span className="text-xs text-text-muted font-medium min-w-[60px]">
+            {autoSaveStatus === 'saving' && 'Saving…'}
+            {autoSaveStatus === 'saved'  && '✓ Saved'}
+          </span>
+          <HStack gap="3">
+            {onCancel && (
+              <Button variant="secondary" onClick={onCancel} disabled={isSaving}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              onClick={onSubmit}
+              disabled={!canSubmit || isSaving || isDeadlineExpired}
+              loading={isSaving}
+              leftIcon={!isSaving ? <Send className="w-4 h-4" /> : undefined}
+            >
+              {isEditingSubmitted ? 'Update submission' : 'Submit'}
+            </Button>
+          </HStack>
+        </HStack>
+      </div>
     </Card>
-  );
-}
-
-function SubmitActions({ onSaveDraft, onSubmitClick, isSaving, canSubmit }) {
-  return (
-    <HStack gap="2" justify="end">
-      <Button
-        variant="secondary"
-        onClick={onSaveDraft}
-        loading={isSaving}
-        leftIcon={<Save className="w-4 h-4" />}
-      >
-        Save Draft
-      </Button>
-      <Button
-        onClick={onSubmitClick}
-        disabled={!canSubmit || isSaving}
-        leftIcon={<Send className="w-4 h-4" />}
-      >
-        Review &amp; Submit
-      </Button>
-    </HStack>
   );
 }
 
@@ -165,160 +314,160 @@ function SubmitActions({ onSaveDraft, onSubmitClick, isSaving, canSubmit }) {
 // COMPONENT
 // ============================================================================
 
-function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase }) {
-  const userTeam = useMemo(() => {
-    return teams.find(
-      (team) => team.captainId === user?.id || team.members?.some((m) => m.id === user?.id)
-    );
-  }, [teams, user?.id]);
+function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase, eventMeta }) {
+  const userTeam = useMemo(() => (
+    teams.find((t) => t.captainId === user?.id || t.members?.some((m) => m.id === user?.id))
+  ), [teams, user?.id]);
 
   const isCaptain = userTeam?.captainId === user?.id;
 
-  const [formData, setFormData] = useState({
-    projectName: '',
-    description: '',
-    demoVideoUrl: '',
-    repoUrl: '',
-    liveDemoUrl: '',
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
-  const [saveMessageVariant, setSaveMessageVariant] = useState('success');
-  const [errors, setErrors] = useState({});
-  const [submissionPageLink, setSubmissionPageLink] = useState({ pageId: null, pageUrl: null });
-  const [showReview, setShowReview] = useState(false);
+  const submissionDeadline = eventMeta?.schedule?.submissionDeadlineAt ?? null;
+  const votingOpensAt = eventMeta?.schedule?.customEvents?.find(
+    (e) => e.signal === 'start' && e.name?.toLowerCase().includes('voting')
+  )?.timestamp ?? null;
 
-  // Initialise form — auto-populate projectName from team name
+  const [formData, setFormData] = useState({
+    projectName: '', description: '', demoVideoUrl: '', repoUrl: '', liveDemoUrl: '',
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
+  const [submissionPageLink, setSubmissionPageLink] = useState({ pageId: null, pageUrl: null });
+
+  const autoSaveTimerRef = useRef(null);
+  const lastSavedRef = useRef(null);
+  const initDoneRef = useRef(false);
+  const submittedSnapshotRef = useRef(null); // form data at last successful submit (for Cancel)
+
+  // Initialise form from existing submission
   useEffect(() => {
     if (!userTeam) return;
-    setFormData({
+    const data = {
       projectName: userTeam.submission?.projectName || userTeam.name || '',
-      description: userTeam.submission?.description || '',
-      demoVideoUrl: userTeam.submission?.demoVideoUrl || '',
-      repoUrl: userTeam.submission?.repoUrl || '',
-      liveDemoUrl: userTeam.submission?.liveDemoUrl || '',
-    });
+      description:  userTeam.submission?.description  || '',
+      demoVideoUrl: userTeam.submission?.demoVideoUrl  || '',
+      repoUrl:      userTeam.submission?.repoUrl       || '',
+      liveDemoUrl:  userTeam.submission?.liveDemoUrl   || '',
+    };
+    setFormData(data);
+    lastSavedRef.current = data;
+    if (userTeam.submission?.status === 'submitted') {
+      submittedSnapshotRef.current = data;
+    }
     if (userTeam.submission) {
       setSubmissionPageLink({
-        pageId: userTeam.submission.submissionPageId || null,
-        pageUrl: userTeam.submission.submissionPageUrl || null,
+        pageId: userTeam.submission.submissionPageId ?? null,
+        pageUrl: userTeam.submission.submissionPageUrl ?? null,
       });
     }
-  }, [userTeam]);
+    initDoneRef.current = true;
+  }, [userTeam?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submissionStatus = userTeam?.submission?.status ?? 'not_started';
+  const isSubmitted = submissionStatus === 'submitted' && !isEditing;
+  const isEditingSubmitted = isEditing && submittedSnapshotRef.current !== null;
+
+  // Auto-save (debounced 2s, draft-only — not while editing a submitted submission)
+  useEffect(() => {
+    if (!initDoneRef.current || !isCaptain || !userTeam || isEditingSubmitted) return;
+    if (submissionStatus === 'submitted') return;
+
+    const dataStr = JSON.stringify(formData);
+    if (dataStr === JSON.stringify(lastSavedRef.current)) return;
+    if (!Object.values(formData).some((v) => v?.trim())) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setAutoSaveStatus('');
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setAutoSaveStatus('saving');
+      try {
+        const result = await onSubmitProject(userTeam.id, { ...formData, status: 'draft' });
+        if (result?.submissionPageId || result?.submissionPageUrl) {
+          setSubmissionPageLink({
+            pageId: result.submissionPageId ?? null,
+            pageUrl: result.submissionPageUrl ?? null,
+          });
+        }
+        lastSavedRef.current = { ...formData };
+        setAutoSaveStatus('saved');
+        setTimeout(() => setAutoSaveStatus(''), 3000);
+      } catch {
+        setAutoSaveStatus('');
+      }
+    }, 2000);
+
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const deadlineExpired = (getTimeLeft(submissionDeadline)?.expired) ?? false;
 
   const requiredFields = SUBMISSION_FIELDS.filter((f) => f.required);
-  const completedRequired = SUBMISSION_FIELDS.filter(
-    (f) => f.required && formData[f.id]?.trim()
-  );
+  const completedRequired = SUBMISSION_FIELDS.filter((f) => f.required && formData[f.id]?.trim());
   const canSubmit = completedRequired.length === requiredFields.length;
-  const progressPercent = (completedRequired.length / requiredFields.length) * 100;
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }));
-    }
-  };
-
-  const isValidUrl = (url) => {
-    if (!url) return true;
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
 
   const validateUrls = () => {
     const newErrors = {};
     ['demoVideoUrl', 'repoUrl', 'liveDemoUrl'].forEach((field) => {
-      if (formData[field] && !isValidUrl(formData[field])) {
-        newErrors[field] = 'Please enter a valid URL';
-      }
+      if (!formData[field]) return;
+      try { new URL(formData[field]); }
+      catch { newErrors[field] = 'Please enter a valid URL'; }
     });
     return newErrors;
   };
 
-  const handleSaveDraft = async () => {
-    if (!userTeam || !isCaptain) return;
-    setIsSaving(true);
-    setSaveMessage('');
-    try {
-      const result = await onSubmitProject(userTeam.id, { ...formData, status: 'draft' });
-      if (result?.submissionPageId || result?.submissionPageUrl) {
-        setSubmissionPageLink({
-          pageId: result.submissionPageId || null,
-          pageUrl: result.submissionPageUrl || null,
-        });
-      }
-      setSaveMessageVariant('success');
-      setSaveMessage('Draft saved!');
-    } catch (err) {
-      console.error('Failed to save draft:', err);
-      setSaveMessageVariant('error');
-      setSaveMessage('Failed to save draft. Please try again.');
-    } finally {
-      setIsSaving(false);
-      setTimeout(() => setSaveMessage(''), 3000);
-    }
-  };
-
-  const handleSubmitClick = () => {
-    if (!canSubmit) return;
+  const handleSubmit = async () => {
+    if (!userTeam || !isCaptain || !canSubmit) return;
     const urlErrors = validateUrls();
-    if (Object.keys(urlErrors).length > 0) {
-      setErrors(urlErrors);
-      return;
-    }
-    setShowReview(true);
-  };
+    if (Object.keys(urlErrors).length > 0) { setErrors(urlErrors); return; }
 
-  const handleConfirmSubmit = async () => {
-    if (!userTeam || !isCaptain) return;
     setIsSaving(true);
-    setSaveMessage('');
+    setSubmitError('');
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
     try {
       const result = await onSubmitProject(userTeam.id, { ...formData, status: 'submitted' });
       if (result?.submissionPageId || result?.submissionPageUrl) {
         setSubmissionPageLink({
-          pageId: result.submissionPageId || null,
-          pageUrl: result.submissionPageUrl || null,
+          pageId: result.submissionPageId ?? null,
+          pageUrl: result.submissionPageUrl ?? null,
         });
       }
-      setSaveMessageVariant('success');
-      setSaveMessage("Project submitted! Don't forget to vote on hacks tomorrow.");
-      setShowReview(false);
-    } catch (err) {
-      console.error('Failed to submit project:', err);
-      setSaveMessageVariant('error');
-      setSaveMessage('Failed to submit. Please try again.');
-      setShowReview(false);
+      lastSavedRef.current = { ...formData };
+      submittedSnapshotRef.current = { ...formData };
+      setIsEditing(false);
+    } catch {
+      setSubmitError('Failed to submit. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case 'submitted':
-        return { label: 'Submitted', variant: 'success', icon: CheckCircle2 };
-      case 'draft':
-        return { label: 'Draft', variant: 'warning', icon: Edit3 };
-      default:
-        return { label: 'Not Started', variant: 'default', icon: Circle };
+  const handleCancelEdit = () => {
+    // Restore form to the last submitted snapshot
+    if (submittedSnapshotRef.current) {
+      setFormData(submittedSnapshotRef.current);
+      lastSavedRef.current = submittedSnapshotRef.current;
     }
+    setErrors({});
+    setSubmitError('');
+    setIsEditing(false);
   };
 
-  const submissionStatus = userTeam?.submission?.status || 'not_started';
-  const statusInfo = getStatusInfo(submissionStatus);
-  const StatusIcon = statusInfo.icon;
   const submissionPageHref =
     submissionPageLink.pageUrl ||
     (submissionPageLink.pageId
       ? `/wiki/pages/viewpage.action?pageId=${encodeURIComponent(submissionPageLink.pageId)}`
       : '');
 
+  // ---- Guard: wrong phase ----
   const isSubmissionPhase = eventPhase === 'hacking' || eventPhase === 'submission';
   if (!isSubmissionPhase) {
     return (
@@ -328,7 +477,7 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
           <EmptyState
             icon={Send}
             title="Submissions open during the hack"
-            message="Project submission is available when the event reaches the Hacking or Submission phase. Check back then or go to the Dashboard for the current phase."
+            message="Project submission is available when the event reaches the Hacking or Submission phase."
             action={() => onNavigate('dashboard')}
             actionText="Go to Dashboard"
           />
@@ -337,6 +486,7 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
     );
   }
 
+  // ---- Guard: no team ----
   if (!userTeam) {
     return (
       <div className="p-4 sm:p-6">
@@ -354,163 +504,92 @@ function Submission({ user, teams = [], onNavigate, onSubmitProject, eventPhase 
     );
   }
 
+  // ---- Non-captain view ----
   if (!isCaptain) {
+    const isTeamSubmitted = submissionStatus === 'submitted';
     return (
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
-        <div className="max-w-2xl mx-auto">
-          <Alert variant="info" title="Team Members">
-            <p className="mb-2">
-              Only team captains can submit projects. Ask{' '}
-              <span className="font-bold">{userTeam.captainName || 'your captain'}</span> to handle
-              the submission.
-            </p>
-          </Alert>
-          {userTeam.submission && (
-            <Card padding="lg" className="mt-6">
-              <Card.Title>Current Submission Status</Card.Title>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant={statusInfo.variant}>
-                  <StatusIcon className="w-3 h-3 mr-1" />
-                  {statusInfo.label}
-                </Badge>
-              </div>
-              {userTeam.submission.projectName && (
-                <p className="text-text-primary font-bold">{userTeam.submission.projectName}</p>
-              )}
-            </Card>
+        <div className="mt-6">
+          <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">
+            Project Submission
+          </p>
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-6">
+            {userTeam.name}
+          </h1>
+          {isTeamSubmitted ? (
+            <SubmittedView
+              formData={formData}
+              submissionPageHref={submissionPageHref}
+              onEdit={null}
+              isDeadlineExpired={deadlineExpired}
+              deadlineIso={submissionDeadline}
+              votingOpensAt={votingOpensAt}
+            />
+          ) : (
+            <>
+              <DeadlineCountdown deadlineIso={submissionDeadline} />
+              <Alert variant="info">
+                <p>
+                  Only the team captain can submit.{' '}
+                  {userTeam.captainName && (
+                    <span>Ask <span className="font-bold">{userTeam.captainName}</span> to handle it.</span>
+                  )}
+                </p>
+                {submissionStatus === 'draft' && (
+                  <p className="mt-1 text-xs opacity-80">
+                    Draft in progress — {completedRequired.length}/{requiredFields.length} required fields complete.
+                  </p>
+                )}
+              </Alert>
+            </>
           )}
         </div>
       </div>
     );
   }
 
+  // ---- Captain view ----
   return (
-    <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
-        <div className="mt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-text-muted">
-              Project Submission
-            </p>
-            <Badge variant={statusInfo.variant}>
-              <StatusIcon className="w-3 h-3 mr-1" />
-              {statusInfo.label}
-            </Badge>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary mb-2">
-            Submission Check
-          </h1>
-          <p className="text-text-secondary max-w-2xl">
-            Submitting for <span className="font-bold">{userTeam.name}</span>
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+      <BackButton onClick={() => onNavigate('dashboard')} label="Dashboard" />
+      <div className="mt-4 mb-6">
+        <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">
+          Project Submission · {userTeam.name}
+        </p>
+        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-text-primary">
+          {isSubmitted ? "You're in" : 'Submit your hack'}
+        </h1>
       </div>
 
-      {/* Progress */}
-      <Card padding="md" className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-text-secondary">Completion Progress</span>
-          <span className="text-sm font-mono text-text-muted">
-            {completedRequired.length}/{requiredFields.length} required fields
-          </span>
-        </div>
-        <Progress value={progressPercent} variant={canSubmit ? 'success' : 'default'} />
-        {saveMessage && (
-          <Alert variant={saveMessageVariant} className="mt-4">
-            {saveMessage}
-          </Alert>
-        )}
-        {submissionPageHref ? (
-          <div className="mt-4">
-            <Button
-              variant="secondary"
-              onClick={() => window.open(submissionPageHref, '_blank', 'noopener,noreferrer')}
-            >
-              Open submission page
-            </Button>
-          </div>
-        ) : null}
-      </Card>
-
-      {/* Review screen or Form */}
-      {showReview ? (
-        <ReviewScreen
+      {isSubmitted ? (
+        <SubmittedView
           formData={formData}
-          onEdit={() => setShowReview(false)}
-          onConfirm={handleConfirmSubmit}
-          isSaving={isSaving}
+          submissionPageHref={submissionPageHref}
+          onEdit={() => setIsEditing(true)}
+          isDeadlineExpired={deadlineExpired}
+          deadlineIso={submissionDeadline}
+          votingOpensAt={votingOpensAt}
         />
       ) : (
-        <Card padding="lg">
-          {/* Top CTAs */}
-          <div className="mb-6 pb-6 border-b border-arena-border">
-            <SubmitActions
-              onSaveDraft={handleSaveDraft}
-              onSubmitClick={handleSubmitClick}
-              isSaving={isSaving}
-              canSubmit={canSubmit}
-            />
-          </div>
-
-          {/* Fields */}
-          <VStack gap="6">
-            {SUBMISSION_FIELDS.map((field) => {
-              const Icon = field.icon;
-              const isCompleted = formData[field.id]?.trim();
-
-              return (
-                <div key={field.id}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon
-                      className={cn(
-                        'w-4 h-4',
-                        isCompleted ? 'text-success' : 'text-text-muted'
-                      )}
-                    />
-                    {isCompleted && <Check className="w-4 h-4 text-success" />}
-                  </div>
-                  {field.type === 'textarea' ? (
-                    <TextArea
-                      label={field.label}
-                      value={formData[field.id]}
-                      onChange={(e) => handleChange(field.id, e.target.value)}
-                      required={field.required}
-                      rows={4}
-                      placeholder={`Enter ${field.label.toLowerCase()}...`}
-                      error={errors[field.id]}
-                    />
-                  ) : (
-                    <Input
-                      label={field.label}
-                      type={field.type}
-                      value={formData[field.id]}
-                      onChange={(e) => handleChange(field.id, e.target.value)}
-                      required={field.required}
-                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                      error={errors[field.id]}
-                    />
-                  )}
-                  {field.subtext && (
-                    <p className="mt-1 text-xs text-text-muted">{field.subtext}</p>
-                  )}
-                </div>
-              );
-            })}
-          </VStack>
-
-          {/* Bottom CTAs */}
-          <div className="mt-8 pt-6 border-t border-arena-border">
-            <SubmitActions
-              onSaveDraft={handleSaveDraft}
-              onSubmitClick={handleSubmitClick}
-              isSaving={isSaving}
-              canSubmit={canSubmit}
-            />
-          </div>
-        </Card>
+        <>
+          <DeadlineCountdown deadlineIso={submissionDeadline} />
+          <SubmissionForm
+            formData={formData}
+            onChange={handleChange}
+            errors={errors}
+            isSaving={isSaving}
+            canSubmit={canSubmit}
+            isDeadlineExpired={deadlineExpired}
+            autoSaveStatus={autoSaveStatus}
+            onSubmit={handleSubmit}
+            onCancel={isEditingSubmitted ? handleCancelEdit : null}
+            isEditingSubmitted={isEditingSubmitted}
+          />
+          {submitError && (
+            <Alert variant="error" className="mt-3">{submitError}</Alert>
+          )}
+        </>
       )}
     </div>
   );
