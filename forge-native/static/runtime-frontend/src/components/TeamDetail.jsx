@@ -242,11 +242,14 @@ function TeamDetail({
   eventPhase = 'signup',
   appModeResolverPayload,
   skillsConfig = null,
+  welcomeNewMember = false,
 }) {
   const skillsEnabled = skillsConfig === null || skillsConfig.enabled !== false;
   const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
     ? skillsConfig.list
     : SKILLS;
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(welcomeNewMember);
+
   // State for editing
   const [moreInfoText, setMoreInfoText] = useState(team?.moreInfo || '');
   const [isEditingMoreInfo, setIsEditingMoreInfo] = useState(false);
@@ -564,6 +567,18 @@ function TeamDetail({
       <div className="mb-6">
         <BackButton onClick={() => onNavigate('marketplace')} />
       </div>
+
+      {showWelcomeBanner && (
+        <Alert
+          variant="success"
+          className="mb-4"
+          dismissible
+          onDismiss={() => setShowWelcomeBanner(false)}
+        >
+          <span className="font-bold">Welcome to your new team!</span> You've been matched with{' '}
+          <span className="font-bold">{team?.name}</span>. Introduce yourself and get hacking.
+        </Alert>
+      )}
 
       {teamActionStatus && (
         <Alert

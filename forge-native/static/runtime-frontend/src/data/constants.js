@@ -4,7 +4,7 @@
  */
 
 // Bump this when deploying to help bust Atlassian CDN cache (see LEARNINGS_CURSOR.md)
-export const APP_VERSION = '1.2.245';
+export const APP_VERSION = '1.2.257';
 
 // Demo event ID - shared with HD26AI for unified demo data
 export const DEMO_EVENT_ID = 'demo-event-2026';
@@ -75,17 +75,11 @@ export const EVENT_PHASES = {
     description: 'Submit your project for judging',
     order: 3,
   },
-  voting: {
-    id: 'voting',
-    label: 'Voting',
-    description: "Vote for People's Champion",
-    order: 4,
-  },
   judging: {
     id: 'judging',
-    label: 'Judging',
-    description: 'Judges evaluate submissions',
-    order: 5,
+    label: "Judging & People's Vote",
+    description: 'Judges score and everyone votes for their favourite',
+    order: 4,
   },
   results: {
     id: 'results',
@@ -99,7 +93,6 @@ export const EVENT_PHASE_ORDER = [
   'team_formation',
   'hacking',
   'submission',
-  'voting',
   'judging',
   'results',
 ];

@@ -215,7 +215,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
   const canVoteMore = votes.length < MAX_VOTES;
 
   // Check if voting is open
-  const isVotingPhase = eventPhase === 'voting';
+  const isVotingPhase = eventPhase === 'voting' || eventPhase === 'judging';
 
   return (
     <div className="p-4 sm:p-6">

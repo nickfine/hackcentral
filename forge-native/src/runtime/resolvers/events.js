@@ -37,7 +37,7 @@ import {
   resolveConfigModeAccess,
   buildConfigModeStateResponse,
   checkAndSendFreeAgentReminders,
-  autoAssignFreeAgentsToObservers,
+  sweepFreeAgentsIntoTeams,
   resetCurrentEventParticipationGraph,
   seedBalancedEventData,
   getAdminResetLockStorageKey,
@@ -274,9 +274,9 @@ resolver.define("setEventPhase", async (req) => {
       await checkAndSendFreeAgentReminders(supabase, event.id, event.startDate);
     }
 
-    // AUTO-ASSIGNMENT: If phase is changing to 'hacking', assign free agents
+    // AUTO-ASSIGNMENT: If phase is changing to 'hacking', sweep any remaining free agents
     if (phase === 'hacking') {
-      await autoAssignFreeAgentsToObservers(supabase, event.id);
+      await sweepFreeAgentsIntoTeams(supabase, event.id);
     }
 
     // Create phase change notification for all users

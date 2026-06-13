@@ -270,11 +270,11 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
   const permissions = USER_ROLES[userRole] || USER_ROLES.participant;
   const canManage = permissions.canManage || isEventAdmin;
 
-  if (permissions.canVote && eventPhase === 'voting') {
-    baseItems.push({ id: 'voting', label: 'Voting', icon: Vote });
+  if (permissions.canVote && eventPhase === 'judging') {
+    baseItems.push({ id: 'voting', label: "People's Vote", icon: Vote });
   }
 
-  if (permissions.canJudge) {
+  if (permissions.canJudge && eventPhase === 'judging') {
     baseItems.push({ id: 'judge-scoring', label: 'Judging', icon: Gavel, highlight: 'amber' });
   }
 

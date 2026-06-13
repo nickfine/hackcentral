@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '../../lib/design-system';
 import { Card, Badge, Alert, Modal, Button } from '../ui';
-import { VStack } from '../layout';
 import { EVENT_PHASES, EVENT_PHASE_ORDER } from '../../data/constants';
 
 /** Doc: standard card - white/gray-800, gray border, rounded-xl, shadow-sm light only */
@@ -45,7 +44,8 @@ function PhasesPanel({ eventPhase, onPhaseChange }) {
         Changing the event phase affects all participants. Make sure you&apos;re ready before proceeding.
       </Alert>
 
-      <VStack gap="3">
+      <div className="overflow-x-auto">
+      <div className="flex gap-3 max-w-3xl mx-auto">
         {EVENT_PHASE_ORDER.map((phaseKey, index) => {
           const phase = EVENT_PHASES[phaseKey];
           const isCurrent = eventPhase === phaseKey;
@@ -56,40 +56,40 @@ function PhasesPanel({ eventPhase, onPhaseChange }) {
               key={phaseKey}
               onClick={() => handlePhaseClick(phaseKey)}
               className={cn(
-                'w-full flex items-center gap-4 p-5 rounded-lg border transition-all text-left',
+                'flex-1 min-w-[100px] flex flex-col items-center gap-3 p-4 rounded-xl border transition-all text-center',
                 isCurrent
                   ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] border-[var(--accent)]'
                   : isPast
-                    ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                    ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-60'
                     : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               )}
             >
               <div className={cn(
-                'w-10 h-10 rounded-full flex items-center justify-center font-bold text-base',
+                'w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0',
                 isCurrent
                   ? 'bg-[var(--accent)] text-[var(--accent-on)]'
                   : isPast
-                    ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                    ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600'
               )}>
                 {isPast ? '✓' : index + 1}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
                 <p className={cn(
-                  'font-bold',
+                  'font-bold text-sm leading-tight',
                   isCurrent ? 'text-[var(--accent)]' : 'text-gray-900 dark:text-white'
                 )}>
                   {phase.label}
                 </p>
-                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{phase.description}</p>
+                {isCurrent && (
+                  <Badge className="!bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] !text-[var(--accent)] border-0 text-xs">Current</Badge>
+                )}
               </div>
-              {isCurrent && (
-                <Badge className="!bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] !text-[var(--accent)] border-0">Current</Badge>
-              )}
             </button>
           );
         })}
-      </VStack>
+      </div>
+      </div>
     </Card>
 
       {/* Phase change confirmation modal */}

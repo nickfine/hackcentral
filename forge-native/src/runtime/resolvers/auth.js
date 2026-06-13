@@ -14,6 +14,7 @@ import {
   isAdminOrOwner,
   isHackdayOwnerIdentity,
   makeId,
+  assignUserToFreeAgentTeam,
 } from "../lib/helpers.js";
 import { transformUser } from "../lib/transforms.js";
 
@@ -594,34 +595,33 @@ resolver.define("adminDeleteRegistration", async (req) => {
 });
 
 /**
- * Update user's auto-assign opt-in preference
+ * Immediately assign the calling user to a free agent team.
+ * Creates a new team if all existing free agent teams are full (max 5).
+ * Returns the team the user was assigned to.
  */
-resolver.define("updateAutoAssignOptIn", async (req) => {
+resolver.define("optInToAutoAssign", async (req) => {
   const accountId = getCallerAccountId(req);
-  const { optIn } = req.payload || {};
-  if (optIn === undefined) {
-    throw new Error("optIn is required");
-  }
-
   const supabase = getSupabaseClient();
 
   try {
-    const user = await getUserByAccountId(supabase, accountId, "id");
+    const [event, user] = await Promise.all([
+      getCurrentEvent(supabase, req),
+      getUserByAccountId(supabase, accountId, "id, isFreeAgent"),
+    ]);
 
-    const { error: updateError } = await supabase
-      .from("User")
-      .update({
-        autoAssignOptIn: optIn,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq("id", user.id);
+    const { team, error } = await assignUserToFreeAgentTeam(supabase, user.id, event.id);
 
-    if (updateError) throw updateError;
+    if (error === "already_on_team") {
+      throw new Error("You are already on a team");
+    }
+    if (error || !team) {
+      throw new Error(error || "Assignment failed");
+    }
 
-    return { success: true, autoAssignOptIn: optIn };
+    return { success: true, team };
   } catch (error) {
-    console.error("updateAutoAssignOptIn error:", error);
-    throw new Error(`Failed to update auto-assign preference: ${error.message}`);
+    console.error("optInToAutoAssign error:", error);
+    throw new Error(`Failed to auto-assign: ${error.message}`);
   }
 });
 

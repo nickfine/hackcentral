@@ -69,8 +69,8 @@ const MOCK_MILESTONES = [
   },
   {
     id: 'milestone-voting-open',
-    title: 'Voting Opens',
-    phase: 'voting',
+    title: 'Voting & Judging Opens',
+    phase: 'judging',
     startTime: '2026-06-22T10:30:00.000Z',
     endTime: null,
     location: 'Voting Hub',
@@ -463,6 +463,8 @@ function Dashboard({
   const [availabilityPreset, setAvailabilityPreset] = useState('');
   const [availabilityBlurb, setAvailabilityBlurb] = useState('');
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [isOptingInToTeam, setIsOptingInToTeam] = useState(false);
+  const [optInError, setOptInError] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -687,6 +689,22 @@ function Dashboard({
     const target = resolveActivityTarget(activity);
     onNavigate?.(target.view, target.params);
   }, [onNavigate, resolveActivityTarget]);
+
+  const handleOptInToTeam = useCallback(async () => {
+    setIsOptingInToTeam(true);
+    setOptInError(null);
+    try {
+      const { invoke } = await import('@forge/bridge');
+      const result = await invokeEventScopedResolver(invoke, 'optInToAutoAssign', appModeResolverPayload, {});
+      if (result?.team?.id) {
+        onNavigate?.('team-detail', { teamId: result.team.id, welcome: true });
+      }
+    } catch (err) {
+      setOptInError('Something went wrong. Please try again.');
+    } finally {
+      setIsOptingInToTeam(false);
+    }
+  }, [appModeResolverPayload, onNavigate]);
 
   const userTeam = useMemo(() => {
     if (devRoleOverride === 'participant_guest') return null;
@@ -917,6 +935,9 @@ function Dashboard({
     }
     if (submissionReadiness.tone === 'amber' && (eventPhase === 'hacking' || eventPhase === 'submission')) {
       return { label: 'Start your submission before time runs out', route: 'submission', params: {} };
+    }
+    if (eventPhase === 'judging') {
+      return { label: "Cast your People's Vote", route: 'voting', params: {} };
     }
     if (readinessCompleteCount === readinessTotalCount) {
       return { label: "You're all set - explore the marketplace", route: 'marketplace', params: {} };
@@ -1284,6 +1305,40 @@ function Dashboard({
                 testId: 'dashboard-kpi-submissions',
               },
         ]} />
+      )}
+
+      {/* ====== FREE AGENT OPT-IN BANNER ====== */}
+      {isFreeAgentUser && eventPhase === 'team_formation' && (
+        <div
+          className="rounded-[28px] border-2 p-6"
+          style={{ borderColor: 'var(--accent)', background: 'var(--phase-active-bg)' }}
+          data-testid="dashboard-free-agent-banner"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold" style={{ color: 'var(--stat-value-color)' }}>
+                You're a free agent
+              </p>
+              <p className="text-sm mt-1" style={{ color: 'var(--stat-label-color)' }}>
+                Get matched to a team automatically, or browse the Ideas Marketplace to find one yourself.
+                All free agents are auto-assigned 24 hours before hacking begins.
+              </p>
+              {optInError && (
+                <p className="text-sm mt-2" style={{ color: 'var(--status-error-text)' }}>{optInError}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              data-testid="dashboard-opt-in-button"
+              disabled={isOptingInToTeam}
+              onClick={handleOptInToTeam}
+              className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: 'var(--accent-fg, #fff)' }}
+            >
+              {isOptingInToTeam ? 'Assigning...' : 'Auto-assign me now'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ====== MAIN CONTENT GRID ====== */}

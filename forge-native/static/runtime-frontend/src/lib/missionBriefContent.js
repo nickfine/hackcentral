@@ -265,62 +265,31 @@ export const MISSION_CONTENT = {
   },
 
   // ============================================================================
-  // VOTING PHASE
-  // ============================================================================
-  voting: {
-    [USER_STATES.NOT_REGISTERED]: {
-      headline: 'Voting Is Live',
-      status: 'Review projects and support the strongest executions.',
-      context: (stats) => `${stats.submissions || 0} projects are in the voting pool now.`,
-      primaryCTA: { label: 'Browse Submissions', action: 'voting' },
-      secondaryCTA: null,
-      footerPrefix: 'Voting closes in',
-    },
-    [USER_STATES.SUBMITTED]: {
-      headline: 'Drive Votes for Your Project',
-      status: (ctx) => `Your project is live: ${ctx.projectTitle || 'Your project'}`,
-      context: (stats) => `${stats.submissions || 0} projects are competing. Keep your demo story clear and visible.`,
-      primaryCTA: { label: 'Start Voting', action: 'voting' },
-      secondaryCTA: { label: 'Open Submission', action: 'submission' },
-      footerPrefix: 'Voting closes in',
-    },
-    // Default for others
-    [USER_STATES.FREE_AGENT_NO_IDEA]: {
-      headline: 'Voting Is Live',
-      status: 'Cast votes on the strongest projects.',
-      context: (stats) => `${stats.submissions || 0} projects are ready for review.`,
-      primaryCTA: { label: 'Start Voting', action: 'voting' },
-      secondaryCTA: null,
-      footerPrefix: 'Voting closes in',
-    },
-  },
-
-  // ============================================================================
-  // JUDGING PHASE
+  // JUDGING PHASE (combined Judging & People's Vote)
   // ============================================================================
   judging: {
     [USER_STATES.NOT_REGISTERED]: {
-      headline: 'Judging Is Underway',
-      status: 'Judges are reviewing all submissions.',
-      context: (stats) => `${stats.submissions || 0} projects are currently being scored.`,
-      primaryCTA: { label: 'Browse Submissions', action: 'voting' },
+      headline: "Judging & Voting Are Live",
+      status: 'Watch scores come in and vote for your favourite.',
+      context: (stats) => `${stats.submissions || 0} projects are in the vote. Judges are scoring simultaneously.`,
+      primaryCTA: { label: 'See Submissions', action: 'voting' },
       secondaryCTA: null,
       footerPrefix: 'Results announced in',
     },
     [USER_STATES.SUBMITTED]: {
-      headline: 'Judging Is Underway',
-      status: (ctx) => `Your project is under review: ${ctx.projectTitle || 'Your project'}`,
-      context: () => 'Scoring is active. Keep an eye on announcements for final rankings.',
-      primaryCTA: { label: 'Browse Submissions', action: 'voting' },
+      headline: "Judging & Voting Are Live",
+      status: (ctx) => `Your project is being scored: ${ctx.projectTitle || 'Your project'}`,
+      context: () => "Judges are scoring now. Cast your People's Vote for your favourite hack.",
+      primaryCTA: { label: "Cast Your Vote", action: 'voting' },
       secondaryCTA: null,
       footerPrefix: 'Results announced in',
     },
     // Default
     [USER_STATES.FREE_AGENT_NO_IDEA]: {
-      headline: 'Judging Is Underway',
-      status: 'Judging is underway.',
-      context: (stats) => `${stats.submissions || 0} projects are being scored now.`,
-      primaryCTA: { label: 'Browse Submissions', action: 'voting' },
+      headline: "Judging & Voting Are Live",
+      status: "Cast your People's Vote now.",
+      context: (stats) => `${stats.submissions || 0} projects are in the pool. Judges are scoring simultaneously.`,
+      primaryCTA: { label: "Cast Your Vote", action: 'voting' },
       secondaryCTA: null,
       footerPrefix: 'Results announced in',
     },

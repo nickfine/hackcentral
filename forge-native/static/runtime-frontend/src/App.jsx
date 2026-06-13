@@ -1841,6 +1841,7 @@ function App() {
             eventPhase={effectiveEventPhase}
             appModeResolverPayload={appModeResolverPayload}
             skillsConfig={eventSkillsConfig}
+            welcomeNewMember={viewParams.welcome === true}
           />
         );
 

@@ -740,6 +740,220 @@ export async function autoAssignFreeAgentsToObservers(supabase, eventId) {
   }
 }
 
+const FA_TEAM_ADJECTIVES = [
+  'Cosmic', 'Neon', 'Quantum', 'Turbo', 'Stellar', 'Phantom',
+  'Atomic', 'Hyper', 'Rogue', 'Blazing', 'Electric', 'Sonic',
+  'Mystic', 'Savage', 'Radical', 'Galactic', 'Cyber', 'Ultra',
+  'Frozen', 'Solar', 'Midnight', 'Thunder', 'Crystal', 'Shadow',
+];
+
+const FA_TEAM_NOUNS = [
+  'Raccoons', 'Otters', 'Pandas', 'Foxes', 'Wolves', 'Eagles',
+  'Sharks', 'Cobras', 'Jaguars', 'Vipers', 'Falcons', 'Lions',
+  'Tigers', 'Dolphins', 'Ravens', 'Badgers', 'Owls', 'Penguins',
+  'Otters', 'Lynxes', 'Narwhals', 'Axolotls', 'Capybaras', 'Meerkats',
+];
+
+export const FREE_AGENT_TEAM_MAX_SIZE = 5;
+
+function generateFreeAgentTeamName() {
+  const adj = FA_TEAM_ADJECTIVES[Math.floor(Math.random() * FA_TEAM_ADJECTIVES.length)];
+  const noun = FA_TEAM_NOUNS[Math.floor(Math.random() * FA_TEAM_NOUNS.length)];
+  return `${adj} ${noun}`;
+}
+
+/**
+ * Find a non-full auto-created free agent team for this event, or create a new one.
+ */
+export async function createOrGetFreeAgentTeam(supabase, eventId) {
+  try {
+    const { data: faTeams, error: teamsError } = await supabase
+      .from("Team")
+      .select("id, name")
+      .eq("eventId", eventId)
+      .eq("isAutoCreated", true)
+      .neq("id", OBSERVERS_TEAM_ID)
+      .order("createdAt", { ascending: true });
+
+    if (teamsError) throw teamsError;
+
+    if (faTeams && faTeams.length > 0) {
+      const teamIds = faTeams.map(t => t.id);
+      const { data: memberships } = await supabase
+        .from("TeamMember")
+        .select("teamId")
+        .in("teamId", teamIds)
+        .eq("status", "ACCEPTED");
+
+      const countMap = {};
+      for (const { teamId } of (memberships || [])) {
+        countMap[teamId] = (countMap[teamId] || 0) + 1;
+      }
+
+      const teamWithSpace = faTeams.find(t => (countMap[t.id] || 0) < FREE_AGENT_TEAM_MAX_SIZE);
+      if (teamWithSpace) {
+        return { id: teamWithSpace.id, name: teamWithSpace.name, memberCount: countMap[teamWithSpace.id] || 0, error: null };
+      }
+    }
+
+    const teamId = makeId("team-fa");
+    const teamName = generateFreeAgentTeamName();
+    const now = new Date().toISOString();
+    const { error: createError } = await supabase.from("Team").insert({
+      id: teamId,
+      eventId,
+      name: teamName,
+      description: "Auto-assembled team — rename it and make it yours!",
+      maxSize: FREE_AGENT_TEAM_MAX_SIZE,
+      trackSide: "HUMAN",
+      isPublic: true,
+      isAutoCreated: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    if (createError) throw createError;
+    return { id: teamId, name: teamName, memberCount: 0, error: null };
+  } catch (err) {
+    console.error("Error creating/getting free agent team:", err);
+    return { id: null, name: null, memberCount: 0, error: err.message };
+  }
+}
+
+/**
+ * Assign a single user to a free agent team immediately (opt-in path).
+ * Returns the team they were assigned to.
+ */
+export async function assignUserToFreeAgentTeam(supabase, userId, eventId) {
+  try {
+    const { data: existingMembership } = await supabase
+      .from("TeamMember")
+      .select("teamId")
+      .eq("userId", userId)
+      .eq("status", "ACCEPTED")
+      .limit(1);
+
+    if (existingMembership?.length > 0) {
+      return { team: null, error: "already_on_team" };
+    }
+
+    const { id: teamId, name: teamName, memberCount, error: teamError } = await createOrGetFreeAgentTeam(supabase, eventId);
+    if (teamError || !teamId) throw new Error(teamError || "Failed to get free agent team");
+
+    const role = memberCount === 0 ? "OWNER" : "MEMBER";
+    const now = new Date().toISOString();
+
+    const { error: insertError } = await supabase.from("TeamMember").insert({
+      id: makeId("tm"),
+      teamId,
+      userId,
+      role,
+      status: "ACCEPTED",
+      createdAt: now,
+    });
+    if (insertError) throw insertError;
+
+    await supabase.from("User").update({ isFreeAgent: false, updatedAt: now }).eq("id", userId);
+
+    return { team: { id: teamId, name: teamName }, error: null };
+  } catch (err) {
+    console.error("Error assigning user to free agent team:", err);
+    return { team: null, error: err.message };
+  }
+}
+
+/**
+ * Sweep all unassigned free agents into auto-created teams (24h pre-hacking batch).
+ * Fills partially-full existing free agent teams first, then creates new ones.
+ */
+export async function sweepFreeAgentsIntoTeams(supabase, eventId) {
+  try {
+    const { data: freeAgents, error: agentsError } = await supabase
+      .from("User").select("id").eq("isFreeAgent", true);
+    if (agentsError) throw agentsError;
+    if (!freeAgents?.length) return { assigned: 0, error: null };
+
+    const userIds = freeAgents.map(u => u.id);
+    const { data: existingMembers } = await supabase
+      .from("TeamMember").select("userId").in("userId", userIds).eq("status", "ACCEPTED");
+
+    const usersOnTeams = new Set((existingMembers || []).map(m => m.userId));
+    const queue = freeAgents.filter(u => !usersOnTeams.has(u.id)).map(u => u.id);
+    if (!queue.length) return { assigned: 0, error: null };
+
+    // Find existing partially-full free agent teams
+    const { data: faTeams } = await supabase
+      .from("Team").select("id").eq("eventId", eventId).eq("isAutoCreated", true).neq("id", OBSERVERS_TEAM_ID)
+      .order("createdAt", { ascending: true });
+
+    const teamIds = (faTeams || []).map(t => t.id);
+    const countMap = {};
+    if (teamIds.length > 0) {
+      const { data: counts } = await supabase
+        .from("TeamMember").select("teamId").in("teamId", teamIds).eq("status", "ACCEPTED");
+      for (const { teamId } of (counts || [])) {
+        countMap[teamId] = (countMap[teamId] || 0) + 1;
+      }
+    }
+
+    const now = new Date().toISOString();
+    let assigned = 0;
+
+    const addBatchToTeam = async (teamId, batch, startCount) => {
+      const members = batch.map((uid, i) => ({
+        id: makeId("tm"),
+        teamId,
+        userId: uid,
+        role: startCount + i === 0 ? "OWNER" : "MEMBER",
+        status: "ACCEPTED",
+        createdAt: now,
+      }));
+      const { error: ie } = await supabase.from("TeamMember").insert(members);
+      if (ie) throw ie;
+      const { error: ue } = await supabase.from("User")
+        .update({ isFreeAgent: false, updatedAt: now }).in("id", batch);
+      if (ue) throw ue;
+      assigned += batch.length;
+    };
+
+    // Fill existing teams first
+    for (const teamId of teamIds) {
+      if (!queue.length) break;
+      const current = countMap[teamId] || 0;
+      if (current >= FREE_AGENT_TEAM_MAX_SIZE) continue;
+      const batch = queue.splice(0, FREE_AGENT_TEAM_MAX_SIZE - current);
+      await addBatchToTeam(teamId, batch, current);
+    }
+
+    // Create new teams for remaining users
+    while (queue.length > 0) {
+      const batch = queue.splice(0, FREE_AGENT_TEAM_MAX_SIZE);
+      const teamId = makeId("team-fa");
+      const teamName = generateFreeAgentTeamName();
+      const { error: ce } = await supabase.from("Team").insert({
+        id: teamId,
+        eventId,
+        name: teamName,
+        description: "Auto-assembled team — rename it and make it yours!",
+        maxSize: FREE_AGENT_TEAM_MAX_SIZE,
+        trackSide: "HUMAN",
+        isPublic: true,
+        isAutoCreated: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      if (ce) throw ce;
+      await addBatchToTeam(teamId, batch, 0);
+    }
+
+    logDebug(`sweepFreeAgentsIntoTeams: assigned ${assigned} users for event ${eventId}`);
+    return { assigned, error: null };
+  } catch (err) {
+    console.error("Error sweeping free agents:", err);
+    return { assigned: 0, error: err.message };
+  }
+}
+
 /**
  * Check if hack start is within 24-48 hours and send reminders to free agents.
  * Creates REMINDER notifications for eligible free agents (with duplicate prevention).

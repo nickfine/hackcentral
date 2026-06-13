@@ -41,10 +41,10 @@ const AWARD_CONFIG = {
   thirdPlace: {
     label: 'Third Place',
     icon: Award,
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-700/10',
-    borderColor: 'border-amber-700/30',
-    gradient: 'from-amber-700/20 to-amber-800/5',
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/30',
+    gradient: 'from-orange-500/20 to-orange-600/5',
   },
   peoplesChoice: {
     label: "People's Choice",
@@ -255,22 +255,41 @@ function Results({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams
             .filter((t) => t.submission?.status === 'submitted')
-            .map((team) => (
-              <Card key={team.id} padding="md" hoverable>
-                <h4 className="font-bold text-text-primary mb-1">
-                  {team.submission?.projectName || team.name}
-                </h4>
-                <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
-                  <Users className="w-3 h-3" />
-                  {team.name}
-                </div>
-                {team.submission?.description && (
-                  <p className="text-sm text-text-secondary line-clamp-2">
-                    {team.submission.description}
-                  </p>
-                )}
-              </Card>
-            ))}
+            .map((team) => {
+              const isWinner = winners?.winner?.id === team.id;
+              const isRunnerUp = winners?.runnerUp?.id === team.id;
+              const isThird = winners?.thirdPlace?.id === team.id;
+              const isPeoplesChoice = winners?.peoplesChoice?.id === team.id;
+
+              return (
+                <Card key={team.id} padding="md" hoverable className={cn(
+                  isWinner && 'border-amber-400/50',
+                  isRunnerUp && 'border-slate-400/50',
+                  isThird && 'border-orange-500/50',
+                )}>
+                  <HStack justify="between" align="start" className="mb-2">
+                    <h4 className="font-bold text-text-primary flex-1 min-w-0 truncate">
+                      {team.submission?.projectName || team.name}
+                    </h4>
+                    <div className="flex gap-1 flex-shrink-0 ml-2">
+                      {isWinner && <span className="text-amber-400 text-sm font-black">🥇</span>}
+                      {isRunnerUp && <span className="text-slate-300 text-sm font-black">🥈</span>}
+                      {isThird && <span className="text-orange-500 text-sm font-black">🥉</span>}
+                      {isPeoplesChoice && !isWinner && <Star className="w-4 h-4 text-purple-400 fill-purple-400" />}
+                    </div>
+                  </HStack>
+                  <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
+                    <Users className="w-3 h-3" />
+                    {team.name}
+                  </div>
+                  {team.submission?.description && (
+                    <p className="text-sm text-text-secondary line-clamp-2">
+                      {team.submission.description}
+                    </p>
+                  )}
+                </Card>
+              );
+            })}
         </div>
       </div>
     </div>

@@ -61,7 +61,7 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
       style={{ borderColor: 'var(--phase-container-border)', background: 'var(--phase-container-bg)' }}
       aria-label="Event phases"
     >
-      <div className="grid gap-4 md:grid-cols-7">
+      <div className="grid gap-4 md:grid-cols-5">
         {EVENT_PHASE_ORDER.map((phase, i) => {
           const isActive = phase === eventPhase;
           const isCompleted = EVENT_PHASE_ORDER.indexOf(phase) < currentIndex;
@@ -75,9 +75,9 @@ export default function EditorialTimeline({ eventPhase, scheduleMilestones }) {
           else statusText = 'TBD';
 
           return (
-            <div key={phase} className="relative">
+            <div key={phase} className="relative flex flex-col">
               <div
-                className={`rounded-2xl border px-4 py-4 transition-transform ${
+                className={`h-full rounded-2xl border px-4 py-4 transition-transform ${
                   isActive
                     ? 'dark:shadow-[var(--cyan-electric-inner-edge-strong),inset_0_-2px_0_var(--cyan-electric-border),var(--timeline-active-glow),var(--card-depth-subtle)] dark:ring-1 dark:ring-cyan-400/20 dark:ring-offset-1 dark:ring-offset-transparent dark:animate-[phase-beacon-pulse_3s_ease-in-out_infinite] hover:scale-105'
                     : isCompleted

@@ -124,6 +124,16 @@ const COUNTDOWN_LABELS = {
   team_formation: 'Hacking starts in',
   hacking: 'Hacking ends in',
   submission: 'Submissions close in',
+  judging: 'Voting & judging live',
+  results: 'HackDay complete',
+};
+
+const WHAT_MATTERS_NOW = {
+  team_formation: 'Get a pain point posted early and find your team before hacking starts.',
+  hacking: 'Focus on demo-critical scope. Prioritise a working demo over a complete product.',
+  submission: 'Finalise your demo, repo link, and project summary. Submit before the deadline.',
+  judging: "Cast your People's Vote for your favourite hack. Judges are scoring simultaneously.",
+  results: 'Results announced at Show and Tell.',
 };
 
 export default function EditorialHeroCard({ scheduleMilestones, eventPhase, children }) {
@@ -164,7 +174,7 @@ export default function EditorialHeroCard({ scheduleMilestones, eventPhase, chil
         >
           <div className="font-semibold" style={{ color: 'var(--stat-value-color)' }}>What matters now</div>
           <div className="mt-1">
-            Get a pain point posted early and find your team before hacking starts.
+            {WHAT_MATTERS_NOW[eventPhase] || 'Check the schedule for current activity and next milestones.'}
           </div>
         </div>
       </div>
