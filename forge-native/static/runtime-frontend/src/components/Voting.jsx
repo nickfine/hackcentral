@@ -69,37 +69,34 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
         {/* Links */}
         <div className="flex flex-wrap gap-2 mb-4">
           {submission?.demoVideoUrl && (
-            <a
-              href={submission.demoVideoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => window.open(submission.demoVideoUrl, '_blank', 'noopener,noreferrer')}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Video className="w-3 h-3" />
               Demo
-            </a>
+            </button>
           )}
           {submission?.repoUrl && (
-            <a
-              href={submission.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => window.open(submission.repoUrl, '_blank', 'noopener,noreferrer')}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Github className="w-3 h-3" />
               Code
-            </a>
+            </button>
           )}
           {submission?.liveDemoUrl && (
-            <a
-              href={submission.liveDemoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => window.open(submission.liveDemoUrl, '_blank', 'noopener,noreferrer')}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Globe className="w-3 h-3" />
               Live
-            </a>
+            </button>
           )}
         </div>
       </div>
