@@ -21,9 +21,9 @@ const VARIANT_STYLES = {
     Icon: Info,
   },
   success: {
-    container: 'bg-success/10 border-success/30 text-success',
-    icon: 'text-success',
-    title: 'text-success',
+    container: 'bg-green-500/20 border-green-500/50 text-green-700 dark:bg-green-500/15 dark:border-green-400/40 dark:text-green-300',
+    icon: 'text-green-600 dark:text-green-400',
+    title: 'text-green-700 dark:text-green-300',
     Icon: CheckCircle,
   },
   warning: {
