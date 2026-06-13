@@ -148,9 +148,21 @@ function DeadlineCountdown({ deadlineIso }) {
 // ============================================================================
 
 function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired, deadlineIso, votingOpensAt }) {
+  const timeLeft = useCountdown(deadlineIso);
+
+  const countdownLabel = (() => {
+    if (!timeLeft || timeLeft.expired) return null;
+    const parts = [];
+    if (timeLeft.days > 0) parts.push(`${timeLeft.days}d`);
+    if (timeLeft.hours > 0 || timeLeft.days > 0) parts.push(`${timeLeft.hours}h`);
+    parts.push(`${String(timeLeft.minutes).padStart(2, '0')}m`);
+    if (timeLeft.diff < 2 * 60 * 60 * 1000) parts.push(`${String(timeLeft.seconds).padStart(2, '0')}s`);
+    return parts.join(' ');
+  })();
+
   return (
     <div>
-      {/* Status header */}
+      {/* Status header — countdown lives inside here */}
       <div className="flex items-center gap-3 mb-6 p-5 rounded-card bg-green-500/20 border-2 border-green-500/40">
         <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
         <div className="flex-1 min-w-0">
@@ -158,6 +170,8 @@ function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired
           <p className="text-sm text-green-600 dark:text-green-400">
             {isDeadlineExpired
               ? 'Submissions are now closed.'
+              : countdownLabel
+              ? <><span className="font-black font-mono">{countdownLabel}</span> until the deadline.</>
               : 'You can still edit until the deadline.'}
           </p>
         </div>
@@ -172,9 +186,6 @@ function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired
           </Button>
         )}
       </div>
-
-      {/* Deadline countdown */}
-      {!isDeadlineExpired && <DeadlineCountdown deadlineIso={deadlineIso} />}
 
       {/* Summary */}
       <Card padding="lg" className="mb-4">
