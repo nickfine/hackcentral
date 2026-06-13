@@ -85,11 +85,11 @@ resolver.define("exportResults", async (req) => {
 
     if (votesError) throw votesError;
 
-    // Get judge scores filtered by event teams
+    // Get judge scores filtered by event projects
     const { data: scores, error: scoresError } = await supabase
       .from("JudgeScore")
       .select("*")
-      .in("teamId", eventTeamIds.length > 0 ? eventTeamIds : []);
+      .in("projectId", eventProjectIds.length > 0 ? eventProjectIds : []);
 
     if (scoresError) throw scoresError;
 
@@ -98,10 +98,16 @@ resolver.define("exportResults", async (req) => {
       .filter(t => t.project && t.id !== OBSERVERS_TEAM_ID)
       .map(team => {
         const teamVotes = (votes || []).filter(v => v.projectId === team.project.id);
-        const teamScores = (scores || []).filter(s => s.teamId === team.id);
-        
+        const teamScores = (scores || []).filter(s => s.projectId === team.project?.id);
+
         const judgeTotal = teamScores.reduce((sum, s) => {
-          return sum + (s.innovation + s.technical + s.presentation + s.impact + s.theme);
+          return sum + (
+            (s.scores?.innovation || 0) +
+            (s.scores?.technical || 0) +
+            (s.scores?.presentation || 0) +
+            (s.scores?.impact || 0) +
+            (s.scores?.theme || 0)
+          );
         }, 0);
         
         const judgeAvg = teamScores.length > 0 
