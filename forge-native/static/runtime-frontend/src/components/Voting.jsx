@@ -69,34 +69,34 @@ function ProjectCard({ team, isVoted, canVote, onVote, isLoading }) {
         {/* Links */}
         <div className="flex flex-wrap gap-2 mb-4">
           {submission?.demoVideoUrl && (
-            <button
-              type="button"
-              onClick={() => window.open(submission.demoVideoUrl, '_blank', 'noopener,noreferrer')}
+            <a
+              href={submission.demoVideoUrl}
+              onClick={(e) => { e.preventDefault(); window.open(submission.demoVideoUrl, '_blank', 'noopener,noreferrer'); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Video className="w-3 h-3" />
               Demo
-            </button>
+            </a>
           )}
           {submission?.repoUrl && (
-            <button
-              type="button"
-              onClick={() => window.open(submission.repoUrl, '_blank', 'noopener,noreferrer')}
+            <a
+              href={submission.repoUrl}
+              onClick={(e) => { e.preventDefault(); window.open(submission.repoUrl, '_blank', 'noopener,noreferrer'); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Github className="w-3 h-3" />
               Code
-            </button>
+            </a>
           )}
           {submission?.liveDemoUrl && (
-            <button
-              type="button"
-              onClick={() => window.open(submission.liveDemoUrl, '_blank', 'noopener,noreferrer')}
+            <a
+              href={submission.liveDemoUrl}
+              onClick={(e) => { e.preventDefault(); window.open(submission.liveDemoUrl, '_blank', 'noopener,noreferrer'); }}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-text-secondary bg-arena-elevated hover:bg-arena-card rounded transition-colors"
             >
               <Globe className="w-3 h-3" />
               Live
-            </button>
+            </a>
           )}
         </div>
       </div>

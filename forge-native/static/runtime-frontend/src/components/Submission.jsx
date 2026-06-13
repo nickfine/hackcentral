@@ -199,14 +199,14 @@ function SubmittedView({ formData, submissionPageHref, onEdit, isDeadlineExpired
                   {field.label}
                 </p>
                 {field.type === 'url' ? (
-                  <button
-                    type="button"
-                    onClick={() => window.open(value, '_blank', 'noopener,noreferrer')}
-                    className="text-sm text-blue-500 hover:underline break-all inline-flex items-center gap-1 text-left"
+                  <a
+                    href={value}
+                    onClick={(e) => { e.preventDefault(); window.open(value, '_blank', 'noopener,noreferrer'); }}
+                    className="text-sm text-blue-500 hover:underline break-all inline-flex items-center gap-1"
                   >
                     {value}
                     <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                  </button>
+                  </a>
                 ) : (
                   <p className="text-sm text-text-primary whitespace-pre-wrap">{value}</p>
                 )}
