@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readRuntimeSource } from './_runtime-source.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -12,7 +14,7 @@ async function readSource(relPath) {
 }
 
 test('runtime resolver defines hero image signed-upload endpoint with validation and storage upload URL', async () => {
-  const source = await readSource('../../src/runtime/index.js');
+  const source = await readRuntimeSource();
 
   assert.match(source, /resolver\.define\("createEventBrandingImageUploadUrl"/);
   assert.match(source, /resolveEventBrandingAdminContext\(req\)/);

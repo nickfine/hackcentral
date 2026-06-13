@@ -10,6 +10,7 @@ import {
   computeEventBackupDiff,
   stableStringify,
 } from '../../src/runtime/lib/eventBackup.mjs';
+import { readRuntimeSource } from './_runtime-source.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -256,7 +257,7 @@ test('event backup telemetry includes required restore failure event', async () 
 });
 
 test('runtime apply restore wiring creates a pre_restore snapshot before apply', async () => {
-  const source = await fs.readFile(path.resolve(__dirname, '../../src/runtime/index.js'), 'utf8');
+  const source = await readRuntimeSource();
   assert.match(source, /createPreRestoreSnapshot:\s*async\s*\(\)\s*=>[\s\S]*source:\s*"pre_restore"/);
 });
 

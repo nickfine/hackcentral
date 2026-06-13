@@ -1,15 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-async function readRuntimeSource() {
-  return fs.readFile(path.resolve(__dirname, '../../src/runtime/index.js'), 'utf8');
-}
+import { readRuntimeSource } from './_runtime-source.mjs';
 
 test('runtime resolver file exists and exports handler', async () => {
   const source = await readRuntimeSource();

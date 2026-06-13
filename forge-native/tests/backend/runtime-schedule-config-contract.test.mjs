@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readRuntimeSource } from './_runtime-source.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -14,7 +16,7 @@ async function readFile(relativePath) {
 test('config mode helpers and runtime publish flow support schedule draft state', async () => {
   const [helpersSource, runtimeSource] = await Promise.all([
     readFile('../../src/runtime/lib/configModeHelpers.mjs'),
-    readFile('../../src/runtime/index.js'),
+    readRuntimeSource(),
   ]);
 
   assert.match(helpersSource, /schedule:\s*undefined/);

@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readRuntimeSource } from './_runtime-source.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -25,7 +27,7 @@ test('submission page link migration creates linkage table and indexes', async (
 });
 
 test('runtime submitProject returns submission page linkage payload', async () => {
-  const runtime = await readSource('../../src/runtime/index.js');
+  const runtime = await readRuntimeSource();
 
   assert.match(runtime, /HACKDAY_SUBMISSION_PAGE_LINK_TABLE\s*=\s*"HackdaySubmissionPageLink"/);
   assert.match(runtime, /syncSubmissionConfluencePages\(/);
@@ -38,6 +40,6 @@ test('runtime submission UI exposes open submission page CTA', async () => {
   const submissionSource = await readSource('../../static/runtime-frontend/src/components/Submission.jsx');
 
   assert.match(appSource, /submissionPageId:\s*submitResult\?\.submissionPageId\s*\|\|\s*null/);
-  assert.match(submissionSource, /Open submission page/);
+  assert.match(submissionSource, /View submission page/);
   assert.match(submissionSource, /submissionPageHref/);
 });

@@ -1,18 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-async function readFile(relativePath) {
-  return fs.readFile(path.resolve(__dirname, relativePath), 'utf8');
-}
+import { readRuntimeSource } from './_runtime-source.mjs';
 
 test('runtime event-admin access prefers EventAdmin membership before seed-email fallback', async () => {
-  const source = await readFile('../../src/runtime/index.js');
+  const source = await readRuntimeSource();
 
   assert.match(source, /async function resolveRuntimeEventAdminAccess\(supabase,\s*\{/);
   assert.match(source, /if \(eventId && isUuidLike\(userRow\?\.id\)\)/);
@@ -24,7 +15,7 @@ test('runtime event-admin access prefers EventAdmin membership before seed-email
 });
 
 test('config mode, runtime capabilities, and branding checks share the same event-admin resolver', async () => {
-  const source = await readFile('../../src/runtime/index.js');
+  const source = await readRuntimeSource();
 
   assert.match(
     source,
