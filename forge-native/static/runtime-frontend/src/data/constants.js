@@ -4,7 +4,7 @@
  */
 
 // Bump this when deploying to help bust Atlassian CDN cache (see LEARNINGS_CURSOR.md)
-export const APP_VERSION = '1.2.260';
+export const APP_VERSION = '1.2.261';
 
 // Demo event ID - shared with HD26AI for unified demo data
 export const DEMO_EVENT_ID = 'demo-event-2026';
@@ -96,6 +96,10 @@ export const EVENT_PHASE_ORDER = [
   'judging',
   'results',
 ];
+
+// Phases during which participants can edit pain points, create teams, and send invites.
+// Used by Marketplace, PainPointsPanel, InvitationsPanel, and TeamDetail — keep in sync.
+export const EDITABLE_PHASES = ['signup', 'team_formation'];
 
 // ============================================================================
 // SKILLS

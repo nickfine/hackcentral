@@ -5,11 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import { invokeEventScopedResolver } from '../../lib/appModeResolverPayload';
+import { EDITABLE_PHASES } from '../../data/constants';
 
 /** Section label class - matches TeamDetail's SECTION_LABEL_CLASS. */
 const SECTION_LABEL_CLASS = 'pb-2 text-xs font-semibold tracking-wider text-text-secondary uppercase';
-
-const EDITABLE_PHASES = ['signup', 'team_formation'];
 
 function PainPointsPanel({ teamId, eventId, isCaptain, appModeResolverPayload, onPainPointsChange, eventPhase }) {
   const [teamPainPoints, setTeamPainPoints] = useState([]);

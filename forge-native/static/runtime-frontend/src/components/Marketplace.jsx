@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { cn, getSkillClasses, DESIGN_SYSTEM_CARD } from '../lib/design-system';
-import { SKILLS } from '../data/constants';
+import { SKILLS, EDITABLE_PHASES } from '../data/constants';
 import {
   Card,
   Button,
@@ -148,7 +148,6 @@ function Marketplace({
   }, [freeAgents, searchTerm, user?.id]);
 
   // Determine if team creation / inviting is allowed in current phase
-  const EDITABLE_PHASES = ['signup', 'team_formation'];
   const canCreateTeam = EDITABLE_PHASES.includes(eventPhase);
   const canInvite = canCreateTeam;
 

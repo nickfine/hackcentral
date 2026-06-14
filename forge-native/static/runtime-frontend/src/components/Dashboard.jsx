@@ -8,6 +8,7 @@ import { Modal, Button, TextArea } from './ui';
 import {
   EVENT_PHASE_ORDER,
   EVENT_PHASES,
+  EDITABLE_PHASES,
   getUserLocale,
 } from '../data/constants';
 import {
@@ -735,7 +736,7 @@ function Dashboard({
     [eventPhase, userTeam, hasSubmitted, phaseEndDate, isRegisteredUser]
   );
 
-  const isEarlyExecutionPhase = eventPhase === 'signup' || eventPhase === 'team_formation' || eventPhase === 'setup';
+  const isEarlyExecutionPhase = EDITABLE_PHASES.includes(eventPhase);
   const isFreeAgentUser = isRegisteredUser && !userTeam;
   const isAvailable = Boolean(user?.availabilityStatus);
 

@@ -17,6 +17,7 @@ import {
 import { cn, DESIGN_SYSTEM_CARD } from '../lib/design-system';
 import { hasCompletedRegistration } from '../lib/registrationState';
 import { ThemeStateContext } from '../contexts/ThemeContext';
+import { EDITABLE_PHASES } from '../data/constants';
 import {
   Button,
   Badge,
@@ -300,7 +301,7 @@ function TeamDetail({
   const memberCount = team?.members?.length || 0;
   const maxMembers = team?.maxMembers || 5;
   const capacityPercent = Math.min(100, Math.round((memberCount / Math.max(maxMembers, 1)) * 100));
-  const canDelete = isCaptain && (eventPhase === 'signup' || eventPhase === 'team_formation');
+  const canDelete = isCaptain && EDITABLE_PHASES.includes(eventPhase);
   const missingSkillSignals = useMemo(
     () => deriveSkillGaps(team?.members || [], team?.lookingFor || []),
     [team?.members, team?.lookingFor]

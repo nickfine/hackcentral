@@ -5,11 +5,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { invokeEventScopedResolver } from '../../lib/appModeResolverPayload';
+import { EDITABLE_PHASES } from '../../data/constants';
 import Avatar from '../ui/Avatar';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-
-const EDITABLE_PHASES = ['signup', 'team_formation'];
 
 const STATUS_PILL = {
   PENDING: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
