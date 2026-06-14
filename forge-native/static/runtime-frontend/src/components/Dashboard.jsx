@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Modal, Button, TextArea } from './ui';
+import { Modal, Button, TextArea, SearchInput } from './ui';
 import {
   EVENT_PHASE_ORDER,
   EVENT_PHASES,
@@ -466,6 +466,7 @@ function Dashboard({
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [isOptingInToTeam, setIsOptingInToTeam] = useState(false);
   const [optInError, setOptInError] = useState(null);
+  const [teamSearchTerm, setTeamSearchTerm] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -1315,29 +1316,64 @@ function Dashboard({
           style={{ borderColor: 'var(--accent)', background: 'var(--phase-active-bg)' }}
           data-testid="dashboard-free-agent-banner"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-bold" style={{ color: 'var(--stat-value-color)' }}>
-                You're a free agent
-              </p>
-              <p className="text-sm mt-1" style={{ color: 'var(--stat-label-color)' }}>
-                Get matched to a team automatically, or browse the Ideas Marketplace to find one yourself.
-                All free agents are auto-assigned 24 hours before hacking begins.
-              </p>
-              {optInError && (
-                <p className="text-sm mt-2" style={{ color: 'var(--status-error-text)' }}>{optInError}</p>
-              )}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Left half: existing free agent info + auto-assign */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start lg:justify-center">
+              <div>
+                <p className="text-sm font-bold" style={{ color: 'var(--stat-value-color)' }}>
+                  You're a free agent
+                </p>
+                <p className="text-sm mt-1" style={{ color: 'var(--stat-label-color)' }}>
+                  Get matched to a team automatically, or browse the Ideas Marketplace to find one yourself.
+                  All free agents are auto-assigned 24 hours before hacking begins.
+                </p>
+                {optInError && (
+                  <p className="text-sm mt-2" style={{ color: 'var(--status-error-text)' }}>{optInError}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                data-testid="dashboard-opt-in-button"
+                disabled={isOptingInToTeam}
+                onClick={handleOptInToTeam}
+                className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
+                style={{ background: 'var(--accent)', color: 'var(--accent-fg, #fff)' }}
+              >
+                {isOptingInToTeam ? 'Assigning...' : 'Auto-assign me now'}
+              </button>
             </div>
-            <button
-              type="button"
-              data-testid="dashboard-opt-in-button"
-              disabled={isOptingInToTeam}
-              onClick={handleOptInToTeam}
-              className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
-              style={{ background: 'var(--accent)', color: 'var(--accent-fg, #fff)' }}
-            >
-              {isOptingInToTeam ? 'Assigning...' : 'Auto-assign me now'}
-            </button>
+
+            {/* Right half: find a team by name */}
+            <div className="flex flex-col gap-3 justify-center lg:border-l lg:pl-6" style={{ borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}>
+              <p className="text-sm font-bold" style={{ color: 'var(--stat-value-color)' }}>
+                Find a specific team
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = teamSearchTerm.trim();
+                  if (q) onNavigate?.('marketplace', { tab: 'teams', q });
+                }}
+                className="flex gap-2"
+              >
+                <div className="flex-1">
+                  <SearchInput
+                    value={teamSearchTerm}
+                    onChange={(e) => setTeamSearchTerm(e.target.value)}
+                    onClear={() => setTeamSearchTerm('')}
+                    placeholder="Search by team name…"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!teamSearchTerm.trim()}
+                  className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-all disabled:opacity-50"
+                  style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+                >
+                  Search
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
