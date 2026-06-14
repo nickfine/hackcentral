@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { PainItem } from '../shared/PainItem';
 import { getCategoryColour } from '../../lib/painCategoryColours';
 
-export default function BoardColumn({ category, painPoints, sortBy, onReact, isCollapsed, onToggleCollapse }) {
+export default function BoardColumn({ category, painPoints, sortBy, onReact, isCollapsed, onToggleCollapse, orientation = 'vertical' }) {
   const colour = getCategoryColour(category);
 
   const sorted = useMemo(() => {
@@ -67,14 +67,17 @@ export default function BoardColumn({ category, painPoints, sortBy, onReact, isC
 
       {/* Card list - hidden when collapsed */}
       {!isCollapsed && (
-        <div className="flex flex-col gap-3 p-2.5 overflow-y-auto max-h-[65vh]">
+        <div className={orientation === 'horizontal'
+          ? 'flex flex-row gap-3 p-2.5 overflow-x-auto'
+          : 'flex flex-col gap-3 p-2.5 overflow-y-auto max-h-[65vh]'
+        }>
           {sorted.length === 0 ? (
             <p className="py-6 text-center text-xs text-arena-muted dark:text-white/30">
               No {category} pains match your search
             </p>
           ) : (
             sorted.map((pp) => (
-              <div key={pp._id} className="animate-slide-up">
+              <div key={pp._id} className={`animate-slide-up${orientation === 'horizontal' ? ' flex-shrink-0 w-[240px]' : ''}`}>
                 <PainItem pp={pp} onReact={onReact} variant="board" />
               </div>
             ))

@@ -265,8 +265,8 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
               : 'No pain points yet - be the first to submit one!'}
           </p>
         ) : (
-          /* The board - auto-fill grid wraps columns to fit available width */
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
+          /* The board - horizontal strips, one row per category */
+          <div className="flex flex-col gap-4">
             {activeCategories.map((category) => (
               <BoardColumn
                 key={category}
@@ -274,6 +274,7 @@ export default function PainPoints({ appModeResolverPayload, onNavigate }) {
                 painPoints={grouped.get(category) ?? []}
                 sortBy={sortBy}
                 onReact={handleReact}
+                orientation="horizontal"
                 isCollapsed={collapsedColumns.has(category)}
                 onToggleCollapse={() => handleToggleCollapse(category)}
               />
