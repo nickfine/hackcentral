@@ -221,39 +221,41 @@ function HackDayCentralCard() {
 
   return (
     <div
-      className="rounded-[26px] p-[5px] shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
-      style={{ background: 'repeating-linear-gradient(45deg, #f5c800 0px, #f5c800 5px, #1a1a1a 5px, #1a1a1a 10px)' }}
+      className="p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+      style={{
+        borderRadius: '26px',
+        border: '5px solid transparent',
+        background: 'linear-gradient(var(--rail-card-bg), var(--rail-card-bg)) padding-box, repeating-linear-gradient(45deg, #f5c800 0px, #f5c800 5px, #1a1a1a 5px, #1a1a1a 10px) border-box',
+      }}
     >
-      <div className="rounded-[22px] p-6" style={{ background: 'var(--rail-card-bg)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <span
-            className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
-            style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-subtle)' }}
-          >
-            Preview
-          </span>
-        </div>
-        <h3
-          className="text-lg font-semibold tracking-tight"
-          style={{ color: 'var(--stat-value-color)', fontFamily: 'var(--font-heading)' }}
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+          style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-subtle)' }}
         >
-          HackDay Central
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--stat-meta-color)' }}>
-          Where HackDay outputs live all year round. A shared space to capture innovation, surface tooling, and build on the work that started here.
-        </p>
-        <p className="mt-3 text-xs" style={{ color: 'var(--stat-label-color)' }}>
-          This is a preview concept and is work in progress. Please feedback to Nick.
-        </p>
-        <button
-          type="button"
-          onClick={handleOpen}
-          className="mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-colors"
-          style={{ background: '#f5c800', color: '#1a1a1a' }}
-        >
-          Open HackDay Central
-        </button>
+          Preview
+        </span>
       </div>
+      <h3
+        className="text-lg font-semibold tracking-tight"
+        style={{ color: 'var(--stat-value-color)', fontFamily: 'var(--font-heading)' }}
+      >
+        HackDay Central
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--stat-meta-color)' }}>
+        Where HackDay outputs live all year round. A shared space to capture innovation, surface tooling, and build on the work that started here.
+      </p>
+      <p className="mt-3 text-xs" style={{ color: 'var(--stat-label-color)' }}>
+        This is a preview concept and is work in progress. Please feedback to Nick.
+      </p>
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-colors"
+        style={{ background: '#f5c800', color: '#1a1a1a' }}
+      >
+        Open HackDay Central
+      </button>
     </div>
   );
 }
