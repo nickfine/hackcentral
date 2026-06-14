@@ -1033,7 +1033,7 @@ function App() {
 
     try {
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('updateRegistration', {
+      const result = await invokeEventScopedResolver(invoke, 'updateRegistration', appModeResolverPayload, {
         updates,
       });
       if (result?.user) {
@@ -1056,7 +1056,7 @@ function App() {
       setUser(prev => ({ ...prev, ...updates }));
       setIsNewUser(false);
     }
-  }, [devMode, devRoleOverride, user]);
+  }, [devMode, devRoleOverride, user, appModeResolverPayload]);
 
   const handleCreateTeam = useCallback(async (teamData) => {
     const normalizedTeam = {
@@ -1153,7 +1153,7 @@ function App() {
 
     try {
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('updateTeam', {
+      const result = await invokeEventScopedResolver(invoke, 'updateTeam', appModeResolverPayload, {
         teamId,
         updates,
       });
@@ -1174,7 +1174,7 @@ function App() {
       // Attempt to reconcile with server truth before falling back to local rollback.
       try {
         const { invoke } = await import('@forge/bridge');
-        const refreshResult = await invoke('getTeam', { teamId });
+        const refreshResult = await invokeEventScopedResolver(invoke, 'getTeam', appModeResolverPayload, { teamId });
         if (refreshResult?.team) {
           reconciledFromServer = true;
           setTeams((prev) => prev.map((team) =>
@@ -1198,7 +1198,7 @@ function App() {
       }
       throw new Error(message);
     }
-  }, [devMode, teams, selectedTeam, setTeams, setSelectedTeam]);
+  }, [devMode, teams, selectedTeam, setTeams, setSelectedTeam, appModeResolverPayload]);
 
   // Handle project submission
   const handleSubmitProject = useCallback(async (teamId, submissionData) => {
@@ -1220,7 +1220,7 @@ function App() {
     }
 
     const { invoke } = await import('@forge/bridge');
-    const submitResult = await invoke('submitProject', { teamId, submissionData });
+    const submitResult = await invokeEventScopedResolver(invoke, 'submitProject', appModeResolverPayload, { teamId, submissionData });
 
     // Refresh teams to get updated submission data
     const teamsResult = await invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload);
@@ -1272,7 +1272,7 @@ function App() {
     }
 
     const { invoke } = await import('@forge/bridge');
-    const result = await invoke('deleteTeam', { teamId });
+    const result = await invokeEventScopedResolver(invoke, 'deleteTeam', appModeResolverPayload, { teamId });
 
     const [teamsResult, freeAgentsResult] = await Promise.allSettled([
       invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
@@ -1346,7 +1346,7 @@ function App() {
     }
 
     const { invoke } = await import('@forge/bridge');
-    const result = await invoke('leaveTeam', { teamId });
+    const result = await invokeEventScopedResolver(invoke, 'leaveTeam', appModeResolverPayload, { teamId });
 
     const [teamsResult, freeAgentsResult] = await Promise.allSettled([
       invokeEventScopedResolver(invoke, 'getTeams', appModeResolverPayload),
@@ -1421,7 +1421,7 @@ function App() {
 
     let requestResult;
     try {
-      requestResult = await invoke('requestToJoin', {
+      requestResult = await invokeEventScopedResolver(invoke, 'requestToJoin', appModeResolverPayload, {
         teamId,
         message: requestData?.message || '',
       });
@@ -1432,7 +1432,7 @@ function App() {
     }
 
     try {
-      const result = await invoke('getTeam', { teamId });
+      const result = await invokeEventScopedResolver(invoke, 'getTeam', appModeResolverPayload, { teamId });
       if (result?.team) {
         setSelectedTeam(result.team);
         setTeams((prev) => prev.map((team) => (team.id === teamId ? result.team : team)));
@@ -1443,7 +1443,7 @@ function App() {
       setSelectedTeam((prev) => (prev?.id === teamId ? upsertPendingRequest(prev) : prev));
     }
     return requestResult;
-  }, [devMode, effectiveUser, user]);
+  }, [devMode, effectiveUser, user, appModeResolverPayload]);
 
   // Handle request response (accept/decline from TeamDetail)
   const handleRequestResponse = useCallback(async (teamId, requestId, accepted) => {
@@ -1495,7 +1495,7 @@ function App() {
 
     let responseResult;
     try {
-      responseResult = await invoke('handleJoinRequest', {
+      responseResult = await invokeEventScopedResolver(invoke, 'handleJoinRequest', appModeResolverPayload, {
         requestId,
         accepted,
       });
@@ -1506,7 +1506,7 @@ function App() {
     }
 
     try {
-      const result = await invoke('getTeam', { teamId });
+      const result = await invokeEventScopedResolver(invoke, 'getTeam', appModeResolverPayload, { teamId });
       if (result?.team) {
         setSelectedTeam(result.team);
         // Also update teams list
@@ -1520,7 +1520,7 @@ function App() {
       setSelectedTeam((prev) => (prev?.id === teamId ? updateLocalTeam(prev) : prev));
     }
     return responseResult;
-  }, [devMode]);
+  }, [devMode, appModeResolverPayload]);
 
   // Keep a ref to teams so loadTeamDetails (dev mode) doesn't need teams as a dep,
   // which would cause it to re-run every time any team is optimistically updated.
@@ -1540,13 +1540,13 @@ function App() {
     // and won't include join requests that arrived after page load.
     try {
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('getTeam', { teamId });
+      const result = await invokeEventScopedResolver(invoke, 'getTeam', appModeResolverPayload, { teamId });
       setSelectedTeam(result?.team || null);
     } catch (err) {
       console.error('Failed to load team details:', err);
       setSelectedTeam(null);
     }
-  }, [devMode]);
+  }, [devMode, appModeResolverPayload]);
 
   // Load team details when navigating to team-detail
   useEffect(() => {
@@ -1595,13 +1595,13 @@ function App() {
     }
 
     try {
+      // Resolver is 'optInToAutoAssign' (derives state server-side; no optIn payload needed).
+      // Previously called the non-existent 'updateAutoAssignOptIn' — was silently failing.
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('updateAutoAssignOptIn', {
-        optIn,
-      });
+      const result = await invokeEventScopedResolver(invoke, 'optInToAutoAssign', appModeResolverPayload);
 
       if (result?.success) {
-        // Update local user state
+        // Update local user state optimistically
         setUser(prev => prev ? { ...prev, autoAssignOptIn: optIn } : prev);
       }
 
@@ -1610,7 +1610,7 @@ function App() {
       console.error('[App] Failed to update auto-assign opt-in:', err);
       return { success: false, error: err.message };
     }
-  }, [devMode]);
+  }, [devMode, appModeResolverPayload]);
 
   // Track client-side UI events via resolver (best effort).
   const handleTrackEvent = useCallback(async (eventName, payload = {}) => {
@@ -1631,11 +1631,11 @@ function App() {
 
     try {
       const { invoke } = await import('@forge/bridge');
-      await invoke('trackUiEvent', eventData);
+      await invokeEventScopedResolver(invoke, 'trackUiEvent', appModeResolverPayload, eventData);
     } catch (err) {
       console.warn('[Telemetry] Failed to track UI event:', eventName, err);
     }
-  }, [devMode, currentView]);
+  }, [devMode, currentView, appModeResolverPayload]);
 
   const persistedBrandingBaseline = configModeSnapshot?.effectiveBranding && typeof configModeSnapshot.effectiveBranding === 'object'
     ? configModeSnapshot.effectiveBranding
@@ -1725,12 +1725,12 @@ function App() {
     if (devMode) return;
     try {
       const { invoke } = await import('@forge/bridge');
-      await invoke('adminUpdateUserRole', { targetUserId: userId, role: newRole });
+      await invokeEventScopedResolver(invoke, 'adminUpdateUserRole', appModeResolverPayload, { targetUserId: userId, role: newRole });
       refreshRegistrations();
     } catch (err) {
       console.error('Failed to update user role:', err);
     }
-  }, [devMode, refreshRegistrations]);
+  }, [devMode, refreshRegistrations, appModeResolverPayload]);
 
   const renderView = () => {
 
@@ -1985,6 +1985,7 @@ function App() {
           onOpenAppView={handleOpenAppView}
           openingAppView={openingAppView}
           openAppViewError={openAppViewError}
+          appModeResolverPayload={appModeResolverPayload}
         >
           <ErrorBoundary onNavigateHome={() => handleNavigate('dashboard')}>
             <Suspense

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Users, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/design-system';
+import { invokeEventScopedResolver } from '../../lib/appModeResolverPayload';
 import { Card, Badge, Button, Input, Select, SearchInput, Alert, Modal } from '../ui';
 import { EmptyState } from '../ui/ErrorState';
 
@@ -25,7 +26,7 @@ const ROLE_CONFIG = {
   admin: { label: 'Admin' },
 };
 
-function UsersPanel({ allUsers = [], onUpdateUserRole, onRefreshUsers, forgeHost }) {
+function UsersPanel({ allUsers = [], onUpdateUserRole, onRefreshUsers, forgeHost, appModeResolverPayload = null }) {
   const [userSearch, setUserSearch] = useState('');
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
@@ -58,7 +59,7 @@ function UsersPanel({ allUsers = [], onUpdateUserRole, onRefreshUsers, forgeHost
     try {
       if (forgeHost) {
         const { invoke } = await import('@forge/bridge');
-        await invoke('adminDeleteRegistration', { userId: userToDelete.id });
+        await invokeEventScopedResolver(invoke, 'adminDeleteRegistration', appModeResolverPayload, { userId: userToDelete.id });
       }
 
       setDeleteUserStatus({ type: 'success', message: `User "${userToDelete.name}" has been deleted successfully.` });

@@ -18,6 +18,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '../lib/design-system';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { Card, Button, TextArea, Progress, Alert } from './ui';
 import { BackButton } from './shared';
 import { HStack, VStack } from './layout';
@@ -134,6 +135,7 @@ function JudgeScoring({
   onNavigate,
   judgeCriteria = DEFAULT_CRITERIA,
   eventPhase,
+  appModeResolverPayload = null,
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [scores, setScores] = useState({});
@@ -198,7 +200,7 @@ function JudgeScoring({
     setSaveStatus('saving');
     try {
       const { invoke } = await import('@forge/bridge');
-      await invoke('submitScore', { teamId: selectedTeamId, scoreData: { ...scores, comments } });
+      await invokeEventScopedResolver(invoke, 'submitScore', appModeResolverPayload, { teamId: selectedTeamId, scoreData: { ...scores, comments } });
       setSaveStatus('saved');
     } catch (err) {
       console.error('Failed to save scores:', err);

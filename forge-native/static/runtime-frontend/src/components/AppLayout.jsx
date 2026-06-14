@@ -35,6 +35,7 @@ import { cn } from '../lib/design-system';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import { useConfigMode } from '../configMode/ConfigModeContext';
 import { hasCompletedRegistration } from '../lib/registrationState';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import {
   USER_ROLES,
   EVENT_PHASES,
@@ -317,6 +318,7 @@ function AppLayout({
   onOpenAppView = null,
   openingAppView = false,
   openAppViewError = null,
+  appModeResolverPayload = null,
 }) {
   const [devControlsOpen, setDevControlsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -414,7 +416,7 @@ function AppLayout({
     try {
       setNotificationLoading(true);
       const { invoke } = await import('@forge/bridge');
-      const result = await invoke('getUserNotifications', {});
+      const result = await invokeEventScopedResolver(invoke, 'getUserNotifications', appModeResolverPayload, {});
       if (result && !result.error) {
         setNotifications(result.notifications || []);
         setNotificationUnreadCount(result.unreadCount || 0);
@@ -424,7 +426,7 @@ function AppLayout({
     } finally {
       setNotificationLoading(false);
     }
-  }, [accountId, isDevMode]);
+  }, [accountId, isDevMode, appModeResolverPayload]);
 
   useEffect(() => {
     loadNotifications();
@@ -472,7 +474,7 @@ function AppLayout({
     if (!accountId || isDevMode) return;
     try {
       const { invoke } = await import('@forge/bridge');
-      await invoke('markNotificationAsRead', { notificationId });
+      await invokeEventScopedResolver(invoke, 'markNotificationAsRead', appModeResolverPayload, { notificationId });
       setNotifications((prev) => prev.map((n) => (
         n.id === notificationId ? { ...n, read: true } : n
       )));
@@ -481,20 +483,20 @@ function AppLayout({
       console.error('Failed to mark notification as read:', err);
       loadNotifications();
     }
-  }, [accountId, isDevMode, loadNotifications]);
+  }, [accountId, isDevMode, loadNotifications, appModeResolverPayload]);
 
   const handleMarkAllNotificationsAsRead = useCallback(async () => {
     if (!accountId || isDevMode) return;
     try {
       const { invoke } = await import('@forge/bridge');
-      await invoke('markAllNotificationsAsRead', {});
+      await invokeEventScopedResolver(invoke, 'markAllNotificationsAsRead', appModeResolverPayload, {});
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setNotificationUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err);
       loadNotifications();
     }
-  }, [accountId, isDevMode, loadNotifications]);
+  }, [accountId, isDevMode, loadNotifications, appModeResolverPayload]);
 
   return (
     <div

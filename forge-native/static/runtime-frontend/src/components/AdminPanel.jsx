@@ -481,7 +481,7 @@ function AdminPanel({
         }
 
         const { invoke } = await import('@forge/bridge');
-        const result = await invoke('getTelemetryAnalytics');
+        const result = await invokeEventScopedResolver(invoke, 'getTelemetryAnalytics', appModeResolverPayload);
         if (!isMounted) return;
 
         setTelemetry({

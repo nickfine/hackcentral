@@ -197,7 +197,7 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
     try {
       const { invoke } = await import('@forge/bridge');
       if (isRemoving) {
-        await invoke('removeVote', { teamId });
+        await invokeEventScopedResolver(invoke, 'removeVote', appModeResolverPayload, { teamId });
         setVotes((prev) => prev.filter((id) => id !== teamId));
       } else if (votes.length < MAX_VOTES) {
         await invokeEventScopedResolver(invoke, 'castVote', appModeResolverPayload, { teamId });
