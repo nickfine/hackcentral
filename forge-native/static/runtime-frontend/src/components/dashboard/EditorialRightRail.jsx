@@ -205,6 +205,54 @@ function ReadinessCard({ readinessItems, readinessProgressPercent, nextBestActio
   );
 }
 
+// ─── HackDay Central promo card ───────────────────────────────────────────────
+
+const HDC_URL = 'https://tag-hackday.atlassian.net/wiki/apps/22696465-0692-48af-9741-323e1cfc2631/1c797890-3b54-448e-85da-4ecbe9e9e777/hackday-central';
+
+function HackDayCentralCard() {
+  const handleOpen = async () => {
+    try {
+      const { router } = await import('@forge/bridge');
+      router.open(HDC_URL);
+    } catch {
+      window.open(HDC_URL, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <div
+      className="rounded-[26px] border p-6 shadow-[var(--card-inner-edge),var(--card-depth-subtle)]"
+      style={{ background: 'var(--rail-card-bg)', borderColor: 'var(--rail-card-border)' }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+          style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-subtle)' }}
+        >
+          Preview
+        </span>
+      </div>
+      <h3
+        className="text-lg font-semibold tracking-tight"
+        style={{ color: 'var(--stat-value-color)', fontFamily: 'var(--font-heading)' }}
+      >
+        HackDay Central
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--stat-meta-color)' }}>
+        Where HackDay outputs live all year round. A shared space to capture innovation, surface tooling, and build on the work that started here.
+      </p>
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="mt-4 text-sm font-medium transition-colors"
+        style={{ color: 'var(--stat-accent-color)' }}
+      >
+        Open HackDay Central →
+      </button>
+    </div>
+  );
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 /**
@@ -235,6 +283,7 @@ export default function EditorialRightRail({
       />
       <ScheduleCard comingUpMilestones={comingUpMilestones} onNavigate={onNavigate} />
       {isEarlyExecutionPhase && <NewHereCard onNavigate={onNavigate} />}
+      <HackDayCentralCard />
     </div>
   );
 }
