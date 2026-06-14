@@ -958,18 +958,17 @@ function App() {
     }
   }, [context, devMode, eventPageId]);
 
-  const handleGetTeamDeepLink = useCallback(async (teamId) => {
-    if (devMode) {
-      const params = new URLSearchParams(window.location.search);
-      return `${window.location.origin}${window.location.pathname}?${params.toString()}&view=team-detail&teamId=${encodeURIComponent(teamId)}`;
-    }
-    const bridge = await import('@forge/bridge');
-    const launch = await bridge.invoke('getAppModeLaunchUrl');
-    if (typeof launch?.url !== 'string') {
-      throw new Error('Unable to copy link. Try copying the page URL manually.');
-    }
-    return `${launch.url}&view=team-detail&teamId=${encodeURIComponent(teamId)}`;
-  }, [devMode]);
+  const handleGetTeamDeepLink = useCallback((teamId) => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('view');
+    params.delete('teamId');
+    const paramsStr = params.toString();
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const query = paramsStr
+      ? `?${paramsStr}&view=team-detail&teamId=${encodeURIComponent(teamId)}`
+      : `?view=team-detail&teamId=${encodeURIComponent(teamId)}`;
+    return `${base}${query}`;
+  }, []);
 
   useEffect(() => {
     const shouldAutoOpen = shouldAutoOpenAppView({
@@ -1877,6 +1876,7 @@ function App() {
             onJoinRequest={handleJoinRequest}
             onRequestResponse={handleRequestResponse}
             onLeaveTeam={handleLeaveTeam}
+            onGetTeamDeepLink={handleGetTeamDeepLink}
             eventPhase={effectiveEventPhase}
             appModeResolverPayload={appModeResolverPayload}
             skillsConfig={eventSkillsConfig}

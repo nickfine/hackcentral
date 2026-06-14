@@ -148,7 +148,7 @@ const TeamCard = forwardRef(({
       onClick={clickable ? onClick : undefined}
       className={cn(
         DESIGN_SYSTEM_CARD,
-        'marketplace-idea-card p-5 transition-all duration-200 flex flex-col min-h-[220px] group',
+        'marketplace-idea-card p-5 transition-all duration-200 flex flex-col min-h-[220px]',
         clickable && cn('cursor-pointer hover:-translate-y-0.5'),
         className
       )}
@@ -179,7 +179,7 @@ const TeamCard = forwardRef(({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onCopyLink(team.id); }}
-              className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-lg transition-opacity hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               title="Copy team link"
               aria-label="Copy link to this team"
             >

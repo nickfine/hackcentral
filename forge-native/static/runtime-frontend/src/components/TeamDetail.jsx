@@ -13,6 +13,7 @@ import {
   Edit3,
   ArrowRightLeft,
   Lightbulb,
+  Link2,
 } from 'lucide-react';
 import { cn, DESIGN_SYSTEM_CARD } from '../lib/design-system';
 import { hasCompletedRegistration } from '../lib/registrationState';
@@ -240,6 +241,7 @@ function TeamDetail({
   onJoinRequest,
   onRequestResponse,
   onLeaveTeam,
+  onGetTeamDeepLink,
   eventPhase = 'signup',
   appModeResolverPayload,
   skillsConfig = null,
@@ -267,6 +269,8 @@ function TeamDetail({
   const [lookingForInput, setLookingForInput] = useState(team?.lookingFor || []);
   const [isEditingMaxMembers, setIsEditingMaxMembers] = useState(false);
   const [maxMembersInput, setMaxMembersInput] = useState(team?.maxMembers || 5);
+
+  const [copyLinkStatus, setCopyLinkStatus] = useState('idle');
 
   // State for modals and action menus
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -563,6 +567,30 @@ function TeamDetail({
     }
   };
 
+  const handleCopyLink = async () => {
+    if (!onGetTeamDeepLink || !team?.id) return;
+    setCopyLinkStatus('copying');
+    try {
+      const url = onGetTeamDeepLink(team.id);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const el = document.createElement('textarea');
+        el.value = url;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      setCopyLinkStatus('success');
+    } catch {
+      setCopyLinkStatus('error');
+    }
+    setTimeout(() => setCopyLinkStatus('idle'), 2000);
+  };
+
   return (
     <div className={cn('team-detail-page p-4 sm:p-6', isLightMode && 'team-detail-theme-light')}>
       <div className="mb-6">
@@ -692,6 +720,18 @@ function TeamDetail({
                     </div>
                   )}
                 </div>
+
+                {onGetTeamDeepLink && (
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    disabled={copyLinkStatus === 'copying'}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    {copyLinkStatus === 'copying' ? 'Copying…' : copyLinkStatus === 'success' ? 'Copied!' : 'Copy link'}
+                  </button>
+                )}
 
                 {isCaptain && !isEditingName && (
                   <>
