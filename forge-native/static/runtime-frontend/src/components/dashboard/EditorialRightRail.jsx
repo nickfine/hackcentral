@@ -249,6 +249,9 @@ function HackDayCentralCard() {
       >
         Open HackDay Central →
       </button>
+      <p className="mt-3 text-xs" style={{ color: 'var(--stat-label-color)' }}>
+        This is a preview concept and is work in progress. Please feedback to Nick.
+      </p>
     </div>
   );
 }
