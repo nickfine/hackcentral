@@ -767,35 +767,9 @@ function generateFreeAgentTeamName() {
  */
 export async function createOrGetFreeAgentTeam(supabase, eventId) {
   try {
-    const { data: faTeams, error: teamsError } = await supabase
-      .from("Team")
-      .select("id, name")
-      .eq("eventId", eventId)
-      .eq("isAutoCreated", true)
-      .neq("id", OBSERVERS_TEAM_ID)
-      .order("createdAt", { ascending: true });
-
-    if (teamsError) throw teamsError;
-
-    if (faTeams && faTeams.length > 0) {
-      const teamIds = faTeams.map(t => t.id);
-      const { data: memberships } = await supabase
-        .from("TeamMember")
-        .select("teamId")
-        .in("teamId", teamIds)
-        .eq("status", "ACCEPTED");
-
-      const countMap = {};
-      for (const { teamId } of (memberships || [])) {
-        countMap[teamId] = (countMap[teamId] || 0) + 1;
-      }
-
-      const teamWithSpace = faTeams.find(t => (countMap[t.id] || 0) < FREE_AGENT_TEAM_MAX_SIZE);
-      if (teamWithSpace) {
-        return { id: teamWithSpace.id, name: teamWithSpace.name, memberCount: countMap[teamWithSpace.id] || 0, error: null };
-      }
-    }
-
+    // Always create a new team — never fill an existing auto-created team.
+    // Individual opt-in should not place a user into a team with people they didn't choose.
+    // The bulk sweep (sweepFreeAgentsIntoTeams) handles grouping at 24h pre-hacking.
     const teamId = makeId("team-fa");
     const teamName = generateFreeAgentTeamName();
     const now = new Date().toISOString();
