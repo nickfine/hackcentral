@@ -1,4 +1,4 @@
-import { ROLE_MAP, HACKDAY_OWNER_TITLE } from "./constants.js";
+import { ROLE_MAP, REVERSE_ROLE_MAP, HACKDAY_OWNER_TITLE } from "./constants.js";
 import { isHackdayOwnerIdentity } from "./helpers.js";
 
 /**
@@ -22,8 +22,8 @@ export function transformUser(user) {
     skills: user.skills ? user.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
     signupCompleted: user.skills !== null,
     role: ROLE_MAP[user.role] || "participant",
-    isJudge: user.role === "JUDGE" || user.role === "ADMIN",
-    isAdmin: user.role === "ADMIN",
+    isJudge: user.role === REVERSE_ROLE_MAP.judge || user.role === REVERSE_ROLE_MAP.admin,
+    isAdmin: user.role === REVERSE_ROLE_MAP.admin,
     isHackdayOwner,
     ownerDisplayTitle: isHackdayOwner ? HACKDAY_OWNER_TITLE : null,
     isFreeAgent: !!user.isFreeAgent,

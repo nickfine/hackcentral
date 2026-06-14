@@ -5,6 +5,7 @@ import {
   DEMO_EVENT_ID,
   PHASE_MAP,
   ROLE_MAP,
+  REVERSE_ROLE_MAP,
   OBSERVERS_TEAM_ID,
 } from "../lib/constants.js";
 import {
@@ -152,8 +153,8 @@ resolver.define("getDemoData", async ({ context }) => {
       skills: user.skills ? user.skills.split(",") : [],
       role: ROLE_MAP[user.role] || "participant",
       isFreeAgent: user.isFreeAgent,
-      isJudge: user.role === "JUDGE",
-      isAdmin: user.role === "ADMIN",
+      isJudge: user.role === REVERSE_ROLE_MAP.judge,
+      isAdmin: user.role === REVERSE_ROLE_MAP.admin,
       bio: user.bio,
       registeredAt: user.createdAt,
     }));

@@ -69,7 +69,7 @@ resolver.define("getEventPhase", async (req) => {
 
   if (!event) {
     return {
-      phase: "signup",
+      phase: PHASE_MAP.REGISTRATION,
       motd: null,
       motdMessage: null,
       maxVotesPerUser: 1,

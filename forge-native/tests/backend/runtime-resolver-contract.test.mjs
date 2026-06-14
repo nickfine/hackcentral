@@ -56,3 +56,36 @@ test('runtime voting and judging resolvers block self-team actions server-side',
   assert.match(source, /resolver\.define\("castVote"[\s\S]*You cannot vote for your own team/);
   assert.match(source, /resolver\.define\("submitScore"[\s\S]*You cannot score your own team/);
 });
+
+test('assignPainPointsToTeam enforces one-per-team server-side before linking', async () => {
+  const source = await readRuntimeSource();
+  // Guard: must query existing links before calling linkToTeam
+  assert.match(
+    source,
+    /resolver\.define\("assignPainPointsToTeam"[\s\S]*painPoints:listForTeam[\s\S]*already has a pain point/,
+    'assignPainPointsToTeam must check existing pain points before linking'
+  );
+});
+
+test('runtime resolver names are unique — no two modules define the same resolver name', async () => {
+  const source = await readRuntimeSource();
+  const pattern = /resolver\.define\("([^"]+)"/g;
+  const names = [];
+  let match;
+  while ((match = pattern.exec(source)) !== null) {
+    names.push(match[1]);
+  }
+  const seen = new Set();
+  const duplicates = [];
+  for (const name of names) {
+    if (seen.has(name)) {
+      duplicates.push(name);
+    }
+    seen.add(name);
+  }
+  assert.deepEqual(
+    duplicates,
+    [],
+    `Duplicate resolver names found: ${duplicates.join(', ')}`
+  );
+});

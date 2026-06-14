@@ -2049,8 +2049,16 @@ export async function getCurrentEventContext(
   { allowBootstrapWrites = !HDC_PERF_RUNTIME_BOOTSTRAP_V2 } = {}
 ) {
   // Reuse pre-resolved context from bootstrap to avoid redundant lookups.
+  // Skip the cache if the stored context is a known error/unresolvable sentinel —
+  // re-resolving gives a better chance of recovery than forwarding a broken context.
   if (req._bootstrapContext) {
-    return req._bootstrapContext;
+    const cachedSource = req._bootstrapContext.runtimeSource;
+    const isBroken =
+      cachedSource === "context_error" ||
+      cachedSource === APP_MODE_RUNTIME_SOURCES.REQUIRED;
+    if (!isBroken) {
+      return req._bootstrapContext;
+    }
   }
 
   try {
@@ -2273,9 +2281,13 @@ export async function getLatestEventForGlobalContext(supabase) {
 
   for (const plan of orderPlans) {
     try {
+      // Prefer non-terminal events (completed/archived are no longer active).
+      // If the lifecycle_status filter is unsupported (column missing or filter error),
+      // the catch block falls through to the next ordering plan which tries unfiltered.
       let query = supabase
         .from("Event")
         .select("*")
+        .not("lifecycle_status", "in", '("completed","archived")')
         .order(plan.primary, { ascending: false });
 
       if (plan.fallback) {

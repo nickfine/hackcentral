@@ -57,6 +57,9 @@ export const HDC_PERF_RUNTIME_BOOTSTRAP_V2 = (() => {
 export const DEMO_EVENT_ID = 'demo-event-2026';
 
 // Phase mapping: DB enum (uppercase) -> app format (lowercase)
+// NOTE: Both REGISTRATION and SIGNUP intentionally map to "signup" (many-to-one).
+// REVERSE_PHASE_MAP.signup returns "REGISTRATION" as the canonical reverse.
+// Do not round-trip SIGNUP through forward+reverse — it will be rewritten to REGISTRATION.
 export const PHASE_MAP = {
   SETUP: "setup",
   REGISTRATION: "signup",

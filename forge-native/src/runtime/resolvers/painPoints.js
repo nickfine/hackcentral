@@ -109,11 +109,15 @@ resolver.define("assignPainPointsToTeam", async (req) => {
   const { teamId, eventId = '', painPointIds = [] } = req.payload || {};
   if (!teamId) return { ok: false };
   try {
-    await Promise.all(
-      painPointIds.map((painPointId) =>
-        convexMutation("painPoints:linkToTeam", { teamId, eventId, painPointId })
-      )
-    );
+    // Server-side one-per-team guard: check existing links before adding.
+    const existing = await convexQuery("painPoints:listForTeam", { teamId });
+    if (existing && existing.length > 0) {
+      return { ok: false, error: 'Team already has a pain point' };
+    }
+    // Defensive: only link the first id even if multiple are sent.
+    const idToLink = painPointIds[0];
+    if (!idToLink) return { ok: true };
+    await convexMutation("painPoints:linkToTeam", { teamId, eventId, painPointId: idToLink });
     return { ok: true };
   } catch (err) {
     console.error("assignPainPointsToTeam error:", err);
