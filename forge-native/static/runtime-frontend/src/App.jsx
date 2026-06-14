@@ -512,6 +512,16 @@ function App() {
         markStage('get_context', contextLookupStartedAt);
         setContext(ctx);
 
+        const ctxLocation = ctx?.extension?.location || ctx?.location || '';
+        const ctxSearchIdx = ctxLocation.indexOf('?');
+        if (ctxSearchIdx !== -1) {
+          const ctxDeepLink = resolveDeepLinkFromSearch(ctxLocation.slice(ctxSearchIdx));
+          if (ctxDeepLink) {
+            setCurrentView(ctxDeepLink.view);
+            setViewParams(ctxDeepLink.params);
+          }
+        }
+
         const bootstrapAppModePageId = resolvePageIdFromSearch(window.location.search) || resolvePageIdFromContext(ctx);
         if (bootstrapAppModePageId) {
           // Fire-and-forget: save context for future requests.
