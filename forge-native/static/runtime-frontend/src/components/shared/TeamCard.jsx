@@ -4,7 +4,7 @@
  */
 
 import { forwardRef } from 'react';
-import { Users, ChevronRight, Crown, Target } from 'lucide-react';
+import { Users, ChevronRight, Crown, Target, Link2 } from 'lucide-react';
 import { Badge, Avatar, AvatarGroup, Button } from '../ui';
 import { cn, DESIGN_SYSTEM_CARD } from '../../lib/design-system';
 
@@ -16,6 +16,7 @@ const TeamCard = forwardRef(({
   showStatus = false,
   clickable = true,
   onClick,
+  onCopyLink,
   className,
   ...props
 }, ref) => {
@@ -147,7 +148,7 @@ const TeamCard = forwardRef(({
       onClick={clickable ? onClick : undefined}
       className={cn(
         DESIGN_SYSTEM_CARD,
-        'marketplace-idea-card p-5 transition-all duration-200 flex flex-col min-h-[220px]',
+        'marketplace-idea-card p-5 transition-all duration-200 flex flex-col min-h-[220px] group',
         clickable && cn('cursor-pointer hover:-translate-y-0.5'),
         className
       )}
@@ -173,9 +174,22 @@ const TeamCard = forwardRef(({
           </div>
         </div>
 
-        {clickable && (
-          <ChevronRight className="w-5 h-5 text-gray-400" />
-        )}
+        <div className="flex items-center gap-1">
+          {onCopyLink && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onCopyLink(team.id); }}
+              className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-lg transition-opacity hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              title="Copy team link"
+              aria-label="Copy link to this team"
+            >
+              <Link2 className="w-4 h-4" />
+            </button>
+          )}
+          {clickable && (
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          )}
+        </div>
       </div>
 
       {/* Problem to Solve / Description - shown when no pain points linked */}

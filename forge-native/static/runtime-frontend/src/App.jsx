@@ -75,6 +75,21 @@ const normalizePath = (pathname = '/') => {
   return trimmed || '/';
 };
 
+const resolveDeepLinkFromSearch = (search = '') => {
+  if (!search) return null;
+  try {
+    const query = new URLSearchParams(search);
+    const view = query.get('view');
+    const teamId = query.get('teamId');
+    if (view === 'team-detail' && teamId) {
+      return { view: 'team-detail', params: { teamId: decodeURIComponent(teamId) } };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 const resolveViewFromLocation = (pathname = '/', search = '') => {
   const normalizedPath = normalizePath(pathname);
   const teamMatch = normalizedPath.match(/^\/team\/([^/]+)$/i);
@@ -85,6 +100,9 @@ const resolveViewFromLocation = (pathname = '/', search = '') => {
     };
   }
 
+  const deepLink = resolveDeepLinkFromSearch(search);
+  if (deepLink) return deepLink;
+
   const view = PATH_TO_VIEW[normalizedPath] || 'dashboard';
   const params = {};
 
@@ -94,6 +112,8 @@ const resolveViewFromLocation = (pathname = '/', search = '') => {
     if (tab === 'teams' || tab === 'agents') {
       params.tab = tab;
     }
+    const q = query.get('q');
+    if (q) params.q = q;
   }
 
   return { view, params };
@@ -107,8 +127,12 @@ const resolvePathForView = (view, params = {}) => {
   const basePath = VIEW_TO_PATH[view];
   if (!basePath) return null;
 
-  if (view === 'marketplace' && params.tab && ['teams', 'agents'].includes(params.tab)) {
-    return `${basePath}?tab=${encodeURIComponent(params.tab)}`;
+  if (view === 'marketplace') {
+    const tab = params.tab && ['teams', 'agents'].includes(params.tab) ? params.tab : null;
+    const q = params.q ? encodeURIComponent(params.q) : null;
+    if (tab && q) return `${basePath}?tab=${encodeURIComponent(tab)}&q=${q}`;
+    if (tab) return `${basePath}?tab=${encodeURIComponent(tab)}`;
+    if (q) return `${basePath}?tab=teams&q=${q}`;
   }
 
   return basePath;
@@ -351,7 +375,7 @@ function App() {
   const initialRouteRef = useRef(
     urlRoutingEnabledRef.current
       ? resolveViewFromLocation(window.location.pathname, window.location.search)
-      : { view: 'dashboard', params: {} }
+      : (resolveDeepLinkFromSearch(window.location.search) || { view: 'dashboard', params: {} })
   );
   const urlRoutingEnabled = urlRoutingEnabledRef.current;
 
@@ -933,6 +957,19 @@ function App() {
       setOpeningAppView(false);
     }
   }, [context, devMode, eventPageId]);
+
+  const handleGetTeamDeepLink = useCallback(async (teamId) => {
+    if (devMode) {
+      const params = new URLSearchParams(window.location.search);
+      return `${window.location.origin}${window.location.pathname}?${params.toString()}&view=team-detail&teamId=${encodeURIComponent(teamId)}`;
+    }
+    const bridge = await import('@forge/bridge');
+    const launch = await bridge.invoke('getAppModeLaunchUrl');
+    if (typeof launch?.url !== 'string') {
+      throw new Error('Unable to copy link. Try copying the page URL manually.');
+    }
+    return `${launch.url}&view=team-detail&teamId=${encodeURIComponent(teamId)}`;
+  }, [devMode]);
 
   useEffect(() => {
     const shouldAutoOpen = shouldAutoOpenAppView({
@@ -1701,6 +1738,7 @@ function App() {
     onNavigate: handleNavigate,
     onTrackEvent: handleTrackEvent,
     onSubmitProject: handleSubmitProject,
+    onGetTeamDeepLink: handleGetTeamDeepLink,
     eventPhase: effectiveEventPhase,
     realEventPhase: eventPhase,
     maxVotesPerUser,
@@ -1717,7 +1755,7 @@ function App() {
     viewParams,
     useAdaptavistLogo,
   }), [effectiveUser, teams, handleNavigate, handleTrackEvent, handleSubmitProject,
-    effectiveEventPhase, eventPhase, maxVotesPerUser, maxTeamSize, eventMotd,
+    handleGetTeamDeepLink, effectiveEventPhase, eventPhase, maxVotesPerUser, maxTeamSize, eventMotd,
     effectiveEventAdminMessage, eventMeta, eventPageId, appModeResolverPayload,
     effectiveEventBranding, eventSkillsConfig, isEventAdmin, refreshEventPhase, viewParams, useAdaptavistLogo]);
 
@@ -1765,6 +1803,7 @@ function App() {
             freeAgents={freeAgents}
             onCreateTeam={handleCreateTeam}
             initialTab={viewParams.tab || 'teams'}
+            initialSearchTerm={viewParams.q || ''}
           />
         );
 

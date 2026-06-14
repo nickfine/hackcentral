@@ -3,7 +3,7 @@
  * Browse and manage Ideas (teams) and Free Agents
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Users,
   Plus,
@@ -43,6 +43,8 @@ function Marketplace({
   onNavigate,
   onCreateTeam,
   initialTab = 'teams',
+  initialSearchTerm = '',
+  onGetTeamDeepLink,
   eventPhase,
   maxTeamSize = 5,
   userInvites = [],
@@ -54,7 +56,7 @@ function Marketplace({
   const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
     ? skillsConfig.list
     : SKILLS;
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState('grid');
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,6 +101,16 @@ function Marketplace({
   const [inviteMessage, setInviteMessage] = useState('');
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [inviteStatus, setInviteStatus] = useState(null);
+  const [copyLinkState, setCopyLinkState] = useState({ status: 'idle', teamId: null });
+  const searchContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (!initialSearchTerm) return;
+    const timeout = setTimeout(() => {
+      searchContainerRef.current?.querySelector('input')?.focus();
+    }, 80);
+    return () => clearTimeout(timeout);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const itemsPerPage = 12;
 
@@ -227,6 +239,40 @@ function Marketplace({
     }
   };
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      try {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  const handleCopyTeamLink = useCallback(async (teamId) => {
+    if (!onGetTeamDeepLink) return;
+    setCopyLinkState({ status: 'copying', teamId });
+    try {
+      const url = await onGetTeamDeepLink(teamId);
+      const success = await copyToClipboard(url);
+      setCopyLinkState({ status: success ? 'success' : 'error', teamId });
+    } catch {
+      setCopyLinkState({ status: 'error', teamId });
+    }
+    setTimeout(() => setCopyLinkState({ status: 'idle', teamId: null }), 2000);
+  }, [onGetTeamDeepLink]);
+
   const handleTeamClick = useCallback(
     (teamId) => {
       onNavigate('team-detail', { teamId });
@@ -306,9 +352,23 @@ function Marketplace({
 
       {/* Search and Tabs as integrated region */}
       <div className="mb-6">
+        {/* Copy link feedback */}
+        {copyLinkState.status !== 'idle' && (
+          <Alert
+            variant={copyLinkState.status === 'success' ? 'success' : copyLinkState.status === 'copying' ? 'info' : 'error'}
+            dismissible={copyLinkState.status !== 'copying'}
+            onDismiss={() => setCopyLinkState({ status: 'idle', teamId: null })}
+            className="mb-4"
+          >
+            {copyLinkState.status === 'copying' ? 'Copying link…' :
+             copyLinkState.status === 'success' ? 'Team link copied to clipboard!' :
+             'Unable to copy link. Try copying the page URL manually.'}
+          </Alert>
+        )}
+
         {/* Search and View Controls */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4 items-stretch sm:items-center">
-          <div className="marketplace-search-wrap flex-1">
+          <div ref={searchContainerRef} className="marketplace-search-wrap flex-1">
             <SearchInput
               value={searchTerm}
               onChange={(e) => {
@@ -425,6 +485,7 @@ function Marketplace({
                     team={team}
                     variant={viewMode === 'row' ? 'compact' : 'default'}
                     onClick={() => handleTeamClick(team.id)}
+                    onCopyLink={onGetTeamDeepLink ? handleCopyTeamLink : undefined}
                   />
                 ))}
               </div>
