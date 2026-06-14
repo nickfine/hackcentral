@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Modal, Button, TextArea, SearchInput } from './ui';
+import { Modal, Button, TextArea } from './ui';
 import {
   EVENT_PHASE_ORDER,
   EVENT_PHASES,
@@ -466,7 +466,6 @@ function Dashboard({
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [isOptingInToTeam, setIsOptingInToTeam] = useState(false);
   const [optInError, setOptInError] = useState(null);
-  const [teamSearchTerm, setTeamSearchTerm] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -1341,35 +1340,6 @@ function Dashboard({
             </button>
           </div>
         </div>
-      )}
-
-      {/* ====== TEAM SEARCH ====== */}
-      {!userTeam && isEarlyExecutionPhase && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const q = teamSearchTerm.trim();
-            if (q) onNavigate?.('marketplace', { tab: 'teams', q });
-          }}
-          className="flex gap-2"
-        >
-          <div className="flex-1">
-            <SearchInput
-              value={teamSearchTerm}
-              onChange={(e) => setTeamSearchTerm(e.target.value)}
-              onClear={() => setTeamSearchTerm('')}
-              placeholder="Find a team by name…"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!teamSearchTerm.trim()}
-            className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-50"
-            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-          >
-            Search
-          </button>
-        </form>
       )}
 
       {/* ====== MAIN CONTENT GRID ====== */}
