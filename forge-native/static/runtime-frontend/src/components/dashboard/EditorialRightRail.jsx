@@ -225,7 +225,7 @@ function HackDayCentralCard() {
       style={{
         borderRadius: '26px',
         border: '5px solid transparent',
-        background: 'linear-gradient(var(--rail-card-bg), var(--rail-card-bg)) padding-box, repeating-linear-gradient(45deg, #f5c800 0px, #f5c800 5px, #1a1a1a 5px, #1a1a1a 10px) border-box',
+        background: 'linear-gradient(var(--color-bg-card), var(--color-bg-card)) padding-box, repeating-linear-gradient(45deg, #f5c800 0px, #f5c800 5px, #1a1a1a 5px, #1a1a1a 10px) border-box',
       }}
     >
       <div className="flex items-center gap-2 mb-3">
