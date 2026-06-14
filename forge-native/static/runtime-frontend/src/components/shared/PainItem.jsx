@@ -163,7 +163,7 @@ export function UpvoteButton({ count, voted, onVote, disabled, compact = false }
 
 // ─── PainItem ─────────────────────────────────────────────────────────────────
 
-export function PainItem({ pp, onReact, variant = 'default' }) {
+export function PainItem({ pp, onReact, variant = 'default', onReadMore }) {
   const [reacting, setReacting] = useState(false);
   const [localCount, setLocalCount] = useState(pp.reactionCount || 0);
   const [reacted, setReacted] = useState(pp.hasReacted ?? false);
@@ -234,10 +234,10 @@ export function PainItem({ pp, onReact, variant = 'default' }) {
         {pp.title.length > 120 && (
           <button
             type="button"
-            onClick={() => setExpanded((e) => !e)}
+            onClick={onReadMore ? () => onReadMore(pp) : () => setExpanded((e) => !e)}
             className="mt-1 text-xs text-text-body dark:text-white/40 hover:text-text-primary dark:hover:text-white/70 transition-colors"
           >
-            {expanded ? 'Show less' : 'Read more'}
+            {(!onReadMore && expanded) ? 'Show less' : 'Read more'}
           </button>
         )}
         {pp.description && (
