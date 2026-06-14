@@ -375,7 +375,7 @@ function App() {
   const initialRouteRef = useRef(
     urlRoutingEnabledRef.current
       ? resolveViewFromLocation(window.location.pathname, window.location.search)
-      : (resolveDeepLinkFromSearch(window.location.search) || { view: 'dashboard', params: {} })
+      : { view: 'dashboard', params: {} }
   );
   const urlRoutingEnabled = urlRoutingEnabledRef.current;
 
