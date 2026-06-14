@@ -958,17 +958,25 @@ function App() {
     }
   }, [context, devMode, eventPageId]);
 
-  const handleGetTeamDeepLink = useCallback((teamId) => {
-    const params = new URLSearchParams(window.location.search);
-    params.delete('view');
-    params.delete('teamId');
-    const paramsStr = params.toString();
-    const base = `${window.location.origin}${window.location.pathname}`;
-    const query = paramsStr
-      ? `?${paramsStr}&view=team-detail&teamId=${encodeURIComponent(teamId)}`
-      : `?view=team-detail&teamId=${encodeURIComponent(teamId)}`;
-    return `${base}${query}`;
-  }, []);
+  const handleGetTeamDeepLink = useCallback(async (teamId) => {
+    if (devMode) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('view');
+      params.delete('teamId');
+      const paramsStr = params.toString();
+      const base = `${window.location.origin}${window.location.pathname}`;
+      const query = paramsStr
+        ? `?${paramsStr}&view=team-detail&teamId=${encodeURIComponent(teamId)}`
+        : `?view=team-detail&teamId=${encodeURIComponent(teamId)}`;
+      return `${base}${query}`;
+    }
+    const { invoke } = await import('@forge/bridge');
+    const launch = await invokeEventScopedResolver(invoke, 'getTeamDeepLinkUrl', appModeResolverPayload);
+    if (typeof launch?.url !== 'string') {
+      throw new Error('Unable to copy link.');
+    }
+    return `${launch.url}&view=team-detail&teamId=${encodeURIComponent(teamId)}`;
+  }, [devMode, appModeResolverPayload]);
 
   useEffect(() => {
     const shouldAutoOpen = shouldAutoOpenAppView({

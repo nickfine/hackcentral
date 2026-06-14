@@ -132,6 +132,15 @@ resolver.define("getAppModeLaunchUrl", async (req) => {
   };
 });
 
+resolver.define("getTeamDeepLinkUrl", async (req) => {
+  const pageId = normalizeConfluencePageId(req?.payload?.pageId);
+  if (!pageId) {
+    throw new Error("pageId is required to build a team deep link URL.");
+  }
+  const launch = buildAppModeLaunchUrlFromContext(req, pageId);
+  return launch;
+});
+
 resolver.define("activateAppModeContext", async (req) => {
   const supabase = getSupabaseClient();
   const accountId = getCallerAccountId(req);
