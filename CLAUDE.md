@@ -160,7 +160,7 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 |---------|-------------|
 | Pain Points panel (Dashboard) | signup, team_formation |
 | Delete Team (captain) | signup, team_formation |
-| Delete Team (admin) | any phase |
+| Delete Team (admin) | not available via UI — admins delete registrations via UsersPanel, not teams |
 | Pain point add/remove (TeamDetail) | signup, team_formation |
 
 ---
