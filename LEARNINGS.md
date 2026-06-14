@@ -1,6 +1,27 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 9, 2026
+**Last Updated:** June 14, 2026
+
+---
+
+## Session Update — Pain Points Board Layout Redesign (Jun 14, 2026)
+
+### Problem
+The Pain Points board used a CSS auto-fill grid where each category was a vertical column. With UX accumulating 15+ items vs 1-3 in every other category, the UX column dominated page height while adjacent columns ended far above the fold — dead space and very long scroll.
+
+### Fix — Horizontal Strip Layout
+Switched to a vertical stack of full-width horizontal strips: each category occupies one row, cards scroll right within it. Every row is the same height regardless of item count.
+
+**PainPoints.jsx:** replaced `grid auto-fill` wrapper with `flex flex-col`; passes `orientation="horizontal"` to each `BoardColumn`.
+
+**BoardColumn.jsx:** added `orientation` prop. Horizontal mode: card container uses `flex-row overflow-x-auto`; each card wrapped in `flex-shrink-0 w-[240px]`.
+
+### Secondary fix — "Read more" in horizontal mode
+Expanding a card inline in a 240px horizontal row made one card taller than its neighbours. Fix: added `onReadMore` prop to `PainItem`. When provided, clicking "Read more" calls the callback instead of expanding inline. `BoardColumn` in horizontal mode uses this to open a full-width detail panel below the card strip (showing full title + description), toggled by clicking the same card again or the × button.
+
+### Versions
+- Horizontal strip layout: **v1.2.259** / Forge v2.266.0
+- Detail panel for Read more: **v1.2.260** / Forge v2.267.0
 
 ---
 
@@ -6779,3 +6800,28 @@ The flag is still written when users join/leave teams (existing resolver logic),
 - Self-exclusion filter removed from Marketplace: **v1.2.217** / Forge v2.224.0
 - `getFreeAgents` rewritten to use EventRegistration − TeamMember: **v1.2.218** / Forge v2.225.0
 - Dashboard free agent stat fixed: **v1.2.219** / Forge v2.226.0
+
+
+---
+
+## 2026-06-14 — Backend test suite repair
+
+### Problem
+After the resolver-modularisation refactor (moving code from monolithic `src/runtime/index.js` into `resolvers/*.js` and `lib/*`), 10 of 56 backend tests permanently failed. All were source-grep "contract" tests that called `readFile('../../src/runtime/index.js')` and asserted the code they checked was present. The code had moved but the test file paths hadn't been updated.
+
+### Fix — `tests/backend/_runtime-source.mjs`
+Added a shared helper that reads the whole runtime source tree as one concatenated corpus:
+- `src/runtime/index.js`
+- `src/runtime/resolvers/*.js` (sorted)
+- `src/runtime/lib/*.js` + `*.mjs` (sorted)
+
+Contract tests that previously read `index.js` directly now call `readRuntimeSource()` from this helper. Every assertion was preserved verbatim — only the source they read changed.
+
+### Gotcha — contract tests must never read `index.js` alone
+`index.js` is now just a resolver orchestrator (imports + registers). All logic lives in `resolvers/` and `lib/`. Any new source-grep contract test must use `readRuntimeSource()`, not a direct read of `index.js`.
+
+### Also fixed — CTA copy drift
+One test asserted `Open submission page` in `Submission.jsx`; a later commit renamed it to `View submission page` without updating the test. Updated to match current copy.
+
+### Versions
+- Test suite repair (56/56 pass): **v1.2.258** / Forge v2.265.0
