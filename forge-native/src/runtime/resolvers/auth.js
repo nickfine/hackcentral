@@ -15,6 +15,7 @@ import {
   isHackdayOwnerIdentity,
   makeId,
   assignUserToFreeAgentTeam,
+  getOrCreateObserversTeam,
 } from "../lib/helpers.js";
 import { transformUser } from "../lib/transforms.js";
 
@@ -622,6 +623,58 @@ resolver.define("optInToAutoAssign", async (req) => {
   } catch (error) {
     console.error("optInToAutoAssign error:", error);
     throw new Error(`Failed to auto-assign: ${error.message}`);
+  }
+});
+
+/**
+ * Opt the calling user into the Observers team, removing them from the free agents list.
+ */
+resolver.define("optInToObservers", async (req) => {
+  const accountId = getCallerAccountId(req);
+  const supabase = getSupabaseClient();
+
+  try {
+    const [event, user] = await Promise.all([
+      getCurrentEvent(supabase, req),
+      getUserByAccountId(supabase, accountId, "id, isFreeAgent"),
+    ]);
+
+    // Check they're not already on a team
+    const { data: existingMembership } = await supabase
+      .from("TeamMember")
+      .select("teamId")
+      .eq("userId", user.id)
+      .eq("status", "ACCEPTED")
+      .limit(1);
+
+    if (existingMembership?.[0]) {
+      throw new Error("You are already on a team");
+    }
+
+    const { id: observersTeamId, error: teamError } = await getOrCreateObserversTeam(supabase, event.id);
+    if (teamError || !observersTeamId) {
+      throw new Error("Could not create observers team");
+    }
+
+    const { error: memberError } = await supabase.from("TeamMember").insert({
+      id: makeId("tm"),
+      teamId: observersTeamId,
+      userId: user.id,
+      status: "ACCEPTED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    if (memberError) throw memberError;
+
+    await supabase
+      .from("User")
+      .update({ isFreeAgent: false, updatedAt: new Date().toISOString() })
+      .eq("id", user.id);
+
+    return { success: true };
+  } catch (error) {
+    console.error("optInToObservers error:", error);
+    throw new Error(`Failed to join observers: ${error.message}`);
   }
 });
 

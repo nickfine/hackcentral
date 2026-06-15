@@ -867,6 +867,10 @@ function App() {
     }
   }, [appModeResolverPayload, devMode]);
 
+  const handleObserverOptIn = useCallback(async () => {
+    await refreshTeamsAndFreeAgents();
+  }, [refreshTeamsAndFreeAgents]);
+
   const refreshRegistrations = useCallback(async () => {
     if (devMode) {
       return;
@@ -1797,6 +1801,7 @@ function App() {
             {...commonProps}
             devRoleOverride={devRoleOverride}
             onAutoAssignOptIn={handleAutoAssignOptIn}
+            onObserverOptIn={handleObserverOptIn}
             allUsers={allUsers}
             freeAgents={freeAgents}
             bootstrapActivityFeed={bootstrapActivityFeed}

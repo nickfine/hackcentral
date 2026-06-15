@@ -448,6 +448,7 @@ function Dashboard({
   useAdaptavistLogo = false,
   eventMeta = null,
   appModeResolverPayload = null,
+  onObserverOptIn,
   allUsers = null,
   freeAgents = null,
   bootstrapActivityFeed = null,
@@ -465,6 +466,7 @@ function Dashboard({
   const [availabilityBlurb, setAvailabilityBlurb] = useState('');
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [isOptingInToTeam, setIsOptingInToTeam] = useState(false);
+  const [isOptingInToObservers, setIsOptingInToObservers] = useState(false);
   const [optInError, setOptInError] = useState(null);
   const [teamSearchTerm, setTeamSearchTerm] = useState('');
 
@@ -707,6 +709,20 @@ function Dashboard({
       setIsOptingInToTeam(false);
     }
   }, [appModeResolverPayload, onNavigate]);
+
+  const handleOptInToObservers = useCallback(async () => {
+    setIsOptingInToObservers(true);
+    setOptInError(null);
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'optInToObservers', appModeResolverPayload, {});
+      onObserverOptIn?.();
+    } catch (err) {
+      setOptInError('Something went wrong. Please try again.');
+    } finally {
+      setIsOptingInToObservers(false);
+    }
+  }, [appModeResolverPayload, onObserverOptIn]);
 
   const userTeam = useMemo(() => {
     if (devRoleOverride === 'participant_guest') return null;
@@ -1331,16 +1347,28 @@ function Dashboard({
                   <p className="text-sm mt-2" style={{ color: 'var(--status-error-text)' }}>{optInError}</p>
                 )}
               </div>
-              <button
-                type="button"
-                data-testid="dashboard-opt-in-button"
-                disabled={isOptingInToTeam}
-                onClick={handleOptInToTeam}
-                className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
-                style={{ background: 'var(--accent)', color: 'var(--accent-fg, #fff)' }}
-              >
-                {isOptingInToTeam ? 'Assigning...' : 'Auto-assign me now'}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  data-testid="dashboard-opt-in-button"
+                  disabled={isOptingInToTeam || isOptingInToObservers}
+                  onClick={handleOptInToTeam}
+                  className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
+                  style={{ background: 'var(--accent)', color: 'var(--accent-fg, #fff)' }}
+                >
+                  {isOptingInToTeam ? 'Assigning...' : 'Auto-assign me now'}
+                </button>
+                <button
+                  type="button"
+                  data-testid="dashboard-observer-opt-in-button"
+                  disabled={isOptingInToTeam || isOptingInToObservers}
+                  onClick={handleOptInToObservers}
+                  className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-60"
+                  style={{ background: 'var(--color-bg-card)', color: 'var(--stat-value-color)', border: '1.5px solid color-mix(in srgb, var(--accent) 40%, transparent)' }}
+                >
+                  {isOptingInToObservers ? 'Joining...' : 'Join as Observer'}
+                </button>
+              </div>
             </div>
 
             {/* Right half: find a team by name */}
