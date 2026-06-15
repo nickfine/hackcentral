@@ -3,7 +3,7 @@
  * User profile view/edit functionality
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Crown,
   ChevronRight,
@@ -29,6 +29,7 @@ import {
 } from './ui';
 import { VStack, HStack } from './layout';
 import { BackButton } from './shared';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 
 // Validation for callsign
 const validateCallsign = (value) => {
@@ -43,9 +44,13 @@ function Profile({
   teams = [],
   onNavigate,
   eventPhase,
+  appModeResolverPayload = null,
+  onObserverOptIn,
   isLoading = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isJoiningObservers, setIsJoiningObservers] = useState(false);
+  const [observerError, setObserverError] = useState(null);
   const [callsign, setCallsign] = useState(user?.callsign || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [vibe, setVibe] = useState(user?.vibe || '');
@@ -95,6 +100,20 @@ function Profile({
     setCallsignError(null);
     setIsEditing(false);
   };
+
+  const handleJoinObservers = useCallback(async () => {
+    setIsJoiningObservers(true);
+    setObserverError(null);
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'optInToObservers', appModeResolverPayload, {});
+      onObserverOptIn?.();
+    } catch (err) {
+      setObserverError('Something went wrong. Please try again.');
+    } finally {
+      setIsJoiningObservers(false);
+    }
+  }, [appModeResolverPayload, onObserverOptIn]);
 
   const toggleSkill = (skill) => {
     if (skills.includes(skill)) {
@@ -324,11 +343,23 @@ function Profile({
                 <p className="text-text-secondary mb-4">
                   You're not on a team yet
                 </p>
-                <Button 
+                <Button
                   fullWidth
                   onClick={() => onNavigate('marketplace')}
                 >
                   Browse Ideas
+                </Button>
+                {observerError && (
+                  <p className="text-xs mt-3" style={{ color: 'var(--status-error-text)' }}>{observerError}</p>
+                )}
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  disabled={isJoiningObservers}
+                  onClick={handleJoinObservers}
+                  className="mt-2"
+                >
+                  {isJoiningObservers ? 'Joining...' : 'Join as Observer'}
                 </Button>
               </div>
             )}

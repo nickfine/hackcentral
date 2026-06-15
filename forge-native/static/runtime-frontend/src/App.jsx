@@ -1801,7 +1801,6 @@ function App() {
             {...commonProps}
             devRoleOverride={devRoleOverride}
             onAutoAssignOptIn={handleAutoAssignOptIn}
-            onObserverOptIn={handleObserverOptIn}
             allUsers={allUsers}
             freeAgents={freeAgents}
             bootstrapActivityFeed={bootstrapActivityFeed}
@@ -1815,6 +1814,7 @@ function App() {
           <Profile
             {...commonProps}
             updateUser={handleUpdateUser}
+            onObserverOptIn={handleObserverOptIn}
           />
         );
 
