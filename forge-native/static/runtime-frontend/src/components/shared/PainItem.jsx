@@ -3,7 +3,7 @@
  * Used by PainPointsSection (dashboard widget) and PainPoints (full page).
  */
 
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { getCategoryColour } from '../../lib/painCategoryColours';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -192,6 +192,14 @@ export function PainItem({ pp, onReact, variant = 'default', onReadMore }) {
 
   const isTrending = localCount >= 5;
   const CLAMP_LINES = isBoard ? 3 : 5;
+  const titleRef = useRef(null);
+  const [isTitleClamped, setIsTitleClamped] = useState(false);
+
+  useLayoutEffect(() => {
+    if (titleRef.current) {
+      setIsTitleClamped(titleRef.current.scrollHeight > titleRef.current.clientHeight);
+    }
+  }, []);
 
   return (
     <article
@@ -227,11 +235,12 @@ export function PainItem({ pp, onReact, variant = 'default', onReadMore }) {
           {timeAgo && <span className="text-arena-muted dark:text-white/28">{timeAgo}</span>}
         </div>
         <h3
+          ref={titleRef}
           className={`mt-1.5 font-semibold leading-snug text-text-primary ${isBoard ? 'text-base' : 'text-lg'} ${expanded ? '' : `line-clamp-${CLAMP_LINES}`}`}
         >
           {pp.title}
         </h3>
-        {pp.title.length > 120 && (
+        {(isTitleClamped || expanded) && (
           <button
             type="button"
             onClick={onReadMore ? () => onReadMore(pp) : () => setExpanded((e) => !e)}

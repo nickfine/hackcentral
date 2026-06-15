@@ -1,6 +1,45 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 14, 2026
+**Last Updated:** June 15, 2026
+
+---
+
+## 2026-06-15 — Two bug fixes (HackDay live)
+
+### Fix 1 — Copy Link pasting "[object Promise]" (TeamDetail)
+
+**File:** `static/runtime-frontend/src/components/TeamDetail.jsx:574`
+
+`handleCopyLink` called `onGetTeamDeepLink(team.id)` without `await`. Since `handleGetTeamDeepLink` (App.jsx) is async, this returned a Promise, which `navigator.clipboard.writeText()` coerced to `"[object Promise]"`. The Marketplace version of the same flow (`Marketplace.jsx:267`) correctly used `await` — the bug was only in TeamDetail.
+
+**Fix:** Added `await` to the call. One character.
+
+**Gotcha:** Both Marketplace and TeamDetail use the same `onGetTeamDeepLink` prop. If either copy path changes, check both.
+
+### Fix 2 — "Read more" missing on some pain points (PainItem)
+
+**File:** `static/runtime-frontend/src/components/shared/PainItem.jsx`
+
+The "Read more" button was gated on `pp.title.length > 120` — an arbitrary character count. A title of 80 chars in a narrow board column wraps across 4 lines and gets clamped at 3, but never showed the button. The heuristic also silently ignored font size and container width differences between board and non-board variants.
+
+**Fix:** Replaced the character-count guard with a DOM overflow check using a `titleRef`:
+```js
+const titleRef = useRef(null);
+const [isTitleClamped, setIsTitleClamped] = useState(false);
+
+useLayoutEffect(() => {
+  if (titleRef.current) {
+    setIsTitleClamped(titleRef.current.scrollHeight > titleRef.current.clientHeight);
+  }
+}, []);
+```
+The button condition changed from `pp.title.length > 120` to `isTitleClamped || expanded` (the `expanded` guard keeps the "Show less" button visible after the user has expanded).
+
+**Gotcha:** The `useLayoutEffect` runs synchronously after paint so the measurement is accurate. A `useEffect` here would produce a flash — always use `useLayoutEffect` for DOM measurements that affect initial render.
+
+### Versions
+- Copy Link await fix: **v1.2.275** / Forge v2.282.0
+- Read more DOM overflow fix: **v1.2.276** / Forge v2.283.0
 
 ---
 

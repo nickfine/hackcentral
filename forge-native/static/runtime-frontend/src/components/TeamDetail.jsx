@@ -571,7 +571,7 @@ function TeamDetail({
     if (!onGetTeamDeepLink || !team?.id) return;
     setCopyLinkStatus('copying');
     try {
-      const url = onGetTeamDeepLink(team.id);
+      const url = await onGetTeamDeepLink(team.id);
       try {
         await navigator.clipboard.writeText(url);
       } catch {
