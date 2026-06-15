@@ -13,7 +13,7 @@ import {
   FileText,
   Video,
   Github,
-  Globe,
+  Monitor,
   Users,
   Edit3,
   ExternalLink,
@@ -67,12 +67,12 @@ const SUBMISSION_FIELDS = [
   },
   {
     id: 'liveDemoUrl',
-    label: 'Live Demo URL',
+    label: 'Presentation',
     required: false,
-    icon: Globe,
+    icon: Monitor,
     type: 'url',
-    placeholder: 'https://your-project.com',
-    subtext: 'A working link to your project if it is hosted anywhere.',
+    placeholder: 'https://...',
+    subtext: 'Link to your slides, deck or any other presentation material.',
   },
 ];
 

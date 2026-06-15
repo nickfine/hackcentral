@@ -103,15 +103,15 @@ resolver.define("exportResults", async (req) => {
         const judgeTotal = teamScores.reduce((sum, s) => {
           return sum + (
             (s.scores?.innovation || 0) +
-            (s.scores?.technical || 0) +
-            (s.scores?.presentation || 0) +
-            (s.scores?.impact || 0) +
-            (s.scores?.theme || 0)
+            (s.scores?.execution || 0) +
+            (s.scores?.design || 0) +
+            (s.scores?.relevance || 0) +
+            (s.scores?.tagValues || 0)
           );
         }, 0);
-        
-        const judgeAvg = teamScores.length > 0 
-          ? (judgeTotal / (teamScores.length * 5)) * 100 
+
+        const judgeAvg = teamScores.length > 0
+          ? (judgeTotal / (teamScores.length * 5)) * 100
           : 0;
 
         return {

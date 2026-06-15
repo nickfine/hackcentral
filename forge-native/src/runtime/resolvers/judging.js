@@ -63,10 +63,10 @@ resolver.define("getScores", async (req) => {
         judgeId: score.judgeId,
         teamId: projectToTeam[score.projectId] || score.projectId, // Map projectId to teamId
         innovation: score.scores?.innovation || 0,
-        technical: score.scores?.technical || 0,
-        presentation: score.scores?.presentation || 0,
-        impact: score.scores?.impact || 0,
-        theme: score.scores?.theme || 0,
+        execution: score.scores?.execution || 0,
+        design: score.scores?.design || 0,
+        relevance: score.scores?.relevance || 0,
+        tagValues: score.scores?.tagValues || 0,
         comments: score.comments || "",
         scoredAt: score.createdAt,
       })),
@@ -89,6 +89,19 @@ function validateScore(score, fieldName) {
     throw new Error(`${fieldName} must be between 0 and 100`);
   }
   return Math.round(num);
+}
+
+async function isAcceptedTeamMember(supabase, teamId, userId) {
+  if (!teamId || !userId) return false;
+  const { data, error } = await supabase
+    .from("TeamMember")
+    .select("id")
+    .eq("teamId", teamId)
+    .eq("userId", userId)
+    .eq("status", "ACCEPTED")
+    .limit(1);
+  if (error) throw error;
+  return Boolean(data?.[0]);
 }
 
 /**
@@ -150,10 +163,10 @@ resolver.define("submitScore", async (req) => {
     const scoreRecord = {
       scores: {
         innovation: validateScore(scoreData.innovation || 0, "Innovation"),
-        technical: validateScore(scoreData.technical || 0, "Technical"),
-        presentation: validateScore(scoreData.presentation || 0, "Presentation"),
-        impact: validateScore(scoreData.impact || 0, "Impact"),
-        theme: validateScore(scoreData.theme || 0, "Theme"),
+        execution: validateScore(scoreData.execution || 0, "Execution"),
+        design: validateScore(scoreData.design || 0, "Design"),
+        relevance: validateScore(scoreData.relevance || 0, "Relevance"),
+        tagValues: validateScore(scoreData.tagValues || 0, "TAG Values"),
       },
       comments: (scoreData.comments || "").toString().trim().slice(0, 1000),
       updatedAt: new Date().toISOString(),

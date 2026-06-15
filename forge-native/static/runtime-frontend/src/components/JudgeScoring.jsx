@@ -12,7 +12,7 @@ import {
   Save,
   Video,
   Github,
-  Globe,
+  Monitor,
   Users,
   Star,
   ExternalLink,
@@ -29,9 +29,11 @@ import { EmptyState } from './ui/ErrorState';
 // ============================================================================
 
 const DEFAULT_CRITERIA = [
-  { id: 'innovation', label: 'Innovation', description: 'How creative and original is the idea?' },
-  { id: 'execution', label: 'Execution', description: 'How well was the project implemented?' },
-  { id: 'design', label: 'Design', description: 'How polished is the user experience?' },
+  { id: 'innovation', label: 'Innovation', description: 'How original, creative, and forward-thinking the idea is in addressing the chosen pain point.' },
+  { id: 'execution', label: 'Execution', description: 'How effectively and completely the idea has been implemented, including quality, functionality, and readiness.' },
+  { id: 'design', label: 'Design', description: 'How clear, intuitive, and well-crafted the user experience, interface, and submission are.' },
+  { id: 'relevance', label: 'Relevance', description: 'How the submission is linked to the pain point.' },
+  { id: 'tagValues', label: 'TAG Values', description: 'Alignment with TAG Values of Trust, Pragmatism, Teamwork, Humility and Curiosity.' },
 ];
 
 function getScoreLabel(score) {
@@ -338,7 +340,7 @@ function JudgeScoring({
                 <div className="flex flex-wrap gap-2">
                   <LinkChip href={selectedTeam.submission?.demoVideoUrl} icon={Video} label="Demo Video" />
                   <LinkChip href={selectedTeam.submission?.repoUrl} icon={Github} label="Repository" />
-                  <LinkChip href={selectedTeam.submission?.liveDemoUrl} icon={Globe} label="Live Demo" />
+                  <LinkChip href={selectedTeam.submission?.liveDemoUrl} icon={Monitor} label="Presentation" />
                 </div>
               </div>
 

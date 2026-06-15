@@ -33,7 +33,7 @@ function buildRuntimeSubmissionPageStorage(input) {
   lines.push("<h2>Delivery Links</h2>");
   lines.push(`<p><strong>Demo video:</strong> ${input.demoVideoUrl ? `<a href="${escapeStorageText(input.demoVideoUrl)}">${escapeStorageText(input.demoVideoUrl)}</a>` : "Not provided"}</p>`);
   lines.push(`<p><strong>Repository:</strong> ${input.repoUrl ? `<a href="${escapeStorageText(input.repoUrl)}">${escapeStorageText(input.repoUrl)}</a>` : "Not provided"}</p>`);
-  lines.push(`<p><strong>Live demo:</strong> ${input.liveDemoUrl ? `<a href="${escapeStorageText(input.liveDemoUrl)}">${escapeStorageText(input.liveDemoUrl)}</a>` : "Not provided"}</p>`);
+  lines.push(`<p><strong>Presentation:</strong> ${input.liveDemoUrl ? `<a href="${escapeStorageText(input.liveDemoUrl)}">${escapeStorageText(input.liveDemoUrl)}</a>` : "Not provided"}</p>`);
   lines.push("<h2>Output Pages</h2>");
   if (!Array.isArray(input.outputLinks) || input.outputLinks.length === 0) {
     lines.push("<p>No output pages generated yet.</p>");
@@ -107,7 +107,7 @@ async function syncSubmissionConfluencePages({
     },
     {
       key: "live-demo",
-      title: `${projectName} · Live Demo`,
+      title: `${projectName} · Presentation`,
       sourceReference: "Submission liveDemoUrl",
       content: liveDemoUrl || null,
     },

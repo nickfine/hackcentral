@@ -6864,3 +6864,40 @@ One test asserted `Open submission page` in `Submission.jsx`; a later commit ren
 
 ### Versions
 - Test suite repair (56/56 pass): **v1.2.258** / Forge v2.265.0
+
+
+---
+
+## 2026-06-15 — Judging fixes and criteria update
+
+### Bug — `isAcceptedTeamMember` ReferenceError in judging.js
+
+`submitScore` called `isAcceptedTeamMember` at the top of its try block, but the function was only defined inside `registerVotingResolvers` in `voting.js` — a separate ES module. Every score submit threw `ReferenceError: isAcceptedTeamMember is not defined`, caught by the outer try/catch and surfaced to users as "Failed to save score. Please try again."
+
+Fix: defined the function locally in `judging.js` (same implementation as voting.js). It is intentionally duplicated rather than moved to helpers — the function is a two-liner, helpers.js is already 3600+ lines, and the risk of touching it outweighs the DRY gain.
+
+### Gotcha — shared utility functions between resolver modules
+
+Resolver modules (`resolvers/*.js`) are standard ES modules with their own scope. A function defined (but not exported) inside `registerFooResolvers` is not accessible anywhere else. If a function is needed by two resolvers, either export and import it, or duplicate it. Do not assume file-level scope is shared.
+
+### Judging criteria updated
+
+Old criteria keys (stored in `JudgeScore.scores` JSONB): `innovation`, `technical`, `presentation`, `impact`, `theme`
+
+New criteria keys: `innovation`, `execution`, `design`, `relevance`, `tagValues`
+
+Changes made in three places:
+- `resolvers/judging.js` — `getScores` (read) and `submitScore` (write)
+- `resolvers/results.js` — `exportResults` score totalling (was summing the old 5 keys)
+- `JudgeScoring.jsx` — `DEFAULT_CRITERIA` array (was only 3 criteria; now all 5 with full descriptions)
+
+Existing `JudgeScore` rows with old keys will return 0 for new criteria — no migration needed as no real scores had been submitted yet.
+
+### Submission field — "Live Demo URL" renamed to "Presentation"
+
+The `liveDemoUrl` field (mapped to `demoUrl` in the `Project` DB column) was relabelled "Presentation" throughout: submission form, judging panel link chip, and the Confluence page builder label. The field ID and DB column name are unchanged — no data migration.
+
+### Versions
+- `isAcceptedTeamMember` ReferenceError fix: **APP_VERSION 1.2.277** / Forge v2.284.0
+- Judging criteria update: **APP_VERSION 1.2.277** / Forge v2.285.0
+- "Presentation" submission field: **APP_VERSION 1.2.277** / Forge v2.286.0
