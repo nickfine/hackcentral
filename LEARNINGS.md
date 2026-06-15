@@ -6901,3 +6901,30 @@ The `liveDemoUrl` field (mapped to `demoUrl` in the `Project` DB column) was rel
 - `isAcceptedTeamMember` ReferenceError fix: **APP_VERSION 1.2.277** / Forge v2.284.0
 - Judging criteria update: **APP_VERSION 1.2.277** / Forge v2.285.0
 - "Presentation" submission field: **APP_VERSION 1.2.277** / Forge v2.286.0
+
+
+---
+
+## 2026-06-15–16 — Observer opt-in for registered free agents
+
+### Problem
+
+Users who open the Confluence macro page are auto-registered as `EventRegistration` records (by the `getCurrentUser` bootstrap resolver) even without completing the signup wizard. This means passive browsers appear in the free agents list and will be auto-assigned to teams when hacking begins. Kalina Detko reported this: she'd only browsed pain points but found her name on the free agents list.
+
+### Solution — `optInToObservers` resolver + Profile page button
+
+New resolver `optInToObservers` in `resolvers/auth.js`:
+1. Verifies the user has no existing `TeamMember` ACCEPTED row
+2. Gets or creates the Observers team via the existing `getOrCreateObserversTeam` helper
+3. Inserts a `TeamMember` row with `status: ACCEPTED` for the user
+4. Sets `isFreeAgent: false` on the `User` row
+
+A "Join as Observer" button was added to the **Profile page** ("Your Team" sidebar card, visible only when the user has no team). After success, `onObserverOptIn` callback triggers `refreshTeamsAndFreeAgents` in App.jsx, removing the user from the free agents list immediately.
+
+### Architecture note — `isFreeAgent` flag vs team membership
+
+`getFreeAgents` uses team membership (EventRegistration − TeamMember ACCEPTED), not the `isFreeAgent` flag, to determine who is a free agent. The flag is now vestigial for listing purposes. The `optInToObservers` resolver still sets `isFreeAgent: false` for consistency but the primary removal mechanism is the TeamMember insert.
+
+### Versions
+- `optInToObservers` resolver + Profile "Join as Observer" button: **v1.2.279** / Forge v2.288.0
+- Version bump: **v1.2.280** / Forge v2.289.0
