@@ -6925,6 +6925,19 @@ A "Join as Observer" button was added to the **Profile page** ("Your Team" sideb
 
 `getFreeAgents` uses team membership (EventRegistration − TeamMember ACCEPTED), not the `isFreeAgent` flag, to determine who is a free agent. The flag is now vestigial for listing purposes. The `optInToObservers` resolver still sets `isFreeAgent: false` for consistency but the primary removal mechanism is the TeamMember insert.
 
+### Bug — "Something went wrong" on Join as Observer (v1.2.281–282)
+
+Kalina and Rob both hit "Something went wrong. Please try again." when clicking Join as Observer. Two distinct causes, fixed in sequence:
+
+1. **(v1.2.281)** `optInToObservers` called `getUserByAccountId`, which throws "User not found" if the caller has no `User` row. Fixed by looking the user up inline and auto-creating a `User` + `EventRegistration` (mirroring `getCurrentUser`) when absent. — As it turned out, both Kalina and Rob *did* already have User records, so this wasn't their actual blocker, but it's a correct hardening for genuine never-signed-up browsers.
+2. **(v1.2.282)** The real culprit: the `TeamMember` insert included `updatedAt`, a column that **does not exist** on `TeamMember`. Postgres rejected it (`PGRST204: Could not find the 'updatedAt' column`). The canonical inserts in `teams.js` never set `updatedAt` — removed it here too.
+
+**`TeamMember` real columns:** `id, teamId, userId, role` (default `MEMBER`), `status` (default `PENDING`), `createdAt` (default `CURRENT_TIMESTAMP`), `message`. No `updatedAt`. Don't add it to inserts.
+
+Verified against production Supabase: ran the exact insert in a `BEGIN…ROLLBACK` transaction — passes enum/FK/NOT-NULL constraints cleanly. Both users were left in a clean state (User row present, `isFreeAgent: true`, zero memberships) so a retry works.
+
 ### Versions
 - `optInToObservers` resolver + Profile "Join as Observer" button: **v1.2.279** / Forge v2.288.0
 - Version bump: **v1.2.280** / Forge v2.289.0
+- Fix: auto-create user on opt-in: **v1.2.281** / Forge v2.290.0
+- Fix: remove `updatedAt` from `TeamMember` insert: **v1.2.282** / Forge v2.291.0
