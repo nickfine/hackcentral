@@ -698,7 +698,6 @@ resolver.define("optInToObservers", async (req) => {
       userId: user.id,
       status: "ACCEPTED",
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     });
     if (memberError) throw memberError;
 
