@@ -628,16 +628,52 @@ resolver.define("optInToAutoAssign", async (req) => {
 
 /**
  * Opt the calling user into the Observers team, removing them from the free agents list.
+ * Creates a User record on the fly if one doesn't exist (users who browsed without signing up).
  */
 resolver.define("optInToObservers", async (req) => {
   const accountId = getCallerAccountId(req);
   const supabase = getSupabaseClient();
 
   try {
-    const [event, user] = await Promise.all([
-      getCurrentEvent(supabase, req),
-      getUserByAccountId(supabase, accountId, "id, isFreeAgent"),
-    ]);
+    const event = await getCurrentEvent(supabase, req);
+
+    // Find existing user, or create one for people who skipped sign-up
+    let user;
+    const { data: existingUserData } = await supabase
+      .from("User")
+      .select("id, isFreeAgent")
+      .eq("atlassian_account_id", accountId)
+      .limit(1);
+
+    if (existingUserData?.[0]) {
+      user = existingUserData[0];
+    } else {
+      const profile = await fetchUserProfile(accountId);
+      const newUser = {
+        id: makeId("user"),
+        email: profile?.email || null,
+        name: profile?.displayName || accountId,
+        atlassian_account_id: accountId,
+        role: "USER",
+        isFreeAgent: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const { data: createdData, error: createError } = await supabase
+        .from("User")
+        .insert(newUser)
+        .select("id, isFreeAgent");
+      if (createError) throw createError;
+      user = createdData?.[0] || newUser;
+
+      if (event && user.id) {
+        await supabase.from("EventRegistration").insert({
+          id: makeId("reg"),
+          eventId: event.id,
+          userId: user.id,
+        });
+      }
+    }
 
     // Check they're not already on a team
     const { data: existingMembership } = await supabase
