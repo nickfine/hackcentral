@@ -1580,6 +1580,42 @@ function App() {
     return responseResult;
   }, [devMode, appModeResolverPayload]);
 
+  // Handle a recipient accepting/declining a team invite (from TeamDetail)
+  const handleInviteResponse = useCallback(async (teamId, inviteId, accepted) => {
+    if (!inviteId) {
+      throw new Error('inviteId is required');
+    }
+
+    const { invoke } = await import('@forge/bridge');
+
+    let responseResult;
+    try {
+      responseResult = await invokeEventScopedResolver(invoke, 'respondToInvite', appModeResolverPayload, {
+        inviteId,
+        accepted,
+      });
+    } catch (err) {
+      console.error('Failed to respond to invite:', err);
+      const message = err instanceof Error ? err.message : 'Failed to respond to invite.';
+      throw new Error(message);
+    }
+
+    // Refresh the open team so membership reflects immediately on accept
+    try {
+      const result = await invokeEventScopedResolver(invoke, 'getTeam', appModeResolverPayload, { teamId });
+      if (result?.team) {
+        setSelectedTeam(result.team);
+        setTeams((prev) => prev.map((team) => (team.id === teamId ? result.team : team)));
+      }
+    } catch (refreshError) {
+      console.warn('Invite response succeeded but team refresh failed:', refreshError);
+    }
+
+    // Accepting changes free-agent status and team membership across the lists
+    await refreshTeamsAndFreeAgents();
+    return responseResult;
+  }, [appModeResolverPayload, refreshTeamsAndFreeAgents]);
+
   // Keep a ref to teams so loadTeamDetails (dev mode) doesn't need teams as a dep,
   // which would cause it to re-run every time any team is optimistically updated.
   const teamsRef = useRef(teams);
@@ -1898,6 +1934,7 @@ function App() {
             onDeleteTeam={handleDeleteTeam}
             onJoinRequest={handleJoinRequest}
             onRequestResponse={handleRequestResponse}
+            onInviteResponse={handleInviteResponse}
             onLeaveTeam={handleLeaveTeam}
             onGetTeamDeepLink={handleGetTeamDeepLink}
             eventPhase={effectiveEventPhase}

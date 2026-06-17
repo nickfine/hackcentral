@@ -16,6 +16,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { cn, DESIGN_SYSTEM_CARD } from '../lib/design-system';
+import { invokeEventScopedResolver } from '../lib/appModeResolverPayload';
 import { hasCompletedRegistration } from '../lib/registrationState';
 import { ThemeStateContext } from '../contexts/ThemeContext';
 import { EDITABLE_PHASES } from '../data/constants';
@@ -240,6 +241,7 @@ function TeamDetail({
   onDeleteTeam,
   onJoinRequest,
   onRequestResponse,
+  onInviteResponse,
   onLeaveTeam,
   onGetTeamDeepLink,
   eventPhase = 'signup',
@@ -278,6 +280,8 @@ function TeamDetail({
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [joinRequestStatus, setJoinRequestStatus] = useState(null);
   const [activeRequestId, setActiveRequestId] = useState(null);
+  const [pendingInvite, setPendingInvite] = useState(null);
+  const [isRespondingToInvite, setIsRespondingToInvite] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [memberToTransfer, setMemberToTransfer] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -354,6 +358,29 @@ function TeamDetail({
     setMoreInfoText(team?.moreInfo || '');
   }, [team?.id, team?.lookingFor, team?.maxMembers, team?.name, team?.description, team?.problem, team?.moreInfo]);
 
+  // Load the viewer's pending invite for this team so they can accept/decline it here
+  useEffect(() => {
+    if (isMember || !team?.id || !user?.id || !appModeResolverPayload) {
+      setPendingInvite(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'getUserInvites', appModeResolverPayload, {});
+        if (cancelled) return;
+        const match = (result?.invites || []).find(
+          (inv) => inv.teamId === team.id && inv.status === 'PENDING'
+        );
+        setPendingInvite(match || null);
+      } catch {
+        if (!cancelled) setPendingInvite(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isMember, team?.id, user?.id, appModeResolverPayload]);
+
   if (!team) {
     return (
       <div className="p-6">
@@ -426,6 +453,28 @@ function TeamDetail({
       setJoinRequestStatus({ type: 'error', message });
     } finally {
       setActiveRequestId(null);
+    }
+  };
+
+  const handleRespondToInvite = async (accepted) => {
+    if (!pendingInvite?.id || !onInviteResponse) return;
+
+    setIsRespondingToInvite(true);
+    setJoinRequestStatus(null);
+    try {
+      await onInviteResponse(team.id, pendingInvite.id, accepted);
+      setPendingInvite(null);
+      setJoinRequestStatus({
+        type: 'success',
+        message: accepted ? `You've joined ${team.name}.` : 'Invite declined.',
+      });
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Failed to respond to invite.';
+      setJoinRequestStatus({ type: 'error', message });
+    } finally {
+      setIsRespondingToInvite(false);
     }
   };
 
@@ -773,19 +822,45 @@ function TeamDetail({
                   </Button>
                 )}
 
-                {!isMember && hasPendingRequest && (
+                {!isMember && pendingInvite && (
+                  <>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg"
+                      onClick={() => handleRespondToInvite(true)}
+                      loading={isRespondingToInvite}
+                      disabled={isRespondingToInvite || isTeamFull}
+                      leftIcon={<Check className="w-4 h-4" />}
+                    >
+                      {isTeamFull ? 'Team Is Full' : 'Accept Invite'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg"
+                      onClick={() => handleRespondToInvite(false)}
+                      disabled={isRespondingToInvite}
+                      leftIcon={<XCircle className="w-4 h-4" />}
+                    >
+                      Decline
+                    </Button>
+                  </>
+                )}
+
+                {!isMember && !pendingInvite && hasPendingRequest && (
                   <Button variant="secondary" size="md" className="border border-gray-300 dark:border-gray-600 rounded-lg" disabled>
                     Request Pending Approval
                   </Button>
                 )}
 
-                {!isMember && !hasPendingRequest && isTeamFull && (
+                {!isMember && !pendingInvite && !hasPendingRequest && isTeamFull && (
                   <Button variant="secondary" size="md" className="border border-gray-300 dark:border-gray-600 rounded-lg" disabled>
                     Team Is Full
                   </Button>
                 )}
 
-                {!isMember && !hasPendingRequest && !isTeamFull && !hasCompletedSignup && (
+                {!isMember && !pendingInvite && !hasPendingRequest && !isTeamFull && !hasCompletedSignup && (
                   <Button
                     variant="primary"
                     size="md"
@@ -797,7 +872,7 @@ function TeamDetail({
                   </Button>
                 )}
 
-                {!isMember && !hasPendingRequest && !isTeamFull && hasCompletedSignup && (
+                {!isMember && !pendingInvite && !hasPendingRequest && !isTeamFull && hasCompletedSignup && (
                   <button
                     type="button"
                     className="team-detail-cta-join inline-flex items-center justify-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-medium px-2.5 py-2 transition-colors border-0"

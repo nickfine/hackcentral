@@ -173,7 +173,7 @@ resolver.define("sendInvite", async (req) => {
       type: "TEAM_INVITE",
       title: "Team Invite Received",
       message: `You've been invited to join ${teamData?.[0]?.name || "a team"}`,
-      actionUrl: "marketplace",
+      actionUrl: `team-detail?teamId=${teamId}`,
     });
 
     return { success: true };
