@@ -1,6 +1,35 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 15, 2026
+**Last Updated:** June 17, 2026
+
+---
+
+## 2026-06-17 — Auto-assignment made opt-in + team membership hardening (v1.2.287–1.2.288)
+
+### The original bug — silent auto-assignment
+
+`isFreeAgent` (User column, DB default `false`, NOT NULL) was set `true` at signup unless the observer box was ticked, and again whenever someone left or was removed from a team. The pre-hacking sweep (`sweepFreeAgentsIntoTeams`, fired on the `hacking` phase transition and by the 24h warmup trigger) placed **everyone** flagged `isFreeAgent` into auto-created teams. Net effect: people who merely viewed the page got auto-registered, flagged, and swept onto teams without ever asking — and participation numbers were inflated.
+
+A dedicated `autoAssignOptIn` column already existed in the schema (the "proper" opt-in field) but nothing ever set it true and nothing read it. Classic half-built feature.
+
+**Gotcha:** "free agent" means two different things in this codebase — the `getFreeAgents` UI list (registered AND teamless, display-only) vs the `isFreeAgent` boolean flag (drove the sweep). Don't conflate them.
+
+### The fix
+
+1. Cleared `isFreeAgent` on all flagged prod users first (reversible backup in `scripts/freeagent-flag-backup-2026-06-17.sql`) so nobody was queued.
+2. `optInToAutoAssign` now takes `{ optIn }` and persists `autoAssignOptIn`; ON also assigns immediately, OFF removes from the auto-created team only. `App.jsx` routes to the new team page on opt-in.
+3. `sweepFreeAgentsIntoTeams` and `checkAndSendFreeAgentReminders` now select on `autoAssignOptIn`, not `isFreeAgent`.
+4. New "Auto-assign me to a team" toggle on Profile, gated to teamless/opted-in users in signup/team_formation.
+
+### Folded-in safety hardening (team hopping)
+
+An audit of every membership path found pre-existing gaps that bite once people hop between teams:
+- **Double-membership** — accepting an invite or creating a team never removed you from your old team (only the same-team unique index existed). `respondToInvite` also skipped the capacity check that join requests had.
+- **No captain handover** when an owner left; **no empty-team cleanup** anywhere.
+
+Two new helpers in `helpers.js`: `detachUserFromTeam` (captain handover + empty-team delete, except Observers, editable phases only) and `ensureUserTeamless` (one-team-per-person). Wired into `createTeam`, `handleJoinRequest` accept, `respondToInvite` accept, and `leaveTeam`. `leaveTeam` now clears both flags.
+
+**Gotcha:** there is no "kick member" resolver — the only ways off a team are `leaveTeam` (self), `deleteTeam` (disband), and `markIdeaNotViable` (admin). `markIdeaNotViable` empties the team but intentionally keeps the `Team` row (`isPublic=false`) as the not-viable record — don't "clean up" that empty team.
 
 ---
 

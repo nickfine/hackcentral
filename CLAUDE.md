@@ -152,6 +152,14 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 - `TeamCard` default variant: hides description when `team.painPoints.length > 0`, shows "Pain Point" section instead
 - `TeamDetail`: hides "Problem to Solve" section when pain point is linked (via `linkedPainPointCount` state + `onPainPointsChange` callback from `PainPointsPanel`)
 
+### Team membership & auto-assignment
+- **Auto-assignment is opt-in only** via the `autoAssignOptIn` User column (DB default false). The legacy `isFreeAgent` flag is now just a "teamless" UI signal — it does **not** drive any automatic placement
+- `optInToAutoAssign` resolver (`auth.js`) takes `{ optIn }`: ON immediately assigns to a free-agent team + sets `autoAssignOptIn=true`; OFF removes from the auto-created team (self-chosen teams untouched) + clears it. Frontend (`App.jsx handleAutoAssignOptIn`) routes to the new team page on opt-in
+- `sweepFreeAgentsIntoTeams` + `checkAndSendFreeAgentReminders` (`helpers.js`) select on `autoAssignOptIn`, not `isFreeAgent`
+- **One team per person** — `ensureUserTeamless` (`helpers.js`) is called before every add: `createTeam`, `handleJoinRequest` accept, `respondToInvite` accept
+- **Captain handover + empty-team cleanup** — `detachUserFromTeam` (`helpers.js`) promotes the earliest-joined remaining member to OWNER when a captain leaves, and deletes a team that goes empty (except Observers, and only in editable phases). Used by `leaveTeam` and `ensureUserTeamless`
+- `leaveTeam` clears **both** `isFreeAgent=true` and `autoAssignOptIn=false` (deliberate leave = stop being auto-placed)
+
 ---
 
 ## Phase-Gated Behaviour
@@ -162,6 +170,7 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 | Delete Team (captain) | signup, team_formation |
 | Delete Team (admin) | not available via UI — admins delete registrations via UsersPanel, not teams |
 | Pain point add/remove (TeamDetail) | signup, team_formation |
+| Auto-assign toggle (Profile) | signup, team_formation (teamless or already opted-in users) |
 
 ---
 
