@@ -1280,6 +1280,7 @@ function Dashboard({
                     </button>
                     <button
                       type="button"
+                      title="Signal that you're a free agent looking for a team. Your status appears on your marketplace profile so team captains can find you and invite you to join. Change or clear it anytime."
                       onClick={() => {
                         setAvailabilityPreset(user?.availabilityStatus || '');
                         setAvailabilityBlurb(user?.lookingFor || '');
@@ -1295,6 +1296,11 @@ function Dashboard({
                     >
                       {isAvailable ? `✓ ${user.availabilityStatus}` : "I'm available — let teams know"}
                     </button>
+                    <p className="text-xs leading-snug" style={{ color: 'var(--stat-label-color)' }}>
+                      {isAvailable
+                        ? 'Team captains can see your status and invite you. Tap to update or clear it.'
+                        : "Show captains you're looking for a team so they can invite you to join."}
+                    </p>
                   </div>
                 ) : undefined,
                 testId: 'dashboard-kpi-community',
@@ -1518,6 +1524,9 @@ function Dashboard({
       {showAvailabilityModal && (
         <Modal isOpen={showAvailabilityModal} title="Signal your availability" onClose={() => setShowAvailabilityModal(false)}>
           <div className="space-y-4">
+            <p className="text-sm leading-snug" style={{ color: 'var(--stat-label-color)' }}>
+              Let team captains know you're a free agent looking for a team. Your status shows on your marketplace profile so captains can find you and invite you to join. Pick how you'd like to be approached:
+            </p>
             <div className="flex flex-wrap gap-2">
               {['Open to anything', 'Looking for a team', 'Invite me!', 'Just tell me where to show up', 'Find me a problem to solve'].map((option) => (
                 <button
