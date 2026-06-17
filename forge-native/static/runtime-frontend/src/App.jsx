@@ -1699,6 +1699,11 @@ function App() {
         // new (or removed) team membership shows immediately.
         setUser(prev => prev ? { ...prev, autoAssignOptIn: optIn } : prev);
         await refreshTeamsAndFreeAgents();
+
+        // On opt-in, drop the user straight onto their newly assigned team page.
+        if (optIn && result.team?.id) {
+          handleNavigate('team-detail', { teamId: result.team.id });
+        }
       }
 
       return result;
@@ -1706,7 +1711,7 @@ function App() {
       console.error('[App] Failed to update auto-assign opt-in:', err);
       return { success: false, error: err.message };
     }
-  }, [devMode, appModeResolverPayload, refreshTeamsAndFreeAgents]);
+  }, [devMode, appModeResolverPayload, refreshTeamsAndFreeAgents, handleNavigate]);
 
   // Track client-side UI events via resolver (best effort).
   const handleTrackEvent = useCallback(async (eventName, payload = {}) => {
