@@ -96,7 +96,7 @@ const TeamCard = forwardRef(({
 
         {/* Description */}
         {team.description && (
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 whitespace-pre-wrap">
             {team.description}
           </p>
         )}
@@ -204,7 +204,7 @@ const TeamCard = forwardRef(({
                   Problem to Solve
                 </span>
               </div>
-              <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-3">
+              <p className="text-sm font-normal text-gray-700 dark:text-gray-300 line-clamp-3 whitespace-pre-wrap">
                 {team.problem}
               </p>
             </div>
@@ -212,7 +212,7 @@ const TeamCard = forwardRef(({
 
           {/* Show description as secondary info */}
           {team.description && (
-            <p className="text-sm font-normal text-gray-600 dark:text-gray-400 line-clamp-3">
+            <p className="text-sm font-normal text-gray-600 dark:text-gray-400 line-clamp-3 whitespace-pre-wrap">
               {team.description}
             </p>
           )}

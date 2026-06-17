@@ -1037,7 +1037,7 @@ function TeamDetail({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm font-normal text-text-primary mt-1.5">
+                <p className="text-sm font-normal text-text-primary mt-1.5 whitespace-pre-wrap">
                   {team.description || (
                     <span className="text-text-secondary italic">{CONTENT_HELPERS.goal}</span>
                   )}
@@ -1116,7 +1116,7 @@ function TeamDetail({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm font-normal text-text-primary mt-1.5">
+                <p className="text-sm font-normal text-text-primary mt-1.5 whitespace-pre-wrap">
                   {team.problem || (
                     <span className="text-text-secondary italic">{CONTENT_HELPERS.problem}</span>
                   )}
@@ -1177,7 +1177,7 @@ function TeamDetail({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm font-normal text-text-primary mt-1.5">
+                <p className="text-sm font-normal text-text-primary mt-1.5 whitespace-pre-wrap">
                   {team.moreInfo || (
                     <span className="text-text-secondary italic">{CONTENT_HELPERS.moreInfo}</span>
                   )}
