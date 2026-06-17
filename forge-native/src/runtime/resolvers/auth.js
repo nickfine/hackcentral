@@ -5,6 +5,7 @@ import {
   ROLE_MAP,
   REVERSE_ROLE_MAP,
   HACKDAY_OWNER_TITLE,
+  OBSERVERS_TEAM_ID,
 } from "../lib/constants.js";
 import {
   getCallerAccountId,
@@ -596,33 +597,84 @@ resolver.define("adminDeleteRegistration", async (req) => {
 });
 
 /**
- * Immediately assign the calling user to a free agent team.
- * Creates a new team if all existing free agent teams are full (max 5).
- * Returns the team the user was assigned to.
+ * Toggle the calling user's auto-assignment opt-in.
+ *
+ * payload: { optIn: boolean } (defaults to true)
+ *
+ * optIn === true:  immediately assign the user to a free agent team (creating one
+ *                  if all existing free agent teams are full) and persist
+ *                  `autoAssignOptIn = true` so the preference survives reload and
+ *                  drives the pre-hacking sweep safety net.
+ * optIn === false: remove the user from their auto-assigned (auto-created) free
+ *                  agent team if they are on one — a self-chosen team is left
+ *                  untouched — and clear `autoAssignOptIn`.
  */
 resolver.define("optInToAutoAssign", async (req) => {
   const accountId = getCallerAccountId(req);
   const supabase = getSupabaseClient();
+  const optIn = req.payload?.optIn !== false; // default true
 
   try {
     const [event, user] = await Promise.all([
       getCurrentEvent(supabase, req),
-      getUserByAccountId(supabase, accountId, "id, isFreeAgent"),
+      getUserByAccountId(supabase, accountId, "id, isFreeAgent, autoAssignOptIn"),
     ]);
 
-    const { team, error } = await assignUserToFreeAgentTeam(supabase, user.id, event.id);
+    if (optIn) {
+      const { team, error } = await assignUserToFreeAgentTeam(supabase, user.id, event.id);
 
-    if (error === "already_on_team") {
-      throw new Error("You are already on a team");
-    }
-    if (error || !team) {
-      throw new Error(error || "Assignment failed");
+      // "already_on_team" is not fatal here — we still record the standing opt-in.
+      if (error && error !== "already_on_team") {
+        throw new Error(error || "Assignment failed");
+      }
+
+      await supabase
+        .from("User")
+        .update({ autoAssignOptIn: true, isFreeAgent: false, updatedAt: new Date().toISOString() })
+        .eq("id", user.id);
+
+      return { success: true, team: team || null };
     }
 
-    return { success: true, team };
+    // optIn === false: leave the auto-assigned team (if any) and clear the flag.
+    const { data: memberships } = await supabase
+      .from("TeamMember")
+      .select("teamId")
+      .eq("userId", user.id)
+      .eq("status", "ACCEPTED");
+
+    const teamIds = (memberships || []).map((m) => m.teamId);
+    let removedFromTeam = false;
+
+    if (teamIds.length > 0) {
+      const { data: autoTeams } = await supabase
+        .from("Team")
+        .select("id")
+        .in("id", teamIds)
+        .eq("isAutoCreated", true)
+        .neq("id", OBSERVERS_TEAM_ID);
+
+      const autoTeamIds = (autoTeams || []).map((t) => t.id);
+      if (autoTeamIds.length > 0) {
+        const { error: delError } = await supabase
+          .from("TeamMember")
+          .delete()
+          .eq("userId", user.id)
+          .in("teamId", autoTeamIds);
+        if (delError) throw delError;
+        removedFromTeam = true;
+      }
+    }
+
+    await supabase
+      .from("User")
+      .update({ autoAssignOptIn: false, updatedAt: new Date().toISOString() })
+      .eq("id", user.id);
+
+    return { success: true, removedFromTeam };
   } catch (error) {
     console.error("optInToAutoAssign error:", error);
-    throw new Error(`Failed to auto-assign: ${error.message}`);
+    throw new Error(`Failed to update auto-assign: ${error.message}`);
   }
 });
 

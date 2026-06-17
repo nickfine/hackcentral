@@ -11,6 +11,7 @@ import {
   checkAndSendFreeAgentReminders,
   makeId,
   logDebug,
+  ensureUserTeamless,
 } from "../lib/helpers.js";
 
 export function registerInviteResolvers(resolver) {
@@ -222,6 +223,19 @@ resolver.define("respondToInvite", async (req) => {
     }
 
     if (accepted) {
+      // Capacity guard — invite acceptance previously skipped this, so a user
+      // could accept their way into an already-full team.
+      const maxSize = invite.team?.maxSize || 5;
+      const { data: acceptedMembers, error: countError } = await supabase
+        .from("TeamMember")
+        .select("id")
+        .eq("teamId", invite.teamId)
+        .eq("status", "ACCEPTED");
+      if (countError) throw countError;
+      if ((acceptedMembers?.length || 0) >= maxSize) {
+        throw new Error("Team is already at maximum capacity");
+      }
+
       // Accept invite
       const { error: updateError } = await supabase
         .from("TeamInvite")
@@ -229,6 +243,13 @@ resolver.define("respondToInvite", async (req) => {
         .eq("id", inviteId);
 
       if (updateError) throw updateError;
+
+      // One team per person: leave any other team before joining this one.
+      const { error: teamlessError } = await ensureUserTeamless(supabase, user.id, {
+        exceptTeamId: invite.teamId,
+        deleteIfEmpty: true,
+      });
+      if (teamlessError) throw new Error(teamlessError);
 
       // Add user to team
       const { error: memberError } = await supabase.from("TeamMember").insert({

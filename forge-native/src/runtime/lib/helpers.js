@@ -863,13 +863,106 @@ export async function assignUserToFreeAgentTeam(supabase, userId, eventId) {
 }
 
 /**
- * Sweep all unassigned free agents into auto-created teams (24h pre-hacking batch).
+ * Remove a user from a single team, then keep the team consistent:
+ *   - if the team is now empty (and not the Observers team) and deleteIfEmpty is
+ *     set, delete the team and its dependent rows;
+ *   - otherwise, if no remaining member holds OWNER, promote the earliest-joined
+ *     remaining ACCEPTED member to captain (owner handover).
+ * The Observers team is a persistent singleton — never deleted or handed over.
+ */
+export async function detachUserFromTeam(supabase, userId, teamId, { deleteIfEmpty = false } = {}) {
+  if (!userId || !teamId) return { error: null };
+
+  try {
+    const { error: delError } = await supabase
+      .from("TeamMember")
+      .delete()
+      .eq("teamId", teamId)
+      .eq("userId", userId);
+    if (delError) throw delError;
+
+    if (teamId === OBSERVERS_TEAM_ID) return { error: null };
+
+    const { data: remaining, error: remainError } = await supabase
+      .from("TeamMember")
+      .select("id, userId, role")
+      .eq("teamId", teamId)
+      .eq("status", "ACCEPTED")
+      .order("createdAt", { ascending: true });
+    if (remainError) throw remainError;
+
+    const members = remaining || [];
+
+    if (members.length === 0) {
+      if (deleteIfEmpty) {
+        // Mirror deleteTeam's dependent-row cleanup; do not rely on DB cascade.
+        await supabase.from("TeamInvite").delete().eq("teamId", teamId);
+        await supabase.from("Project").delete().eq("teamId", teamId);
+        await supabase.from("TeamMember").delete().eq("teamId", teamId);
+        await supabase.from("Team").delete().eq("id", teamId);
+        await removeStoredTeamDetailFields(teamId);
+      }
+      return { error: null };
+    }
+
+    // Hand over the captaincy if the team is left without an owner.
+    const hasOwner = members.some((m) => m.role === "OWNER");
+    if (!hasOwner) {
+      const { error: promoteError } = await supabase
+        .from("TeamMember")
+        .update({ role: "OWNER" })
+        .eq("id", members[0].id);
+      if (promoteError) throw promoteError;
+    }
+
+    return { error: null };
+  } catch (err) {
+    console.error("detachUserFromTeam error:", err);
+    return { error: err.message };
+  }
+}
+
+/**
+ * Enforce one team per person: detach the user from every ACCEPTED team except
+ * `exceptTeamId`. Used before a user joins, is auto-assigned to, or creates a team.
+ */
+export async function ensureUserTeamless(supabase, userId, { exceptTeamId = null, deleteIfEmpty = false } = {}) {
+  if (!userId) return { removed: 0, error: null };
+
+  try {
+    const { data: memberships, error: lookupError } = await supabase
+      .from("TeamMember")
+      .select("teamId")
+      .eq("userId", userId)
+      .eq("status", "ACCEPTED");
+    if (lookupError) throw lookupError;
+
+    const teamIds = Array.from(
+      new Set((memberships || []).map((m) => m.teamId).filter((id) => id && id !== exceptTeamId))
+    );
+
+    for (const teamId of teamIds) {
+      const { error } = await detachUserFromTeam(supabase, userId, teamId, { deleteIfEmpty });
+      if (error) throw new Error(error);
+    }
+
+    return { removed: teamIds.length, error: null };
+  } catch (err) {
+    console.error("ensureUserTeamless error:", err);
+    return { removed: 0, error: err.message };
+  }
+}
+
+/**
+ * Sweep auto-assign opted-in users into auto-created teams (24h pre-hacking safety net).
+ * Only users who explicitly set `autoAssignOptIn` are placed — the legacy `isFreeAgent`
+ * flag no longer drives any automatic assignment.
  * Fills partially-full existing free agent teams first, then creates new ones.
  */
 export async function sweepFreeAgentsIntoTeams(supabase, eventId) {
   try {
     const { data: freeAgents, error: agentsError } = await supabase
-      .from("User").select("id").eq("isFreeAgent", true);
+      .from("User").select("id").eq("autoAssignOptIn", true);
     if (agentsError) throw agentsError;
     if (!freeAgents?.length) return { assigned: 0, error: null };
 
@@ -979,11 +1072,11 @@ export async function checkAndSendFreeAgentReminders(supabase, eventId, startDat
       return { notified: 0, error: null };
     }
 
-    // Find all free agents who haven't joined a team
+    // Find all auto-assign opted-in users who haven't joined a team
     const { data: freeAgents, error: agentsError } = await supabase
       .from("User")
-      .select("id, name, email, isFreeAgent")
-      .eq("isFreeAgent", true);
+      .select("id, name, email, autoAssignOptIn")
+      .eq("autoAssignOptIn", true);
 
     if (agentsError) throw agentsError;
 

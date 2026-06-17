@@ -46,11 +46,14 @@ function Profile({
   eventPhase,
   appModeResolverPayload = null,
   onObserverOptIn,
+  onAutoAssignOptIn,
   isLoading = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isJoiningObservers, setIsJoiningObservers] = useState(false);
   const [observerError, setObserverError] = useState(null);
+  const [isTogglingAutoAssign, setIsTogglingAutoAssign] = useState(false);
+  const [autoAssignError, setAutoAssignError] = useState(null);
   const [callsign, setCallsign] = useState(user?.callsign || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [vibe, setVibe] = useState(user?.vibe || '');
@@ -68,6 +71,12 @@ function Profile({
   }, [user?.id, teams]);
 
   const isCaptain = userTeam?.captainId === user?.id;
+
+  // Auto-assignment is only meaningful before hacking starts. Show the control
+  // when the user could opt in (teamless) or has already opted in (to allow opt-out).
+  const autoAssignEditable = eventPhase === 'signup' || eventPhase === 'team_formation';
+  const optedIntoAutoAssign = !!user?.autoAssignOptIn;
+  const showAutoAssign = autoAssignEditable && (!userTeam || optedIntoAutoAssign);
 
   // Show skeleton while loading
   if (isLoading) {
@@ -114,6 +123,22 @@ function Profile({
       setIsJoiningObservers(false);
     }
   }, [appModeResolverPayload, onObserverOptIn]);
+
+  const handleToggleAutoAssign = useCallback(async () => {
+    const nextOptIn = !user?.autoAssignOptIn;
+    setIsTogglingAutoAssign(true);
+    setAutoAssignError(null);
+    try {
+      const result = await onAutoAssignOptIn?.(nextOptIn);
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Request failed');
+      }
+    } catch (err) {
+      setAutoAssignError('Something went wrong. Please try again.');
+    } finally {
+      setIsTogglingAutoAssign(false);
+    }
+  }, [user?.autoAssignOptIn, onAutoAssignOptIn]);
 
   const toggleSkill = (skill) => {
     if (skills.includes(skill)) {
@@ -360,6 +385,40 @@ function Profile({
                   className="mt-2"
                 >
                   {isJoiningObservers ? 'Joining...' : 'Join as Observer'}
+                </Button>
+              </div>
+            )}
+
+            {showAutoAssign && (
+              <div className="mt-4 pt-4 border-t border-arena-border">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-text-primary flex items-center gap-1.5">
+                      <Zap className="w-4 h-4" />
+                      Auto-assign me to a team
+                    </p>
+                    <p className="text-xs text-text-muted mt-1">
+                      {optedIntoAutoAssign
+                        ? "You're opted in — we've put you on a team. Turn this off to leave it."
+                        : "We'll place you on a team straight away so you don't miss out."}
+                    </p>
+                  </div>
+                </div>
+                {autoAssignError && (
+                  <p className="text-xs mt-2" style={{ color: 'var(--status-error-text)' }}>{autoAssignError}</p>
+                )}
+                <Button
+                  variant={optedIntoAutoAssign ? 'ghost' : 'primary'}
+                  fullWidth
+                  disabled={isTogglingAutoAssign}
+                  onClick={handleToggleAutoAssign}
+                  className="mt-2"
+                >
+                  {isTogglingAutoAssign
+                    ? 'Saving...'
+                    : optedIntoAutoAssign
+                      ? 'Turn off auto-assign'
+                      : 'Auto-assign me to a team'}
                 </Button>
               </div>
             )}

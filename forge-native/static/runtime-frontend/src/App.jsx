@@ -1689,14 +1689,16 @@ function App() {
     }
 
     try {
-      // Resolver is 'optInToAutoAssign' (derives state server-side; no optIn payload needed).
-      // Previously called the non-existent 'updateAutoAssignOptIn' — was silently failing.
+      // 'optInToAutoAssign' persists the flag server-side and, when opting in,
+      // immediately assigns the user to a free agent team (or removes them on opt-out).
       const { invoke } = await import('@forge/bridge');
-      const result = await invokeEventScopedResolver(invoke, 'optInToAutoAssign', appModeResolverPayload);
+      const result = await invokeEventScopedResolver(invoke, 'optInToAutoAssign', appModeResolverPayload, { optIn });
 
       if (result?.success) {
-        // Update local user state optimistically
+        // Update local user state optimistically, then refresh teams so the
+        // new (or removed) team membership shows immediately.
         setUser(prev => prev ? { ...prev, autoAssignOptIn: optIn } : prev);
+        await refreshTeamsAndFreeAgents();
       }
 
       return result;
@@ -1704,7 +1706,7 @@ function App() {
       console.error('[App] Failed to update auto-assign opt-in:', err);
       return { success: false, error: err.message };
     }
-  }, [devMode, appModeResolverPayload]);
+  }, [devMode, appModeResolverPayload, refreshTeamsAndFreeAgents]);
 
   // Track client-side UI events via resolver (best effort).
   const handleTrackEvent = useCallback(async (eventName, payload = {}) => {
@@ -1851,6 +1853,7 @@ function App() {
             {...commonProps}
             updateUser={handleUpdateUser}
             onObserverOptIn={handleObserverOptIn}
+            onAutoAssignOptIn={handleAutoAssignOptIn}
           />
         );
 

@@ -22,6 +22,8 @@ import {
   makeId,
   chunkArray,
   logDebug,
+  detachUserFromTeam,
+  ensureUserTeamless,
 } from "../lib/helpers.js";
 import { transformTeam } from "../lib/transforms.js";
 import { convexQuery } from "../lib/convex.js";
@@ -647,6 +649,10 @@ resolver.define("createTeam", async (req) => {
       throw new Error("User not found");
     }
 
+    // One team per person: leave any existing team before founding a new one.
+    const { error: teamlessError } = await ensureUserTeamless(supabase, user.id, { deleteIfEmpty: true });
+    if (teamlessError) throw new Error(teamlessError);
+
     const teamId = makeId("team");
 
     // Get trackSide from user or default to HUMAN
@@ -872,6 +878,13 @@ resolver.define("handleJoinRequest", async (req) => {
         throw new Error("Team is already at maximum capacity");
       }
 
+      // One team per person: remove the joiner from any other team first.
+      const { error: teamlessError } = await ensureUserTeamless(supabase, request.userId, {
+        exceptTeamId: request.teamId,
+        deleteIfEmpty: true,
+      });
+      if (teamlessError) throw new Error(teamlessError);
+
       // Accept request
       const { error: updateError } = await supabase
         .from("TeamMember")
@@ -930,17 +943,24 @@ resolver.define("leaveTeam", async (req) => {
       throw new Error("User not found");
     }
 
-    // Remove from team
-    const { error: leaveError } = await supabase
-      .from("TeamMember")
-      .delete()
-      .eq("teamId", teamId)
-      .eq("userId", user.id);
+    // Determine whether empty-team cleanup is safe (only before hacking starts,
+    // so we never delete a team that may hold submitted/judged work).
+    const event = await getCurrentEvent(supabase, req);
+    const appPhase = event ? (PHASE_MAP[event.phase] || "signup") : "signup";
+    const editablePhase = appPhase === "signup" || appPhase === "team_formation";
 
-    if (leaveError) throw leaveError;
+    // Remove from team, handing over the captaincy or cleaning up an empty team.
+    const { error: leaveError } = await detachUserFromTeam(supabase, user.id, teamId, {
+      deleteIfEmpty: editablePhase,
+    });
+    if (leaveError) throw new Error(leaveError);
 
-    // Update user to be free agent
-    await supabase.from("User").update({ isFreeAgent: true }).eq("id", user.id);
+    // Mark the user teamless and clear any standing auto-assign opt-in — leaving
+    // is a deliberate step back, so they should not be silently re-swept at hacking.
+    await supabase
+      .from("User")
+      .update({ isFreeAgent: true, autoAssignOptIn: false, updatedAt: new Date().toISOString() })
+      .eq("id", user.id);
 
     return { success: true };
   } catch (error) {
