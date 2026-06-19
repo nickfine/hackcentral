@@ -871,6 +871,18 @@ function App() {
     await refreshTeamsAndFreeAgents();
   }, [refreshTeamsAndFreeAgents]);
 
+  const handleSignupObserverOptIn = useCallback(async () => {
+    if (devMode) return;
+    try {
+      const { invoke } = await import('@forge/bridge');
+      await invokeEventScopedResolver(invoke, 'optInToObservers', appModeResolverPayload, {});
+      await refreshTeamsAndFreeAgents();
+    } catch (err) {
+      console.error('Failed to join observers during signup:', err);
+      throw err;
+    }
+  }, [devMode, appModeResolverPayload, refreshTeamsAndFreeAgents]);
+
   const refreshRegistrations = useCallback(async () => {
     if (devMode) {
       return;
@@ -1927,6 +1939,7 @@ function App() {
             realEventPhase={eventPhase}
             onTrackEvent={handleTrackEvent}
             skillsConfig={eventSkillsConfig}
+            onObserverOptIn={handleSignupObserverOptIn}
           />
         );
 

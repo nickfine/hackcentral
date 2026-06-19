@@ -45,6 +45,7 @@ function Signup({
   realEventPhase = eventPhase,
   onTrackEvent,
   skillsConfig = null,
+  onObserverOptIn,
 }) {
   const skillsEnabled = skillsConfig === null || skillsConfig.enabled !== false;
   const activeSkillsList = (skillsEnabled && Array.isArray(skillsConfig?.list) && skillsConfig.list.length > 0)
@@ -233,6 +234,10 @@ function Signup({
         isFreeAgent: !isObserver,
       });
 
+      if (isObserver) {
+        await onObserverOptIn?.();
+      }
+
       completedRef.current = true;
       onTrackEvent?.('signup_completed', {
         component: 'signup_wizard',
@@ -262,7 +267,7 @@ function Signup({
       });
       setIsSubmitting(false);
     }
-  }, [name, callsign, selectedSkills, isObserver, updateUser, onNavigate, onTrackEvent, eventPhase, currentStep]);
+  }, [name, callsign, selectedSkills, isObserver, updateUser, onObserverOptIn, onNavigate, onTrackEvent, eventPhase, currentStep]);
 
   useEffect(() => {
     onTrackEvent?.('signup_flow_started', {
