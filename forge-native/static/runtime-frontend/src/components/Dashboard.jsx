@@ -1013,7 +1013,7 @@ function Dashboard({
   const isCreatedHackDay = useAdaptavistLogo;
   const heroTitleFallback = useMemo(
     () => {
-      if (eventPhase === 'hacking') return 'HACKING UNDERWAY';
+      if (eventPhase === 'hacking') return 'Hacking Underway';
       if (isCreatedHackDay && eventMeta?.name?.trim()) return eventMeta.name.trim();
       return missionContent.headline || 'Mission status';
     },
