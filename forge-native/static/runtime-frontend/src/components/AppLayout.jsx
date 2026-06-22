@@ -275,7 +275,7 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
     baseItems.push({ id: 'voting', label: "People's Vote", icon: Vote });
   }
 
-  if (permissions.canJudge && eventPhase === 'judging') {
+  if (permissions.canJudge && ['submission', 'judging'].includes(eventPhase)) {
     baseItems.push({ id: 'judge-scoring', label: 'Judging', icon: Gavel, highlight: 'amber' });
   }
 
