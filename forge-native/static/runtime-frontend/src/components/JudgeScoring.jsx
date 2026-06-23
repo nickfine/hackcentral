@@ -3,7 +3,7 @@
  * Judge interface for scoring submitted projects
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Gavel,
   CheckCircle2,
@@ -143,6 +143,10 @@ function JudgeScoring({
   const [scores, setScores] = useState({});
   const [comments, setComments] = useState('');
   const [saveStatus, setSaveStatus] = useState(null);
+  const [localScoredTeamIds, setLocalScoredTeamIds] = useState(() => new Set());
+  const [pendingTeamId, setPendingTeamId] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const saveStatusTimerRef = useRef(null);
 
   const isJudge = user?.role === 'judge' || user?.role === 'admin';
 
@@ -162,6 +166,7 @@ function JudgeScoring({
   const selectedTeamIsOwn = isOwnTeam(selectedTeam);
 
   const hasScored = (teamId) => {
+    if (localScoredTeamIds.has(teamId)) return true;
     const team = teams.find((t) => t.id === teamId);
     return team?.submission?.judgeScores?.some((s) => s.judgeId === user?.id);
   };
@@ -175,7 +180,18 @@ function JudgeScoring({
         ? Math.round((scored / submittedProjects.length) * 100)
         : 0,
     };
-  }, [submittedProjects, user]);
+  }, [submittedProjects, user, localScoredTeamIds]);
+
+  const doSelectTeam = (teamId) => {
+    setSelectedTeamId(teamId);
+    const initialScores = {};
+    judgeCriteria.forEach((c) => { initialScores[c.id] = 0; });
+    setScores(initialScores);
+    setComments('');
+    setSaveStatus(null);
+    setIsDirty(false);
+    setPendingTeamId(null);
+  };
 
   const handleSelectTeam = (teamId) => {
     const team = teams.find((item) => item.id === teamId);
@@ -183,33 +199,53 @@ function JudgeScoring({
       setSaveStatus('own-team');
       return;
     }
-    setSelectedTeamId(teamId);
-    const initialScores = {};
-    judgeCriteria.forEach((c) => { initialScores[c.id] = 0; });
-    setScores(initialScores);
-    setComments('');
-    setSaveStatus(null);
+    if (selectedTeamId && selectedTeamId !== teamId && isDirty) {
+      setPendingTeamId(teamId);
+      return;
+    }
+    doSelectTeam(teamId);
   };
 
   const handleScoreChange = (criterionId, value) => {
     setScores((prev) => ({ ...prev, [criterionId]: Math.min(10, Math.max(0, value)) }));
     setSaveStatus(null);
+    setIsDirty(true);
   };
 
-  const handleSave = async () => {
-    if (!selectedTeamId || !user) return;
-    if (selectedTeamIsOwn) { setSaveStatus('own-team'); return; }
+  const scheduleSaveStatusClear = () => {
+    if (saveStatusTimerRef.current) clearTimeout(saveStatusTimerRef.current);
+    saveStatusTimerRef.current = setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  const doSave = async (teamId) => {
+    if (!teamId || !user) return false;
     setSaveStatus('saving');
     try {
       const { invoke } = await import('@forge/bridge');
-      await invokeEventScopedResolver(invoke, 'submitScore', appModeResolverPayload, { teamId: selectedTeamId, scoreData: { ...scores, comments } });
+      await invokeEventScopedResolver(invoke, 'submitScore', appModeResolverPayload, { teamId, scoreData: { ...scores, comments } });
       setSaveStatus('saved');
+      setIsDirty(false);
+      setLocalScoredTeamIds((prev) => new Set([...prev, teamId]));
+      scheduleSaveStatusClear();
+      return true;
     } catch (err) {
       console.error('Failed to save scores:', err);
       setSaveStatus('error');
+      scheduleSaveStatusClear();
+      return false;
     }
-    setTimeout(() => setSaveStatus(null), 3000);
   };
+
+  const handleSave = () => doSave(selectedTeamId);
+
+  const handleSaveAndContinue = async () => {
+    const teamToGo = pendingTeamId;
+    const ok = await doSave(selectedTeamId);
+    if (ok) doSelectTeam(teamToGo);
+    else setPendingTeamId(null);
+  };
+
+  const handleDiscardAndContinue = () => doSelectTeam(pendingTeamId);
 
   const totalScore = useMemo(() => {
     return Object.values(scores).reduce((sum, score) => sum + score, 0);
@@ -323,6 +359,22 @@ function JudgeScoring({
 
         {/* Scoring panel */}
         <div className="lg:col-span-2">
+          {pendingTeamId && (
+            <Card padding="md" className="mb-4 border-2 border-amber-500/40 bg-amber-500/5">
+              <p className="font-bold text-text-primary mb-1">You have unsaved scores</p>
+              <p className="text-sm text-text-muted mb-4">
+                Save your scores for <span className="font-bold">{selectedTeam?.submission?.projectName || selectedTeam?.name}</span> before moving on, or discard them.
+              </p>
+              <HStack gap="3">
+                <Button onClick={handleSaveAndContinue} loading={saveStatus === 'saving'} leftIcon={<Save className="w-4 h-4" />}>
+                  Save &amp; Continue
+                </Button>
+                <Button variant="secondary" onClick={handleDiscardAndContinue}>
+                  Discard &amp; Continue
+                </Button>
+              </HStack>
+            </Card>
+          )}
           {selectedTeam ? (
             <Card padding="none" className="overflow-hidden">
               {/* Project header */}
@@ -387,7 +439,7 @@ function JudgeScoring({
                 <TextArea
                   label="Comments (Optional)"
                   value={comments}
-                  onChange={(e) => setComments(e.target.value)}
+                  onChange={(e) => { setComments(e.target.value); setIsDirty(true); }}
                   placeholder="Add any feedback or notes about this project..."
                   rows={3}
                   className="mb-6"
