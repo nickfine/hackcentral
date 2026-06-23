@@ -3,7 +3,7 @@
  * Judge interface for scoring submitted projects
  */
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Gavel,
   CheckCircle2,
@@ -147,6 +147,15 @@ function JudgeScoring({
   const [pendingTeamId, setPendingTeamId] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const saveStatusTimerRef = useRef(null);
+  const autoSaveTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isDirty || !selectedTeamId) return;
+    if (Object.values(scores).every((v) => v === 0) && !comments.trim()) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => doSave(selectedTeamId), 1500);
+    return () => clearTimeout(autoSaveTimerRef.current);
+  }, [scores, comments, selectedTeamId, isDirty]);
 
   const isJudge = user?.role === 'judge' || user?.role === 'admin';
 
@@ -199,10 +208,7 @@ function JudgeScoring({
       setSaveStatus('own-team');
       return;
     }
-    if (selectedTeamId && selectedTeamId !== teamId && isDirty) {
-      setPendingTeamId(teamId);
-      return;
-    }
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     doSelectTeam(teamId);
   };
 
@@ -238,14 +244,6 @@ function JudgeScoring({
 
   const handleSave = () => doSave(selectedTeamId);
 
-  const handleSaveAndContinue = async () => {
-    const teamToGo = pendingTeamId;
-    const ok = await doSave(selectedTeamId);
-    if (ok) doSelectTeam(teamToGo);
-    else setPendingTeamId(null);
-  };
-
-  const handleDiscardAndContinue = () => doSelectTeam(pendingTeamId);
 
   const totalScore = useMemo(() => {
     return Object.values(scores).reduce((sum, score) => sum + score, 0);
@@ -359,20 +357,9 @@ function JudgeScoring({
 
         {/* Scoring panel */}
         <div className="lg:col-span-2">
-          {pendingTeamId && (
-            <Card padding="md" className="mb-4 border-2 border-amber-500/40 bg-amber-500/5">
-              <p className="font-bold text-text-primary mb-1">You have unsaved scores</p>
-              <p className="text-sm text-text-muted mb-4">
-                Save your scores for <span className="font-bold">{selectedTeam?.submission?.projectName || selectedTeam?.name}</span> before moving on, or discard them.
-              </p>
-              <HStack gap="3">
-                <Button onClick={handleSaveAndContinue} loading={saveStatus === 'saving'} leftIcon={<Save className="w-4 h-4" />}>
-                  Save &amp; Continue
-                </Button>
-                <Button variant="secondary" onClick={handleDiscardAndContinue}>
-                  Discard &amp; Continue
-                </Button>
-              </HStack>
+          {pendingTeamId && saveStatus === 'saving' && (
+            <Card padding="md" className="mb-4 border border-brand/30 bg-brand/5">
+              <p className="text-sm font-bold text-text-primary">Auto-saving scores for <span className="text-brand">{selectedTeam?.submission?.projectName || selectedTeam?.name}</span>...</p>
             </Card>
           )}
           {selectedTeam ? (
