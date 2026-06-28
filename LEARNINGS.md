@@ -7019,3 +7019,62 @@ Verified against production Supabase: ran the exact insert in a `BEGIN…ROLLBAC
 - Version bump: **v1.2.280** / Forge v2.289.0
 - Fix: auto-create user on opt-in: **v1.2.281** / Forge v2.290.0
 - Fix: remove `updatedAt` from `TeamMember` insert: **v1.2.282** / Forge v2.291.0
+
+
+---
+
+## 2026-06-28 — HackDay archive, admin awards picker, HackDay Hacks link fix (v1.2.298–v1.2.300)
+
+### Archive feature (v1.2.298)
+
+New `forge-native/src/runtime/resolvers/archive.js` with four resolvers:
+
+- `getArchivedEvents` — lists all events where `phase = RESULTS`, enriched with team count, submission count, winner team name
+- `getArchivedEvent` — full event detail: teams (with members, submissions, pain points via Convex), plus the Convex event-scoped pain points list
+- `getEventAwards` — reads `Event.awards` JSONB for the current event (used by Results view on mount)
+- `setEventAwards` — admin-only write to `Event.awards`
+
+`awards` shape stored in Supabase: `{ winner: teamId, runnerUp: teamId, thirdPlace: teamId[], peoplesChoice: teamId }`.
+
+New frontend files:
+- `forge-native/static/runtime-frontend/src/components/Archive.jsx` — two-level view: event list → event detail with Winners strip + three tabs (Submissions, All Teams, Pain Points)
+- `AwardsPanel` component added inside `AdminPanel.jsx` as a new "Awards" tab — dropdowns for Grand Prize / Runner Up / People's Choice, chip-toggle multi-select for Third Place (supports ties). Calls `setEventAwards` via `onSaveAwards` callback from App.jsx.
+
+`App.jsx` changes:
+- Lazy imports `Archive`; adds `archive` view and nav item
+- Loads awards on mount via `getEventAwards`; passes `eventAwards` to both `Results` and `AdminPanel`
+- Results now resolves winners from live `awards` prop, not hardcoded IDs
+
+`AppLayout.jsx`: Archive nav item added after Results.
+
+### Bug — `title` column doesn't exist on Event table (v1.2.300)
+
+Both `getArchivedEvents` and `getArchivedEvent` originally selected `"id, name, title, year, startDate, endDate, awards"`. The `title` column does not exist on the `Event` table (confirmed via `information_schema.columns`). Supabase silently errors — the resolver catches it and returns `{ events: [] }` / `{ event: null }`, making the archive page appear empty.
+
+**Fix:** removed `title` from both selects; use `name` directly. The code already had `e.title || e.name` fallback — simplified to just `e.name`.
+
+**Lesson:** always verify column names against `information_schema.columns` before writing selects on tables you haven't queried before. The Event table has `name` (not `title`).
+
+### Forge iframe blocks `<a target="_blank">` — use `router.open()` (v1.2.299–v1.2.300)
+
+The "HackDay Hacks" page (`frontend` macro, view `hacks_exchange`) renders Repo / Demo video / Live demo links per submission at App.tsx line ~7771. These were `<a href target="_blank" rel="noopener noreferrer">` — which the Forge Custom UI iframe sandbox silently blocks. Links appeared but did nothing.
+
+**Fix:** replace with `<button type="button" onClick={() => void router.open(url)}>`. `router` is already imported from `./utils/forgeBridge` in App.tsx.
+
+Same pattern applies anywhere in Custom UI that needs to open an external URL. `router.open()` delegates to the Forge bridge, which opens in the parent Confluence window context where navigation is permitted.
+
+Files fixed: `forge-native/static/frontend/src/App.tsx` lines 7771–7778.
+
+Note: v1.2.299 applied the same fix to `Archive.jsx` (runtime-frontend) before the correct root cause was identified. Both fixes are correct.
+
+### HackDay'26 post-event state
+
+- Event ID `f910304b-d4a8-46da-95c5-134a55a244aa`, phase `RESULTS`
+- All HackDay'26 data (teams, submissions, pain points) is retained in Supabase/Convex — nothing deleted
+- 13 teams submitted; awards in `Event.awards` JSONB (set via Admin → Awards tab going forward)
+- Archive page shows HackDay'26 as the first (and currently only) completed event
+
+### Versions
+- Archive + admin awards picker: **v1.2.298** / Forge 2.304.0
+- Archive external links (router.open): **v1.2.299** / Forge 2.306.0
+- HackDay Hacks links fix + archive title column bug: **v1.2.300** / Forge 2.308.0

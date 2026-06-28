@@ -138,9 +138,24 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 - `frontend/src/main.tsx` imports Fraunces + Manrope
 - The `index.html` Google Fonts link is for standalone Vite dev only — ignore it for Forge
 
+### External links in Forge Custom UI
+- **`<a target="_blank">` is silently blocked** by the Forge iframe sandbox — links appear but do nothing
+- Always use `router.open(url)` from `@forge/bridge` (runtime-frontend) or `./utils/forgeBridge` (frontend macro) for any external URL
+
 ### Forge ↔ Convex auth
 - `ctx.auth.getUserIdentity()` returns null for Forge HTTP calls
 - Remove auth checks from any Convex mutation/query called via the Forge resolver layer
+
+### Awards (post-event)
+- `Event.awards` JSONB column: `{ winner: teamId, runnerUp: teamId, thirdPlace: teamId[], peoplesChoice: teamId }`
+- Admin sets awards via Admin Panel → Awards tab (no redeploy needed)
+- Results view loads awards on mount via `getEventAwards` resolver; passes them as prop to `Results.jsx`
+- Archive (`resolvers/archive.js`) resolves winner team names in one batched query for event list view
+
+### Archive
+- `resolvers/archive.js` — `getArchivedEvents` + `getArchivedEvent` (read-only, events where `phase = RESULTS`)
+- `runtime-frontend/src/components/Archive.jsx` — event list → event detail (Winners, Submissions, Teams, Pain Points tabs)
+- Event table has `name` column, **not** `title` — verified via `information_schema.columns`
 
 ### Pain points ↔ teams
 - Convex table `teamPainPoints` — many-to-many (schema), but enforced as one-to-one in UI
