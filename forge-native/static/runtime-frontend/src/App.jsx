@@ -1926,7 +1926,23 @@ function App() {
         );
 
       case 'results':
-        return <Results {...commonProps} awards={{}} />;
+        // HackDay'26 final awards. No admin awards UI exists yet, so winners are
+        // assigned here by team id. People's Choice = highest participant vote count;
+        // podium = judge-score ranking; 3rd is a tie shown for both teams.
+        return (
+          <Results
+            {...commonProps}
+            awards={{
+              winner: 'team-9b856dca-ea44-4d37-a19f-469432cc37f0', // Crisis comms on rails — 76.5%
+              runnerUp: 'team-b3d7bea8-9a33-41f0-9f16-e24e226cd483', // Koda — 71.0%
+              thirdPlace: [
+                'team-5a1ca7e9-766e-440f-81ed-4839a4a6e772', // SLAyer: Breach in Black — 70.0%
+                'team-c9f1c042-f11f-4228-873a-efefc806efe0', // AI enhanced reporting dashboards — 70.0%
+              ],
+              peoplesChoice: 'team-be842e60-b269-4047-a191-65b0a2397377', // Klipy — 38 votes
+            }}
+          />
+        );
 
       case 'signup':
         return (

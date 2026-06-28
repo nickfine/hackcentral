@@ -16,12 +16,20 @@ export function registerJudgingResolvers(resolver) {
  * Get judge scores
  */
 resolver.define("getScores", async (req) => {
-  const shouldFilterToCaller = !!req.payload?.accountId;
   const callerAccountId = getCallerAccountId(req);
 
   const supabase = getSupabaseClient();
   const event = await getCurrentEvent(supabase, req);
   if (!event) {
+    return { scores: [] };
+  }
+
+  // Authz: scores (and their private comments) are only visible to judges and
+  // admins. Judges may only ever see their *own* scores; admins see all.
+  const caller = await getUserByAccountId(supabase, callerAccountId, "id, role");
+  const isAdmin = caller?.role === "ADMIN";
+  const isJudge = caller?.role === "JUDGE";
+  if (!caller || (!isAdmin && !isJudge)) {
     return { scores: [] };
   }
 
@@ -31,19 +39,9 @@ resolver.define("getScores", async (req) => {
       judge:User!judgeId(id, name, image)
     `);
 
-    // If accountId provided (legacy), filter by the *caller*.
-    // Note: payload spoofing is rejected by getCallerAccountId.
-    if (shouldFilterToCaller) {
-      const { data: userData } = await supabase
-        .from("User")
-        .select("*")
-        .eq("atlassian_account_id", callerAccountId)
-        .limit(1);
-
-      const user = userData?.[0];
-      if (user) {
-        query = query.eq("judgeId", user.id);
-      }
+    // Judges are always scoped to their own scores, regardless of payload.
+    if (!isAdmin) {
+      query = query.eq("judgeId", caller.id);
     }
 
     const { data: scores, error } = await query;

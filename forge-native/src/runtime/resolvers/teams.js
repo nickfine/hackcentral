@@ -146,11 +146,78 @@ resolver.define("getTeams", async (req) => {
       painPoints: painPointsByTeamId[team.id] ?? [],
     }));
 
+    // Admin-only enrichment: attach real participant vote tallies and judge
+    // scores so the admin dashboard and results export reflect production data.
+    // Scoped to admins so judge scores/comments and live vote counts are never
+    // exposed to participants mid-event. Non-fatal if anything here fails.
+    let resultsByTeamId = new Map();
+    if (projectIds.length > 0) {
+      try {
+        const callerAccountId = getCallerAccountId(req);
+        const caller = await getUserByAccountId(supabase, callerAccountId, "id, role, email");
+        if (isAdminOrOwner(caller, callerAccountId)) {
+          const [voteRes, scoreRes] = await Promise.all([
+            supabase.from("Vote").select("projectId").in("projectId", projectIds),
+            supabase
+              .from("JudgeScore")
+              .select("projectId, judgeId, scores, comments, createdAt, judge:User!judgeId(name)")
+              .in("projectId", projectIds),
+          ]);
+
+          const votesByProject = {};
+          for (const vote of voteRes.data || []) {
+            votesByProject[vote.projectId] = (votesByProject[vote.projectId] || 0) + 1;
+          }
+
+          const scoresByProject = {};
+          for (const score of scoreRes.data || []) {
+            const total =
+              (score.scores?.innovation || 0) +
+              (score.scores?.execution || 0) +
+              (score.scores?.design || 0) +
+              (score.scores?.relevance || 0) +
+              (score.scores?.tagValues || 0);
+            if (!scoresByProject[score.projectId]) scoresByProject[score.projectId] = [];
+            scoresByProject[score.projectId].push({
+              judgeId: score.judgeId,
+              judgeName: score.judge?.name || "Judge",
+              scores: score.scores || {},
+              comments: score.comments || "",
+              scoredAt: score.createdAt,
+              totalScore: total,
+            });
+          }
+
+          for (const [teamId, project] of projectByTeam.entries()) {
+            resultsByTeamId.set(teamId, {
+              participantVotes: votesByProject[project.id] || 0,
+              judgeScores: scoresByProject[project.id] || [],
+            });
+          }
+        }
+      } catch {
+        // non-fatal — admin enrichment is supplementary
+      }
+    }
+
+    const finalTeams = enrichedTeams.map((team) => {
+      const extra = resultsByTeamId.get(team.id);
+      if (!extra || !team.submission) return team;
+      return {
+        ...team,
+        submission: {
+          ...team.submission,
+          participantVotes: extra.participantVotes,
+          judgeScores: extra.judgeScores,
+        },
+      };
+    });
+
     // problem/moreInfo are only needed in TeamDetail (getTeam), not the list view.
     // Skipping hydrateTeamDetailFields here removes N storage.get() calls from the hot path.
     logDebug(`[getTeams] event=${event.id} rows=${teamRows.length} ms=${Date.now() - startedAt}`);
 
-    return { teams: enrichedTeams };
+    return { teams: finalTeams };
   } catch (error) {
     console.error("getTeams error:", error);
     throw new Error(`Failed to get teams: ${error.message}`);

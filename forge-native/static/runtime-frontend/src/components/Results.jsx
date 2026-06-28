@@ -143,20 +143,27 @@ function Results({
   const isAdmin = user?.role === 'admin';
   const canViewResults = isResultsPhase || isAdmin;
 
-  // Get winner teams
+  // Get winner teams — only from explicitly-set awards. Never fabricate winners
+  // from arbitrary team order; admins assign awards manually.
   const winners = useMemo(() => {
-    // In a real app, this would come from the awards prop
-    // For now, we'll use mock data
-    const submittedTeams = teams.filter((t) => t.submission?.status === 'submitted');
-    
-    if (submittedTeams.length === 0) return null;
-
-    return {
-      winner: awards.winner ? teams.find((t) => t.id === awards.winner) : submittedTeams[0],
-      runnerUp: awards.runnerUp ? teams.find((t) => t.id === awards.runnerUp) : submittedTeams[1],
-      thirdPlace: awards.thirdPlace ? teams.find((t) => t.id === awards.thirdPlace) : submittedTeams[2],
-      peoplesChoice: awards.peoplesChoice ? teams.find((t) => t.id === awards.peoplesChoice) : submittedTeams[0],
+    const resolve = (id) => (id ? teams.find((t) => t.id === id) : null);
+    // thirdPlace accepts a single id or an array of ids (to show tied placements)
+    const resolveMany = (ids) => {
+      const arr = Array.isArray(ids) ? ids : ids ? [ids] : [];
+      return arr.map(resolve).filter(Boolean);
     };
+    const resolved = {
+      winner: resolve(awards.winner),
+      runnerUp: resolve(awards.runnerUp),
+      thirdPlace: resolveMany(awards.thirdPlace),
+      peoplesChoice: resolve(awards.peoplesChoice),
+    };
+    const hasAny =
+      Boolean(resolved.winner) ||
+      Boolean(resolved.runnerUp) ||
+      resolved.thirdPlace.length > 0 ||
+      Boolean(resolved.peoplesChoice);
+    return hasAny ? resolved : null;
   }, [teams, awards]);
 
   // Results not yet available
@@ -215,14 +222,14 @@ function Results({
                 <WinnerCard team={winners.runnerUp} award="runnerUp" rank={2} />
               </div>
             )}
-            {winners.thirdPlace && (
-              <div>
+            {winners.thirdPlace.map((team) => (
+              <div key={team.id}>
                 <p className="text-sm font-bold text-text-muted uppercase tracking-wide mb-4">
                   Third Place
                 </p>
-                <WinnerCard team={winners.thirdPlace} award="thirdPlace" rank={3} />
+                <WinnerCard team={team} award="thirdPlace" rank={3} />
               </div>
-            )}
+            ))}
           </div>
 
           {/* People's Choice */}
@@ -258,7 +265,7 @@ function Results({
             .map((team) => {
               const isWinner = winners?.winner?.id === team.id;
               const isRunnerUp = winners?.runnerUp?.id === team.id;
-              const isThird = winners?.thirdPlace?.id === team.id;
+              const isThird = winners?.thirdPlace?.some((t) => t.id === team.id);
               const isPeoplesChoice = winners?.peoplesChoice?.id === team.id;
 
               return (

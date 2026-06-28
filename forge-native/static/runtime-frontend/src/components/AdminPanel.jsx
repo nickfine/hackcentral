@@ -1042,7 +1042,9 @@ function AdminPanel({
         const aScore = parseFloat(a.avgJudgeScore) || 0;
         const bScore = parseFloat(b.avgJudgeScore) || 0;
         return bScore - aScore;
-      });
+      })
+      // Rank must reflect the SORTED order, not the pre-sort creation order.
+      .map((row, idx) => ({ ...row, rank: idx + 1 }));
 
     if (resultsData.length === 0) {
       alert('No submitted projects to export.');

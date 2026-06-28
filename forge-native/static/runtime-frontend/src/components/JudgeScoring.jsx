@@ -144,10 +144,36 @@ function JudgeScoring({
   const [comments, setComments] = useState('');
   const [saveStatus, setSaveStatus] = useState(null);
   const [localScoredTeamIds, setLocalScoredTeamIds] = useState(() => new Set());
+  const [savedScoresByTeamId, setSavedScoresByTeamId] = useState({});
   const [pendingTeamId, setPendingTeamId] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const saveStatusTimerRef = useRef(null);
   const autoSaveTimerRef = useRef(null);
+
+  const isJudge = user?.role === 'judge' || user?.role === 'admin';
+
+  // Hydrate previously-saved scores from the server so progress, ticks, and the
+  // scoring form survive a page reload (in-memory state alone does not).
+  useEffect(() => {
+    if (!isJudge || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const res = await invokeEventScopedResolver(invoke, 'getScores', appModeResolverPayload, {});
+        if (cancelled) return;
+        const map = {};
+        (res?.scores || []).forEach((s) => {
+          if (s.judgeId === user.id) map[s.teamId] = s;
+        });
+        setSavedScoresByTeamId(map);
+        setLocalScoredTeamIds(new Set(Object.keys(map)));
+      } catch (err) {
+        console.error('Failed to load existing scores:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, isJudge, appModeResolverPayload]);
 
   useEffect(() => {
     if (!isDirty || !selectedTeamId) return;
@@ -156,8 +182,6 @@ function JudgeScoring({
     autoSaveTimerRef.current = setTimeout(() => doSave(selectedTeamId), 1500);
     return () => clearTimeout(autoSaveTimerRef.current);
   }, [scores, comments, selectedTeamId, isDirty]);
-
-  const isJudge = user?.role === 'judge' || user?.role === 'admin';
 
   const submittedProjects = useMemo(() => {
     return teams.filter((team) => team.submission?.status === 'submitted');
@@ -193,10 +217,11 @@ function JudgeScoring({
 
   const doSelectTeam = (teamId) => {
     setSelectedTeamId(teamId);
+    const saved = savedScoresByTeamId[teamId];
     const initialScores = {};
-    judgeCriteria.forEach((c) => { initialScores[c.id] = 0; });
+    judgeCriteria.forEach((c) => { initialScores[c.id] = saved?.[c.id] || 0; });
     setScores(initialScores);
-    setComments('');
+    setComments(saved?.comments || '');
     setSaveStatus(null);
     setIsDirty(false);
     setPendingTeamId(null);
@@ -232,6 +257,10 @@ function JudgeScoring({
       setSaveStatus('saved');
       setIsDirty(false);
       setLocalScoredTeamIds((prev) => new Set([...prev, teamId]));
+      setSavedScoresByTeamId((prev) => ({
+        ...prev,
+        [teamId]: { ...scores, comments, judgeId: user.id, teamId },
+      }));
       scheduleSaveStatusClear();
       return true;
     } catch (err) {

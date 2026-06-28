@@ -110,8 +110,9 @@ resolver.define("exportResults", async (req) => {
           );
         }, 0);
 
+        // 5 criteria, each scored 0-10 → max 50 per judge.
         const judgeAvg = teamScores.length > 0
-          ? (judgeTotal / (teamScores.length * 5)) * 100
+          ? (judgeTotal / (teamScores.length * 50)) * 100
           : 0;
 
         return {

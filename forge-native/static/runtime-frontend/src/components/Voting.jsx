@@ -156,6 +156,9 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
         setVotes(myVoteTeamIds);
       } catch (err) {
         console.error('Failed to load votes:', err);
+        if (!cancelled) {
+          setVoteError('Could not load your current votes - please reload the page before voting.');
+        }
       }
     }
     loadVotes();
@@ -205,7 +208,13 @@ function Voting({ user, teams = [], onNavigate, eventPhase, maxVotesPerUser = 1,
       }
     } catch (err) {
       console.error('Vote failed:', err);
-      setVoteError('Vote failed - please try again.');
+      // Surface the real reason (e.g. "You cannot vote for your own team",
+      // "Maximum 1 votes allowed") instead of a generic failure. The resolver
+      // wraps reasons as "Failed to cast/remove vote: <reason>".
+      const reason = (err?.message || '')
+        .replace(/^Failed to (cast|remove) vote:\s*/i, '')
+        .trim();
+      setVoteError(reason && reason.length <= 120 ? reason : 'Vote failed - please try again.');
       setTimeout(() => setVoteError(''), 4000);
     } finally {
       setVotingTeamId(null);

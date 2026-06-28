@@ -1,6 +1,27 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 17, 2026
+**Last Updated:** June 26, 2026
+
+---
+
+## 2026-06-26 — HackDay'26 final results published (v1.2.297)
+
+### Results awards are hardcoded — no admin UI
+
+The Results page (`components/Results.jsx`) renders winners purely from the `awards` prop (`{ winner, runnerUp, thirdPlace, peoplesChoice }` = team IDs). There is **no backend awards store and no admin UI** to set them — `App.jsx` passed `awards={{}}` so the page always showed "No Winners Yet". To publish HackDay'26 results, winners are now hardcoded by team id in the `case 'results':` block of `App.jsx`. **Any placement change = edit those IDs + rebuild + redeploy.** A proper admin awards picker (persisted to DB) is the obvious follow-up.
+
+`thirdPlace` now accepts a single id **or an array** (extended this session to show a tied 3rd place). `winners.thirdPlace` is always an array internally; the "All Submissions" `isThird` check uses `.some()`.
+
+### Final awards (for the record)
+
+- Grand Prize — Crisis comms on rails (judge 76.5%)
+- Runner Up — Koda (71.0%)
+- Third Place (tie) — SLAyer: Breach in Black & AI enhanced reporting dashboards (70.0% each)
+- People's Choice — Klipy (38 votes)
+
+### Vote/score → team join path (gotcha)
+
+`Vote.projectId` and `JudgeScore.projectId` reference **`Project.id`, not `Team.id`**. To tally per team: `Vote → Project (Project.id = Vote.projectId) → Team (Team.id = Project.teamId)`. Joining `Vote.projectId` straight to `Team.id` silently returns nulls. People's Choice = `COUNT(Vote)` per project; judge % = `SUM(criteria) / (judges × 50) × 100` (5 criteria, 0–10 each).
 
 ---
 
@@ -6931,6 +6952,34 @@ The `liveDemoUrl` field (mapped to `demoUrl` in the `Project` DB column) was rel
 - Judging criteria update: **APP_VERSION 1.2.277** / Forge v2.285.0
 - "Presentation" submission field: **APP_VERSION 1.2.277** / Forge v2.286.0
 
+
+---
+
+## 2026-06-19 — Observer signup bug: optInToObservers never called from wizard (v1.2.289)
+
+### Problem
+
+Matthew Clark reported selecting "Observer" during signup but still showing as a free agent. The signup wizard (`Signup.jsx`) called `updateUser` with `isFreeAgent: false` when observer was selected, but never called `optInToObservers` — so no `TeamMember` row was ever created. The Profile page "Join as Observer" button worked correctly (it calls `optInToObservers` directly), but the signup path was silently incomplete. 59 users were in this state in production.
+
+### Fix (v1.2.289)
+
+Added `handleSignupObserverOptIn` to `App.jsx` — calls `optInToObservers` resolver then refreshes teams. Passed as `onObserverOptIn` prop to `<Signup>`. In `Signup.jsx` `handleSubmit`, after `updateUser` succeeds and `isObserver` is true, calls `onObserverOptIn?.()`. The 59 affected users were bulk-fixed via direct SQL insert into `TeamMember`.
+
+### Diagnostic query for stuck observers
+
+```sql
+SELECT u.id, u.name, u.email
+FROM "User" u
+WHERE u.skills IS NOT NULL        -- completed signup wizard
+  AND u."isFreeAgent" = false     -- selected Observer (participant signup sets isFreeAgent=true)
+  AND NOT EXISTS (
+    SELECT 1 FROM "TeamMember" tm
+    WHERE tm."userId" = u.id AND tm.status = 'ACCEPTED'
+  );
+```
+
+### Versions
+- Bug fix: **v1.2.289** / Forge 2.297.0
 
 ---
 
