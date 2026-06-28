@@ -95,22 +95,25 @@ function ArchiveTeamCard({ team, awardCategories = [] }) {
       {submitted && (team.submission?.repoUrl || team.submission?.liveDemoUrl || team.submission?.demoVideoUrl) && (
         <div className="flex flex-wrap gap-3 pt-1">
           {team.submission.repoUrl && (
-            <a href={team.submission.repoUrl} target="_blank" rel="noopener noreferrer"
+            <button type="button"
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(team.submission.repoUrl); }}
               className="inline-flex items-center gap-1 text-xs text-brand hover:underline">
               <ExternalLink className="w-3 h-3" /> Repo
-            </a>
+            </button>
           )}
           {team.submission.liveDemoUrl && (
-            <a href={team.submission.liveDemoUrl} target="_blank" rel="noopener noreferrer"
+            <button type="button"
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(team.submission.liveDemoUrl); }}
               className="inline-flex items-center gap-1 text-xs text-brand hover:underline">
               <ExternalLink className="w-3 h-3" /> Live Demo
-            </a>
+            </button>
           )}
           {team.submission.demoVideoUrl && (
-            <a href={team.submission.demoVideoUrl} target="_blank" rel="noopener noreferrer"
+            <button type="button"
+              onClick={async (e) => { e.preventDefault(); const { router } = await import('@forge/bridge'); router.open(team.submission.demoVideoUrl); }}
               className="inline-flex items-center gap-1 text-xs text-brand hover:underline">
               <ExternalLink className="w-3 h-3" /> Video
-            </a>
+            </button>
           )}
         </div>
       )}
