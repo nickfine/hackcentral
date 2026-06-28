@@ -33,6 +33,7 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const Results = lazy(() => import('./components/Results'));
 const Signup = lazy(() => import('./components/Signup'));
 const TeamDetail = lazy(() => import('./components/TeamDetail'));
+const Archive = lazy(() => import('./components/Archive'));
 
 const VIEW_TO_PATH = {
   dashboard: '/',
@@ -48,6 +49,7 @@ const VIEW_TO_PATH = {
   admin: '/admin',
   profile: '/profile',
   'judge-scoring': '/judge-scoring',
+  archive: '/archive',
 };
 
 const PATH_TO_VIEW = {
@@ -67,6 +69,7 @@ const PATH_TO_VIEW = {
   '/admin': 'admin',
   '/profile': 'profile',
   '/judge-scoring': 'judge-scoring',
+  '/archive': 'archive',
 };
 
 const normalizePath = (pathname = '/') => {
@@ -412,6 +415,7 @@ function App() {
   const [eventSkillsConfig, setEventSkillsConfig] = useState(null);
   const [isEventAdmin, setIsEventAdmin] = useState(false);
   const [appModeContextError, setAppModeContextError] = useState(null);
+  const [eventAwards, setEventAwards] = useState({});
   const [openAppViewError, setOpenAppViewError] = useState(null);
   const [openingAppView, setOpeningAppView] = useState(false);
   const [loadingStageMessage, setLoadingStageMessage] = useState('Loading HackDay...');
@@ -823,6 +827,26 @@ function App() {
     () => buildAppModeResolverPayload(appModePageId),
     [appModePageId]
   );
+
+  // Load awards for the current event whenever the page context is established
+  useEffect(() => {
+    if (!appModeResolverPayload || devMode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { invoke } = await import('@forge/bridge');
+        const result = await invokeEventScopedResolver(invoke, 'getEventAwards', appModeResolverPayload, {});
+        if (!cancelled) setEventAwards(result?.awards || {});
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [appModeResolverPayload, devMode]);
+
+  const handleSaveAwards = useCallback(async (awards) => {
+    const { invoke } = await import('@forge/bridge');
+    await invokeEventScopedResolver(invoke, 'setEventAwards', appModeResolverPayload, { awards });
+    setEventAwards(awards);
+  }, [appModeResolverPayload]);
 
   // Admin phase change — persists to DB via resolver, then updates local state
   // Must be defined after appModeResolverPayload to avoid TDZ
@@ -1922,25 +1946,20 @@ function App() {
             onRefreshUsers={refreshRegistrations}
             onUpdateUserRole={handleUpdateUserRole}
             skillsConfig={eventSkillsConfig}
+            eventAwards={eventAwards}
+            onSaveAwards={handleSaveAwards}
           />
         );
 
       case 'results':
-        // HackDay'26 final awards. No admin awards UI exists yet, so winners are
-        // assigned here by team id. People's Choice = highest participant vote count;
-        // podium = judge-score ranking; 3rd is a tie shown for both teams.
+        return <Results {...commonProps} awards={eventAwards} />;
+
+      case 'archive':
         return (
-          <Results
-            {...commonProps}
-            awards={{
-              winner: 'team-9b856dca-ea44-4d37-a19f-469432cc37f0', // Crisis comms on rails — 76.5%
-              runnerUp: 'team-b3d7bea8-9a33-41f0-9f16-e24e226cd483', // Koda — 71.0%
-              thirdPlace: [
-                'team-5a1ca7e9-766e-440f-81ed-4839a4a6e772', // SLAyer: Breach in Black — 70.0%
-                'team-c9f1c042-f11f-4228-873a-efefc806efe0', // AI enhanced reporting dashboards — 70.0%
-              ],
-              peoplesChoice: 'team-be842e60-b269-4047-a191-65b0a2397377', // Klipy — 38 votes
-            }}
+          <Archive
+            appModeResolverPayload={appModeResolverPayload}
+            onNavigate={handleNavigate}
+            user={effectiveUser}
           />
         );
 

@@ -15,6 +15,7 @@ import { registerTelemetryResolvers } from "./resolvers/telemetry.js";
 import { registerResultsResolvers } from "./resolvers/results.js";
 import { registerPainPointResolvers } from "./resolvers/painPoints.js";
 import { registerDevResolvers } from "./resolvers/dev.js";
+import { registerArchiveResolvers } from "./resolvers/archive.js";
 import { getSupabaseClient } from "./lib/supabase.js";
 import { sweepFreeAgentsIntoTeams } from "./lib/helpers.js";
 
@@ -36,6 +37,7 @@ registerTelemetryResolvers(resolver);
 registerResultsResolvers(resolver);
 registerPainPointResolvers(resolver);
 registerDevResolvers(resolver);
+registerArchiveResolvers(resolver);
 
 export const handler = resolver.getDefinitions();
 

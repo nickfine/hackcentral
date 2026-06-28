@@ -267,6 +267,142 @@ function getMetricSignalProgressVariant(signal) {
 // COMPONENT
 // ============================================================================
 
+// ============================================================================
+// AWARDS PANEL
+// ============================================================================
+
+const AWARD_CATEGORIES = [
+  { key: 'winner', label: 'Grand Prize' },
+  { key: 'runnerUp', label: 'Runner Up' },
+  { key: 'thirdPlace', label: 'Third Place' },
+  { key: 'peoplesChoice', label: "People's Choice" },
+];
+
+function AwardsPanel({ teams = [], eventAwards = {}, onSaveAwards }) {
+  const submittedTeams = teams.filter((t) => t.submission?.status === 'submitted');
+  const [draft, setDraft] = useState(() => ({
+    winner: eventAwards.winner || '',
+    runnerUp: eventAwards.runnerUp || '',
+    thirdPlace: Array.isArray(eventAwards.thirdPlace) ? eventAwards.thirdPlace : eventAwards.thirdPlace ? [eventAwards.thirdPlace] : [],
+    peoplesChoice: eventAwards.peoplesChoice || '',
+  }));
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  // Sync draft when eventAwards loads from server
+  useEffect(() => {
+    setDraft({
+      winner: eventAwards.winner || '',
+      runnerUp: eventAwards.runnerUp || '',
+      thirdPlace: Array.isArray(eventAwards.thirdPlace) ? eventAwards.thirdPlace : eventAwards.thirdPlace ? [eventAwards.thirdPlace] : [],
+      peoplesChoice: eventAwards.peoplesChoice || '',
+    });
+  }, [eventAwards.winner, eventAwards.runnerUp, eventAwards.thirdPlace, eventAwards.peoplesChoice]);
+
+  const handleSave = async () => {
+    if (!onSaveAwards) return;
+    setSaving(true);
+    setStatus(null);
+    try {
+      const awards = {
+        winner: draft.winner || null,
+        runnerUp: draft.runnerUp || null,
+        thirdPlace: draft.thirdPlace.filter(Boolean),
+        peoplesChoice: draft.peoplesChoice || null,
+      };
+      await onSaveAwards(awards);
+      setStatus({ type: 'success', message: 'Awards saved.' });
+    } catch (err) {
+      setStatus({ type: 'error', message: err?.message || 'Save failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const teamOptions = [
+    { value: '', label: '— None —' },
+    ...submittedTeams.map((t) => ({ value: t.id, label: t.name })),
+  ];
+
+  return (
+    <Card padding="md" className={ADMIN_CARD_CLASS}>
+      <Card.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Awards</Card.Title>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+        Set the winners for each award category. These appear on the Results page and in the archive.
+      </p>
+
+      {status && (
+        <Alert variant={status.type === 'error' ? 'error' : 'success'} className="mb-4">
+          {status.message}
+        </Alert>
+      )}
+
+      {submittedTeams.length === 0 ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">No submitted projects yet.</p>
+      ) : (
+        <VStack gap="4">
+          {AWARD_CATEGORIES.map(({ key, label }) => {
+            if (key === 'thirdPlace') {
+              return (
+                <div key={key}>
+                  <p className={cn(ADMIN_SECTION_LABEL, 'mb-2')}>{label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Select one or more (for ties)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {submittedTeams.map((t) => {
+                      const selected = draft.thirdPlace.includes(t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setDraft((prev) => ({
+                              ...prev,
+                              thirdPlace: selected
+                                ? prev.thirdPlace.filter((id) => id !== t.id)
+                                : [...prev.thirdPlace, t.id],
+                            }));
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
+                            selected
+                              ? 'bg-brand text-white border-brand'
+                              : 'bg-transparent text-text-secondary border-arena-border hover:border-brand/50'
+                          )}
+                        >
+                          {t.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={key}>
+                <p className={cn(ADMIN_SECTION_LABEL, 'mb-2')}>{label}</p>
+                <Select
+                  value={draft[key]}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                  options={teamOptions}
+                />
+              </div>
+            );
+          })}
+
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving || !onSaveAwards}
+            className={ADMIN_PRIMARY_BUTTON}
+          >
+            {saving ? 'Saving...' : 'Save Awards'}
+          </Button>
+        </VStack>
+      )}
+    </Card>
+  );
+}
+
 function AdminPanel({
   user,
   teams = [],
@@ -287,6 +423,8 @@ function AdminPanel({
   onBrandingSaved,
   appModeResolverPayload = null,
   skillsConfig: initialSkillsConfig = null,
+  eventAwards = {},
+  onSaveAwards,
 }) {
   const configMode = useConfigMode();
   const [activeSection, setActiveSection] = useState('overview');
@@ -1425,6 +1563,9 @@ function AdminPanel({
           <Tabs.Tab value="settings" icon={<Settings className="w-4 h-4" />}>
             Settings
           </Tabs.Tab>
+          <Tabs.Tab value="awards" icon={<Trophy className="w-4 h-4" />}>
+            Awards
+          </Tabs.Tab>
         </Tabs.List>
 
         {/* Team Summary Panel */}
@@ -2474,6 +2615,15 @@ function AdminPanel({
               </div>
             </VStack>
           </Card>
+        </Tabs.Panel>
+
+        {/* Awards Panel */}
+        <Tabs.Panel value="awards">
+          <AwardsPanel
+            teams={teams}
+            eventAwards={eventAwards}
+            onSaveAwards={onSaveAwards}
+          />
         </Tabs.Panel>
 
         <Tabs.Panel value="branding">

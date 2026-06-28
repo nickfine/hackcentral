@@ -25,6 +25,7 @@ import {
   Moon,
   Monitor,
   Save,
+  Archive,
 } from 'lucide-react';
 import NavItem from './shared/NavItem';
 import { NotificationCenter } from './shared';
@@ -284,6 +285,7 @@ const getNavItems = (userRole, eventPhase = 'hacking', user = null, isEventAdmin
   }
 
   baseItems.push({ id: 'results', label: 'Results', icon: Trophy });
+  baseItems.push({ id: 'archive', label: 'Past HackDays', icon: Archive });
 
   return baseItems;
 };
