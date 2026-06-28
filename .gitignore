@@ -36,4 +36,8 @@ forge-native/supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
-.claude/
+.claude/*
+
+# keep shared agents, ignore the rest of .claude
+.claude/*
+!.claude/agents/
