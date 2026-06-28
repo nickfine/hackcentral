@@ -26,7 +26,7 @@ resolver.define("getArchivedEvents", async (req) => {
   try {
     const { data: events, error } = await supabase
       .from("Event")
-      .select("id, name, title, year, startDate, endDate, awards")
+      .select("id, name, year, startDate, endDate, awards")
       .eq("phase", "RESULTS")
       .order("endDate", { ascending: false });
 
@@ -75,7 +75,7 @@ resolver.define("getArchivedEvents", async (req) => {
     return {
       events: events.map((e) => ({
         id: e.id,
-        name: e.title || e.name,
+        name: e.name,
         year: e.year,
         startDate: e.startDate,
         endDate: e.endDate,
@@ -105,7 +105,7 @@ resolver.define("getArchivedEvent", async (req) => {
   try {
     const { data: eventRow, error: eventError } = await supabase
       .from("Event")
-      .select("id, name, title, year, startDate, endDate, awards")
+      .select("id, name, year, startDate, endDate, awards")
       .eq("id", eventId)
       .eq("phase", "RESULTS")
       .limit(1)

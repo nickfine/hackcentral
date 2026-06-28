@@ -7768,13 +7768,13 @@ export function App(): JSX.Element {
                           {(hack.demoVideoUrl || hack.repoUrl || hack.liveDemoUrl) ? (
                             <div className="problem-meta-grid">
                               {hack.demoVideoUrl ? (
-                                <a href={hack.demoVideoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Demo video</a>
+                                <button type="button" onClick={() => void router.open(hack.demoVideoUrl!)} className="meta link-meta">Demo video</button>
                               ) : null}
                               {hack.repoUrl ? (
-                                <a href={hack.repoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Repo</a>
+                                <button type="button" onClick={() => void router.open(hack.repoUrl!)} className="meta link-meta">Repo</button>
                               ) : null}
                               {hack.liveDemoUrl ? (
-                                <a href={hack.liveDemoUrl} target="_blank" rel="noopener noreferrer" className="meta link-meta">Live demo</a>
+                                <button type="button" onClick={() => void router.open(hack.liveDemoUrl!)} className="meta link-meta">Live demo</button>
                               ) : null}
                             </div>
                           ) : null}
