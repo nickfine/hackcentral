@@ -39,6 +39,8 @@ import type {
   PainPoint,
   HdcHack,
   LearningItem,
+  LearningKind,
+  LearningVisibility,
   ProblemImportCandidate,
   ProblemFrequency,
   ProblemListItem,
@@ -66,7 +68,7 @@ import {
   writeSwitcherRegistryCache,
 } from './appSwitcher';
 import { invokeTyped } from './hooks/useForgeData';
-import { type View, type HackTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
+import { type View, type HackTab, type LibraryTab, type HackTypeFilter, type HackStatusFilter, type MentorFilter, type ModalView, type RecognitionTab } from './constants/nav';
 import { Layout } from './components/Layout';
 import { WelcomeHero, StatCards } from './components/Dashboard';
 import {
@@ -90,6 +92,7 @@ import {
   mapFeaturedHackToArtifact,
   parseRegistryTags,
   REGISTRY_ARTIFACT_TYPES,
+  REGISTRY_ARTIFACT_TYPE_LABELS,
   type RegistrySortBy,
 } from './utils/registry';
 import {
@@ -1140,6 +1143,68 @@ function downloadText(filename: string, payload: string): void {
   URL.revokeObjectURL(url);
 }
 
+// ── Tooling Library (Learnings & Memories) capture helpers ──
+const LEARNING_KIND_LABELS: Record<LearningKind, string> = {
+  operating_context: 'Operating context (CLAUDE.md / agents.md)',
+  memory: 'Memory file',
+  learning: 'Learning & notes',
+  skill: 'Skill file',
+  other: 'Other',
+};
+
+const LEARNING_KIND_ORDER: LearningKind[] = [
+  'operating_context',
+  'memory',
+  'learning',
+  'skill',
+  'other',
+];
+
+const ACCEPTED_LEARNING_EXTENSIONS = ['.md', '.markdown', '.txt'];
+const ACCEPTED_LEARNING_ACCEPT_ATTR = ACCEPTED_LEARNING_EXTENSIONS.join(',');
+const MAX_LEARNING_BYTES = 256 * 1024; // 256KB
+
+// Map a filename to a kind so a dropped file pre-selects its category.
+// CLAUDE.md / agents.md → operating context, memory.md → memory, etc.
+function detectKindFromFilename(filename: string): LearningKind {
+  const base = (filename.toLowerCase().trim().split('/').pop() ?? '').trim();
+  if (base === 'claude.md' || base === 'agents.md' || base.endsWith('.agent.md')) return 'operating_context';
+  if (base === 'memory.md' || base.startsWith('memory.')) return 'memory';
+  if (base === 'learnings.md' || base === 'learning.md') return 'learning';
+  if (base.endsWith('.skill.md') || base.endsWith('.skill') || base.includes('skill')) return 'skill';
+  return 'other';
+}
+
+function isAcceptedLearningFile(filename: string): boolean {
+  const name = filename.toLowerCase();
+  return ACCEPTED_LEARNING_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
+// FNV-1a 32-bit hex — synchronous, no crypto dependency. Used for dedupe later.
+function hashContent(content: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < content.length; i += 1) {
+    hash ^= content.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function byteLength(content: string): number {
+  return new Blob([content]).size;
+}
+
+// One pending item in the capture flow — a single file dropped/pasted, awaiting save.
+interface CaptureDraft {
+  key: string;
+  filename: string;
+  title: string;
+  content: string;
+  kind: LearningKind;
+  visibility: LearningVisibility;
+  tags: string;
+}
+
 type CsvValue = string | number | boolean | null | undefined;
 
 function toCsvCell(value: CsvValue): string {
@@ -1410,7 +1475,8 @@ export function App(): JSX.Element {
 
   const [globalSearch, setGlobalSearch] = useState('');
 
-  const [toolingTab, setToolingTab] = useState<'all' | 'skill' | 'prompt' | 'app' | 'learnings'>('all');
+  const [toolingTab, setToolingTab] = useState<'all' | 'skill' | 'prompt' | 'app'>('all');
+  const [libraryTab, setLibraryTab] = useState<LibraryTab>('artifacts');
   const [hackTab, setHackTab] = useState<HackTab>('completed');
   const [hackSearch, setHackSearch] = useState('');
   const [hackTypeFilter, setHackTypeFilter] = useState<HackTypeFilter>('all');
@@ -1453,7 +1519,14 @@ export function App(): JSX.Element {
   const [learningsTagsFilter, setLearningsTagsFilter] = useState('');
   const [learningsStatusFilter, setLearningsStatusFilter] = useState<'all' | 'useful' | 'not_rated'>('all');
   const [learningsAuthorFilter, setLearningsAuthorFilter] = useState('');
+  const [learningsKindFilter, setLearningsKindFilter] = useState<LearningKind | 'all'>('all');
   const [learningsAdvancedOpen, setLearningsAdvancedOpen] = useState(false);
+  // Capture flow (paste + drag-drop). Drafts await save in the capture modal.
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureDrafts, setCaptureDrafts] = useState<CaptureDraft[]>([]);
+  const [captureError, setCaptureError] = useState('');
+  const [captureSubmitting, setCaptureSubmitting] = useState(false);
+  const captureKeyRef = useRef(0);
 
   const [registrySearchInput, setRegistrySearchInput] = useState('');
   const [registryTagsInput, setRegistryTagsInput] = useState('');
@@ -3792,26 +3865,121 @@ export function App(): JSX.Element {
     }
   }, []);
 
-  const handleLearningFileDrop = useCallback(async (files: FileList | null) => {
+  const nextCaptureKey = useCallback(() => {
+    captureKeyRef.current += 1;
+    return `draft-${captureKeyRef.current}`;
+  }, []);
+
+  // Read dropped/browsed files, validate them, and open the capture modal with
+  // one pre-typed draft per accepted file. Verbatim — content is never rewritten.
+  const openCaptureWithFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const mdFiles = Array.from(files).filter((f) => f.name.endsWith('.md'));
-    if (mdFiles.length === 0) return;
-    const authorName = bootstrap?.viewer.accountId ?? 'Unknown';
-    for (const file of mdFiles) {
-      try {
-        const content = await file.text();
-        await invokeTyped('hdcUploadLearning', {
-          filename: file.name,
-          content,
-          tags: [],
-          authorName,
-        });
-      } catch (error) {
-        setLearningsError(error instanceof Error ? error.message : 'Failed to upload file.');
-      }
+    const all = Array.from(files);
+    const accepted = all.filter((f) => isAcceptedLearningFile(f.name));
+    let rejectedSize = 0;
+    let rejectedEmpty = 0;
+    const drafts: CaptureDraft[] = [];
+    for (const file of accepted) {
+      if (file.size > MAX_LEARNING_BYTES) { rejectedSize += 1; continue; }
+      const content = await file.text();
+      if (!content.trim()) { rejectedEmpty += 1; continue; }
+      drafts.push({
+        key: nextCaptureKey(),
+        filename: file.name,
+        title: '',
+        content,
+        kind: detectKindFromFilename(file.name),
+        visibility: 'org',
+        tags: '',
+      });
     }
-    void loadLearnings();
-  }, [bootstrap?.viewer.accountId, loadLearnings]);
+    const notes: string[] = [];
+    const rejectedType = all.length - accepted.length;
+    if (rejectedType > 0) notes.push(`${rejectedType} skipped — only .md, .markdown, .txt allowed`);
+    if (rejectedSize > 0) notes.push(`${rejectedSize} skipped — over 256KB`);
+    if (rejectedEmpty > 0) notes.push(`${rejectedEmpty} skipped — empty file`);
+    if (drafts.length === 0) {
+      setLearningsError(notes.join('. ') || 'No supported files found.');
+      return;
+    }
+    setLearningsError('');
+    setCaptureDrafts(drafts);
+    setCaptureError(notes.join('. '));
+    setCaptureOpen(true);
+  }, [nextCaptureKey]);
+
+  const blankCaptureDraft = useCallback((): CaptureDraft => ({
+    key: nextCaptureKey(),
+    filename: '',
+    title: '',
+    content: '',
+    kind: 'other',
+    visibility: 'org',
+    tags: '',
+  }), [nextCaptureKey]);
+
+  const openCapturePaste = useCallback(() => {
+    setCaptureDrafts([blankCaptureDraft()]);
+    setCaptureError('');
+    setCaptureOpen(true);
+  }, [blankCaptureDraft]);
+
+  const updateCaptureDraft = useCallback((key: string, patch: Partial<CaptureDraft>) => {
+    setCaptureDrafts((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+  }, []);
+
+  const removeCaptureDraft = useCallback((key: string) => {
+    setCaptureDrafts((prev) => prev.filter((d) => d.key !== key));
+  }, []);
+
+  const closeCapture = useCallback(() => {
+    setCaptureOpen(false);
+    setCaptureDrafts([]);
+    setCaptureError('');
+    setCaptureSubmitting(false);
+  }, []);
+
+  const handleCaptureSubmit = useCallback(async () => {
+    const authorName = bootstrap?.viewer.accountId ?? 'Unknown';
+    const ready = captureDrafts.filter((d) => d.filename.trim() && d.content.trim());
+    if (ready.length === 0) {
+      setCaptureError('Add a filename and some content before saving.');
+      return;
+    }
+    if (ready.some((d) => byteLength(d.content) > MAX_LEARNING_BYTES)) {
+      setCaptureError('One or more files are over the 256KB limit. Trim them before saving.');
+      return;
+    }
+    setCaptureSubmitting(true);
+    setCaptureError('');
+    try {
+      for (const d of ready) {
+        const tags = d.tags.split(',').map((t) => t.trim()).filter(Boolean);
+        await invokeTyped('hdcUploadLearning', {
+          filename: d.filename.trim(),
+          content: d.content,
+          title: d.title.trim() || undefined,
+          tags,
+          authorName,
+          kind: d.kind,
+          visibility: d.visibility,
+          byteSize: byteLength(d.content),
+          contentHash: hashContent(d.content),
+        });
+      }
+      closeCapture();
+      await loadLearnings();
+    } catch (error) {
+      setCaptureError(error instanceof Error ? error.message : 'Failed to save.');
+      setCaptureSubmitting(false);
+    }
+  }, [bootstrap?.viewer.accountId, captureDrafts, closeCapture, loadLearnings]);
+
+  // Verbatim download — exactly the bytes that were stored, original filename preserved.
+  const handleDownloadLearning = useCallback((item: LearningItem) => {
+    const fallback = `${(item.title || 'learning').replace(/[^a-z0-9._-]+/gi, '-') || 'learning'}.md`;
+    downloadText(item.filename?.trim() || fallback, item.content);
+  }, []);
 
   const handleLearningDelete = useCallback(async (learningId: string) => {
     try {
@@ -3897,11 +4065,11 @@ export function App(): JSX.Element {
   useEffect(() => {
     const shouldLoad =
       view === 'dashboard' ||
-      (view === 'hacks' && (toolingTab === 'learnings' || toolingTab === 'all'));
+      (view === 'library' && libraryTab === 'learnings');
     if (!shouldLoad) return;
     if (learningsLoaded) return;
     void loadLearnings();
-  }, [view, toolingTab, learningsLoaded, loadLearnings]);
+  }, [view, libraryTab, learningsLoaded, loadLearnings]);
 
   const handleProblemSearchKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -5697,9 +5865,9 @@ export function App(): JSX.Element {
                 eventsLoading={!bootstrap}
                 artifactsLoading={hpArtifactsLoading}
                 onProposeHackDay={() => setView('create_hackday')}
-                onViewArtifact={(id) => { setView('library'); }}
+                onViewArtifact={(id) => { setView('library'); setLibraryTab('artifacts'); }}
                 onViewAllEvents={() => setView('hackdays')}
-                onViewLearnings={() => { setView('hacks'); setToolingTab('learnings'); }}
+                onViewLearnings={() => { setView('library'); setLibraryTab('learnings'); }}
               />
               <MentoringSection
                 onNavigateGuide={() => setView('guide')}
@@ -5712,8 +5880,8 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Tooling</h1>
-                  <p className="subtitle">Skills, prompts, apps and learnings from the team.</p>
+                  <h1>Showcase</h1>
+                  <p className="subtitle">Hacks built at company hackdays — the curated highlights.</p>
                 </div>
               </section>
 
@@ -5724,7 +5892,6 @@ export function App(): JSX.Element {
                     { id: 'skill', label: 'Skills' },
                     { id: 'prompt', label: 'Prompts' },
                     { id: 'app', label: 'Apps' },
-                    { id: 'learnings', label: 'Learnings & Memories' },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -5735,9 +5902,7 @@ export function App(): JSX.Element {
                     type="button"
                     onClick={() => {
                       setToolingTab(tab.id);
-                      if (tab.id !== 'learnings') {
-                        setHackTypeFilter(tab.id === 'all' ? 'all' : tab.id);
-                      }
+                      setHackTypeFilter(tab.id === 'all' ? 'all' : tab.id);
                     }}
                   >
                     {tab.label}
@@ -5745,77 +5910,8 @@ export function App(): JSX.Element {
                 ))}
               </section>
 
-              {learningsError ? <p className="message message-error">{learningsError}</p> : null}
-
               {/* Filter row — every tab */}
-              {toolingTab === 'learnings' ? (
-                <section className="showcase-filter-shell">
-                  <fieldset className="showcase-filter-group">
-                    <legend>Filter</legend>
-                    <label className="showcase-filter-field">
-                      <span>Search</span>
-                      <input
-                        type="search"
-                        placeholder="Search title or description"
-                        value={learningsSearch}
-                        onChange={(e) => setLearningsSearch(e.target.value)}
-                      />
-                    </label>
-                    <label className="showcase-filter-field">
-                      <span>Status</span>
-                      <select
-                        value={learningsStatusFilter}
-                        onChange={(e) => setLearningsStatusFilter(e.target.value as typeof learningsStatusFilter)}
-                      >
-                        <option value="all">All statuses</option>
-                        <option value="useful">Marked as useful</option>
-                        <option value="not_rated">Not yet rated</option>
-                      </select>
-                    </label>
-                    <label className="showcase-filter-field">
-                      <span>Tags</span>
-                      <input
-                        type="text"
-                        placeholder="ai, automation, atlassian"
-                        value={learningsTagsFilter}
-                        onChange={(e) => setLearningsTagsFilter(e.target.value)}
-                      />
-                    </label>
-                    <label className="showcase-filter-check">
-                      <input
-                        type="checkbox"
-                        checked={learningsStatusFilter === 'useful'}
-                        onChange={(e) => setLearningsStatusFilter(e.target.checked ? 'useful' : 'all')}
-                      />
-                      Marked as useful only
-                    </label>
-                  </fieldset>
-                  <div className="showcase-filter-advanced">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      aria-expanded={learningsAdvancedOpen}
-                      onClick={() => setLearningsAdvancedOpen((open) => !open)}
-                    >
-                      {learningsAdvancedOpen ? 'Hide advanced filters' : 'Show advanced filters'}
-                    </button>
-                  </div>
-                  {learningsAdvancedOpen ? (
-                    <fieldset className="showcase-filter-group showcase-filter-group-advanced">
-                      <legend>Advanced</legend>
-                      <label className="showcase-filter-field">
-                        <span>Author</span>
-                        <input
-                          type="text"
-                          placeholder="Filter by author name"
-                          value={learningsAuthorFilter}
-                          onChange={(e) => setLearningsAuthorFilter(e.target.value)}
-                        />
-                      </label>
-                    </fieldset>
-                  ) : null}
-                </section>
-              ) : (HDC_SHOWCASE_UX_V1 ? (
+              {HDC_SHOWCASE_UX_V1 ? (
                 <section className="showcase-filter-shell">
                   <fieldset className="showcase-filter-group">
                     <legend>Filter</legend>
@@ -5928,252 +6024,13 @@ export function App(): JSX.Element {
                     Featured only
                   </label>
                 </section>
-              ))}
+              )}
 
-              {/* Dropzone below filter, visible on every tab */}
-              <div
-                className={`learnings-dropzone learnings-dropzone--compact${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
-                onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
-                onDragLeave={() => setLearningsDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setLearningsDragOver(false); void handleLearningFileDrop(e.dataTransfer.files); }}
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = '.md';
-                  input.multiple = true;
-                  input.onchange = (ev) => { void handleLearningFileDrop((ev.target as HTMLInputElement).files); };
-                  input.click();
-                }}
-              >
-                <p className="meta">Drop a .md file or <span style={{ textDecoration: 'underline' }}>browse</span> to add a learning or memory</p>
-              </div>
 
-              {toolingTab === 'learnings' ? (
-                <section className="learnings-section">
-                  {learningsLoading ? <p className="meta">Loading...</p> : null}
-
-                  {!learningsLoading && learningsLoaded && learningItems.length === 0 ? (
-                    <p className="empty-state">No learnings yet. Drop a .md file above to get started.</p>
-                  ) : null}
-
-                  {(() => {
-                    const q = learningsSearch.trim().toLowerCase();
-                    const tagTerms = learningsTagsFilter.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
-                    const authorQ = learningsAuthorFilter.trim().toLowerCase();
-                    const filteredLearnings = learningItems.filter((i) => {
-                      if (q && !(
-                        (i.title ?? i.filename).toLowerCase().includes(q) ||
-                        i.description?.toLowerCase().includes(q)
-                      )) return false;
-                      if (tagTerms.length > 0 && !tagTerms.some((term) => i.tags.some((t) => t.toLowerCase().includes(term)))) return false;
-                      if (learningsStatusFilter === 'useful' && !i.hasLiked) return false;
-                      if (learningsStatusFilter === 'not_rated' && i.hasLiked) return false;
-                      if (authorQ && !i.authorName.toLowerCase().includes(authorQ)) return false;
-                      return true;
-                    });
-                    if (filteredLearnings.length === 0 && learningItems.length > 0) {
-                      return <p className="empty-state">No learnings match your filters.</p>;
-                    }
-                    return filteredLearnings.length > 0 ? (
-                    <div className="learnings-layout learnings-layout--split">
-                      <div className="learnings-card-list">
-                        {filteredLearnings.map((item) => {
-                          const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
-                          const canEdit = isOwner || showcaseCanManage;
-                          const isSelected = selectedLearningId === item.id;
-                          return (
-                            <div
-                              key={item.id}
-                              className={`learnings-card card${isSelected ? ' learnings-card--selected' : ''}`}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedLearningId(null);
-                                } else {
-                                  setSelectedLearningId(item.id);
-                                  setLearningsRailEditingDescription(false);
-                                  setLearningsRailEditingTitle(false);
-                                  setLearningsRailEditingTags(false);
-                                  setLearningsRailDescriptionDraft(item.description ?? '');
-                                  setLearningsRailTitleDraft(item.title ?? '');
-                                  setLearningsRailTagsDraft(item.tags.join(', '));
-                                }
-                              }}
-                            >
-                              <p className="learnings-card-name">{getDisplayName(item)}</p>
-                              <p className="learnings-card-meta">
-                                {item.authorName} · {new Date(item.createdAt).toLocaleDateString()}
-                                {item.likeCount > 0 ? ` · ${item.likeCount} found useful` : ''}
-                              </p>
-                              {item.tags.length > 0 ? (
-                                <div className="learnings-card-tags">
-                                  {item.tags.map((tag) => (
-                                    <span key={tag} className="pill pill-outline">{tag}</span>
-                                  ))}
-                                </div>
-                              ) : null}
-                              {canEdit ? (
-                                <div className="learnings-card-actions" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    onClick={() => { setSelectedLearningId(null); void handleLearningDelete(item.id); }}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {(() => {
-                        const rail = selectedLearningId ? learningItems.find((i) => i.id === selectedLearningId) : null;
-                        if (!rail) return (
-                          <aside className="learnings-rail card learnings-rail--empty">
-                            <p className="meta">Select a learning to preview it.</p>
-                          </aside>
-                        );
-                        const isOwner = bootstrap?.viewer.accountId === rail.authorAccountId;
-                        const canEdit = isOwner || showcaseCanManage;
-                        return (
-                          <aside className="learnings-rail card">
-                            <div className="learnings-rail-head">
-                              {learningsRailEditingTitle ? (
-                                <div className="learnings-rail-title-edit" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="text"
-                                    className="learnings-rail-title-input"
-                                    value={learningsRailTitleDraft}
-                                    onChange={(e) => setLearningsRailTitleDraft(e.target.value)}
-                                    placeholder="Add a title…"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') void handleRailTitleSave(rail.id);
-                                      if (e.key === 'Escape') setLearningsRailEditingTitle(false);
-                                    }}
-                                  />
-                                  <div className="learnings-actions">
-                                    <button type="button" className="btn btn-primary btn-sm"
-                                      onClick={() => void handleRailTitleSave(rail.id)}>Save</button>
-                                    <button type="button" className="btn btn-ghost btn-sm"
-                                      onClick={() => setLearningsRailEditingTitle(false)}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="learnings-rail-title-row">
-                                  <span className="learnings-rail-title">{getDisplayName(rail)}</span>
-                                  {canEdit ? (
-                                    <button type="button" className="learnings-edit-pencil" aria-label="Edit title"
-                                      onClick={(e) => { e.stopPropagation(); setLearningsRailTitleDraft(rail.title ?? ''); setLearningsRailEditingTitle(true); }}>
-                                      ✏
-                                    </button>
-                                  ) : null}
-                                </div>
-                              )}
-                              <button type="button" className="btn btn-ghost btn-sm"
-                                onClick={() => setSelectedLearningId(null)} aria-label="Close">✕</button>
-                            </div>
-
-                            <p className="meta">
-                              {rail.authorName} · {new Date(rail.createdAt).toLocaleDateString()}
-                            </p>
-
-                            <div className="learnings-rail-section">
-                              <div className="learnings-rail-label-row">
-                                <p className="learnings-rail-label">Tags</p>
-                                {canEdit && !learningsRailEditingTags ? (
-                                  <button type="button" className="learnings-edit-pencil" aria-label="Edit tags"
-                                    onClick={() => { setLearningsRailTagsDraft(rail.tags.join(', ')); setLearningsRailEditingTags(true); }}>
-                                    ✏
-                                  </button>
-                                ) : null}
-                              </div>
-                              {learningsRailEditingTags ? (
-                                <>
-                                  <input type="text" className="learnings-rail-tags-input"
-                                    value={learningsRailTagsDraft}
-                                    onChange={(e) => setLearningsRailTagsDraft(e.target.value)}
-                                    placeholder="tag1, tag2" autoFocus
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') void handleRailTagsSave(rail.id);
-                                      if (e.key === 'Escape') setLearningsRailEditingTags(false);
-                                    }}
-                                  />
-                                  <div className="learnings-actions">
-                                    <button type="button" className="btn btn-primary btn-sm"
-                                      onClick={() => void handleRailTagsSave(rail.id)}>Save</button>
-                                    <button type="button" className="btn btn-ghost btn-sm"
-                                      onClick={() => setLearningsRailEditingTags(false)}>Cancel</button>
-                                  </div>
-                                </>
-                              ) : rail.tags.length > 0 ? (
-                                <div className="learnings-card-tags">
-                                  {rail.tags.map((tag) => <span key={tag} className="pill pill-outline">{tag}</span>)}
-                                </div>
-                              ) : (
-                                <span className="meta">{canEdit ? 'No tags — click ✏ to add' : 'No tags.'}</span>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              className={`learnings-useful-btn${rail.hasLiked ? ' learnings-useful-btn--active' : ''}`}
-                              onClick={() => void handleLikeLearning(rail.id)}
-                            >
-                              {rail.hasLiked ? '✓ Useful' : 'Mark as useful'}
-                              {rail.likeCount > 0 ? ` · ${rail.likeCount}` : ''}
-                            </button>
-
-                            <div className="learnings-rail-description">
-                              <div className="learnings-rail-label-row">
-                                <p className="learnings-rail-label">Description</p>
-                                {canEdit && !learningsRailEditingDescription ? (
-                                  <button type="button" className="learnings-edit-pencil" aria-label="Edit description"
-                                    onClick={() => { setLearningsRailDescriptionDraft(rail.description ?? ''); setLearningsRailEditingDescription(true); }}>
-                                    ✏
-                                  </button>
-                                ) : null}
-                              </div>
-                              {learningsRailEditingDescription ? (
-                                <>
-                                  <textarea className="learnings-rail-textarea"
-                                    value={learningsRailDescriptionDraft}
-                                    onChange={(e) => setLearningsRailDescriptionDraft(e.target.value)}
-                                    rows={4} placeholder="Add a description…" autoFocus
-                                  />
-                                  <div className="learnings-actions">
-                                    <button type="button" className="btn btn-primary btn-sm"
-                                      onClick={() => void handleRailDescriptionSave(rail.id)}>Save</button>
-                                    <button type="button" className="btn btn-ghost btn-sm"
-                                      onClick={() => setLearningsRailEditingDescription(false)}>Cancel</button>
-                                  </div>
-                                </>
-                              ) : (
-                                <p className="learnings-rail-desc-text">
-                                  {rail.description ?? <span className="meta">{canEdit ? 'No description — click ✏ to add' : 'No description.'}</span>}
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="learnings-rail-preview">
-                              <p className="learnings-rail-label">Preview</p>
-                              <pre className="learnings-rail-pre">{stripMarkdown(rail.content, 600)}</pre>
-                            </div>
-                          </aside>
-                        );
-                      })()}
-                    </div>
-                  ) : null;
-                  })()}
-                </section>
-              ) : null}
-
-              {toolingTab !== 'learnings' && hackTab === 'completed' && HACKS_SCOPE_NOTE ? (
+              {hackTab === 'completed' && HACKS_SCOPE_NOTE ? (
                 <section className="message message-preview">{HACKS_SCOPE_NOTE}</section>
               ) : null}
 
-              {toolingTab !== 'learnings' ? (
               <section className="tab-row" aria-label="Hacks tabs">
                 <button
                   type="button"
@@ -6190,16 +6047,15 @@ export function App(): JSX.Element {
                   In progress
                 </button>
               </section>
-              ) : null}
 
-              {toolingTab !== 'learnings' && showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
-              {toolingTab !== 'learnings' && HDC_SHOWCASE_PAGE_ONLY_V1 && showcaseLegacyCount > 0 ? (
+              {showcaseError ? <section className="message message-error">{showcaseError}</section> : null}
+              {HDC_SHOWCASE_PAGE_ONLY_V1 && showcaseLegacyCount > 0 ? (
                 <section className="message message-warning">
                   Page-only mode is enabled but {showcaseLegacyCount} legacy showcase hack(s) are still missing Confluence pages.
                 </section>
               ) : null}
 
-              {toolingTab !== 'learnings' ? (HDC_SHOWCASE_UX_V1 ? (
+              {HDC_SHOWCASE_UX_V1 ? (
                 <section className={`showcase-layout${showcaseShouldRenderLegacyDetail ? '' : ' showcase-layout-single'}`}>
                   <div className="showcase-main-column">
 
@@ -6564,49 +6420,8 @@ export function App(): JSX.Element {
                     </article>
                   ) : null}
                 </>
-              )) : null}
+              )}
 
-              {toolingTab === 'all' && learningItems.length > 0 ? (
-                <section className="learnings-section" style={{ marginTop: '2rem' }}>
-                  <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Learnings &amp; Memories</h2>
-                  <div className="learnings-card-list">
-                    {learningItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="learnings-card card"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          setToolingTab('learnings');
-                          setSelectedLearningId(item.id);
-                          setLearningsRailDescriptionDraft(item.description ?? '');
-                          setLearningsRailTitleDraft(item.title ?? '');
-                          setLearningsRailTagsDraft(item.tags.join(', '));
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setToolingTab('learnings');
-                            setSelectedLearningId(item.id);
-                          }
-                        }}
-                      >
-                        <p className="learnings-card-name">{item.title || item.filename}</p>
-                        <p className="learnings-card-meta">
-                          {item.authorName} · {new Date(item.createdAt).toLocaleDateString()}
-                          {item.likeCount > 0 ? ` · ${item.likeCount} found useful` : ''}
-                        </p>
-                        {item.tags.length > 0 ? (
-                          <div className="learnings-card-tags">
-                            {item.tags.map((tag) => (
-                              <span key={tag} className="pill pill-outline">{tag}</span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
             </section>
           ) : null}
 
@@ -7227,29 +7042,512 @@ export function App(): JSX.Element {
             <section className="page-stack">
               <section className="title-row">
                 <div>
-                  <h1>Discover AI Tooling</h1>
-                  <p className="subtitle">Reusable AI artifacts from shipped hacks: prompts, skills, templates, and learnings</p>
+                  <h1>Library</h1>
+                  <p className="subtitle">Reusable AI tooling and the team's AI working files.</p>
                 </div>
-                <div className="registry-title-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => setShowCreateArtifactForm((current) => !current)}
-                  >
-                    {showCreateArtifactForm ? 'Close Form' : '+ Submit Artifact'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      void loadRegistryArtifacts(registryAppliedFilters);
-                    }}
-                    disabled={registryLoading}
-                  >
-                    {registryLoading ? 'Refreshing...' : 'Refresh'}
-                  </button>
-                </div>
+                {libraryTab === 'artifacts' ? (
+                  <div className="registry-title-actions">
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setShowCreateArtifactForm((current) => !current)}
+                    >
+                      {showCreateArtifactForm ? 'Close Form' : '+ Submit Artifact'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        void loadRegistryArtifacts(registryAppliedFilters);
+                      }}
+                      disabled={registryLoading}
+                    >
+                      {registryLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                ) : null}
               </section>
+
+              <section className="tab-bar" role="tablist">
+                {(
+                  [
+                    { id: 'artifacts' as LibraryTab, label: 'Reusable artifacts' },
+                    { id: 'learnings' as LibraryTab, label: 'AI working files' },
+                  ]
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={libraryTab === tab.id}
+                    className={`tab-btn${libraryTab === tab.id ? ' tab-btn--active' : ''}`}
+                    type="button"
+                    onClick={() => setLibraryTab(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </section>
+
+              {libraryTab === 'learnings' ? (
+                <>
+                  {learningsError ? <p className="message message-error">{learningsError}</p> : null}
+
+                  <section className="showcase-filter-shell">
+                    <fieldset className="showcase-filter-group">
+                      <legend>Filter</legend>
+                      <label className="showcase-filter-field">
+                        <span>Search</span>
+                        <input
+                          type="search"
+                          placeholder="Search title or description"
+                          value={learningsSearch}
+                          onChange={(e) => setLearningsSearch(e.target.value)}
+                        />
+                      </label>
+                      <label className="showcase-filter-field">
+                        <span>Status</span>
+                        <select
+                          value={learningsStatusFilter}
+                          onChange={(e) => setLearningsStatusFilter(e.target.value as typeof learningsStatusFilter)}
+                        >
+                          <option value="all">All statuses</option>
+                          <option value="useful">Marked as useful</option>
+                          <option value="not_rated">Not yet rated</option>
+                        </select>
+                      </label>
+                      <label className="showcase-filter-field">
+                        <span>Kind</span>
+                        <select
+                          value={learningsKindFilter}
+                          onChange={(e) => setLearningsKindFilter(e.target.value as LearningKind | 'all')}
+                        >
+                          <option value="all">All kinds</option>
+                          {LEARNING_KIND_ORDER.map((k) => (
+                            <option key={k} value={k}>{LEARNING_KIND_LABELS[k]}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="showcase-filter-field">
+                        <span>Tags</span>
+                        <input
+                          type="text"
+                          placeholder="ai, automation, atlassian"
+                          value={learningsTagsFilter}
+                          onChange={(e) => setLearningsTagsFilter(e.target.value)}
+                        />
+                      </label>
+                      <label className="showcase-filter-check">
+                        <input
+                          type="checkbox"
+                          checked={learningsStatusFilter === 'useful'}
+                          onChange={(e) => setLearningsStatusFilter(e.target.checked ? 'useful' : 'all')}
+                        />
+                        Marked as useful only
+                      </label>
+                    </fieldset>
+                    <div className="showcase-filter-advanced">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        aria-expanded={learningsAdvancedOpen}
+                        onClick={() => setLearningsAdvancedOpen((open) => !open)}
+                      >
+                        {learningsAdvancedOpen ? 'Hide advanced filters' : 'Show advanced filters'}
+                      </button>
+                    </div>
+                    {learningsAdvancedOpen ? (
+                      <fieldset className="showcase-filter-group showcase-filter-group-advanced">
+                        <legend>Advanced</legend>
+                        <label className="showcase-filter-field">
+                          <span>Author</span>
+                          <input
+                            type="text"
+                            placeholder="Filter by author name"
+                            value={learningsAuthorFilter}
+                            onChange={(e) => setLearningsAuthorFilter(e.target.value)}
+                          />
+                        </label>
+                      </fieldset>
+                    ) : null}
+                  </section>
+
+                  <div
+                    className={`learnings-dropzone learnings-dropzone--compact${learningsDragOver ? ' learnings-dropzone--active' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setLearningsDragOver(true); }}
+                    onDragLeave={() => setLearningsDragOver(false)}
+                    onDrop={(e) => { e.preventDefault(); setLearningsDragOver(false); void openCaptureWithFiles(e.dataTransfer.files); }}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = ACCEPTED_LEARNING_ACCEPT_ATTR;
+                      input.multiple = true;
+                      input.onchange = (ev) => { void openCaptureWithFiles((ev.target as HTMLInputElement).files); };
+                      input.click();
+                    }}
+                  >
+                    <p className="meta">
+                      Drop .md, .markdown or .txt files (or <span style={{ textDecoration: 'underline' }}>browse</span>) to add
+                      CLAUDE.md, agents.md, memory.md, learnings or skills
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={(e) => { e.stopPropagation(); openCapturePaste(); }}
+                    >
+                      Or paste markdown
+                    </button>
+                  </div>
+
+                  {captureOpen ? (
+                    <div className="modal-backdrop" role="presentation" onClick={closeCapture}>
+                      <section className="card modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+                        <header className="modal-head">
+                          <h2>Add to the library</h2>
+                          <button type="button" className="icon-btn" onClick={closeCapture} aria-label="Close">×</button>
+                        </header>
+                        {captureError ? <p className="message message-error">{captureError}</p> : null}
+                        <div className="capture-draft-list">
+                          {captureDrafts.map((draft) => {
+                            const size = byteLength(draft.content);
+                            const overLimit = size > MAX_LEARNING_BYTES;
+                            return (
+                              <div key={draft.key} className="capture-draft card">
+                                <div className="modal-form">
+                                  <label className="modal-field">
+                                    <span>Filename</span>
+                                    <input
+                                      type="text"
+                                      value={draft.filename}
+                                      placeholder="CLAUDE.md"
+                                      onChange={(e) => updateCaptureDraft(draft.key, {
+                                        filename: e.target.value,
+                                        kind: detectKindFromFilename(e.target.value),
+                                      })}
+                                    />
+                                  </label>
+                                  <label className="modal-field">
+                                    <span>Title (optional)</span>
+                                    <input
+                                      type="text"
+                                      value={draft.title}
+                                      placeholder="Short, human title"
+                                      onChange={(e) => updateCaptureDraft(draft.key, { title: e.target.value })}
+                                    />
+                                  </label>
+                                  <label className="modal-field">
+                                    <span>Kind</span>
+                                    <select
+                                      value={draft.kind}
+                                      onChange={(e) => updateCaptureDraft(draft.key, { kind: e.target.value as LearningKind })}
+                                    >
+                                      {LEARNING_KIND_ORDER.map((k) => (
+                                        <option key={k} value={k}>{LEARNING_KIND_LABELS[k]}</option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="modal-field">
+                                    <span>Visibility</span>
+                                    <select
+                                      value={draft.visibility}
+                                      onChange={(e) => updateCaptureDraft(draft.key, { visibility: e.target.value as LearningVisibility })}
+                                    >
+                                      <option value="org">Organisation</option>
+                                      <option value="private">Private (only me)</option>
+                                      <option value="public">Public</option>
+                                    </select>
+                                  </label>
+                                  <label className="modal-field">
+                                    <span>Tags (comma separated)</span>
+                                    <input
+                                      type="text"
+                                      value={draft.tags}
+                                      placeholder="ai, automation"
+                                      onChange={(e) => updateCaptureDraft(draft.key, { tags: e.target.value })}
+                                    />
+                                  </label>
+                                  <label className="modal-field">
+                                    <span>Content</span>
+                                    <textarea
+                                      className="capture-content"
+                                      rows={10}
+                                      value={draft.content}
+                                      placeholder="Paste markdown here…"
+                                      onChange={(e) => updateCaptureDraft(draft.key, { content: e.target.value })}
+                                    />
+                                  </label>
+                                  <p className={`meta${overLimit ? ' message-error' : ''}`}>
+                                    {size.toLocaleString()} bytes{overLimit ? ' — over the 256KB limit' : ''}
+                                  </p>
+                                </div>
+                                {captureDrafts.length > 1 ? (
+                                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeCaptureDraft(draft.key)}>
+                                    Remove this file
+                                  </button>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="modal-actions">
+                          <button type="button" className="btn btn-ghost" onClick={() => setCaptureDrafts((prev) => [...prev, blankCaptureDraft()])}>
+                            Add another
+                          </button>
+                          <button type="button" className="btn btn-ghost" onClick={closeCapture}>Cancel</button>
+                          <button type="button" className="btn btn-primary" disabled={captureSubmitting} onClick={() => void handleCaptureSubmit()}>
+                            {captureSubmitting ? 'Saving…' : (captureDrafts.length > 1 ? `Save ${captureDrafts.length} items` : 'Save')}
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+                  ) : null}
+
+                  <section className="learnings-section">
+                    {learningsLoading ? <p className="meta">Loading...</p> : null}
+
+                    {!learningsLoading && learningsLoaded && learningItems.length === 0 ? (
+                      <p className="empty-state">Nothing here yet. Drop a .md, .markdown or .txt file above, or paste markdown, to get started.</p>
+                    ) : null}
+
+                    {(() => {
+                      const q = learningsSearch.trim().toLowerCase();
+                      const tagTerms = learningsTagsFilter.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+                      const authorQ = learningsAuthorFilter.trim().toLowerCase();
+                      const filteredLearnings = learningItems.filter((i) => {
+                        if (q && !(
+                          (i.title ?? i.filename).toLowerCase().includes(q) ||
+                          i.description?.toLowerCase().includes(q) ||
+                          i.content.toLowerCase().includes(q)
+                        )) return false;
+                        if (learningsKindFilter !== 'all' && (i.kind ?? 'other') !== learningsKindFilter) return false;
+                        if (tagTerms.length > 0 && !tagTerms.some((term) => i.tags.some((t) => t.toLowerCase().includes(term)))) return false;
+                        if (learningsStatusFilter === 'useful' && !i.hasLiked) return false;
+                        if (learningsStatusFilter === 'not_rated' && i.hasLiked) return false;
+                        if (authorQ && !i.authorName.toLowerCase().includes(authorQ)) return false;
+                        return true;
+                      });
+                      if (filteredLearnings.length === 0 && learningItems.length > 0) {
+                        return <p className="empty-state">No learnings match your filters.</p>;
+                      }
+                      return filteredLearnings.length > 0 ? (
+                      <div className="learnings-layout learnings-layout--split">
+                        <div className="learnings-card-list">
+                          {filteredLearnings.map((item) => {
+                            const isOwner = bootstrap?.viewer.accountId === item.authorAccountId;
+                            const canEdit = isOwner || showcaseCanManage;
+                            const isSelected = selectedLearningId === item.id;
+                            return (
+                              <div
+                                key={item.id}
+                                className={`learnings-card card${isSelected ? ' learnings-card--selected' : ''}`}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedLearningId(null);
+                                  } else {
+                                    setSelectedLearningId(item.id);
+                                    setLearningsRailEditingDescription(false);
+                                    setLearningsRailEditingTitle(false);
+                                    setLearningsRailEditingTags(false);
+                                    setLearningsRailDescriptionDraft(item.description ?? '');
+                                    setLearningsRailTitleDraft(item.title ?? '');
+                                    setLearningsRailTagsDraft(item.tags.join(', '));
+                                  }
+                                }}
+                              >
+                                <p className="learnings-card-name">{getDisplayName(item)}</p>
+                                <p className="learnings-card-meta">
+                                  {LEARNING_KIND_LABELS[item.kind ?? 'other']} · {item.authorName} · {new Date(item.createdAt).toLocaleDateString()}
+                                  {item.likeCount > 0 ? ` · ${item.likeCount} found useful` : ''}
+                                </p>
+                                {item.tags.length > 0 ? (
+                                  <div className="learnings-card-tags">
+                                    {item.tags.map((tag) => (
+                                      <span key={tag} className="pill pill-outline">{tag}</span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                {canEdit ? (
+                                  <div className="learnings-card-actions" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => { setSelectedLearningId(null); void handleLearningDelete(item.id); }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {(() => {
+                          const rail = selectedLearningId ? learningItems.find((i) => i.id === selectedLearningId) : null;
+                          if (!rail) return (
+                            <aside className="learnings-rail card learnings-rail--empty">
+                              <p className="meta">Select a learning to preview it.</p>
+                            </aside>
+                          );
+                          const isOwner = bootstrap?.viewer.accountId === rail.authorAccountId;
+                          const canEdit = isOwner || showcaseCanManage;
+                          return (
+                            <aside className="learnings-rail card">
+                              <div className="learnings-rail-head">
+                                {learningsRailEditingTitle ? (
+                                  <div className="learnings-rail-title-edit" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="text"
+                                      className="learnings-rail-title-input"
+                                      value={learningsRailTitleDraft}
+                                      onChange={(e) => setLearningsRailTitleDraft(e.target.value)}
+                                      placeholder="Add a title…"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') void handleRailTitleSave(rail.id);
+                                        if (e.key === 'Escape') setLearningsRailEditingTitle(false);
+                                      }}
+                                    />
+                                    <div className="learnings-actions">
+                                      <button type="button" className="btn btn-primary btn-sm"
+                                        onClick={() => void handleRailTitleSave(rail.id)}>Save</button>
+                                      <button type="button" className="btn btn-ghost btn-sm"
+                                        onClick={() => setLearningsRailEditingTitle(false)}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="learnings-rail-title-row">
+                                    <span className="learnings-rail-title">{getDisplayName(rail)}</span>
+                                    {canEdit ? (
+                                      <button type="button" className="learnings-edit-pencil" aria-label="Edit title"
+                                        onClick={(e) => { e.stopPropagation(); setLearningsRailTitleDraft(rail.title ?? ''); setLearningsRailEditingTitle(true); }}>
+                                        ✏
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                )}
+                                <button type="button" className="btn btn-ghost btn-sm"
+                                  onClick={() => setSelectedLearningId(null)} aria-label="Close">✕</button>
+                              </div>
+
+                              <p className="meta">
+                                {rail.authorName} · {new Date(rail.createdAt).toLocaleDateString()}
+                              </p>
+
+                              <div className="learnings-rail-section">
+                                <div className="learnings-card-tags">
+                                  <span className="pill">{LEARNING_KIND_LABELS[rail.kind ?? 'other']}</span>
+                                  {rail.filename ? <span className="pill pill-outline">{rail.filename}</span> : null}
+                                  {(rail.visibility ?? 'org') === 'private' ? <span className="pill pill-outline">Private</span> : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm"
+                                  onClick={() => handleDownloadLearning(rail)}
+                                >
+                                  Download
+                                </button>
+                              </div>
+
+                              <div className="learnings-rail-section">
+                                <div className="learnings-rail-label-row">
+                                  <p className="learnings-rail-label">Tags</p>
+                                  {canEdit && !learningsRailEditingTags ? (
+                                    <button type="button" className="learnings-edit-pencil" aria-label="Edit tags"
+                                      onClick={() => { setLearningsRailTagsDraft(rail.tags.join(', ')); setLearningsRailEditingTags(true); }}>
+                                      ✏
+                                    </button>
+                                  ) : null}
+                                </div>
+                                {learningsRailEditingTags ? (
+                                  <>
+                                    <input type="text" className="learnings-rail-tags-input"
+                                      value={learningsRailTagsDraft}
+                                      onChange={(e) => setLearningsRailTagsDraft(e.target.value)}
+                                      placeholder="tag1, tag2" autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') void handleRailTagsSave(rail.id);
+                                        if (e.key === 'Escape') setLearningsRailEditingTags(false);
+                                      }}
+                                    />
+                                    <div className="learnings-actions">
+                                      <button type="button" className="btn btn-primary btn-sm"
+                                        onClick={() => void handleRailTagsSave(rail.id)}>Save</button>
+                                      <button type="button" className="btn btn-ghost btn-sm"
+                                        onClick={() => setLearningsRailEditingTags(false)}>Cancel</button>
+                                    </div>
+                                  </>
+                                ) : rail.tags.length > 0 ? (
+                                  <div className="learnings-card-tags">
+                                    {rail.tags.map((tag) => <span key={tag} className="pill pill-outline">{tag}</span>)}
+                                  </div>
+                                ) : (
+                                  <span className="meta">{canEdit ? 'No tags — click ✏ to add' : 'No tags.'}</span>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                className={`learnings-useful-btn${rail.hasLiked ? ' learnings-useful-btn--active' : ''}`}
+                                onClick={() => void handleLikeLearning(rail.id)}
+                              >
+                                {rail.hasLiked ? '✓ Useful' : 'Mark as useful'}
+                                {rail.likeCount > 0 ? ` · ${rail.likeCount}` : ''}
+                              </button>
+
+                              <div className="learnings-rail-description">
+                                <div className="learnings-rail-label-row">
+                                  <p className="learnings-rail-label">Description</p>
+                                  {canEdit && !learningsRailEditingDescription ? (
+                                    <button type="button" className="learnings-edit-pencil" aria-label="Edit description"
+                                      onClick={() => { setLearningsRailDescriptionDraft(rail.description ?? ''); setLearningsRailEditingDescription(true); }}>
+                                      ✏
+                                    </button>
+                                  ) : null}
+                                </div>
+                                {learningsRailEditingDescription ? (
+                                  <>
+                                    <textarea className="learnings-rail-textarea"
+                                      value={learningsRailDescriptionDraft}
+                                      onChange={(e) => setLearningsRailDescriptionDraft(e.target.value)}
+                                      rows={4} placeholder="Add a description…" autoFocus
+                                    />
+                                    <div className="learnings-actions">
+                                      <button type="button" className="btn btn-primary btn-sm"
+                                        onClick={() => void handleRailDescriptionSave(rail.id)}>Save</button>
+                                      <button type="button" className="btn btn-ghost btn-sm"
+                                        onClick={() => setLearningsRailEditingDescription(false)}>Cancel</button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <p className="learnings-rail-desc-text">
+                                    {rail.description ?? <span className="meta">{canEdit ? 'No description — click ✏ to add' : 'No description.'}</span>}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="learnings-rail-preview">
+                                <p className="learnings-rail-label">Preview</p>
+                                <pre className="learnings-rail-pre">{stripMarkdown(rail.content, 600)}</pre>
+                              </div>
+
+                              <div className="learnings-rail-section">
+                                <p className="learnings-rail-label">Analysis</p>
+                                <p className="meta">
+                                  AI analysis — summary, suggested tags and detected tools — is coming soon.
+                                </p>
+                              </div>
+                            </aside>
+                          );
+                        })()}
+                      </div>
+                    ) : null;
+                    })()}
+                  </section>
+                </>
+              ) : null}
+
+              {libraryTab === 'artifacts' ? (
+                <>
 
               <section className="filter-row">
                 <input
@@ -7266,7 +7564,7 @@ export function App(): JSX.Element {
                   <option value="all">All Types</option>
                   {REGISTRY_ARTIFACT_TYPES.map((type) => (
                     <option key={type} value={type}>
-                      {formatLabel(type)}
+                      {REGISTRY_ARTIFACT_TYPE_LABELS[type]}
                     </option>
                   ))}
                 </select>
@@ -7339,7 +7637,7 @@ export function App(): JSX.Element {
                         >
                           {REGISTRY_ARTIFACT_TYPES.map((type) => (
                             <option key={type} value={type}>
-                              {formatLabel(type)}
+                              {REGISTRY_ARTIFACT_TYPE_LABELS[type]}
                             </option>
                           ))}
                         </select>
@@ -7439,7 +7737,7 @@ export function App(): JSX.Element {
                             <h3>{item.title}</h3>
                           </div>
                           <span className={`pill pill-${item.artifactType}`}>
-                            {formatLabel(item.artifactType)}
+                            {REGISTRY_ARTIFACT_TYPE_LABELS[item.artifactType]}
                           </span>
                         </div>
 
@@ -7537,6 +7835,8 @@ export function App(): JSX.Element {
                   />
                 ) : null
               )}
+                </>
+              ) : null}
             </section>
           ) : null}
 

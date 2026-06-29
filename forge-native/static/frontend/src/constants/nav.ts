@@ -17,6 +17,7 @@ export type View =
   | 'guide'
   | 'notifications';
 export type HackTab = 'completed' | 'in_progress';
+export type LibraryTab = 'artifacts' | 'learnings';
 export type HackTypeFilter = 'all' | 'prompt' | 'skill' | 'app';
 export type HackStatusFilter = 'all' | 'draft' | 'in_progress' | 'verified' | 'deprecated';
 export type MentorFilter = 'hackers' | 'available';
@@ -32,7 +33,8 @@ export interface NavItem {
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Home', icon: '🏠' },
-  { id: 'hacks', label: 'Tooling', icon: '⚡' },
+  { id: 'hacks', label: 'Showcase', icon: '⚡' },
+  { id: 'library', label: 'Library', icon: '📚' },
   { id: 'hacks_exchange', label: 'HackDay Hacks', icon: '🛠️' },
   { id: 'problem_exchange', label: 'Pains', icon: '🧩' },
   { id: 'hackdays', label: 'HackDays', icon: '🚀' },

@@ -1489,6 +1489,17 @@ export interface ApplyEventBackupRestoreInput {
 
 // ── Learnings & Memories ──────────────────────────────────────────────────────
 
+// Tooling Library taxonomy. 'operating_context' = CLAUDE.md / agents.md,
+// 'memory' = memory.md, 'learning' = learnings.md / notes, 'skill' = skill files.
+export type LearningKind =
+  | 'operating_context'
+  | 'memory'
+  | 'learning'
+  | 'skill'
+  | 'other';
+
+export type LearningVisibility = 'private' | 'org' | 'public';
+
 export interface LearningItem {
   id: string;
   filename: string;
@@ -1501,6 +1512,9 @@ export interface LearningItem {
   createdAt: number;
   likeCount: number;
   hasLiked: boolean;
+  kind?: LearningKind;
+  visibility?: LearningVisibility;
+  byteSize?: number;
 }
 
 export interface ListLearningsResult {
@@ -1514,6 +1528,10 @@ export interface UploadLearningInput {
   description?: string;
   tags: string[];
   authorName: string;
+  kind?: LearningKind;
+  visibility?: LearningVisibility;
+  byteSize?: number;
+  contentHash?: string;
 }
 
 export interface UploadLearningResult {
@@ -1525,6 +1543,8 @@ export interface UpdateLearningInput {
   title?: string;
   description?: string;
   tags: string[];
+  kind?: LearningKind;
+  visibility?: LearningVisibility;
 }
 
 export interface UpdateLearningResult {

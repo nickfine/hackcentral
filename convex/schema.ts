@@ -455,6 +455,37 @@ export default defineSchema({
     authorName: v.string(),
     likeCount: v.optional(v.number()),
     likedBy: v.optional(v.array(v.string())),
+    // Kind taxonomy for the Tooling Library. Optional so pre-existing rows
+    // (which have no kind) stay valid — treated as 'other' when absent.
+    // 'operating_context' = CLAUDE.md / agents.md, 'memory' = memory.md,
+    // 'learning' = learnings.md / notes, 'skill' = skill files.
+    kind: v.optional(
+      v.union(
+        v.literal("operating_context"),
+        v.literal("memory"),
+        v.literal("learning"),
+        v.literal("skill"),
+        v.literal("other")
+      )
+    ),
+    // Sharing scope. Optional so legacy rows stay valid — treated as 'org'
+    // (visible org-wide) when absent.
+    visibility: v.optional(
+      v.union(
+        v.literal("private"),
+        v.literal("org"),
+        v.literal("public")
+      )
+    ),
+    byteSize: v.optional(v.number()),
+    contentHash: v.optional(v.string()), // dedupe / "identical to" later
+    // --- Analysis stub (Tooling Library phase 2; unused in v1) ---
+    analysisSummary: v.optional(v.string()),
+    analysisTags: v.optional(v.array(v.string())),
+    analysisModel: v.optional(v.string()),
+    analyzedAt: v.optional(v.number()),
   })
-    .index("by_author", ["authorAccountId"]),
+    .index("by_author", ["authorAccountId"])
+    .index("by_kind", ["kind"])
+    .index("by_visibility", ["visibility"]),
 });

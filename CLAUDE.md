@@ -175,6 +175,17 @@ Plain `invoke('name', payload)` lacks `appMode: true` + `pageId`, so `getCurrent
 - **Captain handover + empty-team cleanup** — `detachUserFromTeam` (`helpers.js`) promotes the earliest-joined remaining member to OWNER when a captain leaves, and deletes a team that goes empty (except Observers, and only in editable phases). Used by `leaveTeam` and `ensureUserTeamless`
 - `leaveTeam` clears **both** `isFreeAgent=true` and `autoAssignOptIn=false` (deliberate leave = stop being auto-placed)
 
+### Tooling Library (Learnings) + Tooling-area IA
+**Lives in `static/frontend` (the participant macro), NOT runtime-frontend.** This macro calls resolvers via `invokeTyped`/`invoke` (from `hooks/useForgeData` / `utils/forgeBridge`), **not** `invokeEventScopedResolver`.
+
+- **Nav (`static/frontend/src/constants/nav.ts`)** — primary items include **Showcase** (`view=hacks`), **Library** (`view=library`), **HackDay Hacks** (`view=hacks_exchange`).
+  - **Showcase** = curated showcase hacks only (Supabase `Project` where `source_type=hack_submission`, `assetType` prompt/skill/app). Tabs: All/Skills/Prompts/Apps.
+  - **Library** = two tabs (`libraryTab` state): **Reusable artifacts** (Supabase `Artifact`, link-based, `source_url`, `ArtifactType`) | **AI working files** (Convex `learnings`, content-based).
+  - **HackDay Hacks** = every submission ever (Convex `hacks`), the permanent record.
+- **Learnings / Tooling Library** — Convex `learnings` table (`convex/learnings.ts`, `convex/schema.ts`). Stores full markdown `content` plus `kind` (operating_context/memory/learning/skill/other), `visibility` (private/org/public, default org; private = author-only via `list` filter), `byteSize`, `contentHash`, and unused analysis-stub fields (`analysisSummary`/`analysisTags`/`analysisModel`/`analyzedAt`). Resolvers: `hdcListLearnings`/`hdcUploadLearning`/`hdcUpdateLearning`/`hdcLikeLearning`/`hdcDeleteLearning` (`src/index.ts` → `src/backend/hackcentral.ts` → Convex). Capture = paste + drag-drop (`.md`/`.markdown`/`.txt`, 256KB cap, multi-drop → review modal); `detectKindFromFilename` in `App.tsx` auto-types CLAUDE.md/agents.md/memory.md/etc. Download = verbatim via `downloadText`.
+- **Three type vocabularies are de-collided at the presentation layer only** (stored enums untouched): Showcase tabs (Skills/Prompts/Apps), `REGISTRY_ARTIFACT_TYPE_LABELS` (`utils/registry.ts`), `LEARNING_KIND_LABELS` (`App.tsx`). No data migration.
+- **Phase 2 target (not built)** — collapse to two destinations: **AI Toolkit** (everything reusable, faceted by purpose + a content/link/hackday form chip) and **HackDay Gallery** (the event record). See `docs/TOOLING-LIBRARY-PLAN.md`.
+
 ---
 
 ## Phase-Gated Behaviour
@@ -219,4 +230,5 @@ forge webtrigger list -e production -s tag-hackday.atlassian.net -p Confluence -
 - `DEPLOY.md` — full deploy reference, tenant URLs, install runbook pointer
 - `LEARNINGS.md` — session history, gotchas, architectural decisions with context
 - `docs/HDC-TENANT-INSTALL-RUNBOOK.md` — new tenant setup
+- `docs/TOOLING-LIBRARY-PLAN.md` — Tooling Library design, analysis roadmap, and the Tooling-area IA reshape (Showcase/Library now, AI Toolkit + HackDay Gallery target)
 - `EIS_DESIGN_SYSTEM_PLAN.md` — EIS Design System migration plan for HDC (runtime-frontend), HD children excluded

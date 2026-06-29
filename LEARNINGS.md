@@ -1,6 +1,55 @@
 # LEARNINGS.md - HackCentral Session Notes
 
-**Last Updated:** June 26, 2026
+**Last Updated:** June 29, 2026
+
+---
+
+## 2026-06-29 — Tooling Library v1 + Tooling-area IA reshape (Phase 1) — v1.2.302 / Forge 2.311.0
+
+### What shipped
+
+1. **Tooling Library v1** (Forge 2.309.0) — turned the existing "Learnings & Memories" surface into a content-based library for AI working files (CLAUDE.md, agents.md, memory.md, learnings, skills). Convex `learnings` table gained `kind` (operating_context/memory/learning/skill/other), `visibility` (private/org/public, default org), `byteSize`, `contentHash`, and unused analysis-stub fields. Capture = paste + drag-drop (`.md`/`.markdown`/`.txt`, 256KB cap, multi-drop → review modal, `detectKindFromFilename` auto-types from filename). Verbatim download via `downloadText`. Additive Convex schema — no migration. **Convex deploys separately** from Forge: `CONVEX_DEPLOYMENT=groovy-duck-293 npx convex deploy --yes` (prod Forge `CONVEX_URL` points at `groovy-duck-293`, confirmed via `forge variables list --environment production`; `.env.local`'s `tangible-ocelot-341` is local dev).
+
+2. **IA reshape Phase 1** (Forge 2.310.0/2.311.0) — the Tooling area had a real collision: 4 overlapping surfaces (Tooling/Library/HackDay Hacks + learnings) and 3 clashing type vocabularies (showcase assetType, ArtifactType, LearningKind — "skill" in all three). Three design agents converged on the diagnosis: the area conflated two jobs — *reusable tooling you apply* vs *the hackday event record*. Phase 1 (frontend-only, no migration): renamed "Tooling" view → **Showcase** (curated hacks); moved the Learnings surface into the **Library** view as a 2-tab switch (Reusable artifacts | AI working files); promoted Library into the primary nav (was deep-link-only); de-collided vocabularies via view-scoped labels, later simplified to clean nouns when "Skills" vs "Skill reference" read as redundant.
+
+### Gotchas / decisions
+
+- **Two type systems wear one section.** The deeper duplication ("skill" exists as a showcase hack AND a Library artifact) is structural, not cosmetic — renaming labels only tidies it. The real de-dup is the **Phase 2 target**: one **AI Toolkit** (faceted by purpose, with a content/link/hackday *form chip* instead of three type labels) + a separate **HackDay Gallery** (the event record). Documented in `docs/TOOLING-LIBRARY-PLAN.md`; not yet built.
+- **Vocabulary reconciliation belongs at the presentation layer**, not in the DB — all three agents independently rejected cross-backend migration. Stored enums stay; labels/facets map on read.
+- **Big interleaved JSX relocation** (learnings surface, hacks view → library view in `App.tsx`) was done by narrowing the `toolingTab` union first, so TypeScript flagged every stale `'learnings'` comparison as a checklist. Effective technique for large single-file refactors.
+- **APP_VERSION discipline**: 2.310.0 shipped without bumping APP_VERSION — harmless because macro assets are content-hashed (fresh filenames bust cache), but bump it anyway per the deploy rule. Now at 1.2.302.
+- The Tooling/Library work is all in **`static/frontend`** (participant macro, uses `invokeTyped`), distinct from the runtime-frontend app and its `invokeEventScopedResolver` pattern.
+
+---
+
+## 2026-06-29 — Results page went blank: awards regression from the hardcoded→DB switch
+
+### Symptom
+
+Results page showed no winners (and "All Submissions" still rendered). Reported as "we seem to have lost all the results".
+
+### Root cause — a regression, not data corruption
+
+v1.2.298 (28 Jun, commit `2277ba0`) deleted the hardcoded winner IDs from the `case 'results':` block in `App.jsx` and switched Results to read live awards from the DB (`awards={eventAwards}`, loaded on mount via `getEventAwards`). **But `Event.awards` was never populated** — it stayed at its `{}` column default. The moment that deploy went live, `awards={}` → Results renders "No Winners Yet". Nobody had opened Admin → Awards and saved, so the migration from hardcoded IDs to DB had no data to read.
+
+Ruled out: no `EventBackupRestoreRun` rows, no awards-related `EventAuditLog` entries. All underlying data was always intact — 15 teams, 13 projects, 49 judge scores, 339 votes, submissions. Only the `awards` JSONB was empty.
+
+### Fix
+
+Restored `Event.awards` directly via SQL with the same team IDs v1.2.298 had deleted. Verified against the intact scores/votes before writing — recomputed judge % and vote counts, all match the published results exactly:
+
+- Grand Prize — Crisis comms on rails (`team-9b856dca-ea44-4d37-a19f-469432cc37f0`) — 76.5%
+- Runner Up — Koda (`team-b3d7bea8-9a33-41f0-9f16-e24e226cd483`) — 71.0%
+- Third Place (tie) — SLAyer: Breach in Black (`team-5a1ca7e9-766e-440f-81ed-4839a4a6e772`) & AI enhanced reporting dashboards (`team-c9f1c042-f11f-4228-873a-efefc806efe0`) — 70.0% each
+- People's Choice — Klipy (`team-be842e60-b269-4047-a191-65b0a2397377`) — 38 votes
+
+No redeploy needed — `getEventAwards` reads live from the DB; reloading the Results page brings the winners back.
+
+### Gotchas / follow-ups
+
+- **`setEventAwards` writes no audit-log entry** — that's why there was no breadcrumb for this. Worth adding an `EventAuditLog` write (with `previous_value`/`new_value`) so future awards changes are traceable.
+- When a feature moves from hardcoded values to a DB-backed store, **the data migration is a separate step** — flipping the read path without seeding the column ships an empty feature.
+- The published winners are recoverable from intact scores/votes: judge % = `SUM(criteria)/(judges×50)×100`; People's Choice = highest `COUNT(Vote)` per project (join `Vote.projectId → Project.id → Team`).
 
 ---
 

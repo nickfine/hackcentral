@@ -1,17 +1,39 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+// Tooling Library taxonomy. Optional everywhere so legacy rows stay valid.
+const kindValidator = v.union(
+  v.literal("operating_context"),
+  v.literal("memory"),
+  v.literal("learning"),
+  v.literal("skill"),
+  v.literal("other")
+);
+const visibilityValidator = v.union(
+  v.literal("private"),
+  v.literal("org"),
+  v.literal("public")
+);
+
 export const list = query({
   args: { viewerAccountId: v.optional(v.string()) },
   handler: async (ctx, { viewerAccountId }) => {
     const rows = await ctx.db.query("learnings").order("desc").collect();
-    return rows.map((r) => ({
-      ...r,
-      likeCount: r.likeCount ?? 0,
-      hasLiked: viewerAccountId
-        ? (r.likedBy ?? []).includes(viewerAccountId)
-        : false,
-    }));
+    return rows
+      .filter((r) => {
+        // Missing visibility is treated as 'org' (the pre-taxonomy default).
+        const visibility = r.visibility ?? "org";
+        if (visibility !== "private") return true;
+        // Private rows are visible only to their author.
+        return !!viewerAccountId && r.authorAccountId === viewerAccountId;
+      })
+      .map((r) => ({
+        ...r,
+        likeCount: r.likeCount ?? 0,
+        hasLiked: viewerAccountId
+          ? (r.likedBy ?? []).includes(viewerAccountId)
+          : false,
+      }));
   },
 });
 
@@ -24,6 +46,10 @@ export const upload = mutation({
     tags: v.array(v.string()),
     authorAccountId: v.string(),
     authorName: v.string(),
+    kind: v.optional(kindValidator),
+    visibility: v.optional(visibilityValidator),
+    byteSize: v.optional(v.number()),
+    contentHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (!args.filename.trim()) throw new ConvexError("Filename is required");
@@ -36,6 +62,10 @@ export const upload = mutation({
       tags: args.tags,
       authorAccountId: args.authorAccountId,
       authorName: args.authorName,
+      kind: args.kind ?? "other",
+      visibility: args.visibility ?? "org",
+      byteSize: args.byteSize,
+      contentHash: args.contentHash,
     });
   },
 });
@@ -46,15 +76,35 @@ export const updateMetadata = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     tags: v.array(v.string()),
+    kind: v.optional(kindValidator),
+    visibility: v.optional(visibilityValidator),
   },
-  handler: async (ctx, { learningId, title, description, tags }) => {
+  handler: async (ctx, { learningId, title, description, tags, kind, visibility }) => {
     const row = await ctx.db.get(learningId);
     if (!row) throw new ConvexError("Learning not found");
     await ctx.db.patch(learningId, {
       title: title?.trim() || undefined,
       description: description?.trim() || undefined,
       tags,
+      ...(kind ? { kind } : {}),
+      ...(visibility ? { visibility } : {}),
     });
+  },
+});
+
+// --- Analysis stub (Tooling Library phase 2) ---
+// Placeholder for per-artefact AI analysis. v1 leaves this a no-op so the
+// capture/find/download flow ships without any LLM dependency. The future
+// implementation will call the Anthropic API via a Forge-side action and
+// patch analysisSummary / analysisTags / analysisModel / analyzedAt onto the
+// row. See docs/TOOLING-LIBRARY-PLAN.md for the full design and cost spectrum.
+export const analyze = mutation({
+  args: { learningId: v.id("learnings") },
+  handler: async (ctx, { learningId }) => {
+    const row = await ctx.db.get(learningId);
+    if (!row) throw new ConvexError("Learning not found");
+    // Intentionally no-op in v1.
+    return { analyzed: false, reason: "analysis not yet implemented" };
   },
 });
 

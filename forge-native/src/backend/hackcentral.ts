@@ -1086,6 +1086,10 @@ export async function listHdcLearnings(
     createdAt: r._creationTime as number,
     likeCount: typeof r.likeCount === 'number' ? r.likeCount : 0,
     hasLiked: !!(r.hasLiked),
+    // Legacy rows predate the taxonomy — default kind to 'other', visibility to 'org'.
+    kind: typeof r.kind === 'string' ? (r.kind as LearningItem['kind']) : 'other',
+    visibility: typeof r.visibility === 'string' ? (r.visibility as LearningItem['visibility']) : 'org',
+    byteSize: typeof r.byteSize === 'number' ? r.byteSize : undefined,
   }));
   return { items };
 }
@@ -1110,7 +1114,7 @@ export async function uploadHdcLearning(
   viewer: ViewerContext,
   input: UploadLearningInput
 ): Promise<UploadLearningResult> {
-  const { filename, content, title, description, tags, authorName } = input;
+  const { filename, content, title, description, tags, authorName, kind, visibility, byteSize, contentHash } = input;
   if (!filename.trim()) throw new Error('Filename is required');
   const client = asConvexInvoker(getConvexClient());
   const id = await client.mutation('learnings:upload', {
@@ -1121,6 +1125,10 @@ export async function uploadHdcLearning(
     tags,
     authorAccountId: viewer.accountId,
     authorName: authorName.trim() || viewer.accountId,
+    ...(kind ? { kind } : {}),
+    ...(visibility ? { visibility } : {}),
+    ...(typeof byteSize === 'number' ? { byteSize } : {}),
+    ...(contentHash ? { contentHash } : {}),
   }) as string;
   return { id };
 }
@@ -1129,7 +1137,7 @@ export async function updateHdcLearning(
   viewer: ViewerContext,
   input: UpdateLearningInput
 ): Promise<UpdateLearningResult> {
-  const { learningId, title, description, tags } = input;
+  const { learningId, title, description, tags, kind, visibility } = input;
   const client = asConvexInvoker(getConvexClient());
 
   const rows = await client.query('learnings:list', {}) as Record<string, unknown>[];
@@ -1145,6 +1153,8 @@ export async function updateHdcLearning(
     ...(title?.trim() ? { title: title.trim() } : {}),
     ...(description?.trim() ? { description: description.trim() } : {}),
     tags,
+    ...(kind ? { kind } : {}),
+    ...(visibility ? { visibility } : {}),
   });
   return { success: true };
 }

@@ -11,6 +11,17 @@ export const REGISTRY_ARTIFACT_TYPES: ArtifactType[] = [
   'other',
 ];
 
+// Clean type labels. The "Reusable artifacts" tab context (and, in Phase 2, a
+// form chip) carries the link-vs-content distinction rather than the label.
+export const REGISTRY_ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
+  prompt: 'Prompt',
+  skill: 'Skill',
+  template: 'Template',
+  learning: 'Learning',
+  code_snippet: 'Code snippet',
+  other: 'Other',
+};
+
 export function parseRegistryTags(input: string): string[] {
   return input
     .split(',')
