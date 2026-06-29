@@ -28,6 +28,8 @@ Shipping v1 exposed a pre-existing collision in the whole Tooling area: 4 overla
 - Promoted **Library** into the primary nav (was deep-link-only).
 - De-collided the 3 vocabularies via view-scoped labels; later simplified to clean nouns (Skill/Prompt/Template/Learning/Code snippet) once "Skills" vs "Skill reference" read as redundant. Stored enums untouched.
 
+**Status (2026-06-29):** IA Phase 1 shipped, but it did **not** settle the IA. Nick's verdict after seeing it live: "this isn't right still". The Showcase/Library split and label tidy reduced the surface clash but left the structural duplication intact — a "skill" still exists in both Showcase (a hack) and Library (an artifact), and Showcase/Library/HackDay Hacks remain three storage-shaped destinations. **Next step: a Petra (`enterprise-ux-expert` skill) UX critique of the live IA, then a Phase 2 redesign driven by that critique** — do not assume the target below is final until Petra's review is in.
+
 **IA Phase 2 — target (not built; needs its own plan + approval):**
 - **AI Toolkit** — collapse Library's two tabs + curated Showcase hacks into one faceted browse: purpose facets (Prompts, Skills, Apps & code, Operating setups, Learnings & memory, Other) + a **form chip** (◆ content / ↗ link / ⚑ hackday) + source/visibility/featured filters. The form chip carries the link-vs-content distinction so a "skill" is just a "skill", killing the residual label duplication. Vocabulary reconciled via a read-time mapping; no migration.
 - **HackDay Gallery** — the `hacks_exchange` all-submissions record, browsable by event/team, with a "Promote to Toolkit" action formalising the existing featured-showcase mechanic.
